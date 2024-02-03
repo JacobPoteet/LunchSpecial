@@ -26,12 +26,12 @@
             console.log('Correct guess. Moving to next recipe.');
         } else {
             currentClueIndex++;
-            currentIngredients.push(recipes[currentRecipeIndex].ingredients[currentClueIndex]);
+            currentIngredients = [...currentIngredients, recipes[currentRecipeIndex].ingredients[currentClueIndex]];
             console.log('Incorrect guess. Moving to next clue. Current Ingredients:', currentIngredients);
         }
     }
 
 </script>
 
-<Clue ingredients={currentIngredients} />
+<Clue bind:ingredients={currentIngredients} />
 <Guess on:submitGuess={handleGuess} />

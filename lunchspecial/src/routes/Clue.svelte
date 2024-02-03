@@ -3,7 +3,7 @@
 </script>
 
 <ul>
-  {#each ingredients as ingredient (ingredient)}
+  {#each ingredients as ingredient}
     <li>{ingredient}</li>
   {/each}
 </ul>
