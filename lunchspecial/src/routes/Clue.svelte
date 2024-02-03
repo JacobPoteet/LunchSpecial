@@ -1,5 +1,9 @@
 <script lang="ts">
-    export let ingredient: string;
+  export let ingredients: string[] = [];
 </script>
-  
-  <p>The ingredient is: {ingredient}</p>
+
+<ul>
+  {#each ingredients as ingredient (ingredient)}
+    <li>{ingredient}</li>
+  {/each}
+</ul>
