@@ -14,15 +14,29 @@
     let currentIngredients: string[] = [];
 
     onMount(() => {
-        currentIngredients.push(recipes[currentRecipeIndex].ingredients[currentClueIndex]);
+        resetCurrentIngredients();
         console.log('Mounted. Current Ingredients:', currentIngredients);
     });
+
+    function resetGame() {
+        currentRecipeIndex = 0;
+        resetCurrentIngredients();
+    }
+
+    function resetCurrentIngredients() {
+        currentClueIndex = 0;
+        currentIngredients = [];
+        updateCurrentIngredients();
+    }
+
+    function updateCurrentIngredients() {
+        currentIngredients = [...currentIngredients, recipes[currentRecipeIndex].ingredients[currentClueIndex]];
+    }
 
     function handleGuess(event: any) {
         if (event.detail === recipes[currentRecipeIndex].name) {
             currentRecipeIndex++;
-            currentClueIndex = 0;
-            currentIngredients = [];
+            resetCurrentIngredients();
             console.log('Correct guess. Moving to next recipe.');
         } else {
             currentClueIndex++;
