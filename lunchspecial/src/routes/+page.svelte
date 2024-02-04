@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import IngredientList from './RecipeList.svelte';
+    import IngredientList from './IngredientList.svelte';
     import Guess from './Guess.svelte';
 
     let recipes = [
