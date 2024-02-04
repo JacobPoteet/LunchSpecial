@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import Clue from './Clue.svelte';
+    import IngredientList from './RecipeList.svelte';
     import Guess from './Guess.svelte';
 
     let recipes = [
@@ -10,7 +10,7 @@
     ];
 
     let currentRecipeIndex = 0;
-    let currentClueIndex = 0;
+    let currentIngredientIndex = 0;
     let currentIngredients: string[] = [];
 
     onMount(() => {
@@ -24,13 +24,13 @@
     }
 
     function resetCurrentIngredients() {
-        currentClueIndex = 0;
+        currentIngredientIndex = 0;
         currentIngredients = [];
         updateCurrentIngredients();
     }
 
     function updateCurrentIngredients() {
-        currentIngredients = [...currentIngredients, recipes[currentRecipeIndex].ingredients[currentClueIndex]];
+        currentIngredients = [...currentIngredients, recipes[currentRecipeIndex].ingredients[currentIngredientIndex]];
     }
 
     function handleGuess(event: any) {
@@ -39,13 +39,13 @@
             resetCurrentIngredients();
             console.log('Correct guess. Moving to next recipe.');
         } else {
-            currentClueIndex++;
-            currentIngredients = [...currentIngredients, recipes[currentRecipeIndex].ingredients[currentClueIndex]];
+            currentIngredientIndex++;
+            currentIngredients = [...currentIngredients, recipes[currentRecipeIndex].ingredients[currentIngredientIndex]];
             console.log('Incorrect guess. Moving to next clue. Current Ingredients:', currentIngredients);
         }
     }
 
 </script>
 
-<Clue bind:ingredients={currentIngredients} />
+<IngredientList bind:ingredients={currentIngredients} />
 <Guess on:submitGuess={handleGuess} />
