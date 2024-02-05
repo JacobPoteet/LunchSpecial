@@ -27,20 +27,17 @@
     }
 
     function requestClue() {
-        currentClueIndex = iterateList(currentClueIndex, recipes[currentRecipeIndex].clue);
-        currentClues = [...currentClues, recipes[currentRecipeIndex].clue[currentClueIndex]];
         console.log('Requesting clue.');
-    }
-
-    function iterateList(index : number, list : any[]) {
-        if (index < list.length - 1) {
-            index++;
-            console.log('Iterating list ${list}, Index:', index);
-        } 
-        else{
-            console.log('End of list ${list}.');
+        if(currentClueIndex + 1 === recipes[currentRecipeIndex].clue.length) {
+            console.log('No more clues available for this recipe.');
+            return;
         }
-        return index;
+        else
+        {
+            currentClueIndex++;
+            currentClues = [...currentClues, recipes[currentRecipeIndex].clue[currentClueIndex]];
+            console.log('New Clue Added. Current Clues:', currentClues);
+        }
     }
 
     function resetCurrentIngredients() {
@@ -55,13 +52,19 @@
 
     function handleGuess(event: any) {
         if (event.detail === recipes[currentRecipeIndex].name) {
-            currentClueIndex = iterateList(currentRecipeIndex, recipes);
             resetCurrentIngredients();
             console.log('Correct guess. Moving to next recipe.');
         } else {
-            currentIngredientIndex = iterateList(currentIngredientIndex, recipes[currentRecipeIndex].ingredients);
-            currentIngredients = [...currentIngredients, recipes[currentRecipeIndex].ingredients[currentIngredientIndex]];
-            console.log('Incorrect guess. Moving to next clue. Current Ingredients:', currentIngredients);
+            if(currentIngredientIndex + 1 === recipes[currentRecipeIndex].ingredients.length) {
+                console.log('No more ingredients available for this recipe.');
+                return;
+            }
+            else
+            {
+                currentIngredientIndex++;
+                updateCurrentIngredients();
+                console.log('Incorrect guess. Moving to next clue. Current Ingredients:', currentIngredients);
+            }
         }
     }
 
