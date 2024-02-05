@@ -27,9 +27,20 @@
     }
 
     function requestClue() {
-        currentClueIndex++;
+        currentClueIndex = iterateList(currentClueIndex, recipes[currentRecipeIndex].clue);
         currentClues = [...currentClues, recipes[currentRecipeIndex].clue[currentClueIndex]];
         console.log('Requesting clue.');
+    }
+
+    function iterateList(index : number, list : any[]) {
+        if (index < list.length - 1) {
+            index++;
+            console.log('Iterating list ${list}, Index:', index);
+        } 
+        else{
+            console.log('End of list ${list}.');
+        }
+        return index;
     }
 
     function resetCurrentIngredients() {
@@ -44,11 +55,11 @@
 
     function handleGuess(event: any) {
         if (event.detail === recipes[currentRecipeIndex].name) {
-            currentRecipeIndex++;
+            currentClueIndex = iterateList(currentRecipeIndex, recipes);
             resetCurrentIngredients();
             console.log('Correct guess. Moving to next recipe.');
         } else {
-            currentIngredientIndex++;
+            currentIngredientIndex = iterateList(currentIngredientIndex, recipes[currentRecipeIndex].ingredients);
             currentIngredients = [...currentIngredients, recipes[currentRecipeIndex].ingredients[currentIngredientIndex]];
             console.log('Incorrect guess. Moving to next clue. Current Ingredients:', currentIngredients);
         }
