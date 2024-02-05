@@ -2,16 +2,19 @@
     import { onMount } from 'svelte';
     import IngredientList from './IngredientList.svelte';
     import Guess from './Guess.svelte';
+    import ClueList from './ClueList.svelte';
 
     let recipes = [
-        { name: 'Pizza', ingredients: ['Flour', 'Tomato', 'Cheese'] },
-        { name: 'Pasta', ingredients: ['Flour', 'Egg', 'Tomato'] },
-        { name: 'Burger', ingredients: ['Bread', 'Beef', 'Lettuce'] }
+        { name: 'Pizza', ingredients: ['Flour', 'Tomato', 'Cheese'], clue: ['It is a round dish', 'It is a popular Italian dish']},
+        { name: 'Pasta', ingredients: ['Flour', 'Egg', 'Tomato'], clue: ['It is a popular Italian dish', 'It is a noodle dish']},
+        { name: 'Burger', ingredients: ['Bread', 'Beef', 'Lettuce'], clue: ['It is a sandwich', 'It is a popular American dish']}
     ];
 
     let currentRecipeIndex = 0;
     let currentIngredientIndex = 0;
+    let currentClueIndex = 0;
     let currentIngredients: string[] = [];
+    let currentClues: string[] = [];
 
     onMount(() => {
         resetCurrentIngredients();
@@ -21,6 +24,12 @@
     function resetGame() {
         currentRecipeIndex = 0;
         resetCurrentIngredients();
+    }
+
+    function requestClue() {
+        currentClueIndex++;
+        currentClues = [...currentClues, recipes[currentRecipeIndex].clue[currentClueIndex]];
+        console.log('Requesting clue.');
     }
 
     function resetCurrentIngredients() {
@@ -49,3 +58,6 @@
 
 <IngredientList bind:ingredients={currentIngredients} />
 <Guess on:submitGuess={handleGuess} />
+
+<ClueList bind:clues={currentClues} />
+<button on:click={requestClue}>Request Clue</button>
