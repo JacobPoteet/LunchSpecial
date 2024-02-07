@@ -3,6 +3,7 @@
     import IngredientList from './IngredientList.svelte';
     import Guess from './Guess.svelte';
     import ClueList from './ClueList.svelte';
+    import "../app.css";
 
     let recipes = [
         { name: 'Pizza', ingredients: ['Flour', 'Tomato', 'Cheese'], clue: ['It is a round dish', 'It is a popular Italian dish']},
