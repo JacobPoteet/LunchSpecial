@@ -3,13 +3,10 @@
     import IngredientList from './IngredientList.svelte';
     import Guess from './Guess.svelte';
     import ClueList from './ClueList.svelte';
-    import "../app.css";
+    import "./app.css";
+    import "./models/Recipe.ts";
 
-    let recipes = [
-        { name: 'Pizza', ingredients: ['Flour', 'Tomato', 'Cheese'], clue: ['It is a round dish', 'It is a popular Italian dish']},
-        { name: 'Pasta', ingredients: ['Flour', 'Egg', 'Tomato'], clue: ['It is a popular Italian dish', 'It is a noodle dish']},
-        { name: 'Burger', ingredients: ['Bread', 'Beef', 'Lettuce'], clue: ['It is a sandwich', 'It is a popular American dish']}
-    ];
+    let recipes = JSON.parse(recipesJson);
 
     let currentRecipeIndex = 0;
     let currentIngredientIndex = 0;
