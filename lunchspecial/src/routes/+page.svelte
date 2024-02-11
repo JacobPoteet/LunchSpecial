@@ -3,8 +3,23 @@
     import IngredientList from './IngredientList.svelte';
     import Guess from './Guess.svelte';
     import ClueList from './ClueList.svelte';
-    import "./app.css";
-    import "./models/Recipe.ts";
+    import './app.css'; 
+    import './models/Recipe.ts';
+
+    let recipesJson = `
+    [
+        {
+            "name": "Pancakes",
+            "ingredients": ["Flour", "Eggs", "Milk"],
+            "clues": ["Mix ingredients", "Cook on pan"]
+        },
+        {
+            "name": "Scrambled Eggs",
+            "ingredients": ["Eggs", "Butter", "Salt"],
+            "clues": ["Beat eggs", "Cook in pan with butter"]
+        }
+    ]
+    `;
 
     let recipes = JSON.parse(recipesJson);
 
