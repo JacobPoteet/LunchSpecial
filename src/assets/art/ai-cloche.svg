@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 200">
+  <!-- AI-GENERATED PLACEHOLDER — replace with commissioned art. See ASSETS.md ("ai-cloche.svg"). -->
+  <!-- Mystery-dish cloche: silver dome on a plate with a question mark. -->
+  <defs>
+    <linearGradient id="dome" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eef3f5"/>
+      <stop offset="0.6" stop-color="#aebfc7"/>
+      <stop offset="1" stop-color="#81949c"/>
+    </linearGradient>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8edf0"/>
+      <stop offset="1" stop-color="#9fb0b8"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="120" cy="182" rx="100" ry="12" fill="#141110" opacity="0.25"/>
+  <path d="M28 160 a92 82 0 0 1 184 0 z" fill="url(#dome)"/>
+  <path d="M52 150 a70 62 0 0 1 60 -58" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.65"/>
+  <circle cx="120" cy="70" r="12" fill="url(#plate)"/>
+  <rect x="10" y="160" width="220" height="14" rx="7" fill="url(#plate)"/>
+  <text x="120" y="140" text-anchor="middle" font-family="Georgia, serif" font-size="64" font-weight="bold" fill="#1b4f4a">?</text>
+</svg>

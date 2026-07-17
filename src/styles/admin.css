@@ -1,0 +1,414 @@
+/* Admin panel — the diner's back office. Functional, still on-theme. */
+
+.admin {
+  min-height: 100dvh;
+  background: var(--teal-dark);
+  padding: 18px 14px 60px;
+}
+
+.admin__shell {
+  max-width: 1060px;
+  margin: 0 auto;
+}
+
+.admin__masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.admin__title {
+  font-family: var(--font-script);
+  color: #ffd9e0;
+  text-shadow: 0 0 10px rgba(255, 95, 122, 0.8);
+  font-size: 2rem;
+  margin: 0;
+  font-weight: 400;
+}
+
+.admin__title small {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  letter-spacing: 0.3em;
+  color: var(--cream);
+  text-shadow: none;
+  display: block;
+  margin-top: 2px;
+}
+
+.admin-nav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.admin-nav button {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 2px solid var(--cream);
+  background: transparent;
+  color: var(--cream);
+  border-radius: 999px;
+  padding: 7px 16px;
+}
+
+.admin-nav button.active,
+.admin-nav button:hover {
+  background: var(--cherry);
+  border-color: var(--cherry);
+}
+
+.panel {
+  background: var(--paper);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 16px;
+}
+
+.panel h2 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin: 0 0 12px;
+}
+
+.panel--warn {
+  border-left: 6px solid var(--cherry);
+}
+
+.btn {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: var(--radius);
+  padding: 9px 16px;
+  background: var(--teal);
+  color: var(--cream);
+}
+
+.btn:hover { background: var(--teal-dark); }
+.btn--red { background: var(--cherry); }
+.btn--red:hover { background: var(--cherry-dark); }
+.btn--ghost {
+  background: transparent;
+  color: var(--teal);
+  border: 2px solid var(--teal);
+}
+.btn--ghost:hover { background: rgba(27, 79, 74, 0.1); }
+.btn:disabled { background: var(--miss); cursor: not-allowed; }
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* login */
+
+.login {
+  max-width: 380px;
+  margin: 10vh auto 0;
+}
+
+.login input {
+  width: 100%;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  padding: 11px 14px;
+  margin-bottom: 10px;
+}
+
+/* dashboard */
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.dash-big {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  margin: 2px 0 4px;
+  color: var(--ink);
+}
+
+.dash-note { color: var(--ink-soft); margin: 0; font-size: 0.9rem; }
+
+.warning-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.warning-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--paper-edge);
+  font-size: 0.95rem;
+}
+
+.warning-list li:last-child { border-bottom: none; }
+
+/* tables (collapse to cards on mobile) */
+
+.admin-table { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
+
+.admin-table th {
+  text-align: left;
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  padding: 8px 10px;
+  border-bottom: 2px solid var(--paper-edge);
+}
+
+.admin-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--paper-edge);
+  vertical-align: middle;
+}
+
+.admin-table tr:hover td { background: rgba(232, 165, 58, 0.12); cursor: pointer; }
+
+.badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  border-radius: 999px;
+  padding: 2px 9px;
+  background: var(--hit-soft);
+  color: var(--hit);
+  border: 1px solid var(--hit);
+}
+
+.badge--warn { background: var(--near-soft); color: #9a6516; border-color: var(--near); }
+.badge--off { background: var(--miss-soft); color: var(--ink-soft); border-color: var(--miss); }
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.filter-row input,
+.filter-row select {
+  border: 1.5px solid var(--ink-soft);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  background: #fffdf6;
+}
+
+.filter-row input { flex: 1; min-width: 160px; }
+
+/* editor */
+
+.editor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+@media (max-width: 860px) {
+  .editor-grid { grid-template-columns: 1fr; }
+}
+
+.field { margin-bottom: 12px; }
+
+.field label {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 4px;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  border: 1.5px solid var(--ink-soft);
+  border-radius: 8px;
+  padding: 8px 11px;
+  background: #fffdf6;
+}
+
+.field textarea { resize: vertical; min-height: 52px; line-height: 1.4; }
+
+.field-hint { font-size: 0.78rem; color: var(--ink-soft); margin: 3px 0 0; font-style: italic; }
+
+.attr-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+/* ingredient tag input */
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  border: 1.5px solid var(--ink-soft);
+  border-radius: 8px;
+  padding: 6px;
+  background: #fffdf6;
+}
+
+.tags input {
+  border: none;
+  flex: 1;
+  min-width: 120px;
+  padding: 4px 6px;
+  background: transparent;
+}
+
+.tags input:focus { outline: none; }
+
+.tag {
+  background: var(--teal);
+  color: var(--cream);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  padding: 3px 4px 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tag button {
+  background: rgba(255, 255, 255, 0.25);
+  border: none;
+  color: var(--cream);
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 0.7rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.tag-suggest {
+  position: relative;
+}
+
+.tag-suggest__list {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  background: #fffdf6;
+  border: 1.5px solid var(--ink-soft);
+  border-radius: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  z-index: 20;
+  max-height: 180px;
+  overflow-y: auto;
+  box-shadow: 0 10px 24px rgba(20, 17, 16, 0.2);
+}
+
+.tag-suggest__list li { padding: 6px 10px; border-radius: 6px; font-size: 0.9rem; }
+.tag-suggest__list li:hover, .tag-suggest__list li.hl { background: var(--mustard); cursor: pointer; }
+.tag-suggest__new { font-style: italic; color: var(--ink-soft); }
+
+.preview-pane {
+  background: rgba(27, 79, 74, 0.06);
+  border: 1.5px dashed var(--teal);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+.preview-pane h3 {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin: 0 0 10px;
+}
+
+/* schedule */
+
+.sched-list { list-style: none; margin: 0; padding: 0; }
+
+.sched-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--paper-edge);
+  flex-wrap: wrap;
+}
+
+.sched-row--past { opacity: 0.5; }
+.sched-row--today { background: rgba(232, 165, 58, 0.18); border-radius: 8px; }
+.sched-row--empty .sched-dish { color: var(--cherry); font-style: italic; }
+
+.sched-date {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  min-width: 130px;
+  color: var(--ink);
+}
+
+.sched-dish { flex: 1; min-width: 140px; }
+
+.form-error {
+  background: var(--cherry);
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+.form-ok {
+  background: var(--hit-soft);
+  color: var(--hit);
+  border: 1px solid var(--hit);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .admin-table thead { display: none; }
+  .admin-table, .admin-table tbody, .admin-table tr, .admin-table td { display: block; width: 100%; }
+  .admin-table tr {
+    border: 1.5px solid var(--paper-edge);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    padding: 6px 4px;
+    background: #fffdf6;
+  }
+  .admin-table td { border: none; padding: 4px 10px; }
+  .admin-table td[data-label]::before {
+    content: attr(data-label) ": ";
+    font-family: var(--font-display);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- AI-GENERATED PLACEHOLDER — replace with commissioned art. See ASSETS.md ("favicon.svg"). -->
+  <circle cx="32" cy="32" r="30" fill="#c9354a"/>
+  <path d="M12 40 a20 18 0 0 1 40 0 z" fill="#f6edd9"/>
+  <circle cx="32" cy="20" r="3.5" fill="#f6edd9"/>
+  <rect x="8" y="40" width="48" height="5" rx="2.5" fill="#f6edd9"/>
+</svg>
