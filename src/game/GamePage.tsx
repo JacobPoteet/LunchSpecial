@@ -13,22 +13,27 @@ import {
 import type { DailyInfo, DishSummary, RevealInfo } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
 import { ClueTicket, Countdown, GuessInput, GuessRow, Modal } from "./components";
+import ArchiveModal from "./ArchiveModal";
+import { dateLabel, isPastPuzzleDate } from "./archive";
 import { playSfx } from "./sfx";
 import { buildShareText } from "./share";
 import {
   emptyRound,
   hasSeenHowTo,
+  loadArchiveRound,
   loadRound,
   loadStats,
   markHowToSeen,
   recordResult,
+  saveArchiveRound,
   saveRound,
+  type GameStatus,
   type RoundState,
   type Stats,
 } from "./storage";
 import clocheUrl from "../assets/art/ai-cloche.svg";
 
-/** A fresh random seed for free-play; the server maps it to a random dish. */
+/** A fresh random seed for a random recipe; the server maps it to a random dish. */
 function newSeed(): string {
   return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
@@ -54,6 +59,10 @@ function HowToModal({ onClose }: { onClose: () => void }) {
         <p>
           After each wrong order, the kitchen slips you a <strong>clue ticket</strong> — country of origin, history, the
           moment that made the dish famous. Five clues in total. Good luck, hon.
+        </p>
+        <p>
+          Once you've settled today's check, hit <strong>Menu archive</strong> to replay any Special you missed — or
+          have the cook fire a random recipe.
         </p>
       </div>
     </Modal>
@@ -88,25 +97,32 @@ function ResultModal({
   daily,
   reveal,
   stats,
-  ephemeral,
-  freeplay,
+  isDaily,
+  isRandom,
+  canShare,
+  canArchive,
   onNewGame,
+  onArchive,
   onClose,
 }: {
   round: RoundState;
   daily: DailyInfo;
   reveal: RevealInfo | null;
   stats: Stats;
-  ephemeral: boolean;
-  freeplay: boolean;
+  isDaily: boolean;
+  isRandom: boolean;
+  canShare: boolean;
+  canArchive: boolean;
   onNewGame: () => void;
+  onArchive: () => void;
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const won = round.status === "won";
   const share = async () => {
     const text = buildShareText(daily.puzzleNumber, round.guesses, won, daily.ingredientCount);
-    if (!ephemeral && round.analyticsId) {
+    // Only the daily counts toward analytics; archive replays don't.
+    if (isDaily && round.analyticsId) {
       beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date });
     }
     // On mobile (and any browser with the Web Share API) bring up the native
@@ -146,16 +162,23 @@ function ResultModal({
           </div>
         </>
       )}
-      {freeplay && (
+      {isRandom && (
         <button className="share-btn" onClick={onNewGame}>
           🎲 New random dish
         </button>
       )}
-      {!ephemeral && (
+      {canShare && (
+        <button className="share-btn" onClick={share}>
+          {copied ? "Copied to clipboard!" : "Share your order"}
+        </button>
+      )}
+      {canArchive && (
+        <button className="share-btn share-btn--ink" onClick={onArchive}>
+          📅 Play another day
+        </button>
+      )}
+      {isDaily && (
         <>
-          <button className="share-btn" onClick={share}>
-            {copied ? "Copied to clipboard!" : "Share your order"}
-          </button>
           <StatsPanel stats={stats} />
           <Countdown />
         </>
@@ -165,27 +188,40 @@ function ResultModal({
 }
 
 export default function GamePage() {
-  const isPreview = useMemo(() => new URLSearchParams(window.location.search).has("preview"), []);
-  const preview = useMemo(() => new URLSearchParams(window.location.search).get("preview") ?? undefined, []);
-  // Dev-only "free play": /play (or ?freeplay) serves a fresh round on a random
-  // dish, nothing saved. Never in a production build; the worker gate is the
-  // real backstop (see DEV_FREEPLAY). See `npm run play`.
-  const freeplay = useMemo(() => {
-    if (!import.meta.env.DEV || isPreview) return false;
-    const params = new URLSearchParams(window.location.search);
-    return window.location.pathname.startsWith("/play") || params.has("freeplay");
-  }, [isPreview]);
-  const date = useMemo(() => localToday(), []);
+  const search = useMemo(() => new URLSearchParams(window.location.search), []);
+  const preview = useMemo(() => search.get("preview") ?? undefined, [search]);
+  const isPreview = preview !== undefined;
+  const today = useMemo(() => localToday(), []);
 
-  // A free-play round is keyed by a random seed; a new seed = a new random dish.
+  // Archive: ?date=<past puzzle> replays an earlier Special (saved on its own,
+  // separate from the daily streak). Only genuine past puzzle dates qualify.
+  const archiveDateParam = useMemo(() => search.get("date") ?? undefined, [search]);
+  const isArchive = !isPreview && !!archiveDateParam && isPastPuzzleDate(archiveDateParam, today);
+
+  // Random recipe ("cook's choice"): ?random serves a random dish, nothing
+  // saved. Available to everyone. Dev keeps the legacy /play and ?freeplay
+  // entrances too.
+  const isRandom = useMemo(() => {
+    if (isPreview || isArchive) return false;
+    if (search.has("random")) return true;
+    if (!import.meta.env.DEV) return false;
+    return window.location.pathname.startsWith("/play") || search.has("freeplay");
+  }, [isPreview, isArchive, search]);
+
+  const isDaily = !isPreview && !isArchive && !isRandom;
+  const date = isArchive ? (archiveDateParam as string) : today;
+
+  // A random round is keyed by a random seed; a new seed = a new random dish.
   const [seed, setSeed] = useState(() => newSeed());
-  const random = freeplay ? seed : undefined;
-  // Both preview and free-play are throwaway: no localStorage, stats, or analytics.
-  const ephemeral = isPreview || freeplay;
+  const random = isRandom ? seed : undefined;
+  // Preview and random are throwaway: no localStorage, stats, or analytics.
+  const ephemeral = isPreview || isRandom;
 
   const [dishes, setDishes] = useState<DishSummary[]>([]);
   const [daily, setDaily] = useState<DailyInfo | null>(null);
-  const [round, setRound] = useState<RoundState>(() => (ephemeral ? emptyRound(date) : loadRound(date)));
+  const [round, setRound] = useState<RoundState>(() =>
+    isDaily ? loadRound(date) : isArchive ? loadArchiveRound(date) : emptyRound(date),
+  );
   const [reveal, setReveal] = useState<RevealInfo | null>(null);
   const [stats, setStats] = useState<Stats>(() => loadStats());
   const [error, setError] = useState<string | null>(null);
@@ -195,8 +231,35 @@ export default function GamePage() {
   const [showHowTo, setShowHowTo] = useState(() => !hasSeenHowTo());
   const [showStats, setShowStats] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
 
-  // Start a fresh free-play round on a new random dish.
+  // Persist a round to the right place: daily → today's slot; archive → its
+  // dated slot; preview/random → nowhere.
+  const persist = useCallback(
+    (next: RoundState) => {
+      if (isDaily) saveRound(next);
+      else if (isArchive) saveArchiveRound(next);
+    },
+    [isDaily, isArchive],
+  );
+
+  // Whether today's daily is finished — the archive unlocks only after that.
+  const dailyStatus: GameStatus = useMemo(
+    () => (isDaily ? round.status : loadRound(today).status),
+    [isDaily, round.status, today],
+  );
+  const dailyDone = dailyStatus !== "playing";
+  const canArchive = !isPreview && (dailyDone || isArchive || isRandom);
+
+  // Navigation between modes is URL-driven (the app has no router).
+  const goToday = useCallback(() => window.location.assign("/"), []);
+  const goRandom = useCallback(() => window.location.assign("/?random"), []);
+  const openArchiveDate = useCallback(
+    (d: string) => window.location.assign(d === today ? "/" : `/?date=${d}`),
+    [today],
+  );
+
+  // Start a fresh random round on a new random dish (no reload).
   const newGame = useCallback(() => {
     setSeed(newSeed());
     setRound(emptyRound(date));
@@ -223,10 +286,10 @@ export default function GamePage() {
     }
   }, [round.status, reveal, date, preview, random]);
 
-  // Analytics "start": once per puzzle, when the board first opens. Fires only for
-  // a fresh round; a mid-play round from before analytics shipped just adopts an id.
+  // Analytics "start": once per puzzle, when the board first opens. Daily only —
+  // archive replays and random rounds don't count.
   useEffect(() => {
-    if (ephemeral || !daily || round.analyticsId) return;
+    if (!isDaily || !daily || round.analyticsId) return;
     const started = { ...round, analyticsId: newAnalyticsId() };
     setRound(started);
     saveRound(started);
@@ -235,7 +298,7 @@ export default function GamePage() {
     }
     // Intentionally keyed on daily load — reads the round as it stands when the puzzle resolves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [daily, ephemeral]);
+  }, [daily, isDaily]);
 
   // Ticket animation is delayed until the guess row's drop finishes; its sound
   // must wait the same amount so it lands with the print, not the drop. Keep in
@@ -267,8 +330,9 @@ export default function GamePage() {
         if (feedback.correct) playSfx("guess-correct");
         if (feedback.clue) setTimeout(() => playSfx("ticket-print"), TICKET_STAGGER_MS);
         if (!ephemeral) {
-          saveRound(next);
-          if (next.status !== "playing") {
+          persist(next);
+          // Only the daily updates lifetime stats + analytics.
+          if (isDaily && next.status !== "playing") {
             setStats(recordResult(date, next.status === "won", next.guesses.length));
             const roundId = next.analyticsId ?? newAnalyticsId();
             beaconComplete({
@@ -287,20 +351,11 @@ export default function GamePage() {
         setBusy(false);
       }
     },
-    [daily, busy, round, date, preview, random, ephemeral],
+    [daily, busy, round, date, preview, random, ephemeral, isDaily, persist],
   );
 
   const guessedIds = useMemo(() => new Set(round.guesses.map((g) => g.dish.id)), [round.guesses]);
   const remaining = MAX_GUESSES - round.guesses.length;
-  const dateLabel = useMemo(
-    () =>
-      new Date(`${date}T12:00:00`).toLocaleDateString(undefined, {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      }),
-    [date],
-  );
 
   return (
     <div className="scene">
@@ -311,21 +366,30 @@ export default function GamePage() {
 
       <main className="menu-card">
         {isPreview && <p className="preview-banner">Admin test play — nothing is saved</p>}
-        {freeplay && (
+        {isArchive && (
+          <div className="archive-bar">
+            <span className="archive-bar__tag">📅 From the archive</span>
+            <button className="archive-bar__btn" onClick={goToday}>Back to today</button>
+          </div>
+        )}
+        {isRandom && (
           <div className="freeplay-bar">
-            <span className="freeplay-bar__tag">🎲 Free play — random dish, nothing saved</span>
+            <span className="freeplay-bar__tag">🎲 Random recipe — nothing saved</span>
             <button className="freeplay-bar__btn" onClick={newGame}>New random dish</button>
           </div>
         )}
         <div className="menu-card__header">
-          <h2 className="menu-card__title">Today's Menu</h2>
+          <h2 className="menu-card__title">{isArchive ? "From the Archive" : "Today's Menu"}</h2>
           <p className="menu-card__meta">
             {daily && !ephemeral ? <>Special No. {daily.puzzleNumber} — </> : null}
-            {dateLabel}
+            {dateLabel(date)}
           </p>
           <div className="menu-card__toolbar">
             <button className="icon-btn" onClick={() => setShowHowTo(true)}>How to play</button>
             <button className="icon-btn" onClick={() => setShowStats(true)}>My stats</button>
+            {canArchive && (
+              <button className="icon-btn" onClick={() => setShowArchive(true)}>Menu archive</button>
+            )}
             {round.status !== "playing" && (
               <button className="icon-btn" onClick={() => setShowResult(true)}>Your check</button>
             )}
@@ -335,7 +399,9 @@ export default function GamePage() {
         <div className="special-line">
           <img src={clocheUrl} alt="" aria-hidden="true" />
           <div>
-            <p className="special-line__label">Special of the day</p>
+            <p className="special-line__label">
+              {isArchive ? "Special of the day" : isRandom ? "Cook's choice" : "Special of the day"}
+            </p>
             <p className="special-line__hint">
               {daily ? <>A mystery dish with <strong>{daily.ingredientCount} ingredients</strong>. What'll it be?</> : "Firing up the grill…"}
             </p>
@@ -393,15 +459,30 @@ export default function GamePage() {
           <StatsPanel stats={stats} />
         </Modal>
       )}
+      {showArchive && (
+        <ArchiveModal
+          today={today}
+          todayStatus={dailyStatus}
+          onPick={openArchiveDate}
+          onRandom={goRandom}
+          onClose={() => setShowArchive(false)}
+        />
+      )}
       {showResult && daily && round.status !== "playing" && (
         <ResultModal
           round={round}
           daily={daily}
           reveal={reveal}
           stats={stats}
-          ephemeral={ephemeral}
-          freeplay={freeplay}
+          isDaily={isDaily}
+          isRandom={isRandom}
+          canShare={isDaily || isArchive}
+          canArchive={canArchive}
           onNewGame={newGame}
+          onArchive={() => {
+            setShowResult(false);
+            setShowArchive(true);
+          }}
           onClose={() => setShowResult(false)}
         />
       )}

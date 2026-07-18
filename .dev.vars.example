@@ -3,6 +3,7 @@
 ADMIN_PASSWORD=choose-a-password
 SESSION_SECRET=any-long-random-string
 
-# Dev-only: enables free play (`npm run play` / /play — a random-dish round).
-# Defaults to "false" in wrangler.jsonc, so it's off in production regardless.
+# Deprecated / no longer required: random play ("cook's choice") is now a
+# spoiler-free production feature, so the Worker doesn't gate it. Kept only so
+# the dev /play + ?freeplay convenience routes read as intentional.
 DEV_FREEPLAY=true

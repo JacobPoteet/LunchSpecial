@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { DishRecord } from "./game";
-import { computeFeedback, fallbackDishIndex, isAllowedRequestDate, isValidDateString, puzzleNumber } from "./game";
+import {
+  computeFeedback,
+  fallbackDishIndex,
+  isAllowedRequestDate,
+  isArchiveDate,
+  isPlayableDate,
+  isValidDateString,
+  puzzleNumber,
+} from "./game";
 
 const carbonara: DishRecord = {
   id: 1,
@@ -88,6 +96,25 @@ describe("date validation", () => {
     expect(isAllowedRequestDate("2026-07-16", now)).toBe(true);
     expect(isAllowedRequestDate("2026-07-25", now)).toBe(false);
     expect(isAllowedRequestDate("2025-01-01", now)).toBe(false);
+  });
+
+  it("treats archive dates as the epoch through today, never the future", () => {
+    const now = new Date("2026-08-01T12:00:00Z");
+    expect(isArchiveDate("2026-07-17", now)).toBe(true); // epoch (puzzle #1)
+    expect(isArchiveDate("2026-07-25", now)).toBe(true); // a past puzzle
+    expect(isArchiveDate("2026-08-01", now)).toBe(true); // today
+    expect(isArchiveDate("2026-07-16", now)).toBe(false); // before the epoch
+    expect(isArchiveDate("2026-08-02", now)).toBe(false); // the future — no spoilers
+    expect(isArchiveDate("not-a-date", now)).toBe(false);
+  });
+
+  it("plays today (with tz slack) and any past puzzle, but not the far future", () => {
+    const now = new Date("2026-08-01T12:00:00Z");
+    expect(isPlayableDate("2026-07-17", now)).toBe(true); // old archive puzzle
+    expect(isPlayableDate("2026-08-01", now)).toBe(true); // today
+    expect(isPlayableDate("2026-08-02", now)).toBe(true); // tomorrow (tz slack)
+    expect(isPlayableDate("2026-08-10", now)).toBe(false); // far future
+    expect(isPlayableDate("2026-07-16", now)).toBe(false); // before the epoch
   });
 });
 

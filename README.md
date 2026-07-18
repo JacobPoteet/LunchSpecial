@@ -13,6 +13,8 @@
 
 Every day the diner runs one *Special* — a famous dish from somewhere in the world. Players get 6 guesses. Each guess (any dish on the menu) reveals which ingredients it shares with the Special and how its country, course, serving temperature, and protein compare. After every miss, the kitchen slips you a clue ticket: country of origin, history, the moment that made the dish famous.
 
+Finished today's check? Open the **Menu Archive** — a calendar of every past Special, marked with what you've solved and what you missed — and replay any day you skipped. Or have the cook fire a **random recipe** for a no-stakes round on a dish picked at random.
+
 Built as a single Cloudflare Worker: React SPA served from Workers Static Assets, Hono API, D1 (SQLite) database.
 
 ## Stack
@@ -51,7 +53,7 @@ Ways to poke at the game locally without editing the schedule or touching your s
 | `/play` or `?freeplay` | The same free-play mode by URL (e.g. `http://localhost:5173/play`). |
 | Admin **Test play** | From `/admin`, a signed preview link that plays a *specific* dish (see [Admin panel](#admin-panel-admin)). |
 
-Free play is **dev-only** and gated so it can never run in production: the client enables it only in a Vite dev build (`import.meta.env.DEV`), and the Worker honors a random-dish request only when `DEV_FREEPLAY=true` (set in `.dev.vars`; it defaults to `"false"` in `wrangler.jsonc`, which is what ships). Under the hood a random seed is sent to the API and mapped to an active dish deterministically — one round stays on a single dish, while a new seed rolls a new one.
+Under the hood a random seed is sent to the API and mapped to an active dish deterministically — one round stays on a single dish, while a new seed rolls a new one. This is the same **random recipe** ("cook's choice") players can launch from the Menu Archive in production; it's spoiler-free (it never touches the schedule) and saves nothing. The `/play` and `?freeplay` entrances above are dev conveniences (client behind `import.meta.env.DEV`) that drop you straight into a random round on load.
 
 ## Deploying to Cloudflare
 

@@ -27,6 +27,7 @@ export interface Stats {
 const STATE_KEY = "lunch-special:round";
 const STATS_KEY = "lunch-special:stats";
 const HOWTO_KEY = "lunch-special:howto-seen";
+const ARCHIVE_KEY = "lunch-special:archive";
 
 export function emptyRound(date: string): RoundState {
   return { date, status: "playing", guesses: [], clues: [] };
@@ -93,6 +94,42 @@ export function recordResult(date: string, won: boolean, guessCount: number): St
   stats.lastCompletedDate = date;
   localStorage.setItem(STATS_KEY, JSON.stringify(stats));
   return stats;
+}
+
+// ---- Archive rounds (previous days) ----
+//
+// Rounds for past puzzles, keyed by date, kept separate from today's round and
+// from lifetime Stats — replaying the archive never touches the daily streak.
+
+export function loadArchive(): Record<string, RoundState> {
+  try {
+    const raw = localStorage.getItem(ARCHIVE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Record<string, RoundState>;
+      if (parsed && typeof parsed === "object") return parsed;
+    }
+  } catch {
+    // corrupted archive — start fresh
+  }
+  return {};
+}
+
+export function loadArchiveRound(date: string): RoundState {
+  const stored = loadArchive()[date];
+  return stored && Array.isArray(stored.guesses) ? stored : emptyRound(date);
+}
+
+export function saveArchiveRound(state: RoundState): void {
+  const archive = loadArchive();
+  archive[state.date] = state;
+  localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive));
+}
+
+/** Finished-or-in-progress status per archive date, for the calendar. */
+export function archiveStatuses(): Record<string, GameStatus> {
+  const out: Record<string, GameStatus> = {};
+  for (const [date, round] of Object.entries(loadArchive())) out[date] = round.status;
+  return out;
 }
 
 export function hasSeenHowTo(): boolean {

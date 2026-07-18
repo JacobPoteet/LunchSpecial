@@ -65,6 +65,24 @@ export function isAllowedRequestDate(date: string, now: Date = new Date()): bool
 }
 
 /**
+ * A past (or current) puzzle date, playable from the archive: from puzzle #1
+ * (EPOCH_DATE) up to today (UTC). Future dates are rejected so upcoming
+ * Specials aren't spoiled.
+ */
+export function isArchiveDate(date: string, now: Date = new Date()): boolean {
+  if (!isValidDateString(date)) return false;
+  return date >= EPOCH_DATE && date <= now.toISOString().slice(0, 10);
+}
+
+/**
+ * Any date the server will serve a Special for: today (with the daily's
+ * timezone tolerance) or any earlier puzzle from the archive.
+ */
+export function isPlayableDate(date: string, now: Date = new Date()): boolean {
+  return isAllowedRequestDate(date, now) || isArchiveDate(date, now);
+}
+
+/**
  * Deterministic fallback pick for dates with no scheduled dish, so the game
  * never breaks. FNV-1a over the date string, mod the pool size.
  */
