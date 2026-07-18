@@ -115,6 +115,7 @@ The user will say things like **"add dishes: Pho (Vietnam), Bibimbap (South Kore
 
 - **Append to `seed/seed.sql`** (the canonical catalog): next sequential dish `id`, same `INSERT INTO dishes (...) VALUES` format, and 5 clue rows in the `INSERT INTO clues` block. Keep it the source of truth.
 - **Also add an additive migration** `migrations/000N_add_<batch>.sql` to ship them to the LIVE DB — INSERTs only, **no `DELETE`s**, dish **keyed by slug** not a hardcoded id (`(SELECT id FROM dishes WHERE slug='…')` for clue `dish_id`). Never re-run the seed against prod (it wipes admin edits); CI applies the migration on the next `v*` release.
+- **Pool only — never touch the `schedule` table.** New dishes land in the active pool (`is_active` defaults to 1); leave assigning them to dates to the `/admin` auto-fill (least-recently-served, skips dishes used in the last 60 days). Don't add `INSERT INTO schedule` rows.
 - Finish with `npm test && npm run check`; verify each new dish has 5 clues + ≥3 ingredients before committing.
 
 ## Conventions / gotchas
