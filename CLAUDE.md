@@ -84,6 +84,39 @@ src/assets/art/       ai-*.svg = AI placeholder art (keep the AI-GENERATED heade
 - `?preview=<token>` on /, /daily, /guess, /reveal = admin test play; skips schedule, localStorage, and stats
 - Reveal is client-initiated after game over (Wordle trust model — don't "fix" this)
 
+## Adding dishes (when asked)
+
+The user will say things like **"add dishes: Pho (Vietnam), Bibimbap (South Korea), Empanadas (Argentina)"**. Minimum they must give per dish is the **name** (country helps). I infer the rest (region/course/temperature/protein/ingredients/5 clues) from the dish — but **ask, don't guess, when a field is genuinely ambiguous** (e.g. regional protein variants). If they want full control they can specify any field explicitly.
+
+**One dish = one `dishes` row + exactly 5 `clues` rows.** A dish is only schedulable with **≥3 ingredients AND exactly 5 clues** — always produce both.
+
+### Per-dish fields (all NOT NULL; enums CHECK-enforced in migrations/0001_init.sql)
+
+| Field | Rule |
+|---|---|
+| `name` | Display name, **unique**. Double apostrophes in SQL (`Shepherd''s Pie`) |
+| `slug` | lowercase-kebab of name, **unique**, ASCII — strip accents (`Crème Brûlée` → `creme-brulee`) |
+| `country` | Real country, free text (`Italy`, `United Kingdom`, `Türkiye`) |
+| `region` | Exactly one of: `north-america` `latin-america` `europe` `middle-east` `africa` `south-asia` `east-asia` `southeast-asia` `oceania`. Drives the yellow "near" country match — bucket the country correctly |
+| `course` | `breakfast` \| `appetizer` \| `entree` \| `dessert` \| `drink` |
+| `temperature` | `hot` \| `cold` (as served) |
+| `protein` | `beef` \| `pork` \| `poultry` \| `seafood` \| `lamb` \| `vegetarian`. Pick the dominant one; `vegetarian` if none |
+| `ingredients` | JSON array, **canonical lowercase singular**, **≥3** (aim 5–8). Reuse existing pantry spellings — `tomato` not `tomatoes`, `bell pepper`, `olive oil`. Grep seed.sql for an ingredient before coining a new spelling |
+
+### The 5 clues (`order_index` 1→5, revealed after each miss — never name the dish)
+
+1. Broad geography/region hint ("comes from Europe — a country shaped like a boot")
+2. Origin / history
+3. Fame / pop-culture moment
+4. Key ingredient or technique
+5. Near-giveaway (everything but the name)
+
+### Where the rows go
+
+- **Append to `seed/seed.sql`** (the canonical catalog): next sequential dish `id`, same `INSERT INTO dishes (...) VALUES` format, and 5 clue rows in the `INSERT INTO clues` block. Keep it the source of truth.
+- **Also add an additive migration** `migrations/000N_add_<batch>.sql` to ship them to the LIVE DB — INSERTs only, **no `DELETE`s**, dish **keyed by slug** not a hardcoded id (`(SELECT id FROM dishes WHERE slug='…')` for clue `dish_id`). Never re-run the seed against prod (it wipes admin edits); CI applies the migration on the next `v*` release.
+- Finish with `npm test && npm run check`; verify each new dish has 5 clues + ≥3 ingredients before committing.
+
 ## Conventions / gotchas
 
 - Ingredients: JSON TEXT column, canonical lowercase singular ("tomato" not "tomatoes"). Admin tag input autocompletes from existing vocabulary — reuse names, don't fork spellings
