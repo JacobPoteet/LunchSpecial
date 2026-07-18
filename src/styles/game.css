@@ -354,12 +354,7 @@
   border-radius: 4px;
   box-shadow: 0 3px 10px rgba(20, 17, 16, 0.18);
   padding: 10px 14px 12px;
-  transform: rotate(-0.6deg);
   border-top: 8px solid var(--cherry);
-}
-
-.ticket:nth-child(even) {
-  transform: rotate(0.7deg);
 }
 
 .ticket__head {
