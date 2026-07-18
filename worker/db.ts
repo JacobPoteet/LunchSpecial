@@ -50,6 +50,19 @@ export async function getTargetDish(db: D1Database, date: string): Promise<Dish 
   return rowToDish(pool.results[fallbackDishIndex(date, pool.results.length)]);
 }
 
+/**
+ * Dev-only (free play): pick a dish from the active pool deterministically from
+ * an arbitrary seed string. Same seed → same dish for every request in a game
+ * (so /daily, /guess and /reveal agree); a fresh seed → a new random dish.
+ */
+export async function getSeededDish(db: D1Database, seed: string): Promise<Dish | null> {
+  const pool = await db
+    .prepare("SELECT * FROM dishes WHERE is_active = 1 ORDER BY id")
+    .all<DishDbRow>();
+  if (pool.results.length === 0) return null;
+  return rowToDish(pool.results[fallbackDishIndex(seed, pool.results.length)]);
+}
+
 export function toRecord(dish: Dish): DishRecord {
   return dish;
 }

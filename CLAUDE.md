@@ -6,6 +6,7 @@ Daily Wordle-style game: guess the diner's "Special" (a world dish). 1950s diner
 
 ```bash
 npm run dev          # vite dev (Worker runs in workerd via @cloudflare/vite-plugin), http://localhost:5173
+npm run play         # vite dev + opens /play: a fresh round on a RANDOM dish, nothing saved (dev-only free play)
 npm test             # vitest — worker/game.test.ts only
 npm run check        # tsc -b (3 project refs: app / worker / node)
 npm run build        # tsc -b && vite build → dist/
@@ -82,6 +83,7 @@ src/assets/art/       ai-*.svg = AI placeholder art (keep the AI-GENERATED heade
 - Date = player's LOCAL date string (YYYY-MM-DD); server accepts ±2 days of UTC now. Puzzle #1 = 2026-07-17 (EPOCH_DATE)
 - Unscheduled date → deterministic FNV-hash pick from active dishes (game never 404s)
 - `?preview=<token>` on /, /daily, /guess, /reveal = admin test play; skips schedule, localStorage, and stats
+- `/play` (or `?freeplay`) = dev-only **free play**: a `random=<seed>` picks a random active dish (deterministic per seed via the FNV hash, so daily/guess/reveal agree; a new seed = a new dish). Skips localStorage/stats/analytics like preview. Gated twice so it can't run in prod: client behind `import.meta.env.DEV`, worker behind the `DEV_FREEPLAY` var (default `"false"` in wrangler.jsonc, `"true"` only in local `.dev.vars`). Launch with `npm run play`.
 - Reveal is client-initiated after game over (Wordle trust model — don't "fix" this)
 
 ## Adding dishes (when asked)

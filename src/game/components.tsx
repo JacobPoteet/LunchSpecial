@@ -3,6 +3,18 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DishSummary, GuessFeedback, MatchLevel } from "../../shared/types";
+import { playSfx } from "./sfx";
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
+// How long the modal's slide-down exit runs — keep in sync with the
+// `modal-out` / `backdrop-out` keyframe durations in game.css.
+const MODAL_EXIT_MS = 220;
 
 export function Modal({
   onClose,
@@ -13,16 +25,50 @@ export function Modal({
   receipt?: boolean;
   children: React.ReactNode;
 }) {
+  const [closing, setClosing] = useState(false);
+
+  // Slides up from the bottom on mount (SFX matches the motion).
+  useEffect(() => {
+    playSfx("modal-open");
+  }, []);
+
+  // Play the exit animation, then actually unmount. With reduced motion (or if
+  // there's nothing to close to) we skip straight to unmounting so nothing gets
+  // stuck open waiting on an animation that never runs.
+  const requestClose = () => {
+    if (!onClose || closing) return;
+    playSfx("modal-close");
+    if (prefersReducedMotion()) {
+      onClose();
+      return;
+    }
+    setClosing(true);
+  };
+
+  useEffect(() => {
+    if (!closing) return;
+    // Fallback in case animationend doesn't fire (e.g. tab backgrounded).
+    const t = setTimeout(() => onClose?.(), MODAL_EXIT_MS + 80);
+    return () => clearTimeout(t);
+  }, [closing, onClose]);
+
   return (
     <div
-      className="modal-backdrop"
+      className={closing ? "modal-backdrop modal-backdrop--closing" : "modal-backdrop"}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose?.();
+        if (e.target === e.currentTarget) requestClose();
       }}
     >
-      <div className={receipt ? "modal modal--receipt" : "modal"} role="dialog" aria-modal="true">
+      <div
+        className={`${receipt ? "modal modal--receipt" : "modal"}${closing ? " modal--closing" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        onAnimationEnd={(e) => {
+          if (closing && e.target === e.currentTarget) onClose?.();
+        }}
+      >
         {onClose && (
-          <button className="modal__close" onClick={onClose} aria-label="Close">
+          <button className="modal__close" onClick={requestClose} aria-label="Close">
             ×
           </button>
         )}
