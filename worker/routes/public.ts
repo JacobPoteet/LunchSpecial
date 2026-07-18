@@ -3,18 +3,14 @@ import type { DailyInfo, DishSummary, GuessFeedback, RevealInfo } from "../../sh
 import { MAX_GUESSES } from "../../shared/types";
 import { verifyToken } from "../auth";
 import { getClues, getDishById, getSeededDish, getTargetDish } from "../db";
-import { computeFeedback, isAllowedRequestDate, puzzleNumber } from "../game";
+import { computeFeedback, isPlayableDate, puzzleNumber } from "../game";
 
 const app = new Hono<{ Bindings: Env }>();
 
-/** Local-dev "free play" — random-dish testing — never enabled in production. */
-function freeplayEnabled(env: Env): boolean {
-  return `${env.DEV_FREEPLAY}` === "true";
-}
-
 /**
  * Resolve the Special being played. Precedence: a preview token (admin test
- * play), then a dev-only free-play random seed, then the daily schedule.
+ * play), then a random-dish seed (free play / "random recipe"), then a
+ * scheduled date — today's daily or any earlier puzzle from the archive.
  */
 async function resolveTarget(
   env: Env,
@@ -28,11 +24,15 @@ async function resolveTarget(
     const dish = await getDishById(env.DB, Number(payload.slice("preview:".length)));
     return dish ? { dish } : { error: "Preview dish not found" as const };
   }
-  if (random && freeplayEnabled(env)) {
+  if (random) {
+    // A random dish (deterministic per seed). Spoiler-free — it never touches
+    // the schedule — so, unlike a dated request, it needs no gating.
     const dish = await getSeededDish(env.DB, random);
     return dish ? { dish } : { error: "No dish available" as const };
   }
-  if (!date || !isAllowedRequestDate(date)) return { error: "Invalid date" as const };
+  // A dated request: today's daily, or a past puzzle replayed from the archive.
+  // Future dates are rejected so upcoming Specials aren't spoiled.
+  if (!date || !isPlayableDate(date)) return { error: "Invalid date" as const };
   const dish = await getTargetDish(env.DB, date);
   return dish ? { dish } : { error: "No dish available" as const };
 }
@@ -48,7 +48,7 @@ app.get("/daily", async (c) => {
   const random = c.req.query("random");
   const target = await resolveTarget(c.env, date, preview, random);
   if ("error" in target) return c.json({ error: target.error }, 400);
-  const ephemeral = Boolean(preview) || (Boolean(random) && freeplayEnabled(c.env));
+  const ephemeral = Boolean(preview) || Boolean(random);
   const info: DailyInfo = {
     date: date ?? "",
     puzzleNumber: ephemeral ? 0 : puzzleNumber(date!),

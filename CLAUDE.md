@@ -80,10 +80,11 @@ src/assets/art/       ai-*.svg = AI placeholder art (keep the AI-GENERATED heade
 
 - 6 guesses; clue N returned by POST /guess after miss N (N=1..5, from `clues.order_index`)
 - Feedback: ingredient set intersection + 4 attribute tiles. Country: hit=same country, near=same `region`, miss. Course/temperature/protein: hit|miss
-- Date = player's LOCAL date string (YYYY-MM-DD); server accepts ±2 days of UTC now. Puzzle #1 = 2026-07-17 (EPOCH_DATE)
+- Date = player's LOCAL date string (YYYY-MM-DD); server accepts a **playable date** — today (±2 days of UTC for timezone slack) or any earlier puzzle back to EPOCH_DATE. Future dates beyond the ±2-day window are rejected so upcoming Specials aren't spoiled (`isPlayableDate` = `isAllowedRequestDate` ∪ `isArchiveDate` in worker/game.ts). Puzzle #1 = 2026-07-17 (EPOCH_DATE)
+- **Archive** (play previous days): `?date=<past puzzle>` on / replays an earlier Special. Client shows a "Menu Archive" calendar (unlocked once today's Special is finished) of every puzzle EPOCH→today with per-day status. Archive rounds persist per-date in `localStorage` (`lunch-special:archive`) but do **not** touch lifetime Stats/streak or analytics (Wordle-style). See src/game/ArchiveModal.tsx + archive.ts + storage.ts.
 - Unscheduled date → deterministic FNV-hash pick from active dishes (game never 404s)
 - `?preview=<token>` on /, /daily, /guess, /reveal = admin test play; skips schedule, localStorage, and stats
-- `/play` (or `?freeplay`) = dev-only **free play**: a `random=<seed>` picks a random active dish (deterministic per seed via the FNV hash, so daily/guess/reveal agree; a new seed = a new dish). Skips localStorage/stats/analytics like preview. Gated twice so it can't run in prod: client behind `import.meta.env.DEV`, worker behind the `DEV_FREEPLAY` var (default `"false"` in wrangler.jsonc, `"true"` only in local `.dev.vars`). Launch with `npm run play`.
+- **Random recipe** ("cook's choice"): `?random=<seed>` picks a random active dish (deterministic per seed via the FNV hash, so daily/guess/reveal agree; a new seed = a new dish). Spoiler-free (never touches the schedule), so it's available to everyone in prod. Skips localStorage/stats/analytics like preview. Reachable from the Menu Archive. `DEV_FREEPLAY` no longer gates it; dev keeps the `/play` route + `?freeplay` (client behind `import.meta.env.DEV`) as convenience entrances — `npm run play`.
 - Reveal is client-initiated after game over (Wordle trust model — don't "fix" this)
 
 ## Adding dishes (when asked)
