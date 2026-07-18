@@ -87,7 +87,40 @@ function AttrTile({ label, value, match }: { label: string; value: string; match
   );
 }
 
-export function GuessRow({ guess, ingredientCount }: { guess: GuessFeedback; ingredientCount: number }) {
+const ATTR_LABELS = ["Country", "Course", "Served", "Protein"];
+
+export function GuessRow({
+  guess,
+  dish,
+  ingredientCount,
+}: {
+  guess?: GuessFeedback;
+  dish?: DishSummary;
+  ingredientCount: number;
+}) {
+  // Optimistic "pending" row: the order's been fired to the kitchen but the
+  // feedback hasn't come back yet. It drops in immediately (so the animation
+  // never waits on the network) showing just the dish name and placeholder
+  // tiles; when the feedback lands the parent swaps in the filled `guess` on
+  // the SAME element, so the drop-in doesn't replay.
+  if (!guess) {
+    return (
+      <div className="guess-row guess-row--pending">
+        <p className="guess-row__name">
+          {dish?.name}
+          <span className="guess-row__count">asking the kitchen…</span>
+        </p>
+        <div className="attr-tiles">
+          {ATTR_LABELS.map((label) => (
+            <div key={label} className="attr-tile attr-tile--pending">
+              <span className="attr-tile__label">{label}</span>
+              <span className="attr-tile__value">·&nbsp;·&nbsp;·</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   const a = guess.attributes;
   return (
     <div className={guess.correct ? "guess-row guess-row--correct" : "guess-row"}>

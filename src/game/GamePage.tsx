@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   beaconComplete,
   beaconShare,
@@ -190,6 +190,8 @@ export default function GamePage() {
   const [stats, setStats] = useState<Stats>(() => loadStats());
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // The dish just ordered, shown as an optimistic row while the kitchen replies.
+  const [pending, setPending] = useState<DishSummary | null>(null);
   const [showHowTo, setShowHowTo] = useState(() => !hasSeenHowTo());
   const [showStats, setShowStats] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -235,39 +237,20 @@ export default function GamePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [daily, ephemeral]);
 
-  // SFX tied to the guess/clue animations. Refs start at the current length so
-  // a finished round restored from localStorage doesn't replay sounds on mount;
-  // they only fire on counts that grow during live play.
-  const prevGuessCount = useRef(round.guesses.length);
-  useEffect(() => {
-    if (round.guesses.length > prevGuessCount.current) {
-      const last = round.guesses[round.guesses.length - 1];
-      // Matches the guess row dropping/snapping into place.
-      playSfx(last.correct ? "guess-correct" : "guess-submit");
-    }
-    prevGuessCount.current = round.guesses.length;
-  }, [round.guesses]);
-
   // Ticket animation is delayed until the guess row's drop finishes; its sound
   // must wait the same amount so it lands with the print, not the drop. Keep in
   // sync with the ticket `animation-delay` in game.css.
   const TICKET_STAGGER_MS = 400;
-  const prevClueCount = useRef(round.clues.length);
-  useEffect(() => {
-    if (round.clues.length > prevClueCount.current) {
-      // Matches the clue ticket printing out of the order-ticket printer.
-      const t = setTimeout(() => playSfx("ticket-print"), TICKET_STAGGER_MS);
-      prevClueCount.current = round.clues.length;
-      return () => clearTimeout(t);
-    }
-    prevClueCount.current = round.clues.length;
-  }, [round.clues.length]);
 
   const submitGuess = useCallback(
     async (dish: DishSummary) => {
       if (!daily || busy || round.status !== "playing") return;
       setBusy(true);
       setError(null);
+      // Drop the guess row in right away (and sound the order) so the animation
+      // never waits on the request; the feedback fills the same row when it lands.
+      setPending(dish);
+      playSfx("guess-submit");
       try {
         const guessNumber = round.guesses.length + 1;
         const feedback = await postGuess({ date, dishId: dish.id, guessNumber, preview, random });
@@ -278,6 +261,11 @@ export default function GamePage() {
           status: feedback.correct ? "won" : guessNumber >= MAX_GUESSES ? "lost" : "playing",
         };
         setRound(next);
+        setPending(null);
+        // The winning bell dings with the correct row; the clue's printer sound
+        // waits for the ticket's staggered print (see TICKET_STAGGER_MS).
+        if (feedback.correct) playSfx("guess-correct");
+        if (feedback.clue) setTimeout(() => playSfx("ticket-print"), TICKET_STAGGER_MS);
         if (!ephemeral) {
           saveRound(next);
           if (next.status !== "playing") {
@@ -294,6 +282,7 @@ export default function GamePage() {
         }
       } catch (e) {
         setError((e as Error).message);
+        setPending(null); // roll the optimistic row back off the board
       } finally {
         setBusy(false);
       }
@@ -366,9 +355,17 @@ export default function GamePage() {
         {error && <p className="error-note">{error}</p>}
 
         <div className="guesses">
-          {[...round.guesses].reverse().map((g) => (
-            <GuessRow key={g.dish.id} guess={g} ingredientCount={daily?.ingredientCount ?? 0} />
-          ))}
+          {/* One flat, keyed list so the optimistic row and its filled-in
+              replacement share a key (the dish id) and React reuses the same
+              DOM node — the drop-in animation plays once, not again on reply. */}
+          {[
+            ...(pending
+              ? [<GuessRow key={pending.id} dish={pending} ingredientCount={daily?.ingredientCount ?? 0} />]
+              : []),
+            ...[...round.guesses]
+              .reverse()
+              .map((g) => <GuessRow key={g.dish.id} guess={g} ingredientCount={daily?.ingredientCount ?? 0} />),
+          ]}
         </div>
 
         {round.clues.length > 0 && (
