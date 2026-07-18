@@ -19,13 +19,15 @@ Local admin password: `ADMIN_PASSWORD` in `.dev.vars` (gitignored; currently `lu
 
 ## Deploy to Cloudflare
 
+**Live:** https://lunch-special.jacobwilliampoteet.workers.dev — bootstrap is done and releases are automated (see CI below). The steps below are the record of that setup and what you'd repeat to bootstrap a fresh environment.
+
 ### One-time bootstrap (manual — touches the CF account + secrets)
 
-1. `npx wrangler login` (already logged in as jacobwilliampoteet@gmail.com)
-2. `npx wrangler d1 create lunch-special-db` → paste returned UUID into `database_id` in wrangler.jsonc (currently a placeholder of zeros). Commit it — DB ids are not secret.
+1. `npx wrangler login` (logged in as jacobwilliampoteet@gmail.com)
+2. `npx wrangler d1 create lunch-special-db` → paste returned UUID into `database_id` in wrangler.jsonc. Commit it — DB ids are not secret. (Prod id `f331205d-c816-48c9-b099-0fb15b7605ba` is already set.)
 3. `npm run db:migrate:remote && npm run db:seed:remote` (seed once, by hand — see CI note below)
 4. Set the two Worker secrets directly (interactive prompt — you type the value; run in your own terminal): `npx wrangler secret put ADMIN_PASSWORD` then `npx wrangler secret put SESSION_SECRET` (a long random string, e.g. `openssl rand -hex 32`). They persist across deploys, so CI never touches them.
-5. First deploy by hand to confirm it works: `npm run deploy` → lunch-special.<subdomain>.workers.dev
+5. First deploy by hand to confirm it works: `npm run deploy` → https://lunch-special.jacobwilliampoteet.workers.dev
 6. Verify: play a guess on the live URL, log into /admin
 
 ### Where secrets live
@@ -37,11 +39,13 @@ Local admin password: `ADMIN_PASSWORD` in `.dev.vars` (gitignored; currently `lu
 
 ### Automated releases (CI)
 
-`.github/workflows/deploy.yml` deploys on any pushed tag matching `v*` (and via manual "Run workflow"). It runs `npm test` + `npm run check`, applies remote D1 migrations, then `npm run deploy`. Cut a release with:
+`.github/workflows/deploy.yml` deploys on any pushed tag matching `v*` (and via manual "Run workflow" / `gh workflow run deploy.yml`). Steps: `npm ci` → write a placeholder `.dev.vars` → `npm run cf-typegen` → `npm test` → `npm run check` → remote D1 migrate → `npm run deploy`. Uses `actions/checkout@v5` + `actions/setup-node@v5` (Node 24 — no deprecation warnings). Cut a release with:
 
 ```bash
-git tag v1.0.0 && git push origin v1.0.0
+git tag v1.1.0 && git push origin v1.1.0
 ```
+
+CI gotcha: `worker-configuration.d.ts` and the `Env` secret members are generated from `.dev.vars` — both gitignored — so the workflow regenerates types (`cf-typegen`) and writes a dummy `.dev.vars` (placeholder values; the real secrets live on the Worker) before the typecheck/build, or `tsc` fails on missing runtime types / `Env` members.
 
 CI runs migrations (idempotent, additive) but **never** the seed — `seed/seed.sql` DELETEs and re-inserts every dish, which would wipe admin edits. Seed only by hand, once, during bootstrap.
 

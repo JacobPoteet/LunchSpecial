@@ -2,6 +2,8 @@
 
 **A daily dish-guessing game set in the golden age of diners.**
 
+**▶ Play it live: https://lunch-special.jacobwilliampoteet.workers.dev**
+
 Every day the diner runs one *Special* — a famous dish from somewhere in the world. Players get 6 guesses. Each guess (any dish on the menu) reveals which ingredients it shares with the Special and how its country, course, serving temperature, and protein compare. After every miss, the kitchen slips you a clue ticket: country of origin, history, the moment that made the dish famous.
 
 Built as a single Cloudflare Worker: React SPA served from Workers Static Assets, Hono API, D1 (SQLite) database.
@@ -15,6 +17,7 @@ Built as a single Cloudflare Worker: React SPA served from Workers Static Assets
 | Database | Cloudflare D1 — dishes, clues, schedule (`migrations/`, `seed/`) |
 | Dev/build | `@cloudflare/vite-plugin` (Worker runs in workerd during `vite dev`) |
 | Tests | Vitest (pure game engine in `worker/game.ts`) |
+| CI/CD | GitHub Actions — push a `v*` tag to test, migrate, and deploy the Worker automatically (`.github/workflows/deploy.yml`) |
 
 ## Local development
 
@@ -33,17 +36,29 @@ npm run dev                          # http://localhost:5173
 
 ## Deploying to Cloudflare
 
+The app is live and deploys automatically. The whole thing (game + API + admin) ships as one Worker — free-tier friendly.
+
+### Releases (automated)
+
+Push a version tag and GitHub Actions handles the rest — test, typecheck, apply remote D1 migrations, deploy:
+
+```bash
+git tag v1.1.0 && git push origin v1.1.0
+```
+
+You can also run it on demand from **Actions → Deploy to Cloudflare → Run workflow**. CI authenticates with two GitHub Actions secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`); the Worker secrets below live on the Worker and persist across deploys, so CI never touches them. The seed is **never** run in CI — it would overwrite dishes edited via `/admin`.
+
+### First-time setup (one-off)
+
 1. `npx wrangler login`
 2. `npx wrangler d1 create lunch-special-db` → copy the returned id into `database_id` in `wrangler.jsonc`
 3. `npm run db:migrate:remote && npm run db:seed:remote`
 4. `npx wrangler secret put ADMIN_PASSWORD` and `npx wrangler secret put SESSION_SECRET` (use a long random string)
-5. `npm run deploy`
-
-The whole app (game + API + admin) ships as one Worker — free tier friendly.
+5. `npm run deploy` for the first manual deploy, then add the two GitHub Actions secrets to arm CI
 
 ## How the daily Special works
 
-- The player's **local date** decides which puzzle they see (Wordle-style). The server accepts dates within ±1 day of UTC.
+- The player's **local date** decides which puzzle they see (Wordle-style). The server accepts dates within ±2 days of UTC.
 - The `schedule` table maps dates to dishes. If a date has no row, a **deterministic fallback** dish is picked from the active pool so the game never breaks.
 - Game state and stats live in `localStorage` — no accounts.
 - The reveal endpoint is client-initiated after game over (same honesty model as Wordle).
