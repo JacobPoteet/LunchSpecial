@@ -259,7 +259,7 @@ export default function GamePage() {
         )}
       </main>
 
-      <p className="footer-note">A daily diner mystery — new Special every midnight.</p>
+      <p className="footer-note">A new Special every midnight.</p>
 
       {showHowTo && (
         <HowToModal
