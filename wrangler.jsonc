@@ -12,8 +12,7 @@
     {
       "binding": "DB",
       "database_name": "lunch-special-db",
-      // Placeholder — replace with the real id from `wrangler d1 create lunch-special-db` before deploying.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "f331205d-c816-48c9-b099-0fb15b7605ba",
       "migrations_dir": "migrations"
     }
   ],

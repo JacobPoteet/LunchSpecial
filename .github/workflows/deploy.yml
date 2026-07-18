@@ -1,0 +1,43 @@
+name: Deploy to Cloudflare
+
+# Fires when you push a release tag like v1.0.0 (git tag v1.0.0 && git push origin v1.0.0).
+# workflow_dispatch lets you also trigger a deploy by hand from the Actions tab.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+# Never let two deploys race each other.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Gate the deploy on the same checks CLAUDE.md prescribes.
+      - run: npm test
+      - run: npm run check
+
+      # Apply any new D1 migrations to the production database.
+      # Idempotent: wrangler tracks which migrations have already run.
+      # NOTE: we deliberately do NOT run the seed here — seed/seed.sql DELETEs and
+      # re-inserts every dish, which would wipe out edits made through /admin.
+      - run: npx wrangler d1 migrations apply lunch-special-db --remote
+
+      # build (tsc -b && vite build) + wrangler deploy
+      - run: npm run deploy

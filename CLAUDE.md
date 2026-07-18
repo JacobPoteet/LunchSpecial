@@ -17,14 +17,33 @@ npm run cf-typegen   # regenerate worker-configuration.d.ts after wrangler.jsonc
 
 Local admin password: `ADMIN_PASSWORD` in `.dev.vars` (gitignored; currently `lunchboss`). Browser preview: `.claude/launch.json` has server name `lunch-special`.
 
-## Deploy to Cloudflare (not done yet — the remaining task)
+## Deploy to Cloudflare
+
+### One-time bootstrap (manual — touches the CF account + secrets)
 
 1. `npx wrangler login` (already logged in as jacobwilliampoteet@gmail.com)
-2. `npx wrangler d1 create lunch-special-db` → paste returned UUID into `database_id` in wrangler.jsonc (currently a placeholder of zeros)
-3. `npm run db:migrate:remote && npm run db:seed:remote`
-4. `npx wrangler secret put ADMIN_PASSWORD` and `npx wrangler secret put SESSION_SECRET` (long random string; these are interactive prompts — have the user run them, never echo secrets into the terminal)
-5. `npm run deploy` → lunch-special.<subdomain>.workers.dev
+2. `npx wrangler d1 create lunch-special-db` → paste returned UUID into `database_id` in wrangler.jsonc (currently a placeholder of zeros). Commit it — DB ids are not secret.
+3. `npm run db:migrate:remote && npm run db:seed:remote` (seed once, by hand — see CI note below)
+4. Set the two Worker secrets directly (interactive prompt — you type the value; run in your own terminal): `npx wrangler secret put ADMIN_PASSWORD` then `npx wrangler secret put SESSION_SECRET` (a long random string, e.g. `openssl rand -hex 32`). They persist across deploys, so CI never touches them.
+5. First deploy by hand to confirm it works: `npm run deploy` → lunch-special.<subdomain>.workers.dev
 6. Verify: play a guess on the live URL, log into /admin
+
+### Where secrets live
+
+- **Worker secrets** (`ADMIN_PASSWORD`, `SESSION_SECRET`): set directly on the Worker via `wrangler secret put`. They live on the Worker and persist across deploys, so CI never needs them.
+- **CI credentials** (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`): stored as **GitHub Actions secrets** (Settings → Secrets and variables → Actions).
+  - `CLOUDFLARE_API_TOKEN` — a CF API token with the "Edit Cloudflare Workers" template scope + D1:Edit
+  - `CLOUDFLARE_ACCOUNT_ID` — `9016037cfaa0836d9bbc85d754935cb5`
+
+### Automated releases (CI)
+
+`.github/workflows/deploy.yml` deploys on any pushed tag matching `v*` (and via manual "Run workflow"). It runs `npm test` + `npm run check`, applies remote D1 migrations, then `npm run deploy`. Cut a release with:
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+CI runs migrations (idempotent, additive) but **never** the seed — `seed/seed.sql` DELETEs and re-inserts every dish, which would wipe admin edits. Seed only by hand, once, during bootstrap.
 
 Note: the vite plugin writes a build-processed config into dist/; plain `wrangler deploy` from the repo root picks it up (the `deploy` script already chains build first).
 
