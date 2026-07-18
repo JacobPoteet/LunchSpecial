@@ -123,3 +123,22 @@ export interface AdminDashboard {
   firstGap: string | null;
   warnings: { kind: "missing-clues" | "few-ingredients"; dishId: number; dishName: string; detail: string }[];
 }
+
+export interface AnalyticsDay {
+  date: string;
+  started: number;
+  completed: number;
+  solved: number;
+  shared: number;
+}
+
+/** Anonymous engagement aggregates for the admin dashboard. No guess content. */
+export interface AnalyticsSummary {
+  totals: { started: number; completed: number; solved: number; shared: number };
+  /** dist[i] = rounds solved in i+1 guesses. */
+  guessDistribution: number[];
+  /** Completed rounds that ran out of guesses. */
+  fails: number;
+  /** Last 30 days with activity, oldest first. */
+  daily: AnalyticsDay[];
+}

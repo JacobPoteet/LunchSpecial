@@ -5,9 +5,10 @@ import type {
   AdminDishDetail,
   AdminDishInput,
   AdminDishRow,
+  AnalyticsSummary,
   ScheduleEntry,
 } from "../../shared/types";
-import { COURSES, PROTEINS, REGIONS, TEMPERATURES } from "../../shared/types";
+import { COURSES, MAX_GUESSES, PROTEINS, REGIONS, TEMPERATURES } from "../../shared/types";
 import {
   createToken,
   passwordMatches,
@@ -405,6 +406,48 @@ app.get("/dashboard", async (c) => {
     warnings,
   };
   return c.json(dashboard);
+});
+
+// Anonymous engagement aggregates (see migrations/0002_add_analytics.sql).
+app.get("/analytics", async (c) => {
+  const totals =
+    (await c.env.DB.prepare(
+      `SELECT COUNT(*) AS started,
+         COALESCE(SUM(completed), 0) AS completed,
+         COALESCE(SUM(solved), 0) AS solved,
+         COALESCE(SUM(shared), 0) AS shared
+       FROM analytics_rounds`,
+    ).first<AnalyticsSummary["totals"]>()) ?? { started: 0, completed: 0, solved: 0, shared: 0 };
+
+  const distRows = await c.env.DB.prepare(
+    `SELECT guesses, COUNT(*) AS n FROM analytics_rounds
+       WHERE completed = 1 AND solved = 1 AND guesses BETWEEN 1 AND ?
+       GROUP BY guesses`,
+  )
+    .bind(MAX_GUESSES)
+    .all<{ guesses: number; n: number }>();
+  const guessDistribution = Array.from({ length: MAX_GUESSES }, () => 0);
+  for (const r of distRows.results) guessDistribution[r.guesses - 1] = r.n;
+
+  const failRow = await c.env.DB.prepare(
+    "SELECT COUNT(*) AS fails FROM analytics_rounds WHERE completed = 1 AND solved = 0",
+  ).first<{ fails: number }>();
+
+  const daily = await c.env.DB.prepare(
+    `SELECT play_date AS date, COUNT(*) AS started,
+       COALESCE(SUM(completed), 0) AS completed,
+       COALESCE(SUM(solved), 0) AS solved,
+       COALESCE(SUM(shared), 0) AS shared
+     FROM analytics_rounds GROUP BY play_date ORDER BY play_date DESC LIMIT 30`,
+  ).all<AnalyticsSummary["daily"][number]>();
+
+  const summary: AnalyticsSummary = {
+    totals,
+    guessDistribution,
+    fails: failRow?.fails ?? 0,
+    daily: daily.results.reverse(),
+  };
+  return c.json(summary);
 });
 
 export default app;

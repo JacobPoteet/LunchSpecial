@@ -3,11 +3,13 @@
 
 import { Hono } from "hono";
 import adminRoutes from "./routes/admin";
+import analyticsRoutes from "./routes/analytics";
 import publicRoutes from "./routes/public";
 
 const app = new Hono<{ Bindings: Env }>();
 
 app.route("/api/admin", adminRoutes);
+app.route("/api/analytics", analyticsRoutes);
 app.route("/api", publicRoutes);
 
 app.notFound((c) => c.json({ error: "Not found" }, 404));

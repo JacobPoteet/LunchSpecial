@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchDaily, fetchDishes, fetchReveal, localToday, postGuess } from "../api";
+import {
+  beaconComplete,
+  beaconShare,
+  beaconStart,
+  fetchDaily,
+  fetchDishes,
+  fetchReveal,
+  localToday,
+  newAnalyticsId,
+  postGuess,
+} from "../api";
 import type { DailyInfo, DishSummary, RevealInfo } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
 import { ClueTicket, Countdown, GuessInput, GuessRow, Modal } from "./components";
@@ -86,6 +96,9 @@ function ResultModal({
   const won = round.status === "won";
   const share = () => {
     const text = buildShareText(daily.puzzleNumber, round.guesses, won, daily.ingredientCount);
+    if (!isPreview && round.analyticsId) {
+      beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date });
+    }
     navigator.clipboard.writeText(text).then(
       () => setCopied(true),
       () => setCopied(false),
@@ -156,6 +169,20 @@ export default function GamePage() {
     }
   }, [round.status, reveal, date, preview]);
 
+  // Analytics "start": once per puzzle, when the board first opens. Fires only for
+  // a fresh round; a mid-play round from before analytics shipped just adopts an id.
+  useEffect(() => {
+    if (isPreview || !daily || round.analyticsId) return;
+    const started = { ...round, analyticsId: newAnalyticsId() };
+    setRound(started);
+    saveRound(started);
+    if (round.status === "playing" && round.guesses.length === 0) {
+      beaconStart({ roundId: started.analyticsId!, puzzleNumber: daily.puzzleNumber, date });
+    }
+    // Intentionally keyed on daily load — reads the round as it stands when the puzzle resolves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [daily, isPreview]);
+
   const submitGuess = useCallback(
     async (dish: DishSummary) => {
       if (!daily || busy || round.status !== "playing") return;
@@ -175,6 +202,14 @@ export default function GamePage() {
           saveRound(next);
           if (next.status !== "playing") {
             setStats(recordResult(date, next.status === "won", next.guesses.length));
+            const roundId = next.analyticsId ?? newAnalyticsId();
+            beaconComplete({
+              roundId,
+              puzzleNumber: daily.puzzleNumber,
+              date,
+              guesses: next.guesses.length,
+              solved: next.status === "won",
+            });
           }
         }
       } catch (e) {

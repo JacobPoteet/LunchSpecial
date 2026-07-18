@@ -1,0 +1,75 @@
+// Anonymous engagement beacons. Fire-and-forget from the client; no auth
+// (same client-trust model as the rest of the game). One row per round, keyed
+// by a client-generated round_id. Never records guess content.
+
+import { Hono } from "hono";
+import { MAX_GUESSES } from "../../shared/types";
+import { isValidDateString } from "../game";
+
+const app = new Hono<{ Bindings: Env }>();
+
+interface Base {
+  roundId: string;
+  puzzleNumber: number;
+  date: string;
+}
+
+/** Validate the fields every beacon carries. */
+function base(body: unknown): Base | null {
+  const b = body as Partial<Base> | null;
+  if (!b || typeof b.roundId !== "string" || b.roundId.length < 8 || b.roundId.length > 64) return null;
+  const puzzleNumber = Number(b.puzzleNumber);
+  if (!Number.isInteger(puzzleNumber) || puzzleNumber < 0) return null;
+  if (typeof b.date !== "string" || !isValidDateString(b.date)) return null;
+  return { roundId: b.roundId, puzzleNumber, date: b.date };
+}
+
+app.post("/start", async (c) => {
+  const b = base(await c.req.json().catch(() => null));
+  if (!b) return c.json({ error: "Invalid analytics payload" }, 400);
+  await c.env.DB.prepare(
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, started_at, updated_at)
+     VALUES (?, ?, ?, datetime('now'), datetime('now'))
+     ON CONFLICT(round_id) DO NOTHING`,
+  )
+    .bind(b.roundId, b.puzzleNumber, b.date)
+    .run();
+  return c.json({ ok: true });
+});
+
+app.post("/complete", async (c) => {
+  const raw = (await c.req.json().catch(() => null)) as (Partial<Base> & { guesses?: number; solved?: boolean }) | null;
+  const b = base(raw);
+  if (!b) return c.json({ error: "Invalid analytics payload" }, 400);
+  const guesses = Number(raw!.guesses);
+  if (!Number.isInteger(guesses) || guesses < 1 || guesses > MAX_GUESSES) {
+    return c.json({ error: "guesses must be 1-6" }, 400);
+  }
+  const solved = raw!.solved === true ? 1 : 0;
+  // Upsert so a missed /start (e.g. a round begun before analytics shipped) still records.
+  await c.env.DB.prepare(
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, started_at, guesses, solved, completed, updated_at)
+     VALUES (?, ?, ?, datetime('now'), ?, ?, 1, datetime('now'))
+     ON CONFLICT(round_id) DO UPDATE SET
+       guesses = excluded.guesses, solved = excluded.solved, completed = 1, updated_at = excluded.updated_at`,
+  )
+    .bind(b.roundId, b.puzzleNumber, b.date, guesses, solved)
+    .run();
+  return c.json({ ok: true });
+});
+
+app.post("/share", async (c) => {
+  const b = base(await c.req.json().catch(() => null));
+  if (!b) return c.json({ error: "Invalid analytics payload" }, 400);
+  // Idempotent: re-sharing just re-sets the flag.
+  await c.env.DB.prepare(
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, started_at, shared, updated_at)
+     VALUES (?, ?, ?, datetime('now'), 1, datetime('now'))
+     ON CONFLICT(round_id) DO UPDATE SET shared = 1, updated_at = excluded.updated_at`,
+  )
+    .bind(b.roundId, b.puzzleNumber, b.date)
+    .run();
+  return c.json({ ok: true });
+});
+
+export default app;

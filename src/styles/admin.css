@@ -146,6 +146,104 @@
 
 .dash-note { color: var(--ink-soft); margin: 0; font-size: 0.9rem; }
 
+/* engagement analytics */
+
+.metric-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.metric {
+  background: rgba(27, 79, 74, 0.06);
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.metric__num {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--teal);
+  line-height: 1.1;
+}
+
+.metric__label {
+  display: block;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-top: 3px;
+}
+
+.analytics-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .analytics-split { grid-template-columns: 1fr; }
+}
+
+.analytics-sub {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 8px;
+}
+
+.gd { display: flex; flex-direction: column; gap: 4px; }
+
+.gd__row { display: flex; align-items: center; gap: 8px; }
+
+.gd__key {
+  font-family: var(--font-display);
+  width: 14px;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+
+.gd__bar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 22px;
+  background: var(--teal);
+  color: var(--cream);
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 90px;
+  padding-top: 4px;
+}
+
+.spark__col {
+  flex: 1;
+  min-width: 3px;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.spark__bar {
+  width: 100%;
+  background: var(--mustard);
+  border-radius: 2px 2px 0 0;
+}
+
 .warning-list {
   list-style: none;
   margin: 0;

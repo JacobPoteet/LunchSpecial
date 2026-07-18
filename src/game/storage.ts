@@ -10,6 +10,8 @@ export interface RoundState {
   status: GameStatus;
   guesses: GuessFeedback[];
   clues: { index: number; text: string }[];
+  /** Anonymous analytics round id; set when the board first opens. */
+  analyticsId?: string;
 }
 
 export interface Stats {

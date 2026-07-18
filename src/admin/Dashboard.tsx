@@ -1,7 +1,113 @@
 import { useEffect, useState } from "react";
+import type { AnalyticsSummary } from "../../shared/types";
 import type { AdminDashboard } from "../../shared/types";
+import { MAX_GUESSES } from "../../shared/types";
 import * as api from "./api";
 import type { AdminView } from "./AdminApp";
+
+const pct = (n: number, of: number) => (of === 0 ? 0 : Math.round((n / of) * 100));
+
+function EngagementPanel() {
+  const [data, setData] = useState<AnalyticsSummary | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api.getAnalytics().then(setData, (e: Error) => setError(e.message));
+  }, []);
+
+  if (error) {
+    return (
+      <section className="panel">
+        <h2>Player engagement</h2>
+        <p className="dash-note">Couldn't load analytics: {error}</p>
+      </section>
+    );
+  }
+  if (!data) {
+    return (
+      <section className="panel">
+        <h2>Player engagement</h2>
+        <p className="dash-note">Counting the receipts…</p>
+      </section>
+    );
+  }
+
+  const { totals, guessDistribution, fails, daily } = data;
+  if (totals.started === 0) {
+    return (
+      <section className="panel">
+        <h2>Player engagement</h2>
+        <p className="dash-note">No rounds recorded yet. Numbers show up here once players start playing.</p>
+      </section>
+    );
+  }
+
+  // Distribution bars: 1..6 guesses (wins) plus a Fail bucket.
+  const distBuckets = [
+    ...guessDistribution.map((n, i) => ({ label: String(i + 1), n })),
+    { label: "X", n: fails },
+  ];
+  const distMax = Math.max(1, ...distBuckets.map((b) => b.n));
+  const dayMax = Math.max(1, ...daily.map((d) => d.started));
+
+  return (
+    <section className="panel">
+      <h2>Player engagement</h2>
+      <div className="metric-row">
+        <div className="metric">
+          <span className="metric__num">{totals.started}</span>
+          <span className="metric__label">Games started</span>
+        </div>
+        <div className="metric">
+          <span className="metric__num">{pct(totals.completed, totals.started)}%</span>
+          <span className="metric__label">Completion</span>
+        </div>
+        <div className="metric">
+          <span className="metric__num">{pct(totals.solved, totals.completed)}%</span>
+          <span className="metric__label">Win rate</span>
+        </div>
+        <div className="metric">
+          <span className="metric__num">{pct(totals.shared, totals.completed)}%</span>
+          <span className="metric__label">Share rate</span>
+        </div>
+      </div>
+
+      <div className="analytics-split">
+        <div>
+          <h3 className="analytics-sub">Guess distribution</h3>
+          <div className="gd">
+            {distBuckets.map((b) => (
+              <div className="gd__row" key={b.label}>
+                <span className="gd__key">{b.label}</span>
+                <span className="gd__bar" style={{ width: `${8 + (b.n / distMax) * 92}%` }}>
+                  {b.n}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="analytics-sub">Games started · last {daily.length} day{daily.length === 1 ? "" : "s"}</h3>
+          {daily.length === 0 ? (
+            <p className="dash-note">No dated activity yet.</p>
+          ) : (
+            <div className="spark">
+              {daily.map((d) => (
+                <div className="spark__col" key={d.date} title={`${d.date}: ${d.started} started, ${d.solved} solved`}>
+                  <span className="spark__bar" style={{ height: `${6 + (d.started / dayMax) * 94}%` }} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <p className="dash-note" style={{ marginTop: 10 }}>
+        Anonymous counts only — {MAX_GUESSES} guesses max, no record of which dishes players ordered.
+      </p>
+    </section>
+  );
+}
 
 export default function Dashboard({
   onNavigate,
@@ -95,6 +201,8 @@ export default function Dashboard({
           </ul>
         )}
       </section>
+
+      <EngagementPanel />
     </>
   );
 }

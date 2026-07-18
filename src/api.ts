@@ -50,3 +50,41 @@ export function localToday(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+// ---- Anonymous analytics beacons (fire-and-forget; never block gameplay) ----
+
+/** Opaque per-round id linking start → completion → share. */
+export function newAnalyticsId(): string {
+  return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function beacon(path: string, body: unknown): void {
+  try {
+    void fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // analytics must never break the game
+  }
+}
+
+export function beaconStart(b: { roundId: string; puzzleNumber: number; date: string }): void {
+  beacon("/api/analytics/start", b);
+}
+
+export function beaconComplete(b: {
+  roundId: string;
+  puzzleNumber: number;
+  date: string;
+  guesses: number;
+  solved: boolean;
+}): void {
+  beacon("/api/analytics/complete", b);
+}
+
+export function beaconShare(b: { roundId: string; puzzleNumber: number; date: string }): void {
+  beacon("/api/analytics/share", b);
+}
