@@ -94,10 +94,23 @@ function ResultModal({
 }) {
   const [copied, setCopied] = useState(false);
   const won = round.status === "won";
-  const share = () => {
+  const share = async () => {
     const text = buildShareText(daily.puzzleNumber, round.guesses, won, daily.ingredientCount);
     if (!isPreview && round.analyticsId) {
       beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date });
+    }
+    // On mobile (and any browser with the Web Share API) bring up the native
+    // share sheet so results can go straight to other apps. Fall back to the
+    // clipboard when it's unavailable.
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ text });
+        return;
+      } catch (err) {
+        // User dismissed the share sheet — leave the button as-is, don't copy.
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        // Any other failure: fall through to the clipboard path below.
+      }
     }
     navigator.clipboard.writeText(text).then(
       () => setCopied(true),
