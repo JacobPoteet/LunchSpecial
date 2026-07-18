@@ -132,6 +132,18 @@ export interface AnalyticsDay {
   shared: number;
 }
 
+/** Public engagement totals for the README badges. Aggregate-only, no guess content. */
+export interface PublicStats {
+  /** Rounds started. */
+  rounds: number;
+  /** Rounds that reached game over (win or loss). */
+  completed: number;
+  /** Rounds solved. */
+  solved: number;
+  /** Rounds whose result was shared. */
+  shared: number;
+}
+
 /** Anonymous engagement aggregates for the admin dashboard. No guess content. */
 export interface AnalyticsSummary {
   totals: { started: number; completed: number; solved: number; shared: number };
