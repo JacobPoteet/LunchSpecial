@@ -589,6 +589,50 @@
   margin-bottom: 12px;
 }
 
+/* Dev-only free-play bar (random-dish testing). */
+.freeplay-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(232, 165, 58, 0.18),
+    rgba(232, 165, 58, 0.18) 10px,
+    rgba(232, 165, 58, 0.32) 10px,
+    rgba(232, 165, 58, 0.32) 20px
+  );
+  border: 1.5px dashed var(--mustard);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  margin-bottom: 12px;
+}
+
+.freeplay-bar__tag {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.freeplay-bar__btn {
+  font-family: var(--font-display);
+  background: var(--ink);
+  color: var(--cream);
+  border: none;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+}
+
+.freeplay-bar__btn:hover {
+  background: var(--cherry);
+}
+
 .footer-note {
   margin-top: 22px;
   color: rgba(246, 237, 217, 0.55);
@@ -598,6 +642,84 @@
 
 .footer-note a {
   color: inherit;
+}
+
+/* ---- animations (issue #7) ----
+   Sound hookups that pair with these live in src/game/sfx.ts. */
+
+/* Modal: backdrop fades, card slides up from the bottom; reverse on close.
+   The exit timing here must match MODAL_EXIT_MS in components.tsx. */
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes backdrop-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(26px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes modal-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(26px) scale(0.98); }
+}
+
+.modal-backdrop {
+  animation: backdrop-in 0.2s ease both;
+}
+.modal {
+  animation: modal-in 0.26s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+.modal-backdrop--closing {
+  animation: backdrop-out 0.22s ease both;
+}
+.modal--closing {
+  animation: modal-out 0.22s ease-in both;
+}
+
+/* New guess row drops in from above and snaps into place, nudging the
+   previous rows down. Only the freshly prepended (top) row animates. */
+@keyframes guess-drop {
+  0% { opacity: 0; transform: translateY(-16px) scale(0.98); }
+  60% { opacity: 1; transform: translateY(3px) scale(1.01); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.guesses > .guess-row:first-child {
+  animation: guess-drop 0.34s cubic-bezier(0.2, 0.85, 0.3, 1) both;
+}
+
+/* Clue ticket feeds out of the order-ticket printer: revealed top-down in
+   mechanical steps, with a little paper chatter. Only the newest ticket runs.
+   It waits for the guess row's drop (0.34s) to finish first — the 0.4s delay
+   is mirrored by TICKET_STAGGER_MS in GamePage.tsx — so the two never move (or
+   sound) at the same time. `both` holds the ticket hidden (clipped) through
+   the delay. */
+@keyframes ticket-print {
+  0% { clip-path: inset(0 0 100% 0); transform: translateY(-6px); }
+  100% { clip-path: inset(0 0 0 0); transform: translateY(0); }
+}
+@keyframes ticket-chatter {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-0.6px); }
+  75% { transform: translateX(0.6px); }
+}
+.tickets > .ticket:first-child {
+  animation:
+    ticket-print 0.5s steps(10, end) 0.4s both,
+    ticket-chatter 0.1s steps(2) 0.4s 5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal,
+  .modal-backdrop--closing,
+  .modal--closing,
+  .guesses > .guess-row:first-child,
+  .tickets > .ticket:first-child {
+    animation: none !important;
+  }
 }
 
 @media (max-width: 520px) {

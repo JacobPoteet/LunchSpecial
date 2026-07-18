@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   beaconComplete,
   beaconShare,
@@ -13,6 +13,7 @@ import {
 import type { DailyInfo, DishSummary, RevealInfo } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
 import { ClueTicket, Countdown, GuessInput, GuessRow, Modal } from "./components";
+import { playSfx } from "./sfx";
 import { buildShareText } from "./share";
 import {
   emptyRound,
@@ -26,6 +27,11 @@ import {
   type Stats,
 } from "./storage";
 import clocheUrl from "../assets/art/ai-cloche.svg";
+
+/** A fresh random seed for free-play; the server maps it to a random dish. */
+function newSeed(): string {
+  return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 function HowToModal({ onClose }: { onClose: () => void }) {
   return (
@@ -82,21 +88,25 @@ function ResultModal({
   daily,
   reveal,
   stats,
-  isPreview,
+  ephemeral,
+  freeplay,
+  onNewGame,
   onClose,
 }: {
   round: RoundState;
   daily: DailyInfo;
   reveal: RevealInfo | null;
   stats: Stats;
-  isPreview: boolean;
+  ephemeral: boolean;
+  freeplay: boolean;
+  onNewGame: () => void;
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const won = round.status === "won";
   const share = async () => {
     const text = buildShareText(daily.puzzleNumber, round.guesses, won, daily.ingredientCount);
-    if (!isPreview && round.analyticsId) {
+    if (!ephemeral && round.analyticsId) {
       beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date });
     }
     // On mobile (and any browser with the Web Share API) bring up the native
@@ -136,7 +146,12 @@ function ResultModal({
           </div>
         </>
       )}
-      {!isPreview && (
+      {freeplay && (
+        <button className="share-btn" onClick={onNewGame}>
+          🎲 New random dish
+        </button>
+      )}
+      {!ephemeral && (
         <>
           <button className="share-btn" onClick={share}>
             {copied ? "Copied to clipboard!" : "Share your order"}
@@ -152,11 +167,25 @@ function ResultModal({
 export default function GamePage() {
   const isPreview = useMemo(() => new URLSearchParams(window.location.search).has("preview"), []);
   const preview = useMemo(() => new URLSearchParams(window.location.search).get("preview") ?? undefined, []);
+  // Dev-only "free play": /play (or ?freeplay) serves a fresh round on a random
+  // dish, nothing saved. Never in a production build; the worker gate is the
+  // real backstop (see DEV_FREEPLAY). See `npm run play`.
+  const freeplay = useMemo(() => {
+    if (!import.meta.env.DEV || isPreview) return false;
+    const params = new URLSearchParams(window.location.search);
+    return window.location.pathname.startsWith("/play") || params.has("freeplay");
+  }, [isPreview]);
   const date = useMemo(() => localToday(), []);
+
+  // A free-play round is keyed by a random seed; a new seed = a new random dish.
+  const [seed, setSeed] = useState(() => newSeed());
+  const random = freeplay ? seed : undefined;
+  // Both preview and free-play are throwaway: no localStorage, stats, or analytics.
+  const ephemeral = isPreview || freeplay;
 
   const [dishes, setDishes] = useState<DishSummary[]>([]);
   const [daily, setDaily] = useState<DailyInfo | null>(null);
-  const [round, setRound] = useState<RoundState>(() => (isPreview ? emptyRound(date) : loadRound(date)));
+  const [round, setRound] = useState<RoundState>(() => (ephemeral ? emptyRound(date) : loadRound(date)));
   const [reveal, setReveal] = useState<RevealInfo | null>(null);
   const [stats, setStats] = useState<Stats>(() => loadStats());
   const [error, setError] = useState<string | null>(null);
@@ -165,27 +194,37 @@ export default function GamePage() {
   const [showStats, setShowStats] = useState(false);
   const [showResult, setShowResult] = useState(false);
 
+  // Start a fresh free-play round on a new random dish.
+  const newGame = useCallback(() => {
+    setSeed(newSeed());
+    setRound(emptyRound(date));
+    setReveal(null);
+    setError(null);
+    setShowResult(false);
+    setDaily(null); // triggers a reload below with the new seed
+  }, [date]);
+
   useEffect(() => {
-    Promise.all([fetchDishes(), fetchDaily(date, preview)])
+    Promise.all([fetchDishes(), fetchDaily(date, preview, random)])
       .then(([dishList, dailyInfo]) => {
         setDishes(dishList);
         setDaily(dailyInfo);
       })
       .catch((e: Error) => setError(e.message));
-  }, [date, preview]);
+  }, [date, preview, random]);
 
   // A finished round (including one restored from localStorage) needs the reveal.
   useEffect(() => {
     if (round.status !== "playing" && !reveal) {
-      fetchReveal(date, preview).then(setReveal).catch(() => {});
+      fetchReveal(date, preview, random).then(setReveal).catch(() => {});
       setShowResult(true);
     }
-  }, [round.status, reveal, date, preview]);
+  }, [round.status, reveal, date, preview, random]);
 
   // Analytics "start": once per puzzle, when the board first opens. Fires only for
   // a fresh round; a mid-play round from before analytics shipped just adopts an id.
   useEffect(() => {
-    if (isPreview || !daily || round.analyticsId) return;
+    if (ephemeral || !daily || round.analyticsId) return;
     const started = { ...round, analyticsId: newAnalyticsId() };
     setRound(started);
     saveRound(started);
@@ -194,7 +233,35 @@ export default function GamePage() {
     }
     // Intentionally keyed on daily load — reads the round as it stands when the puzzle resolves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [daily, isPreview]);
+  }, [daily, ephemeral]);
+
+  // SFX tied to the guess/clue animations. Refs start at the current length so
+  // a finished round restored from localStorage doesn't replay sounds on mount;
+  // they only fire on counts that grow during live play.
+  const prevGuessCount = useRef(round.guesses.length);
+  useEffect(() => {
+    if (round.guesses.length > prevGuessCount.current) {
+      const last = round.guesses[round.guesses.length - 1];
+      // Matches the guess row dropping/snapping into place.
+      playSfx(last.correct ? "guess-correct" : "guess-submit");
+    }
+    prevGuessCount.current = round.guesses.length;
+  }, [round.guesses]);
+
+  // Ticket animation is delayed until the guess row's drop finishes; its sound
+  // must wait the same amount so it lands with the print, not the drop. Keep in
+  // sync with the ticket `animation-delay` in game.css.
+  const TICKET_STAGGER_MS = 400;
+  const prevClueCount = useRef(round.clues.length);
+  useEffect(() => {
+    if (round.clues.length > prevClueCount.current) {
+      // Matches the clue ticket printing out of the order-ticket printer.
+      const t = setTimeout(() => playSfx("ticket-print"), TICKET_STAGGER_MS);
+      prevClueCount.current = round.clues.length;
+      return () => clearTimeout(t);
+    }
+    prevClueCount.current = round.clues.length;
+  }, [round.clues.length]);
 
   const submitGuess = useCallback(
     async (dish: DishSummary) => {
@@ -203,7 +270,7 @@ export default function GamePage() {
       setError(null);
       try {
         const guessNumber = round.guesses.length + 1;
-        const feedback = await postGuess({ date, dishId: dish.id, guessNumber, preview });
+        const feedback = await postGuess({ date, dishId: dish.id, guessNumber, preview, random });
         const next: RoundState = {
           ...round,
           guesses: [...round.guesses, feedback],
@@ -211,7 +278,7 @@ export default function GamePage() {
           status: feedback.correct ? "won" : guessNumber >= MAX_GUESSES ? "lost" : "playing",
         };
         setRound(next);
-        if (!isPreview) {
+        if (!ephemeral) {
           saveRound(next);
           if (next.status !== "playing") {
             setStats(recordResult(date, next.status === "won", next.guesses.length));
@@ -231,7 +298,7 @@ export default function GamePage() {
         setBusy(false);
       }
     },
-    [daily, busy, round, date, preview, isPreview],
+    [daily, busy, round, date, preview, random, ephemeral],
   );
 
   const guessedIds = useMemo(() => new Set(round.guesses.map((g) => g.dish.id)), [round.guesses]);
@@ -255,10 +322,16 @@ export default function GamePage() {
 
       <main className="menu-card">
         {isPreview && <p className="preview-banner">Admin test play — nothing is saved</p>}
+        {freeplay && (
+          <div className="freeplay-bar">
+            <span className="freeplay-bar__tag">🎲 Free play — random dish, nothing saved</span>
+            <button className="freeplay-bar__btn" onClick={newGame}>New random dish</button>
+          </div>
+        )}
         <div className="menu-card__header">
           <h2 className="menu-card__title">Today's Menu</h2>
           <p className="menu-card__meta">
-            {daily && !isPreview ? <>Special No. {daily.puzzleNumber} — </> : null}
+            {daily && !ephemeral ? <>Special No. {daily.puzzleNumber} — </> : null}
             {dateLabel}
           </p>
           <div className="menu-card__toolbar">
@@ -329,7 +402,9 @@ export default function GamePage() {
           daily={daily}
           reveal={reveal}
           stats={stats}
-          isPreview={isPreview}
+          ephemeral={ephemeral}
+          freeplay={freeplay}
+          onNewGame={newGame}
           onClose={() => setShowResult(false)}
         />
       )}

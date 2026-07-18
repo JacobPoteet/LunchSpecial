@@ -24,8 +24,8 @@ export function fetchDishes(): Promise<DishSummary[]> {
   return request("/api/dishes");
 }
 
-export function fetchDaily(date: string, preview?: string): Promise<DailyInfo> {
-  return request(withParams("/api/daily", { date, preview }));
+export function fetchDaily(date: string, preview?: string, random?: string): Promise<DailyInfo> {
+  return request(withParams("/api/daily", { date, preview, random }));
 }
 
 export function postGuess(body: {
@@ -33,6 +33,7 @@ export function postGuess(body: {
   dishId: number;
   guessNumber: number;
   preview?: string;
+  random?: string;
 }): Promise<GuessFeedback> {
   return request("/api/guess", {
     method: "POST",
@@ -41,8 +42,8 @@ export function postGuess(body: {
   });
 }
 
-export function fetchReveal(date: string, preview?: string): Promise<RevealInfo> {
-  return request(withParams("/api/reveal", { date, preview }));
+export function fetchReveal(date: string, preview?: string, random?: string): Promise<RevealInfo> {
+  return request(withParams("/api/reveal", { date, preview, random }));
 }
 
 /** Player's local calendar date as YYYY-MM-DD (Wordle-style daily rollover). */

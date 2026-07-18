@@ -34,6 +34,18 @@ npm run dev                          # http://localhost:5173
 
 `npm test` runs the game-engine unit tests; `npm run check` typechecks everything.
 
+### Debug / testing options
+
+Ways to poke at the game locally without editing the schedule or touching your saved stats:
+
+| Option | What it does |
+|---|---|
+| `npm run play` | Starts the dev server and opens **`/play`** — a fresh round on a **random dish**, nothing saved. Reload or hit **🎲 New random dish** to roll another. |
+| `/play` or `?freeplay` | The same free-play mode by URL (e.g. `http://localhost:5173/play`). |
+| Admin **Test play** | From `/admin`, a signed preview link that plays a *specific* dish (see [Admin panel](#admin-panel-admin)). |
+
+Free play is **dev-only** and gated so it can never run in production: the client enables it only in a Vite dev build (`import.meta.env.DEV`), and the Worker honors a random-dish request only when `DEV_FREEPLAY=true` (set in `.dev.vars`; it defaults to `"false"` in `wrangler.jsonc`, which is what ships). Under the hood a random seed is sent to the API and mapped to an active dish deterministically — one round stays on a single dish, while a new seed rolls a new one.
+
 ## Deploying to Cloudflare
 
 The app is live and deploys automatically. The whole thing (game + API + admin) ships as one Worker — free-tier friendly.

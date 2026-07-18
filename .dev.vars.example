@@ -2,3 +2,7 @@
 # In production, set these with `wrangler secret put ADMIN_PASSWORD` etc.
 ADMIN_PASSWORD=choose-a-password
 SESSION_SECRET=any-long-random-string
+
+# Dev-only: enables free play (`npm run play` / /play — a random-dish round).
+# Defaults to "false" in wrangler.jsonc, so it's off in production regardless.
+DEV_FREEPLAY=true
