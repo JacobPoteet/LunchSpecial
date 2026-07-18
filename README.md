@@ -4,6 +4,13 @@
 
 **▶ Play it live: https://lunch-special.jacobwilliampoteet.workers.dev**
 
+[![Rounds played](https://img.shields.io/endpoint?url=https%3A%2F%2Flunch-special.jacobwilliampoteet.workers.dev%2Fapi%2Fstats%2Fbadge%3Fmetric%3Drounds)](https://lunch-special.jacobwilliampoteet.workers.dev)
+[![Specials solved](https://img.shields.io/endpoint?url=https%3A%2F%2Flunch-special.jacobwilliampoteet.workers.dev%2Fapi%2Fstats%2Fbadge%3Fmetric%3Dsolved)](https://lunch-special.jacobwilliampoteet.workers.dev)
+[![Solve rate](https://img.shields.io/endpoint?url=https%3A%2F%2Flunch-special.jacobwilliampoteet.workers.dev%2Fapi%2Fstats%2Fbadge%3Fmetric%3DsolveRate)](https://lunch-special.jacobwilliampoteet.workers.dev)
+[![Results shared](https://img.shields.io/endpoint?url=https%3A%2F%2Flunch-special.jacobwilliampoteet.workers.dev%2Fapi%2Fstats%2Fbadge%3Fmetric%3Dshared)](https://lunch-special.jacobwilliampoteet.workers.dev)
+
+<sub>Live engagement, straight from the diner's own [anonymous analytics](#engagement-stats) — the badges refresh from the public `/api/stats` endpoint (updates hourly via shields.io's cache).</sub>
+
 Every day the diner runs one *Special* — a famous dish from somewhere in the world. Players get 6 guesses. Each guess (any dish on the menu) reveals which ingredients it shares with the Special and how its country, course, serving temperature, and protein compare. After every miss, the kitchen slips you a clue ticket: country of origin, history, the moment that made the dish famous.
 
 Built as a single Cloudflare Worker: React SPA served from Workers Static Assets, Hono API, D1 (SQLite) database.
@@ -74,6 +81,19 @@ You can also run it on demand from **Actions → Deploy to Cloudflare → Run wo
 - The `schedule` table maps dates to dishes. If a date has no row, a **deterministic fallback** dish is picked from the active pool so the game never breaks.
 - Game state and stats live in `localStorage` — no accounts.
 - The reveal endpoint is client-initiated after game over (same honesty model as Wordle).
+
+## Engagement stats
+
+The game fires anonymous, fire-and-forget beacons — one row per round (start, completion, share) keyed by a client-generated id, **never any guess content** (`worker/routes/analytics.ts`, `analytics_rounds` table). Two ways to read them back:
+
+- **Admin dashboard** — full breakdown: guess distribution, fail count, and the last 30 days (login required).
+- **Public totals** — `GET /api/stats` returns aggregate-only counts:
+
+  ```json
+  { "rounds": 12450, "completed": 9000, "solved": 6300, "shared": 1200 }
+  ```
+
+  `GET /api/stats/badge?metric=rounds|solved|solveRate|shared` returns the same numbers in [shields.io's endpoint schema](https://shields.io/badges/endpoint-badge), which is what powers the badges at the top of this README.
 
 ## Admin panel (`/admin`)
 
