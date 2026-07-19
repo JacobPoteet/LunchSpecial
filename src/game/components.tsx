@@ -5,6 +5,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { DishSummary, GuessFeedback, MatchLevel } from "../../shared/types";
 import { playSfx } from "./sfx";
 
+// Strip diacritics so accented dish names (Crème Brûlée) are searchable from an
+// English keyboard ("creme brulee"). NFD splits a letter from its combining
+// accent, then we drop the accent marks.
+function foldAccents(s: string): string {
+  return s.normalize("NFD").replace(/\p{Diacritic}/gu, "");
+}
+
 function prefersReducedMotion(): boolean {
   return (
     typeof window.matchMedia === "function" &&
@@ -187,9 +194,11 @@ export function GuessInput({
   const interacted = useRef(false);
 
   const options = useMemo(() => {
-    const q = text.trim().toLowerCase();
+    const q = foldAccents(text.trim().toLowerCase());
     if (!q) return [];
-    return dishes.filter((d) => !excludeIds.has(d.id) && d.name.toLowerCase().includes(q)).slice(0, 8);
+    return dishes
+      .filter((d) => !excludeIds.has(d.id) && foldAccents(d.name.toLowerCase()).includes(q))
+      .slice(0, 8);
   }, [text, dishes, excludeIds]);
 
   useEffect(() => {
