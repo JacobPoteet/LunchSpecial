@@ -107,7 +107,8 @@ export function GuessRow({
     return (
       <div className="guess-row guess-row--pending">
         <p className="guess-row__name">
-          {dish?.name}
+          <span className="guess-row__dish">{dish?.name}</span>
+          <span className="leader" aria-hidden="true" />
           <span className="guess-row__count">asking the kitchen…</span>
         </p>
         <div className="attr-tiles">
@@ -125,8 +126,11 @@ export function GuessRow({
   return (
     <div className={guess.correct ? "guess-row guess-row--correct" : "guess-row"}>
       <p className="guess-row__name">
-        {guess.correct ? "🛎️ " : ""}
-        {guess.dish.name}
+        <span className="guess-row__dish">
+          {guess.correct ? "🛎️ " : ""}
+          {guess.dish.name}
+        </span>
+        <span className="leader" aria-hidden="true" />
         <span className="guess-row__count">
           {guess.matchedIngredients.length}/{ingredientCount} ingredients
         </span>

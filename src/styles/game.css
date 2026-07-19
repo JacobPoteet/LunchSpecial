@@ -60,25 +60,40 @@
 
 /* ---- menu card ---- */
 
+/* Printed-menu look: warm paper with a faint ink stipple, a thick outer rule
+   with a thin inner rule (the classic double frame on laminated diner menus). */
 .menu-card {
+  position: relative;
   width: 100%;
   max-width: 600px;
   background:
+    radial-gradient(rgba(120, 96, 60, 0.07) 1px, transparent 1.4px) 0 0 / 7px 7px,
     linear-gradient(rgba(255, 252, 240, 0.35), rgba(214, 196, 152, 0.18)),
     var(--paper);
-  border: 3px solid var(--cherry-dark);
-  outline: 6px solid var(--paper);
-  outline-offset: -9px;
-  border-radius: 14px;
+  border: 2px solid var(--cherry-dark);
+  border-radius: 8px;
   box-shadow: var(--shadow-card);
-  padding: 22px 20px 26px;
+  padding: 24px 22px 22px;
+}
+
+/* Thin inner rule of the double frame. Absolutely positioned, so it paints
+   above in-flow content — it's only a 1px ring 5px in from the edge, and the
+   card's padding keeps everything clear of it. */
+.menu-card::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid var(--cherry-dark);
+  border-radius: 5px;
+  opacity: 0.45;
+  pointer-events: none;
 }
 
 .menu-card__header {
   text-align: center;
   border-bottom: 3px double var(--cherry-dark);
   padding-bottom: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 0;
 }
 
 .menu-card__title {
@@ -90,11 +105,30 @@
   text-transform: uppercase;
 }
 
+/* Little stars flanking the masthead, like a menu's cover ornaments. */
+.menu-card__title::before {
+  content: "★";
+  margin-right: 0.5em;
+  font-size: 0.5em;
+  vertical-align: 0.45em;
+  color: var(--cherry-dark);
+}
+
+.menu-card__title::after {
+  content: "★";
+  margin-left: 0.5em;
+  font-size: 0.5em;
+  vertical-align: 0.45em;
+  color: var(--cherry-dark);
+}
+
 .menu-card__meta {
-  font-size: 0.9rem;
+  font-size: 0.76rem;
   color: var(--ink-soft);
-  font-style: italic;
-  margin: 4px 0 0;
+  font-style: normal;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin: 6px 0 0;
 }
 
 .menu-card__toolbar {
@@ -105,30 +139,41 @@
 }
 
 .icon-btn {
-  border: 1.5px solid var(--ink-soft);
+  font-family: var(--font-display);
+  border: 1.5px solid rgba(143, 31, 46, 0.6);
   background: transparent;
-  color: var(--ink-soft);
+  color: var(--cherry-dark);
   border-radius: 999px;
-  font-size: 0.78rem;
-  padding: 3px 12px;
-  letter-spacing: 0.06em;
+  font-size: 0.62rem;
+  padding: 4px 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .icon-btn:hover {
-  background: var(--ink);
-  border-color: var(--ink);
+  background: var(--cherry-dark);
+  border-color: var(--cherry-dark);
   color: var(--paper);
 }
 
+/* Dotted leader line, as between a menu item and its price. An empty flex
+   item aligned to the text baseline: its border-bottom sits right on the
+   baseline of the flanking text. */
+.leader {
+  flex: 1;
+  min-width: 16px;
+  border-bottom: 2px dotted rgba(91, 79, 69, 0.5);
+}
+
+/* The featured section of the menu: today's Special as a proper menu entry
+   with a dotted leader out to its "price". */
 .special-line {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: rgba(201, 53, 74, 0.08);
-  border: 1.5px dashed var(--cherry);
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  margin-bottom: 16px;
+  padding: 14px 4px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid rgba(143, 31, 46, 0.3);
 }
 
 .special-line img {
@@ -137,18 +182,40 @@
   flex-shrink: 0;
 }
 
+.special-line__body {
+  flex: 1;
+  min-width: 0;
+}
+
 .special-line__label {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
   font-family: var(--font-display);
-  font-size: 0.82rem;
-  letter-spacing: 0.1em;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
   color: var(--cherry-dark);
   text-transform: uppercase;
   margin: 0;
 }
 
+.special-line__label .leader {
+  border-bottom-color: rgba(143, 31, 46, 0.5);
+}
+
+.special-line__price {
+  font-family: var(--font-script);
+  font-size: 1.3rem;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--cherry);
+}
+
 .special-line__hint {
-  margin: 2px 0 0;
+  margin: 4px 0 0;
   font-size: 0.95rem;
+  font-style: italic;
   color: var(--ink-soft);
 }
 
@@ -232,12 +299,14 @@
   font-style: italic;
 }
 
+/* Small print, like the fine print at the bottom of a menu section. */
 .tally {
   text-align: center;
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   color: var(--ink-soft);
-  margin: 4px 0 14px;
+  margin: 6px 0 14px;
   letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 /* ---- guess rows ---- */
@@ -250,22 +319,21 @@
 }
 
 .guess-row {
-  border: 1.5px solid var(--paper-edge);
-  border-left: 5px solid var(--miss);
-  background: #fffdf6;
-  border-radius: var(--radius);
+  border: 1px solid var(--paper-edge);
+  background: rgba(255, 253, 246, 0.75);
+  border-radius: 6px;
   padding: 10px 12px;
 }
 
 .guess-row--correct {
-  border-left-color: var(--hit);
+  border-color: var(--hit);
   background: var(--hit-soft);
 }
 
 /* Optimistic row: order's in, kitchen hasn't replied. Gently pulses until the
    feedback lands and fills in the tiles. */
 .guess-row--pending {
-  border-left-color: var(--paper-edge);
+  border-style: dashed;
 }
 .guess-row--pending .guess-row__count {
   font-style: italic;
@@ -293,9 +361,12 @@
   margin: 0 0 8px;
   color: var(--ink);
   display: flex;
-  justify-content: space-between;
   align-items: baseline;
-  gap: 8px;
+  gap: 7px;
+}
+
+.guess-row__dish {
+  min-width: 0;
 }
 
 .guess-row__count {
@@ -412,6 +483,32 @@
   margin: 0;
   font-size: 0.97rem;
   line-height: 1.45;
+}
+
+/* Card footer: script sign-off + fine print, closed off with a double rule
+   mirroring the masthead. */
+.menu-card__thanks {
+  margin-top: 18px;
+  padding-top: 10px;
+  border-top: 3px double var(--cherry-dark);
+  text-align: center;
+}
+
+.menu-card__thanks-script {
+  font-family: var(--font-script);
+  font-size: 1.55rem;
+  line-height: 1.1;
+  color: var(--cherry);
+  margin: 0;
+}
+
+.menu-card__thanks-fine {
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  opacity: 0.8;
+  margin: 5px 0 0;
 }
 
 /* ---- modal / receipt ---- */
@@ -969,7 +1066,7 @@
   }
 
   .menu-card {
-    padding: 16px 12px 20px;
+    padding: 18px 14px 18px;
   }
 
   .attr-tile__value {

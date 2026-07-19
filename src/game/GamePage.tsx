@@ -398,9 +398,11 @@ export default function GamePage() {
 
         <div className="special-line">
           <img src={clocheUrl} alt="" aria-hidden="true" />
-          <div>
+          <div className="special-line__body">
             <p className="special-line__label">
-              {isArchive ? "Special of the day" : isRandom ? "Cook's choice" : "Special of the day"}
+              <span>{isRandom ? "Cook's choice" : "Special of the day"}</span>
+              <span className="leader" aria-hidden="true" />
+              <span className="special-line__price">market price</span>
             </p>
             <p className="special-line__hint">
               {daily ? <>A mystery dish with <strong>{daily.ingredientCount} ingredients</strong>. What'll it be?</> : "Firing up the grill…"}
@@ -441,6 +443,11 @@ export default function GamePage() {
             ))}
           </div>
         )}
+
+        <footer className="menu-card__thanks">
+          <p className="menu-card__thanks-script">Thank you — come again!</p>
+          <p className="menu-card__thanks-fine">No substitutions on the Special · Ask about our pie</p>
+        </footer>
       </main>
 
       <p className="footer-note">A new Special every midnight.</p>
