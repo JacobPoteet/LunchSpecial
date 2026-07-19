@@ -69,9 +69,14 @@ app.post("/guess", async (c) => {
   if (!Number.isInteger(guessNumber) || guessNumber < 1 || guessNumber > MAX_GUESSES) {
     return c.json({ error: "guessNumber must be 1-6" }, 400);
   }
-  const target = await resolveTarget(c.env, body.date, body.preview, body.random);
+  const dishId = Number(body.dishId);
+  if (!Number.isInteger(dishId)) return c.json({ error: "Unknown dish" }, 400);
+  // The target and the guessed dish are independent — resolve them in parallel.
+  const [target, guess] = await Promise.all([
+    resolveTarget(c.env, body.date, body.preview, body.random),
+    getDishById(c.env.DB, dishId),
+  ]);
   if ("error" in target) return c.json({ error: target.error }, 400);
-  const guess = await getDishById(c.env.DB, Number(body.dishId));
   if (!guess) return c.json({ error: "Unknown dish" }, 400);
 
   const feedback: GuessFeedback = computeFeedback(guess, target.dish);

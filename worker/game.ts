@@ -82,15 +82,20 @@ export function isPlayableDate(date: string, now: Date = new Date()): boolean {
   return isAllowedRequestDate(date, now) || isArchiveDate(date, now);
 }
 
+/** 32-bit FNV-1a hash of a seed string (date or random-play seed). */
+export function fnv1a(seed: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < seed.length; i++) {
+    hash ^= seed.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
 /**
  * Deterministic fallback pick for dates with no scheduled dish, so the game
  * never breaks. FNV-1a over the date string, mod the pool size.
  */
 export function fallbackDishIndex(date: string, poolSize: number): number {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < date.length; i++) {
-    hash ^= date.charCodeAt(i);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0) % poolSize;
+  return fnv1a(date) % poolSize;
 }
