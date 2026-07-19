@@ -44,7 +44,7 @@ function HowToModal({ onClose }: { onClose: () => void }) {
       <div className="howto">
         <h2>How to play</h2>
         <p>
-          Every day this diner runs one <strong>Special</strong> — a famous dish from somewhere in the world. You have{" "}
+          Every day this diner runs one <strong>Special</strong>, a famous dish from somewhere in the world. You have{" "}
           {MAX_GUESSES} guesses to figure out what's under the cloche.
         </p>
         <p>
@@ -57,11 +57,11 @@ function HowToModal({ onClose }: { onClose: () => void }) {
           <span className="chip" style={{ background: "var(--miss-soft)", color: "var(--ink-soft)" }}>gray = miss</span>
         </div>
         <p>
-          After each wrong order, the kitchen slips you a <strong>clue ticket</strong> — country of origin, history, the
+          After each wrong order, the kitchen slips you a <strong>clue ticket</strong> - country of origin, history, the
           moment that made the dish famous. Five clues in total. Good luck, hon.
         </p>
         <p>
-          Once you've settled today's check, hit <strong>Menu archive</strong> to replay any Special you missed — or
+          Once you've settled today's check, hit <strong>Menu archive</strong> to replay any Special you missed, or
           have the cook fire a random recipe.
         </p>
       </div>
@@ -146,7 +146,7 @@ function ResultModal({
   return (
     <Modal onClose={onClose} receipt>
       <div className="receipt__head">
-        <p className="receipt__title">Lunch Special — your check</p>
+        <p className="receipt__title">Lunch Special - your check</p>
         <p className="receipt__verdict">{won ? "On the house!" : "Better luck tomorrow"}</p>
       </div>
       {reveal && (
@@ -445,7 +445,7 @@ export default function GamePage() {
         )}
 
         <footer className="menu-card__thanks">
-          <p className="menu-card__thanks-script">Thank you — come again!</p>
+          <p className="menu-card__thanks-script">Best food in town!</p>
           <p className="menu-card__thanks-fine">No substitutions on the Special · Ask about our pie</p>
         </footer>
       </main>
