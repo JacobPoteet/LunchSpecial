@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import GamePage from "./game/GamePage";
-import sceneUrl from "./assets/art/ai-diner-scene.svg";
+import sceneUrl from "./assets/art/diner-backdrop.png";
 
 const AdminApp = lazy(() => import("./admin/AdminApp"));
 

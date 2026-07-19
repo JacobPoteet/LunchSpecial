@@ -21,11 +21,11 @@ Golden-age American diner, roughly 1950s: cream + chrome + cherry-red + deep tea
 
 ## Assets
 
-### `src/assets/art/ai-diner-scene.svg`
-- **What**: The full diner-interior backdrop — teal wall with chrome trim, red band, checkerboard floor, picture window (night sky, neon coffee-cup sign, blinds), "TODAY'S SPECIAL ???" menu board, two pendant lamps, chrome-edged counter with props (coffee pot, pie stand, ketchup/mustard, napkin holder, milkshake), three red-topped chrome stools.
+### `src/assets/art/diner-backdrop.png`
+- **What**: Painterly night-time diner interior — red vinyl booths and jukebox at left, chrome-edged counter with red stools, "Mel's Diner" neon sign and menu board, pendant lamps, a classic car visible through the window. Replaces the earlier `ai-diner-scene.svg` vector placeholder with a raster illustration.
 - **Where**: CSS `background-image` of the entire game screen (`.scene`), behind the menu card.
-- **Size**: 1600×900 viewBox, rendered `cover` at any viewport; on phones roughly the center-left 40% is visible (`background-position: 62% 30%`), so keep interest away from the extreme edges.
-- **Notes**: Groups are labeled (`#window`, `#menu-board`, `#lamps`, `#counter`, `#props`, `#stools`) so pieces can be redrawn individually. Must stay dark/mid-tone enough for the cream menu card to pop.
+- **Size**: 1680×948px, rendered `cover` at any viewport; `background-position: center 30%` keeps the counter/signage centered and crops the edges first, so keep interest away from the extreme left/right.
+- **Notes**: Already dark/mid-tone enough for the cream menu card to pop on top. Swap this file in place (same path, same ~16:9 proportions) for future backdrop updates — no code changes needed.
 
 ### `src/assets/art/ai-cloche.svg`
 - **What**: Silver serving cloche on a plate with a big "?" — the mystery-dish icon.
