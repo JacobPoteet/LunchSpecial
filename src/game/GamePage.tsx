@@ -450,7 +450,7 @@ export default function GamePage() {
         </footer>
       </main>
 
-      <p className="footer-note">A new Special every midnight.</p>
+      <p className="footer-note">Created by Jacob Poteet</p>
 
       {showHowTo && (
         <HowToModal
