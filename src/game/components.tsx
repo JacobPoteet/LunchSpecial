@@ -177,6 +177,10 @@ export function GuessInput({
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  // Only pull focus back on desktop (mouse + hover). On touch, auto-focusing
+  // would pop the on-screen keyboard up after every guess.
+  const interacted = useRef(false);
 
   const options = useMemo(() => {
     const q = text.trim().toLowerCase();
@@ -196,9 +200,20 @@ export function GuessInput({
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
+  // Submitting a guess flips `disabled` on (parent goes busy) then off again,
+  // which drops the input's focus. On desktop, put the cursor back so you can
+  // keep typing your next order without re-clicking the bar.
+  useEffect(() => {
+    if (disabled || !interacted.current) return;
+    if (window.matchMedia?.("(hover: hover) and (pointer: fine)").matches) {
+      inputRef.current?.focus();
+    }
+  }, [disabled]);
+
   const pick = (dish: DishSummary) => {
     setText("");
     setOpen(false);
+    interacted.current = true;
     onGuess(dish);
   };
 
@@ -206,6 +221,7 @@ export function GuessInput({
     <div className="guess-input" ref={rootRef}>
       <div className="guess-input__row">
         <input
+          ref={inputRef}
           type="text"
           value={text}
           disabled={disabled}
