@@ -400,9 +400,9 @@ export default function GamePage() {
           <img src={clocheUrl} alt="" aria-hidden="true" />
           <div className="special-line__body">
             <p className="special-line__label">
-              <span>{isRandom ? "Cook's choice" : "Special of the day"}</span>
+              <span>{isRandom ? "Cook's choice" : "Daily Special"}</span>
               <span className="leader" aria-hidden="true" />
-              <span className="special-line__price">market price</span>
+              <span className="special-line__price">mp</span>
             </p>
             <p className="special-line__hint">
               {daily ? <>A mystery dish with <strong>{daily.ingredientCount} ingredients</strong>. What'll it be?</> : "Firing up the grill…"}
