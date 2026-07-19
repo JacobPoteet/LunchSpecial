@@ -3,13 +3,25 @@
 .scene {
   min-height: 100dvh;
   background-color: var(--teal-dark);
-  background-image: var(--scene-art);
-  background-size: cover;
-  background-position: center 30%;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 16px 12px 48px;
+}
+
+/* The diner backdrop lives on a viewport-locked layer, not on .scene itself.
+   If we painted it on .scene (which grows to fit the guess column), a `cover`
+   background would scale up as soon as the page got tall enough to scroll —
+   making the whole scene appear to zoom. Fixing it to the viewport keeps the
+   art a constant size; only the content above it scrolls. */
+.scene::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--scene-art);
+  background-size: cover;
+  background-position: center 30%;
 }
 
 .marquee {

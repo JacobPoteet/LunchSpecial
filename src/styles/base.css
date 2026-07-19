@@ -50,6 +50,11 @@ html,
 body {
   margin: 0;
   padding: 0;
+  /* Stop mobile browsers (Android Chrome font-boosting, iOS Safari) from
+     auto-inflating text once a block grows tall — otherwise everything in the
+     guess column visibly scales up around the 4th/5th guess. Not page zoom. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
