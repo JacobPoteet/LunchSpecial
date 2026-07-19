@@ -99,6 +99,7 @@ function EngagementPanel() {
             <div className="spark">
               {daily.map((d) => (
                 <div className="spark__col" key={d.date} title={`${d.date}: ${d.started} started, ${d.solved} solved`}>
+                  <span className="spark__num">{d.started}</span>
                   <span className="spark__bar" style={{ height: `${6 + (d.started / dayMax) * 94}%` }} />
                 </div>
               ))}
@@ -114,6 +115,7 @@ function EngagementPanel() {
         <div className="hourly">
           {hourly.map((n, h) => (
             <div className="hourly__col" key={h} title={`${String(h).padStart(2, "0")}:00 UTC — ${n} started`}>
+              {n > 0 && <span className="hourly__num">{n}</span>}
               <span className="hourly__bar" style={{ height: `${n === 0 ? 0 : 6 + (n / hourMax) * 94}%` }} />
               {h % 6 === 0 && <span className="hourly__tick">{String(h).padStart(2, "0")}</span>}
             </div>
