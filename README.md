@@ -2,12 +2,12 @@
 
 **A daily dish-guessing game set in the golden age of diners.**
 
-**▶ Play it live: https://lunch-special.jacobwilliampoteet.workers.dev**
+**▶ Play it live: https://lunchspecial.app**
 
-[![Rounds played](https://img.shields.io/endpoint?url=https%3A%2F%2Flunch-special.jacobwilliampoteet.workers.dev%2Fapi%2Fstats%2Fbadge%3Fmetric%3Drounds)](https://lunch-special.jacobwilliampoteet.workers.dev)
-[![Specials solved](https://img.shields.io/endpoint?url=https%3A%2F%2Flunch-special.jacobwilliampoteet.workers.dev%2Fapi%2Fstats%2Fbadge%3Fmetric%3Dsolved)](https://lunch-special.jacobwilliampoteet.workers.dev)
-[![Solve rate](https://img.shields.io/endpoint?url=https%3A%2F%2Flunch-special.jacobwilliampoteet.workers.dev%2Fapi%2Fstats%2Fbadge%3Fmetric%3DsolveRate)](https://lunch-special.jacobwilliampoteet.workers.dev)
-[![Results shared](https://img.shields.io/endpoint?url=https%3A%2F%2Flunch-special.jacobwilliampoteet.workers.dev%2Fapi%2Fstats%2Fbadge%3Fmetric%3Dshared)](https://lunch-special.jacobwilliampoteet.workers.dev)
+[![Rounds played](https://img.shields.io/endpoint?url=https%3A%2F%2Flunchspecial.app%2Fapi%2Fstats%2Fbadge%3Fmetric%3Drounds)](https://lunchspecial.app)
+[![Specials solved](https://img.shields.io/endpoint?url=https%3A%2F%2Flunchspecial.app%2Fapi%2Fstats%2Fbadge%3Fmetric%3Dsolved)](https://lunchspecial.app)
+[![Solve rate](https://img.shields.io/endpoint?url=https%3A%2F%2Flunchspecial.app%2Fapi%2Fstats%2Fbadge%3Fmetric%3DsolveRate)](https://lunchspecial.app)
+[![Results shared](https://img.shields.io/endpoint?url=https%3A%2F%2Flunchspecial.app%2Fapi%2Fstats%2Fbadge%3Fmetric%3Dshared)](https://lunchspecial.app)
 
 <sub>Live engagement, straight from the diner's own [anonymous analytics](#engagement-stats) — the badges refresh from the public `/api/stats` endpoint (updates hourly via shields.io's cache).</sub>
 

@@ -20,5 +20,5 @@ export function buildShareText(
     const pantry = g.correct ? "🛎️" : `${g.matchedIngredients.length}/${ingredientCount}🥄`;
     return `${tiles} ${pantry}`;
   });
-  return [`Lunch Special #${puzzleNumber} — ${score}`, ...rows, "https://lunchspecial.game"].join("\n");
+  return [`Lunch Special #${puzzleNumber} — ${score}`, ...rows, "https://lunchspecial.app"].join("\n");
 }

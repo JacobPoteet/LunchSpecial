@@ -20,7 +20,7 @@ Local admin password: `ADMIN_PASSWORD` in `.dev.vars` (gitignored; currently `lu
 
 ## Deploy to Cloudflare
 
-**Live:** https://lunch-special.jacobwilliampoteet.workers.dev — bootstrap is done and releases are automated (see CI below). The steps below are the record of that setup and what you'd repeat to bootstrap a fresh environment.
+**Live:** https://lunchspecial.app (custom domain on the Worker; lunch-special.jacobwilliampoteet.workers.dev is the underlying workers.dev URL) — bootstrap is done and releases are automated (see CI below). The steps below are the record of that setup and what you'd repeat to bootstrap a fresh environment.
 
 ### One-time bootstrap (manual — touches the CF account + secrets)
 
@@ -28,7 +28,7 @@ Local admin password: `ADMIN_PASSWORD` in `.dev.vars` (gitignored; currently `lu
 2. `npx wrangler d1 create lunch-special-db` → paste returned UUID into `database_id` in wrangler.jsonc. Commit it — DB ids are not secret. (Prod id `f331205d-c816-48c9-b099-0fb15b7605ba` is already set.)
 3. `npm run db:migrate:remote && npm run db:seed:remote` (seed once, by hand — see CI note below)
 4. Set the two Worker secrets directly (interactive prompt — you type the value; run in your own terminal): `npx wrangler secret put ADMIN_PASSWORD` then `npx wrangler secret put SESSION_SECRET` (a long random string, e.g. `openssl rand -hex 32`). They persist across deploys, so CI never touches them.
-5. First deploy by hand to confirm it works: `npm run deploy` → https://lunch-special.jacobwilliampoteet.workers.dev
+5. First deploy by hand to confirm it works: `npm run deploy` → https://lunchspecial.app
 6. Verify: play a guess on the live URL, log into /admin
 
 ### Where secrets live
