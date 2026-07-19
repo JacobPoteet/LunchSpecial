@@ -144,13 +144,19 @@ export interface PublicStats {
   shared: number;
 }
 
-/** Anonymous engagement aggregates for the admin dashboard. No guess content. */
-export interface AnalyticsSummary {
+/** Totals + guess distribution for one slice of rounds (today, or all time). */
+export interface AnalyticsPeriod {
   totals: { started: number; completed: number; solved: number; shared: number };
   /** dist[i] = rounds solved in i+1 guesses. */
   guessDistribution: number[];
   /** Completed rounds that ran out of guesses. */
   fails: number;
+}
+
+/** Anonymous engagement aggregates for the admin dashboard. No guess content. */
+export interface AnalyticsSummary extends AnalyticsPeriod {
+  /** Same figures scoped to today's puzzle (play_date = server UTC today). */
+  today: AnalyticsPeriod & { date: string; dishName: string | null };
   /** Last 30 days with activity, oldest first. */
   daily: AnalyticsDay[];
   /** Games started per hour of day (UTC), index 0..23. */
