@@ -162,20 +162,24 @@ function ResultModal({
           </div>
         </>
       )}
-      {isRandom && (
-        <button className="share-btn" onClick={onNewGame}>
-          🎲 New random dish
-        </button>
-      )}
       {canShare && (
-        <button className="share-btn" onClick={share}>
-          {copied ? "Copied to clipboard!" : "Share your order"}
+        <button className="share-btn share-btn--primary" onClick={share}>
+          {copied ? "Copied to clipboard!" : "📋 Share your order"}
         </button>
       )}
-      {canArchive && (
-        <button className="share-btn share-btn--ink" onClick={onArchive}>
-          📅 Play another day
-        </button>
+      {(isRandom || canArchive) && (
+        <div className="replay-actions">
+          {isRandom && (
+            <button className="replay-btn" onClick={onNewGame}>
+              🎲 New random dish
+            </button>
+          )}
+          {canArchive && (
+            <button className="replay-btn" onClick={onArchive}>
+              📅 Play another day
+            </button>
+          )}
+        </div>
       )}
       {isDaily && (
         <>
