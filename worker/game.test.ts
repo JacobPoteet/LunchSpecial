@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gameToday, msUntilGameMidnight } from "../shared/time";
+import { gameHour, gameToday, msUntilGameMidnight } from "../shared/time";
 import type { DishRecord } from "./game";
 import {
   computeFeedback,
@@ -134,6 +134,15 @@ describe("midnight-ET rollover (GitHub #33)", () => {
     expect(msUntilGameMidnight(new Date("2026-07-19T04:00:00Z"))).toBe(86_400_000);
     // 05:30 UTC = 01:30 EDT — 22h30m left in the ET day.
     expect(msUntilGameMidnight(new Date("2026-07-19T05:30:00Z"))).toBe(22.5 * 3_600_000);
+  });
+
+  it("buckets an instant into its ET hour of day", () => {
+    // 18:30 UTC in July (EDT, UTC-4) is 14:30 ET.
+    expect(gameHour(new Date("2026-07-19T18:30:00Z"))).toBe(14);
+    // 02:30 UTC in July is the prior ET evening, 22:30 EDT.
+    expect(gameHour(new Date("2026-07-19T02:30:00Z"))).toBe(22);
+    // Winter (EST, UTC-5): 18:30 UTC is 13:30 ET.
+    expect(gameHour(new Date("2026-01-15T18:30:00Z"))).toBe(13);
   });
 
   it("accepts the ET date near the UTC-day boundary", () => {

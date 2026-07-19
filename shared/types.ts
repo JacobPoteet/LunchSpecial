@@ -159,6 +159,6 @@ export interface AnalyticsSummary extends AnalyticsPeriod {
   today: AnalyticsPeriod & { date: string; dishName: string | null };
   /** Last 30 days with activity, oldest first. */
   daily: AnalyticsDay[];
-  /** Games started per hour of day (UTC), index 0..23. */
+  /** Games started per hour of day (ET, the daily-rollover zone), index 0..23. */
   hourly: number[];
 }

@@ -39,6 +39,17 @@ export function msUntilGameMidnight(now: Date = new Date()): number {
   return 86_400_000 - elapsed;
 }
 
+const zoneHour = new Intl.DateTimeFormat("en-US", {
+  timeZone: GAME_TIMEZONE,
+  hour: "2-digit",
+  hourCycle: "h23", // 00–23
+});
+
+/** Hour of day (0–23) of the given instant in GAME_TIMEZONE. */
+export function gameHour(instant: Date): number {
+  return Number(zoneHour.format(instant));
+}
+
 /** Break a millisecond span into zero-padded hh/mm/ss strings for a countdown. */
 export function hms(ms: number): { h: string; m: string; s: string } {
   const clamped = Math.max(0, ms);

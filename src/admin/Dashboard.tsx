@@ -195,11 +195,11 @@ function EngagementPanel() {
 
       <div className="analytics-block">
         <h3 className="analytics-sub">
-          Games started by hour · UTC{totals.started > 0 && ` · peak ${String(peakHour).padStart(2, "0")}:00`}
+          Games started by hour · ET{totals.started > 0 && ` · peak ${String(peakHour).padStart(2, "0")}:00`}
         </h3>
         <div className="hourly">
           {hourly.map((n, h) => (
-            <div className="hourly__col" key={h} title={`${String(h).padStart(2, "0")}:00 UTC — ${n} started`}>
+            <div className="hourly__col" key={h} title={`${String(h).padStart(2, "0")}:00 ET — ${n} started`}>
               {n > 0 && <span className="hourly__num">{n}</span>}
               <span className="hourly__bar" style={{ height: `${n === 0 ? 0 : 6 + (n / hourMax) * 94}%` }} />
               {h % 6 === 0 && <span className="hourly__tick">{String(h).padStart(2, "0")}</span>}

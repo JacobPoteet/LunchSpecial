@@ -20,6 +20,7 @@ import {
 } from "../auth";
 import { rowToDish, serverToday, type DishDbRow } from "../db";
 import { isValidDateString } from "../game";
+import { gameHour } from "../../shared/time";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -446,9 +447,12 @@ app.get("/analytics", async (c) => {
          FROM analytics_rounds GROUP BY play_date ORDER BY play_date DESC LIMIT 30`,
       ),
       c.env.DB.prepare(
-        // Started-at is stored in UTC; bucket by hour of day for an engagement curve.
-        `SELECT CAST(strftime('%H', started_at) AS INTEGER) AS hour, COUNT(*) AS n
-           FROM analytics_rounds WHERE started_at IS NOT NULL GROUP BY hour`,
+        // Started-at is stored in UTC. SQLite has no named-timezone support and
+        // ET has DST, so we bucket by UTC hour-of-history here and fold each
+        // bucket into its ET hour-of-day in JS below (offset is whole hours, so
+        // a UTC hour maps cleanly to one ET hour).
+        `SELECT strftime('%Y-%m-%d %H', started_at) AS bucket, COUNT(*) AS n
+           FROM analytics_rounds WHERE started_at IS NOT NULL GROUP BY bucket`,
       ),
     ]);
 
@@ -467,9 +471,13 @@ app.get("/analytics", async (c) => {
   const todayPeriod = toPeriod(todayTotalsRes, todayDistRes);
   const todayDish = todayDishRes.results[0] as { name: string } | undefined;
 
+  // Fold each UTC hour-bucket ("YYYY-MM-DD HH", UTC) into its ET hour of day.
   const hourly = Array.from({ length: 24 }, () => 0);
-  for (const r of hourlyRes.results as { hour: number; n: number }[]) {
-    if (r.hour >= 0 && r.hour < 24) hourly[r.hour] = r.n;
+  for (const r of hourlyRes.results as { bucket: string; n: number }[]) {
+    // Rebuild the instant at mid-hour to stay clear of any boundary rounding.
+    const instant = new Date(`${r.bucket.replace(" ", "T")}:30:00Z`);
+    if (Number.isNaN(instant.getTime())) continue;
+    hourly[gameHour(instant)] += r.n;
   }
 
   const summary: AnalyticsSummary = {
