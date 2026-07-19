@@ -18,8 +18,9 @@ import {
   SESSION_TTL_MS,
   verifyToken,
 } from "../auth";
-import { rowToDish, utcToday, type DishDbRow } from "../db";
+import { rowToDish, serverToday, type DishDbRow } from "../db";
 import { isValidDateString } from "../game";
+import { gameHour } from "../../shared/time";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -90,7 +91,7 @@ app.get("/dishes", async (c) => {
          (SELECT MAX(s.date) FROM schedule s WHERE s.dish_id = d.id AND s.date <= ?) AS last_served
        FROM dishes d ORDER BY d.name`,
     )
-    .bind(utcToday())
+    .bind(serverToday())
     .all<AdminDishDbRow>();
   return c.json(res.results.map(toAdminRow));
 });
@@ -225,7 +226,7 @@ app.delete("/dishes/:id", async (c) => {
   const id = Number(c.req.param("id"));
   const future = await c.env.DB
     .prepare("SELECT date FROM schedule WHERE dish_id = ? AND date >= ? LIMIT 1")
-    .bind(id, utcToday())
+    .bind(id, serverToday())
     .first<{ date: string }>();
   if (future) {
     return c.json({ error: `Dish is scheduled for ${future.date} — unschedule it first` }, 409);
@@ -253,7 +254,7 @@ function addDays(date: string, days: number): string {
 }
 
 app.get("/schedule", async (c) => {
-  const today = utcToday();
+  const today = serverToday();
   const from = c.req.query("from") ?? addDays(today, -7);
   const to = c.req.query("to") ?? addDays(today, 45);
   if (!isValidDateString(from) || !isValidDateString(to) || from > to) {
@@ -282,7 +283,7 @@ app.put("/schedule", async (c) => {
   } catch {
     return c.json({ error: "Invalid JSON body" }, 400);
   }
-  const today = utcToday();
+  const today = serverToday();
   if (!body.date || !isValidDateString(body.date)) return c.json({ error: "Invalid date" }, 400);
   if (body.date < today) return c.json({ error: "Past days are locked" }, 400);
   if (body.dishId == null) {
@@ -310,7 +311,7 @@ app.put("/schedule", async (c) => {
 // Fill empty days in the next 30 with least-recently-served complete dishes,
 // avoiding any dish served or scheduled within 60 days.
 app.post("/schedule/autofill", async (c) => {
-  const today = utcToday();
+  const today = serverToday();
   const windowEnd = addDays(today, 29);
   const blockStart = addDays(today, -60);
 
@@ -368,7 +369,7 @@ app.post("/preview", async (c) => {
 });
 
 app.get("/dashboard", async (c) => {
-  const today = utcToday();
+  const today = serverToday();
   const [todayRes, upcomingRes, dishesRes] = await c.env.DB.batch([
     c.env.DB
       .prepare("SELECT s.dish_id, d.name FROM schedule s JOIN dishes d ON d.id = s.dish_id WHERE s.date = ?")
@@ -415,7 +416,7 @@ app.get("/dashboard", async (c) => {
 
 // Anonymous engagement aggregates (see migrations/0005_add_analytics.sql).
 app.get("/analytics", async (c) => {
-  const today = utcToday();
+  const today = serverToday();
   // Totals + guess distribution, computed the same way for all-time and for today.
   const totalsSql = (where: string) =>
     `SELECT COUNT(*) AS started,
@@ -446,9 +447,12 @@ app.get("/analytics", async (c) => {
          FROM analytics_rounds GROUP BY play_date ORDER BY play_date DESC LIMIT 30`,
       ),
       c.env.DB.prepare(
-        // Started-at is stored in UTC; bucket by hour of day for an engagement curve.
-        `SELECT CAST(strftime('%H', started_at) AS INTEGER) AS hour, COUNT(*) AS n
-           FROM analytics_rounds WHERE started_at IS NOT NULL GROUP BY hour`,
+        // Started-at is stored in UTC. SQLite has no named-timezone support and
+        // ET has DST, so we bucket by UTC hour-of-history here and fold each
+        // bucket into its ET hour-of-day in JS below (offset is whole hours, so
+        // a UTC hour maps cleanly to one ET hour).
+        `SELECT strftime('%Y-%m-%d %H', started_at) AS bucket, COUNT(*) AS n
+           FROM analytics_rounds WHERE started_at IS NOT NULL GROUP BY bucket`,
       ),
     ]);
 
@@ -467,9 +471,13 @@ app.get("/analytics", async (c) => {
   const todayPeriod = toPeriod(todayTotalsRes, todayDistRes);
   const todayDish = todayDishRes.results[0] as { name: string } | undefined;
 
+  // Fold each UTC hour-bucket ("YYYY-MM-DD HH", UTC) into its ET hour of day.
   const hourly = Array.from({ length: 24 }, () => 0);
-  for (const r of hourlyRes.results as { hour: number; n: number }[]) {
-    if (r.hour >= 0 && r.hour < 24) hourly[r.hour] = r.n;
+  for (const r of hourlyRes.results as { bucket: string; n: number }[]) {
+    // Rebuild the instant at mid-hour to stay clear of any boundary rounding.
+    const instant = new Date(`${r.bucket.replace(" ", "T")}:30:00Z`);
+    if (Number.isNaN(instant.getTime())) continue;
+    hourly[gameHour(instant)] += r.n;
   }
 
   const summary: AnalyticsSummary = {

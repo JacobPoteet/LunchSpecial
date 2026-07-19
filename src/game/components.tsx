@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DishSummary, GuessFeedback, MatchLevel } from "../../shared/types";
+import { hms, msUntilGameMidnight } from "../../shared/time";
 import { playSfx } from "./sfx";
 
 // Strip diacritics so accented dish names (Crème Brûlée) are searchable from an
@@ -291,27 +292,18 @@ export function GuessInput({
   );
 }
 
-function pad(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
 export function Countdown() {
-  const [now, setNow] = useState(() => new Date());
+  const [ms, setMs] = useState(() => msUntilGameMidnight());
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000);
+    const t = setInterval(() => setMs(msUntilGameMidnight()), 1000);
     return () => clearInterval(t);
   }, []);
-  const midnight = new Date(now);
-  midnight.setHours(24, 0, 0, 0);
-  const ms = midnight.getTime() - now.getTime();
-  const h = Math.floor(ms / 3_600_000);
-  const m = Math.floor((ms % 3_600_000) / 60_000);
-  const s = Math.floor((ms % 60_000) / 1000);
+  const { h, m, s } = hms(ms);
   return (
     <p className="countdown">
       Next Special in{" "}
       <strong>
-        {pad(h)}:{pad(m)}:{pad(s)}
+        {h}:{m}:{s}
       </strong>
     </p>
   );

@@ -1,4 +1,5 @@
 import type { Course, Dish, Protein, Region, Temperature } from "../shared/types";
+import { gameToday } from "../shared/time";
 import type { DishRecord } from "./game";
 import { fnv1a } from "./game";
 
@@ -83,7 +84,7 @@ export async function getClues(db: D1Database, dishId: number): Promise<string[]
   return res.results.map((r) => r.text);
 }
 
-/** Today's date in UTC as YYYY-MM-DD. */
-export function utcToday(): string {
-  return new Date().toISOString().slice(0, 10);
+/** The Special's current date (YYYY-MM-DD) — rolls over at midnight ET. */
+export function serverToday(): string {
+  return gameToday();
 }

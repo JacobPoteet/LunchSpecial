@@ -2,10 +2,30 @@ import { useEffect, useState } from "react";
 import type { AnalyticsPeriod, AnalyticsSummary } from "../../shared/types";
 import type { AdminDashboard } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
+import { hms, msUntilGameMidnight } from "../../shared/time";
 import * as api from "./api";
 import type { AdminView } from "./AdminApp";
 
 const pct = (n: number, of: number) => (of === 0 ? 0 : Math.round((n / of) * 100));
+
+/** Live countdown to the next midnight-ET rollover, when today's Special switches. */
+function SwitchCountdown() {
+  const [ms, setMs] = useState(() => msUntilGameMidnight());
+  useEffect(() => {
+    const t = setInterval(() => setMs(msUntilGameMidnight()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const { h, m, s } = hms(ms);
+  return (
+    <p className="dash-note">
+      Switches in{" "}
+      <strong>
+        {h}:{m}:{s}
+      </strong>{" "}
+      · midnight ET
+    </p>
+  );
+}
 
 /** Mean guesses across solved rounds, or null when nothing has been solved yet. */
 function avgGuesses(dist: number[]): number | null {
@@ -175,11 +195,11 @@ function EngagementPanel() {
 
       <div className="analytics-block">
         <h3 className="analytics-sub">
-          Games started by hour · UTC{totals.started > 0 && ` · peak ${String(peakHour).padStart(2, "0")}:00`}
+          Games started by hour · ET{totals.started > 0 && ` · peak ${String(peakHour).padStart(2, "0")}:00`}
         </h3>
         <div className="hourly">
           {hourly.map((n, h) => (
-            <div className="hourly__col" key={h} title={`${String(h).padStart(2, "0")}:00 UTC — ${n} started`}>
+            <div className="hourly__col" key={h} title={`${String(h).padStart(2, "0")}:00 ET — ${n} started`}>
               {n > 0 && <span className="hourly__num">{n}</span>}
               <span className="hourly__bar" style={{ height: `${n === 0 ? 0 : 6 + (n / hourMax) * 94}%` }} />
               {h % 6 === 0 && <span className="hourly__tick">{String(h).padStart(2, "0")}</span>}
@@ -257,6 +277,7 @@ export default function Dashboard({
             <>
               <p className="dash-big">{data.today.dishName}</p>
               <p className="dash-note">Serving on {data.today.date}</p>
+              <SwitchCountdown />
               <div className="btn-row" style={{ marginTop: 10 }}>
                 <button className="btn btn--ghost" onClick={() => onOpenDish(data.today.dishId)}>
                   Edit dish
@@ -269,6 +290,7 @@ export default function Dashboard({
               <p className="dash-note">
                 Players will get an automatic fallback dish today. Assign one in the schedule.
               </p>
+              <SwitchCountdown />
             </>
           )}
         </section>

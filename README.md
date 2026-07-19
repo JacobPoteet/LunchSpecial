@@ -79,7 +79,7 @@ You can also run it on demand from **Actions → Deploy to Cloudflare → Run wo
 
 ## How the daily Special works
 
-- The player's **local date** decides which puzzle they see (Wordle-style). The server accepts dates within ±2 days of UTC.
+- The daily Special **rolls over at midnight Eastern Time (`America/New_York`)** for every player, wherever they are — the same puzzle switches for everyone at the same moment. The server accepts dates within ±2 days of the current ET date for clock/rollover slack.
 - The `schedule` table maps dates to dishes. If a date has no row, a **deterministic fallback** dish is picked from the active pool so the game never breaks.
 - Game state and stats live in `localStorage` — no accounts.
 - The reveal endpoint is client-initiated after game over (same honesty model as Wordle).

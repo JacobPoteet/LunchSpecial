@@ -2,6 +2,7 @@
 
 import type { AttributeFeedback, Course, GuessFeedback, Protein, Region, Temperature } from "../shared/types";
 import { EPOCH_DATE } from "../shared/types";
+import { gameToday } from "../shared/time";
 
 export interface DishRecord {
   id: number;
@@ -57,21 +58,25 @@ export function isValidDateString(date: string): boolean {
   return new Date(t).toISOString().slice(0, 10) === date;
 }
 
-/** The player sends their local date; accept it if within a day of UTC now. */
+/**
+ * The player sends the date they think is "today"; accept it if within two days
+ * of the game's current date (midnight-ET rollover), leaving slack for clock
+ * skew and the request straddling the rollover.
+ */
 export function isAllowedRequestDate(date: string, now: Date = new Date()): boolean {
   if (!isValidDateString(date)) return false;
-  const diff = Math.abs(Date.parse(`${date}T00:00:00Z`) - now.getTime());
+  const diff = Math.abs(Date.parse(`${date}T00:00:00Z`) - Date.parse(`${gameToday(now)}T00:00:00Z`));
   return diff <= 2 * 86_400_000;
 }
 
 /**
  * A past (or current) puzzle date, playable from the archive: from puzzle #1
- * (EPOCH_DATE) up to today (UTC). Future dates are rejected so upcoming
- * Specials aren't spoiled.
+ * (EPOCH_DATE) up to today (midnight-ET rollover). Future dates are rejected so
+ * upcoming Specials aren't spoiled.
  */
 export function isArchiveDate(date: string, now: Date = new Date()): boolean {
   if (!isValidDateString(date)) return false;
-  return date >= EPOCH_DATE && date <= now.toISOString().slice(0, 10);
+  return date >= EPOCH_DATE && date <= gameToday(now);
 }
 
 /**

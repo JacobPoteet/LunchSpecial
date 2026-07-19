@@ -62,7 +62,8 @@ shared/types.ts       ALL shared types + enums (COURSES, REGIONS…) + MAX_GUESS
 worker/index.ts       Hono entry; only /api/* reaches the Worker (assets serve the rest)
 worker/game.ts        PURE game logic (feedback, puzzleNumber, date validation, fallback pick) — unit tested
 worker/auth.ts        HMAC tokens: session cookie + preview tokens (stateless, SESSION_SECRET-signed)
-worker/db.ts          row mapping, getTargetDish (schedule row else deterministic fallback), utcToday
+worker/db.ts          row mapping, getTargetDish (schedule row else deterministic fallback), serverToday
+shared/time.ts        GAME_TIMEZONE (America/New_York), gameToday, msUntilGameMidnight — the midnight-ET daily rollover, shared by worker + client
 worker/routes/public.ts   /api/dishes, /daily, /guess, /reveal — never leak target except via /reveal
 worker/routes/admin.ts    /api/admin/*: login/logout/session, dish CRUD, ingredients vocab,
                           schedule GET/PUT, autofill, preview token, dashboard
@@ -80,7 +81,7 @@ src/assets/art/       ai-*.svg = AI placeholder art (keep the AI-GENERATED heade
 
 - 6 guesses; clue N returned by POST /guess after miss N (N=1..5, from `clues.order_index`)
 - Feedback: ingredient set intersection + 4 attribute tiles. Country: hit=same country, near=same `region`, miss. Course/temperature/protein: hit|miss
-- Date = player's LOCAL date string (YYYY-MM-DD); server accepts a **playable date** — today (±2 days of UTC for timezone slack) or any earlier puzzle back to EPOCH_DATE. Future dates beyond the ±2-day window are rejected so upcoming Specials aren't spoiled (`isPlayableDate` = `isAllowedRequestDate` ∪ `isArchiveDate` in worker/game.ts). Puzzle #1 = 2026-07-17 (EPOCH_DATE)
+- Date = the current puzzle date (YYYY-MM-DD), which **rolls over at midnight ET (`America/New_York`) for everyone**, not the browser's local midnight or UTC — `gameToday()` in shared/time.ts, used by both the client (`localToday`) and the worker (`serverToday`). Server accepts a **playable date** — today (±2 days of ET now for clock/rollover slack) or any earlier puzzle back to EPOCH_DATE. Future dates beyond the ±2-day window are rejected so upcoming Specials aren't spoiled (`isPlayableDate` = `isAllowedRequestDate` ∪ `isArchiveDate` in worker/game.ts). Puzzle #1 = 2026-07-17 (EPOCH_DATE). The player's "Next Special in …" and the admin dashboard's "Switches in …" both count down to the next midnight-ET via `msUntilGameMidnight`
 - **Archive** (play previous days): `?date=<past puzzle>` on / replays an earlier Special. Client shows a "Menu Archive" calendar (unlocked once today's Special is finished) of every puzzle EPOCH→today with per-day status. Archive rounds persist per-date in `localStorage` (`lunch-special:archive`) but do **not** touch lifetime Stats/streak or analytics (Wordle-style). See src/game/ArchiveModal.tsx + archive.ts + storage.ts.
 - Unscheduled date → deterministic FNV-hash pick from active dishes (game never 404s)
 - `?preview=<token>` on /, /daily, /guess, /reveal = admin test play; skips schedule, localStorage, and stats

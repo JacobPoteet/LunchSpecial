@@ -1,5 +1,5 @@
 // Client-side helpers for the puzzle archive (playing previous days).
-// Puzzle dates run from EPOCH_DATE (puzzle #1) up to the player's local today.
+// Puzzle dates run from EPOCH_DATE (puzzle #1) up to today (midnight-ET rollover).
 
 import { EPOCH_DATE } from "../../shared/types";
 
