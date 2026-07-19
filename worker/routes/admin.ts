@@ -414,7 +414,7 @@ app.get("/dashboard", async (c) => {
 
 // Anonymous engagement aggregates (see migrations/0002_add_analytics.sql).
 app.get("/analytics", async (c) => {
-  const [totalsRes, distRes, dailyRes] = await c.env.DB.batch([
+  const [totalsRes, distRes, dailyRes, hourlyRes] = await c.env.DB.batch([
     c.env.DB.prepare(
       `SELECT COUNT(*) AS started,
          COALESCE(SUM(completed), 0) AS completed,
@@ -435,6 +435,11 @@ app.get("/analytics", async (c) => {
          COALESCE(SUM(shared), 0) AS shared
        FROM analytics_rounds GROUP BY play_date ORDER BY play_date DESC LIMIT 30`,
     ),
+    c.env.DB.prepare(
+      // Started-at is stored in UTC; bucket by hour of day for an engagement curve.
+      `SELECT CAST(strftime('%H', started_at) AS INTEGER) AS hour, COUNT(*) AS n
+         FROM analytics_rounds WHERE started_at IS NOT NULL GROUP BY hour`,
+    ),
   ]);
 
   const { fails, ...totals } = (totalsRes.results[0] as AnalyticsSummary["totals"] & { fails: number }) ?? {
@@ -447,11 +452,17 @@ app.get("/analytics", async (c) => {
   const guessDistribution = Array.from({ length: MAX_GUESSES }, () => 0);
   for (const r of distRes.results as { guesses: number; n: number }[]) guessDistribution[r.guesses - 1] = r.n;
 
+  const hourly = Array.from({ length: 24 }, () => 0);
+  for (const r of hourlyRes.results as { hour: number; n: number }[]) {
+    if (r.hour >= 0 && r.hour < 24) hourly[r.hour] = r.n;
+  }
+
   const summary: AnalyticsSummary = {
     totals,
     guessDistribution,
     fails,
     daily: (dailyRes.results as AnalyticsSummary["daily"]).reverse(),
+    hourly,
   };
   return c.json(summary);
 });

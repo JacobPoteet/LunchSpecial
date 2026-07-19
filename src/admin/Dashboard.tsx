@@ -32,7 +32,7 @@ function EngagementPanel() {
     );
   }
 
-  const { totals, guessDistribution, fails, daily } = data;
+  const { totals, guessDistribution, fails, daily, hourly } = data;
   if (totals.started === 0) {
     return (
       <section className="panel">
@@ -49,6 +49,10 @@ function EngagementPanel() {
   ];
   const distMax = Math.max(1, ...distBuckets.map((b) => b.n));
   const dayMax = Math.max(1, ...daily.map((d) => d.started));
+  const hourMax = Math.max(1, ...hourly);
+  const peakHour = hourly.indexOf(Math.max(...hourly));
+  // Most recent days first for the breakdown table.
+  const recentDays = [...daily].reverse();
 
   return (
     <section className="panel">
@@ -102,6 +106,55 @@ function EngagementPanel() {
           )}
         </div>
       </div>
+
+      <div className="analytics-block">
+        <h3 className="analytics-sub">
+          Games started by hour · UTC{totals.started > 0 && ` · peak ${String(peakHour).padStart(2, "0")}:00`}
+        </h3>
+        <div className="hourly">
+          {hourly.map((n, h) => (
+            <div className="hourly__col" key={h} title={`${String(h).padStart(2, "0")}:00 UTC — ${n} started`}>
+              <span className="hourly__bar" style={{ height: `${n === 0 ? 0 : 6 + (n / hourMax) * 94}%` }} />
+              {h % 6 === 0 && <span className="hourly__tick">{String(h).padStart(2, "0")}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="analytics-block">
+        <h3 className="analytics-sub">Daily breakdown · last {daily.length} day{daily.length === 1 ? "" : "s"}</h3>
+        {recentDays.length === 0 ? (
+          <p className="dash-note">No dated activity yet.</p>
+        ) : (
+          <div className="day-table-wrap">
+            <table className="day-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Started</th>
+                  <th>Completed</th>
+                  <th>Solved</th>
+                  <th>Win rate</th>
+                  <th>Shared</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentDays.map((d) => (
+                  <tr key={d.date}>
+                    <td>{d.date}</td>
+                    <td>{d.started}</td>
+                    <td>{d.completed}</td>
+                    <td>{d.solved}</td>
+                    <td>{pct(d.solved, d.completed)}%</td>
+                    <td>{d.shared}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       <p className="dash-note" style={{ marginTop: 10 }}>
         Anonymous counts only — {MAX_GUESSES} guesses max, no record of which dishes players ordered.
       </p>

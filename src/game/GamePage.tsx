@@ -290,16 +290,15 @@ export default function GamePage() {
     }
   }, [round.status, reveal, date, preview, random]);
 
-  // Analytics "start": once per puzzle, when the board first opens. Daily only —
-  // archive replays and random rounds don't count.
+  // Assign an anonymous analytics id once per daily puzzle so start/complete/share
+  // beacons can be linked. The "start" beacon itself doesn't fire here — merely
+  // opening the page (or closing the how-to modal) isn't a started game. It fires
+  // on the first guess (see submitGuess). Daily only — archive/random don't count.
   useEffect(() => {
     if (!isDaily || !daily || round.analyticsId) return;
     const started = { ...round, analyticsId: newAnalyticsId() };
     setRound(started);
     saveRound(started);
-    if (round.status === "playing" && round.guesses.length === 0) {
-      beaconStart({ roundId: started.analyticsId!, puzzleNumber: daily.puzzleNumber, date });
-    }
     // Intentionally keyed on daily load — reads the round as it stands when the puzzle resolves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [daily, isDaily]);
@@ -335,17 +334,25 @@ export default function GamePage() {
         if (feedback.clue) setTimeout(() => playSfx("ticket-print"), TICKET_STAGGER_MS);
         if (!ephemeral) {
           persist(next);
-          // Only the daily updates lifetime stats + analytics.
-          if (isDaily && next.status !== "playing") {
-            setStats(recordResult(date, next.status === "won", next.guesses.length));
+          // Only the daily counts toward analytics.
+          if (isDaily) {
             const roundId = next.analyticsId ?? newAnalyticsId();
-            beaconComplete({
-              roundId,
-              puzzleNumber: daily.puzzleNumber,
-              date,
-              guesses: next.guesses.length,
-              solved: next.status === "won",
-            });
+            // A game counts as "started" on the first submitted guess — not on
+            // page open. (GitHub #27.)
+            if (guessNumber === 1) {
+              beaconStart({ roundId, puzzleNumber: daily.puzzleNumber, date });
+            }
+            // Only the daily updates lifetime stats + the completion beacon.
+            if (next.status !== "playing") {
+              setStats(recordResult(date, next.status === "won", next.guesses.length));
+              beaconComplete({
+                roundId,
+                puzzleNumber: daily.puzzleNumber,
+                date,
+                guesses: next.guesses.length,
+                solved: next.status === "won",
+              });
+            }
           }
         }
       } catch (e) {

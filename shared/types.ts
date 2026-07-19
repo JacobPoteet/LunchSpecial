@@ -153,4 +153,6 @@ export interface AnalyticsSummary {
   fails: number;
   /** Last 30 days with activity, oldest first. */
   daily: AnalyticsDay[];
+  /** Games started per hour of day (UTC), index 0..23. */
+  hourly: number[];
 }
