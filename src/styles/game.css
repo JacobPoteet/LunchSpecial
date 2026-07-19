@@ -21,12 +21,35 @@
 .scene::before {
   content: "";
   position: fixed;
-  inset: 0;
+  /* Negative inset: the blur below samples past the layer's edges, which would
+     otherwise show as a soft transparent fringe around the viewport. */
+  inset: -24px;
   z-index: -1;
   background-color: var(--teal-dark);
   background-image: var(--scene-art);
   background-size: cover;
   background-position: center 30%;
+  /* Depth-of-field: the diner is "behind" the menu card, so it sits slightly
+     out of focus, dimmer, and less saturated than the in-focus play surface. */
+  filter: blur(3px) brightness(0.72) saturate(0.8);
+}
+
+/* Vignette scrim over the art (same fixed negative-z band; ::after paints
+   above ::before in tree order). Clears toward the top center where the
+   marquee + menu card sit, deepens toward the edges so the busy corners of
+   the art recede. Teal-tinted, not black, to stay in palette. */
+.scene::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 120% 90% at 50% 32%,
+    rgba(18, 56, 51, 0) 35%,
+    rgba(10, 32, 29, 0.45) 75%,
+    rgba(7, 22, 20, 0.7) 100%
+  );
 }
 
 .marquee {
@@ -1062,6 +1085,11 @@
 @media (max-width: 520px) {
   .scene {
     padding: 10px 8px 32px;
+  }
+
+  /* The art layer moved off .scene onto this fixed pseudo-element, so the
+     narrow-screen reframe has to follow it. */
+  .scene::before {
     background-position: 62% 30%;
   }
 
