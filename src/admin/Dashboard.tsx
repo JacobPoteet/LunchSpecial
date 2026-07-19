@@ -1,11 +1,59 @@
 import { useEffect, useState } from "react";
-import type { AnalyticsSummary } from "../../shared/types";
+import type { AnalyticsPeriod, AnalyticsSummary } from "../../shared/types";
 import type { AdminDashboard } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
 import * as api from "./api";
 import type { AdminView } from "./AdminApp";
 
 const pct = (n: number, of: number) => (of === 0 ? 0 : Math.round((n / of) * 100));
+
+/** Mean guesses across solved rounds, or null when nothing has been solved yet. */
+function avgGuesses(dist: number[]): number | null {
+  const solved = dist.reduce((a, b) => a + b, 0);
+  if (solved === 0) return null;
+  return dist.reduce((sum, n, i) => sum + n * (i + 1), 0) / solved;
+}
+
+function MetricRow({ totals }: { totals: AnalyticsPeriod["totals"] }) {
+  return (
+    <div className="metric-row">
+      <div className="metric">
+        <span className="metric__num">{totals.started}</span>
+        <span className="metric__label">Games started</span>
+      </div>
+      <div className="metric">
+        <span className="metric__num">{pct(totals.completed, totals.started)}%</span>
+        <span className="metric__label">Completion</span>
+      </div>
+      <div className="metric">
+        <span className="metric__num">{pct(totals.solved, totals.completed)}%</span>
+        <span className="metric__label">Win rate</span>
+      </div>
+      <div className="metric">
+        <span className="metric__num">{pct(totals.shared, totals.completed)}%</span>
+        <span className="metric__label">Share rate</span>
+      </div>
+    </div>
+  );
+}
+
+/** Horizontal guess-distribution bars: 1..MAX_GUESSES wins plus a Fail bucket. */
+function GuessBars({ dist, fails }: { dist: number[]; fails: number }) {
+  const buckets = [...dist.map((n, i) => ({ label: String(i + 1), n })), { label: "X", n: fails }];
+  const max = Math.max(1, ...buckets.map((b) => b.n));
+  return (
+    <div className="gd">
+      {buckets.map((b) => (
+        <div className="gd__row" key={b.label}>
+          <span className="gd__key">{b.label}</span>
+          <span className="gd__bar" style={{ width: `${8 + (b.n / max) * 92}%` }}>
+            {b.n}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function EngagementPanel() {
   const [data, setData] = useState<AnalyticsSummary | null>(null);
@@ -32,7 +80,7 @@ function EngagementPanel() {
     );
   }
 
-  const { totals, guessDistribution, fails, daily, hourly } = data;
+  const { totals, guessDistribution, fails, today, daily, hourly } = data;
   if (totals.started === 0) {
     return (
       <section className="panel">
@@ -42,53 +90,70 @@ function EngagementPanel() {
     );
   }
 
-  // Distribution bars: 1..6 guesses (wins) plus a Fail bucket.
-  const distBuckets = [
-    ...guessDistribution.map((n, i) => ({ label: String(i + 1), n })),
-    { label: "X", n: fails },
-  ];
-  const distMax = Math.max(1, ...distBuckets.map((b) => b.n));
   const dayMax = Math.max(1, ...daily.map((d) => d.started));
   const hourMax = Math.max(1, ...hourly);
   const peakHour = hourly.indexOf(Math.max(...hourly));
   // Most recent days first for the breakdown table.
   const recentDays = [...daily].reverse();
 
+  const allTimeAvg = avgGuesses(guessDistribution);
+  const todayAvg = avgGuesses(today.guessDistribution);
+  // Positive delta = today needs more guesses than usual (harder than average).
+  const avgDelta = todayAvg !== null && allTimeAvg !== null ? todayAvg - allTimeAvg : null;
+
   return (
     <section className="panel">
       <h2>Player engagement</h2>
-      <div className="metric-row">
-        <div className="metric">
-          <span className="metric__num">{totals.started}</span>
-          <span className="metric__label">Games started</span>
-        </div>
-        <div className="metric">
-          <span className="metric__num">{pct(totals.completed, totals.started)}%</span>
-          <span className="metric__label">Completion</span>
-        </div>
-        <div className="metric">
-          <span className="metric__num">{pct(totals.solved, totals.completed)}%</span>
-          <span className="metric__label">Win rate</span>
-        </div>
-        <div className="metric">
-          <span className="metric__num">{pct(totals.shared, totals.completed)}%</span>
-          <span className="metric__label">Share rate</span>
-        </div>
-      </div>
+
+      <h3 className="analytics-sub">
+        Today's Special · {today.dishName ?? today.date}
+        {today.dishName && ` · ${today.date}`}
+      </h3>
+      {today.totals.started === 0 ? (
+        <p className="dash-note">No plays recorded for today yet — check back once the diner fills up.</p>
+      ) : (
+        <>
+          <MetricRow totals={today.totals} />
+          <div className="analytics-split">
+            <div>
+              <h3 className="analytics-sub">Guess distribution · today</h3>
+              <GuessBars dist={today.guessDistribution} fails={today.fails} />
+            </div>
+            <div>
+              <h3 className="analytics-sub">Average guesses</h3>
+              <div className="metric-row" style={{ marginBottom: 0 }}>
+                <div className="metric">
+                  <span className="metric__num">{todayAvg === null ? "—" : todayAvg.toFixed(2)}</span>
+                  <span className="metric__label">Today</span>
+                </div>
+                <div className="metric">
+                  <span className="metric__num">{allTimeAvg === null ? "—" : allTimeAvg.toFixed(2)}</span>
+                  <span className="metric__label">All time</span>
+                </div>
+              </div>
+              {avgDelta !== null && (
+                <p className="dash-note" style={{ marginTop: 8 }}>
+                  {Math.abs(avgDelta) < 0.005
+                    ? "Right on the all-time average."
+                    : `${avgDelta > 0 ? "▲" : "▼"} ${Math.abs(avgDelta).toFixed(2)} ${
+                        avgDelta > 0 ? "more" : "fewer"
+                      } guesses than average — today's Special is playing ${avgDelta > 0 ? "harder" : "easier"}.`}
+                </p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      <hr className="analytics-rule" />
+
+      <h3 className="analytics-sub">All time</h3>
+      <MetricRow totals={totals} />
 
       <div className="analytics-split">
         <div>
           <h3 className="analytics-sub">Guess distribution</h3>
-          <div className="gd">
-            {distBuckets.map((b) => (
-              <div className="gd__row" key={b.label}>
-                <span className="gd__key">{b.label}</span>
-                <span className="gd__bar" style={{ width: `${8 + (b.n / distMax) * 92}%` }}>
-                  {b.n}
-                </span>
-              </div>
-            ))}
-          </div>
+          <GuessBars dist={guessDistribution} fails={fails} />
         </div>
 
         <div>

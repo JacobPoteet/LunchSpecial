@@ -5,6 +5,7 @@ import type {
   AdminDishDetail,
   AdminDishInput,
   AdminDishRow,
+  AnalyticsPeriod,
   AnalyticsSummary,
   ScheduleEntry,
 } from "../../shared/types";
@@ -412,45 +413,59 @@ app.get("/dashboard", async (c) => {
   return c.json(dashboard);
 });
 
-// Anonymous engagement aggregates (see migrations/0002_add_analytics.sql).
+// Anonymous engagement aggregates (see migrations/0005_add_analytics.sql).
 app.get("/analytics", async (c) => {
-  const [totalsRes, distRes, dailyRes, hourlyRes] = await c.env.DB.batch([
-    c.env.DB.prepare(
-      `SELECT COUNT(*) AS started,
-         COALESCE(SUM(completed), 0) AS completed,
-         COALESCE(SUM(solved), 0) AS solved,
-         COALESCE(SUM(shared), 0) AS shared,
-         COALESCE(SUM(completed = 1 AND solved = 0), 0) AS fails
-       FROM analytics_rounds`,
-    ),
-    c.env.DB.prepare(
-      `SELECT guesses, COUNT(*) AS n FROM analytics_rounds
-         WHERE completed = 1 AND solved = 1 AND guesses BETWEEN 1 AND ?
-         GROUP BY guesses`,
-    ).bind(MAX_GUESSES),
-    c.env.DB.prepare(
-      `SELECT play_date AS date, COUNT(*) AS started,
-         COALESCE(SUM(completed), 0) AS completed,
-         COALESCE(SUM(solved), 0) AS solved,
-         COALESCE(SUM(shared), 0) AS shared
-       FROM analytics_rounds GROUP BY play_date ORDER BY play_date DESC LIMIT 30`,
-    ),
-    c.env.DB.prepare(
-      // Started-at is stored in UTC; bucket by hour of day for an engagement curve.
-      `SELECT CAST(strftime('%H', started_at) AS INTEGER) AS hour, COUNT(*) AS n
-         FROM analytics_rounds WHERE started_at IS NOT NULL GROUP BY hour`,
-    ),
-  ]);
+  const today = utcToday();
+  // Totals + guess distribution, computed the same way for all-time and for today.
+  const totalsSql = (where: string) =>
+    `SELECT COUNT(*) AS started,
+       COALESCE(SUM(completed), 0) AS completed,
+       COALESCE(SUM(solved), 0) AS solved,
+       COALESCE(SUM(shared), 0) AS shared,
+       COALESCE(SUM(completed = 1 AND solved = 0), 0) AS fails
+     FROM analytics_rounds${where}`;
+  const distSql = (where: string) =>
+    `SELECT guesses, COUNT(*) AS n FROM analytics_rounds
+       WHERE completed = 1 AND solved = 1 AND guesses BETWEEN 1 AND ?${where}
+       GROUP BY guesses`;
 
-  const { fails, ...totals } = (totalsRes.results[0] as AnalyticsSummary["totals"] & { fails: number }) ?? {
-    started: 0,
-    completed: 0,
-    solved: 0,
-    shared: 0,
-    fails: 0,
+  const [totalsRes, distRes, todayTotalsRes, todayDistRes, todayDishRes, dailyRes, hourlyRes] =
+    await c.env.DB.batch([
+      c.env.DB.prepare(totalsSql("")),
+      c.env.DB.prepare(distSql("")).bind(MAX_GUESSES),
+      c.env.DB.prepare(totalsSql(" WHERE play_date = ?")).bind(today),
+      c.env.DB.prepare(distSql(" AND play_date = ?")).bind(MAX_GUESSES, today),
+      c.env.DB
+        .prepare("SELECT d.name FROM schedule s JOIN dishes d ON d.id = s.dish_id WHERE s.date = ?")
+        .bind(today),
+      c.env.DB.prepare(
+        `SELECT play_date AS date, COUNT(*) AS started,
+           COALESCE(SUM(completed), 0) AS completed,
+           COALESCE(SUM(solved), 0) AS solved,
+           COALESCE(SUM(shared), 0) AS shared
+         FROM analytics_rounds GROUP BY play_date ORDER BY play_date DESC LIMIT 30`,
+      ),
+      c.env.DB.prepare(
+        // Started-at is stored in UTC; bucket by hour of day for an engagement curve.
+        `SELECT CAST(strftime('%H', started_at) AS INTEGER) AS hour, COUNT(*) AS n
+           FROM analytics_rounds WHERE started_at IS NOT NULL GROUP BY hour`,
+      ),
+    ]);
+
+  const emptyTotals = { started: 0, completed: 0, solved: 0, shared: 0, fails: 0 };
+  const toPeriod = (totalsResult: D1Result, distResult: D1Result): AnalyticsPeriod => {
+    const { fails, ...totals } =
+      (totalsResult.results[0] as AnalyticsPeriod["totals"] & { fails: number }) ?? emptyTotals;
+    const guessDistribution = Array.from({ length: MAX_GUESSES }, () => 0);
+    for (const r of distResult.results as { guesses: number; n: number }[]) {
+      guessDistribution[r.guesses - 1] = r.n;
+    }
+    return { totals, guessDistribution, fails };
   };
-  const guessDistribution = Array.from({ length: MAX_GUESSES }, () => 0);
-  for (const r of distRes.results as { guesses: number; n: number }[]) guessDistribution[r.guesses - 1] = r.n;
+
+  const allTime = toPeriod(totalsRes, distRes);
+  const todayPeriod = toPeriod(todayTotalsRes, todayDistRes);
+  const todayDish = todayDishRes.results[0] as { name: string } | undefined;
 
   const hourly = Array.from({ length: 24 }, () => 0);
   for (const r of hourlyRes.results as { hour: number; n: number }[]) {
@@ -458,9 +473,10 @@ app.get("/analytics", async (c) => {
   }
 
   const summary: AnalyticsSummary = {
-    totals,
-    guessDistribution,
-    fails,
+    totals: allTime.totals,
+    guessDistribution: allTime.guessDistribution,
+    fails: allTime.fails,
+    today: { date: today, dishName: todayDish?.name ?? null, ...todayPeriod },
     daily: (dailyRes.results as AnalyticsSummary["daily"]).reverse(),
     hourly,
   };
