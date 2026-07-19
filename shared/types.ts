@@ -155,7 +155,7 @@ export interface AnalyticsPeriod {
 
 /** Anonymous engagement aggregates for the admin dashboard. No guess content. */
 export interface AnalyticsSummary extends AnalyticsPeriod {
-  /** Same figures scoped to today's puzzle (play_date = server UTC today). */
+  /** Same figures scoped to today's puzzle (play_date = server today, midnight-ET rollover). */
   today: AnalyticsPeriod & { date: string; dishName: string | null };
   /** Last 30 days with activity, oldest first. */
   daily: AnalyticsDay[];

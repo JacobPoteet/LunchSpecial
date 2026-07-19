@@ -18,7 +18,7 @@ import {
   SESSION_TTL_MS,
   verifyToken,
 } from "../auth";
-import { rowToDish, utcToday, type DishDbRow } from "../db";
+import { rowToDish, serverToday, type DishDbRow } from "../db";
 import { isValidDateString } from "../game";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -90,7 +90,7 @@ app.get("/dishes", async (c) => {
          (SELECT MAX(s.date) FROM schedule s WHERE s.dish_id = d.id AND s.date <= ?) AS last_served
        FROM dishes d ORDER BY d.name`,
     )
-    .bind(utcToday())
+    .bind(serverToday())
     .all<AdminDishDbRow>();
   return c.json(res.results.map(toAdminRow));
 });
@@ -225,7 +225,7 @@ app.delete("/dishes/:id", async (c) => {
   const id = Number(c.req.param("id"));
   const future = await c.env.DB
     .prepare("SELECT date FROM schedule WHERE dish_id = ? AND date >= ? LIMIT 1")
-    .bind(id, utcToday())
+    .bind(id, serverToday())
     .first<{ date: string }>();
   if (future) {
     return c.json({ error: `Dish is scheduled for ${future.date} — unschedule it first` }, 409);
@@ -253,7 +253,7 @@ function addDays(date: string, days: number): string {
 }
 
 app.get("/schedule", async (c) => {
-  const today = utcToday();
+  const today = serverToday();
   const from = c.req.query("from") ?? addDays(today, -7);
   const to = c.req.query("to") ?? addDays(today, 45);
   if (!isValidDateString(from) || !isValidDateString(to) || from > to) {
@@ -282,7 +282,7 @@ app.put("/schedule", async (c) => {
   } catch {
     return c.json({ error: "Invalid JSON body" }, 400);
   }
-  const today = utcToday();
+  const today = serverToday();
   if (!body.date || !isValidDateString(body.date)) return c.json({ error: "Invalid date" }, 400);
   if (body.date < today) return c.json({ error: "Past days are locked" }, 400);
   if (body.dishId == null) {
@@ -310,7 +310,7 @@ app.put("/schedule", async (c) => {
 // Fill empty days in the next 30 with least-recently-served complete dishes,
 // avoiding any dish served or scheduled within 60 days.
 app.post("/schedule/autofill", async (c) => {
-  const today = utcToday();
+  const today = serverToday();
   const windowEnd = addDays(today, 29);
   const blockStart = addDays(today, -60);
 
@@ -368,7 +368,7 @@ app.post("/preview", async (c) => {
 });
 
 app.get("/dashboard", async (c) => {
-  const today = utcToday();
+  const today = serverToday();
   const [todayRes, upcomingRes, dishesRes] = await c.env.DB.batch([
     c.env.DB
       .prepare("SELECT s.dish_id, d.name FROM schedule s JOIN dishes d ON d.id = s.dish_id WHERE s.date = ?")
@@ -415,7 +415,7 @@ app.get("/dashboard", async (c) => {
 
 // Anonymous engagement aggregates (see migrations/0005_add_analytics.sql).
 app.get("/analytics", async (c) => {
-  const today = utcToday();
+  const today = serverToday();
   // Totals + guess distribution, computed the same way for all-time and for today.
   const totalsSql = (where: string) =>
     `SELECT COUNT(*) AS started,

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { gameToday, msUntilGameMidnight } from "../shared/time";
 import type { DishRecord } from "./game";
 import {
   computeFeedback,
@@ -115,6 +116,32 @@ describe("date validation", () => {
     expect(isPlayableDate("2026-08-02", now)).toBe(true); // tomorrow (tz slack)
     expect(isPlayableDate("2026-08-10", now)).toBe(false); // far future
     expect(isPlayableDate("2026-07-16", now)).toBe(false); // before the epoch
+  });
+});
+
+describe("midnight-ET rollover (GitHub #33)", () => {
+  it("resolves 'today' in Eastern Time, not UTC", () => {
+    // 03:00 UTC is still the previous evening (23:00 EDT) in New York.
+    expect(gameToday(new Date("2026-07-19T03:00:00Z"))).toBe("2026-07-18");
+    // 05:00 UTC has crossed midnight ET (01:00 EDT) into the new day.
+    expect(gameToday(new Date("2026-07-19T05:00:00Z"))).toBe("2026-07-19");
+    // Winter (EST, UTC-5): 04:30 UTC is 23:30 EST the day before.
+    expect(gameToday(new Date("2026-01-15T04:30:00Z"))).toBe("2026-01-14");
+  });
+
+  it("counts down to the next midnight ET", () => {
+    // 04:00 UTC = 00:00 EDT exactly — a fresh full day remains.
+    expect(msUntilGameMidnight(new Date("2026-07-19T04:00:00Z"))).toBe(86_400_000);
+    // 05:30 UTC = 01:30 EDT — 22h30m left in the ET day.
+    expect(msUntilGameMidnight(new Date("2026-07-19T05:30:00Z"))).toBe(22.5 * 3_600_000);
+  });
+
+  it("accepts the ET date near the UTC-day boundary", () => {
+    // Just before midnight ET on 07-18 (03:59 UTC on the 19th): the player's ET
+    // date is the 18th and must still be playable even though UTC says the 19th.
+    const now = new Date("2026-07-19T03:59:00Z");
+    expect(isAllowedRequestDate("2026-07-18", now)).toBe(true);
+    expect(isArchiveDate("2026-07-19", now)).toBe(false); // not "today" in ET yet — no spoiler
   });
 });
 

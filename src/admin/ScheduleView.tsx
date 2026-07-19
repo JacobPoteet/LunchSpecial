@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AdminDishRow, ScheduleEntry } from "../../shared/types";
+import { gameToday } from "../../shared/time";
 import * as api from "./api";
-
-function utcToday(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function weekday(date: string): string {
   return new Date(`${date}T12:00:00Z`).toLocaleDateString(undefined, {
@@ -21,7 +18,7 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
   const [busyDate, setBusyDate] = useState<string | null>(null);
-  const today = utcToday();
+  const today = gameToday();
 
   const reload = useCallback(() => {
     api.getSchedule().then(setEntries, (e: Error) => setError(e.message));
@@ -83,7 +80,7 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
       {okMsg && <p className="form-ok">{okMsg}</p>}
       <p className="dash-note" style={{ marginBottom: 10 }}>
         Past days are locked. Only dishes marked <span className="badge">ready</span> can be scheduled. Dates roll over
-        on the player's local midnight.
+        at midnight Eastern Time (America/New_York).
       </p>
       <ul className="sched-list">
         {entries.map((entry) => {

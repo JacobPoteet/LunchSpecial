@@ -1,6 +1,7 @@
 // Thin fetch wrappers around the public game API.
 
 import type { DailyInfo, DishSummary, GuessFeedback, RevealInfo } from "../shared/types";
+import { gameToday } from "../shared/time";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, init);
@@ -46,10 +47,13 @@ export function fetchReveal(date: string, preview?: string, random?: string): Pr
   return request(withParams("/api/reveal", { date, preview, random }));
 }
 
-/** Player's local calendar date as YYYY-MM-DD (Wordle-style daily rollover). */
+/**
+ * The current puzzle date as YYYY-MM-DD. Rolls over at midnight ET for every
+ * player, regardless of their own timezone (GitHub #33), so everyone plays the
+ * same Special at the same wall-clock moment.
+ */
 export function localToday(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return gameToday();
 }
 
 // ---- Anonymous analytics beacons (fire-and-forget; never block gameplay) ----

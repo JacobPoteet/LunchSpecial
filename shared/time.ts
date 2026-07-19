@@ -1,0 +1,51 @@
+// Daily-rollover clock. The Special changes at midnight in ONE fixed zone for
+// every player, everywhere — not the browser's local midnight, and not UTC.
+// Shared by the Worker (what "today" resolves to) and the client (which date it
+// plays + the countdown). See GitHub #33.
+
+/** The timezone the daily Special rolls over in. */
+export const GAME_TIMEZONE = "America/New_York";
+
+// en-CA renders dates as YYYY-MM-DD, matching the format used everywhere else.
+const isoDate = new Intl.DateTimeFormat("en-CA", {
+  timeZone: GAME_TIMEZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/** The game's current calendar date (YYYY-MM-DD) in GAME_TIMEZONE. */
+export function gameToday(now: Date = new Date()): string {
+  return isoDate.format(now);
+}
+
+const wallClock = new Intl.DateTimeFormat("en-GB", {
+  timeZone: GAME_TIMEZONE,
+  hourCycle: "h23", // 00–23, so midnight reads 00 (not the "24" some ICU builds emit)
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
+/**
+ * Milliseconds from `now` until the next midnight in GAME_TIMEZONE — i.e. when
+ * today's Special is replaced. Derived from the zone's wall-clock time, so it
+ * stays correct across the browser's own timezone and DST shifts.
+ */
+export function msUntilGameMidnight(now: Date = new Date()): number {
+  const parts = wallClock.formatToParts(now);
+  const at = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? "0");
+  const elapsed = ((at("hour") * 60 + at("minute")) * 60 + at("second")) * 1000 + now.getMilliseconds();
+  return 86_400_000 - elapsed;
+}
+
+/** Break a millisecond span into zero-padded hh/mm/ss strings for a countdown. */
+export function hms(ms: number): { h: string; m: string; s: string } {
+  const clamped = Math.max(0, ms);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    h: pad(Math.floor(clamped / 3_600_000)),
+    m: pad(Math.floor((clamped % 3_600_000) / 60_000)),
+    s: pad(Math.floor((clamped % 60_000) / 1000)),
+  };
+}
