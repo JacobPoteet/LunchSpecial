@@ -17,7 +17,7 @@ import {
   SESSION_TTL_MS,
   verifyToken,
 } from "../auth";
-import { getClues, rowToDish, utcToday, type DishDbRow } from "../db";
+import { rowToDish, utcToday, type DishDbRow } from "../db";
 import { isValidDateString } from "../game";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -96,9 +96,14 @@ app.get("/dishes", async (c) => {
 
 app.get("/dishes/:id", async (c) => {
   const id = Number(c.req.param("id"));
-  const row = await c.env.DB.prepare("SELECT * FROM dishes WHERE id = ?").bind(id).first<DishDbRow>();
+  const [dishRes, cluesRes] = await c.env.DB.batch([
+    c.env.DB.prepare("SELECT * FROM dishes WHERE id = ?").bind(id),
+    c.env.DB.prepare("SELECT text FROM clues WHERE dish_id = ? ORDER BY order_index").bind(id),
+  ]);
+  const row = dishRes.results[0] as DishDbRow | undefined;
   if (!row) return c.json({ error: "Dish not found" }, 404);
-  const detail: AdminDishDetail = { ...rowToDish(row), clues: await getClues(c.env.DB, id) };
+  const clues = (cluesRes.results as { text: string }[]).map((r) => r.text);
+  const detail: AdminDishDetail = { ...rowToDish(row), clues };
   return c.json(detail);
 });
 
@@ -224,9 +229,11 @@ app.delete("/dishes/:id", async (c) => {
   if (future) {
     return c.json({ error: `Dish is scheduled for ${future.date} — unschedule it first` }, 409);
   }
-  await c.env.DB.prepare("DELETE FROM clues WHERE dish_id = ?").bind(id).run();
-  const res = await c.env.DB.prepare("DELETE FROM dishes WHERE id = ?").bind(id).run();
-  if (res.meta.changes === 0) return c.json({ error: "Dish not found" }, 404);
+  const [, dishRes] = await c.env.DB.batch([
+    c.env.DB.prepare("DELETE FROM clues WHERE dish_id = ?").bind(id),
+    c.env.DB.prepare("DELETE FROM dishes WHERE id = ?").bind(id),
+  ]);
+  if (dishRes.meta.changes === 0) return c.json({ error: "Dish not found" }, 404);
   return c.json({ ok: true });
 });
 
@@ -361,16 +368,20 @@ app.post("/preview", async (c) => {
 
 app.get("/dashboard", async (c) => {
   const today = utcToday();
-  const todayRow = await c.env.DB
-    .prepare("SELECT s.dish_id, d.name FROM schedule s JOIN dishes d ON d.id = s.dish_id WHERE s.date = ?")
-    .bind(today)
-    .first<{ dish_id: number; name: string }>();
+  const [todayRes, upcomingRes, dishesRes] = await c.env.DB.batch([
+    c.env.DB
+      .prepare("SELECT s.dish_id, d.name FROM schedule s JOIN dishes d ON d.id = s.dish_id WHERE s.date = ?")
+      .bind(today),
+    c.env.DB.prepare("SELECT date FROM schedule WHERE date >= ? AND date <= ?").bind(today, addDays(today, 59)),
+    c.env.DB.prepare(
+      `SELECT d.id, d.name, d.ingredients,
+         (SELECT COUNT(*) FROM clues c WHERE c.dish_id = d.id) AS clue_count
+       FROM dishes d WHERE d.is_active = 1`,
+    ),
+  ]);
+  const todayRow = todayRes.results[0] as { dish_id: number; name: string } | undefined;
 
-  const upcoming = await c.env.DB
-    .prepare("SELECT date FROM schedule WHERE date >= ? AND date <= ?")
-    .bind(today, addDays(today, 59))
-    .all<{ date: string }>();
-  const scheduledSet = new Set(upcoming.results.map((r) => r.date));
+  const scheduledSet = new Set((upcomingRes.results as { date: string }[]).map((r) => r.date));
   let scheduledAhead = 0;
   let firstGap: string | null = null;
   for (let d = today, i = 0; i < 60; d = addDays(d, 1), i++) {
@@ -381,15 +392,8 @@ app.get("/dashboard", async (c) => {
     }
   }
 
-  const dishes = await c.env.DB
-    .prepare(
-      `SELECT d.id, d.name, d.ingredients,
-         (SELECT COUNT(*) FROM clues c WHERE c.dish_id = d.id) AS clue_count
-       FROM dishes d WHERE d.is_active = 1`,
-    )
-    .all<{ id: number; name: string; ingredients: string; clue_count: number }>();
   const warnings: AdminDashboard["warnings"] = [];
-  for (const d of dishes.results) {
+  for (const d of dishesRes.results as { id: number; name: string; ingredients: string; clue_count: number }[]) {
     if (d.clue_count !== 5) {
       warnings.push({ kind: "missing-clues", dishId: d.id, dishName: d.name, detail: `${d.clue_count}/5 clues` });
     }
@@ -410,42 +414,44 @@ app.get("/dashboard", async (c) => {
 
 // Anonymous engagement aggregates (see migrations/0002_add_analytics.sql).
 app.get("/analytics", async (c) => {
-  const totals =
-    (await c.env.DB.prepare(
+  const [totalsRes, distRes, dailyRes] = await c.env.DB.batch([
+    c.env.DB.prepare(
       `SELECT COUNT(*) AS started,
          COALESCE(SUM(completed), 0) AS completed,
          COALESCE(SUM(solved), 0) AS solved,
-         COALESCE(SUM(shared), 0) AS shared
+         COALESCE(SUM(shared), 0) AS shared,
+         COALESCE(SUM(completed = 1 AND solved = 0), 0) AS fails
        FROM analytics_rounds`,
-    ).first<AnalyticsSummary["totals"]>()) ?? { started: 0, completed: 0, solved: 0, shared: 0 };
+    ),
+    c.env.DB.prepare(
+      `SELECT guesses, COUNT(*) AS n FROM analytics_rounds
+         WHERE completed = 1 AND solved = 1 AND guesses BETWEEN 1 AND ?
+         GROUP BY guesses`,
+    ).bind(MAX_GUESSES),
+    c.env.DB.prepare(
+      `SELECT play_date AS date, COUNT(*) AS started,
+         COALESCE(SUM(completed), 0) AS completed,
+         COALESCE(SUM(solved), 0) AS solved,
+         COALESCE(SUM(shared), 0) AS shared
+       FROM analytics_rounds GROUP BY play_date ORDER BY play_date DESC LIMIT 30`,
+    ),
+  ]);
 
-  const distRows = await c.env.DB.prepare(
-    `SELECT guesses, COUNT(*) AS n FROM analytics_rounds
-       WHERE completed = 1 AND solved = 1 AND guesses BETWEEN 1 AND ?
-       GROUP BY guesses`,
-  )
-    .bind(MAX_GUESSES)
-    .all<{ guesses: number; n: number }>();
+  const { fails, ...totals } = (totalsRes.results[0] as AnalyticsSummary["totals"] & { fails: number }) ?? {
+    started: 0,
+    completed: 0,
+    solved: 0,
+    shared: 0,
+    fails: 0,
+  };
   const guessDistribution = Array.from({ length: MAX_GUESSES }, () => 0);
-  for (const r of distRows.results) guessDistribution[r.guesses - 1] = r.n;
-
-  const failRow = await c.env.DB.prepare(
-    "SELECT COUNT(*) AS fails FROM analytics_rounds WHERE completed = 1 AND solved = 0",
-  ).first<{ fails: number }>();
-
-  const daily = await c.env.DB.prepare(
-    `SELECT play_date AS date, COUNT(*) AS started,
-       COALESCE(SUM(completed), 0) AS completed,
-       COALESCE(SUM(solved), 0) AS solved,
-       COALESCE(SUM(shared), 0) AS shared
-     FROM analytics_rounds GROUP BY play_date ORDER BY play_date DESC LIMIT 30`,
-  ).all<AnalyticsSummary["daily"][number]>();
+  for (const r of distRes.results as { guesses: number; n: number }[]) guessDistribution[r.guesses - 1] = r.n;
 
   const summary: AnalyticsSummary = {
     totals,
     guessDistribution,
-    fails: failRow?.fails ?? 0,
-    daily: daily.results.reverse(),
+    fails,
+    daily: (dailyRes.results as AnalyticsSummary["daily"]).reverse(),
   };
   return c.json(summary);
 });
