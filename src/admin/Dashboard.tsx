@@ -8,6 +8,12 @@ import type { AdminView } from "./AdminApp";
 
 const pct = (n: number, of: number) => (of === 0 ? 0 : Math.round((n / of) * 100));
 
+/** "2026-07-19" → "7/19" for compact axis labels (parsed as plain digits, no timezone). */
+const shortDate = (iso: string) => {
+  const [, m, d] = iso.split("-");
+  return `${Number(m)}/${Number(d)}`;
+};
+
 /** Live countdown to the next midnight-ET rollover, when today's Special switches. */
 function SwitchCountdown() {
   const [ms, setMs] = useState(() => msUntilGameMidnight());
@@ -111,6 +117,8 @@ function EngagementPanel() {
   }
 
   const dayMax = Math.max(1, ...daily.map((d) => d.started));
+  // Label roughly 6 dates along the spark so they don't overlap; always tag the last day.
+  const dayTickStep = Math.max(1, Math.ceil(daily.length / 6));
   const hourMax = Math.max(1, ...hourly);
   const peakHour = hourly.indexOf(Math.max(...hourly));
   // Most recent days first for the breakdown table.
@@ -182,12 +190,17 @@ function EngagementPanel() {
             <p className="dash-note">No dated activity yet.</p>
           ) : (
             <div className="spark">
-              {daily.map((d) => (
-                <div className="spark__col" key={d.date} title={`${d.date}: ${d.started} started, ${d.solved} solved`}>
-                  <span className="spark__num">{d.started}</span>
-                  <span className="spark__bar" style={{ height: `${6 + (d.started / dayMax) * 94}%` }} />
-                </div>
-              ))}
+              {daily.map((d, i) => {
+                // Tag every Nth day plus the final one so the newest date is always labeled.
+                const showTick = i % dayTickStep === 0 || i === daily.length - 1;
+                return (
+                  <div className="spark__col" key={d.date} title={`${d.date}: ${d.started} started, ${d.solved} solved`}>
+                    <span className="spark__num">{d.started}</span>
+                    <span className="spark__bar" style={{ height: `${6 + (d.started / dayMax) * 94}%` }} />
+                    {showTick && <span className="spark__tick">{shortDate(d.date)}</span>}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

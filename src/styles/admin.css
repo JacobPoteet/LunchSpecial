@@ -231,6 +231,7 @@
   gap: 3px;
   height: 90px;
   padding-top: 4px;
+  padding-bottom: 14px;
 }
 
 .spark__col {
@@ -241,6 +242,7 @@
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
+  position: relative;
 }
 
 .spark__num {
@@ -255,6 +257,14 @@
   width: 100%;
   background: var(--mustard);
   border-radius: 2px 2px 0 0;
+}
+
+.spark__tick {
+  position: absolute;
+  bottom: -14px;
+  font-size: 0.6rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
 }
 
 .analytics-block { margin-top: 20px; }
