@@ -31,7 +31,7 @@
   background-position: center 30%;
   /* Depth-of-field: the diner is "behind" the menu card, so it sits slightly
      out of focus, dimmer, and less saturated than the in-focus play surface. */
-  filter: blur(3px) brightness(0.72) saturate(0.8);
+  filter: blur(2px) brightness(0.72) saturate(0.8);
 }
 
 /* Vignette scrim over the art (same fixed negative-z band; ::after paints
