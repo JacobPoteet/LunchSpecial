@@ -6,3 +6,4 @@ dist/
 *.local
 worker-configuration.d.ts
 node_modules/.tmp/
+discord-assets/fonts.conf
