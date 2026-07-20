@@ -327,6 +327,58 @@
   white-space: nowrap;
 }
 
+/* New vs returning player tiles: a left stripe in each series' line colour. */
+.metric--player {
+  border-left: 3px solid transparent;
+  text-align: left;
+}
+.metric--player-new { border-left-color: var(--cherry); }
+.metric--player-returning { border-left-color: var(--teal); }
+
+/* Two-line new-vs-returning players chart. */
+.pchart { width: 100%; }
+
+.pchart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-bottom: 8px;
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+}
+
+.pchart__legend-item { display: inline-flex; align-items: center; gap: 6px; }
+
+.pchart__swatch {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.pchart__swatch--new { background: var(--cherry); }
+.pchart__swatch--returning { background: var(--teal); }
+
+.pchart__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.pchart__grid { stroke: rgba(27, 79, 74, 0.18); stroke-width: 1; }
+
+.pchart__axis {
+  fill: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: 11px;
+}
+
+.pchart__line { stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.pchart__line--new { stroke: var(--cherry); }
+.pchart__line--returning { stroke: var(--teal); }
+
+.pchart__dot--new { fill: var(--cherry); }
+.pchart__dot--returning { fill: var(--teal); }
+
 .analytics-block { margin-top: 20px; }
 
 .analytics-rule {

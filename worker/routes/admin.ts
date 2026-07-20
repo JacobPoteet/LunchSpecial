@@ -8,6 +8,7 @@ import type {
   AnalyticsDay,
   AnalyticsPeriod,
   AnalyticsSummary,
+  PlayerSplit,
   RoundKind,
   ScheduleEntry,
   StartedByKind,
@@ -458,8 +459,16 @@ app.get("/analytics", async (c) => {
        WHERE completed = 1 AND solved = 1 AND guesses BETWEEN 1 AND ?${where}
        GROUP BY guesses`;
 
-  const [allTimeTotalsRes, allTimeDistRes, todayTotalsRes, todayDistRes, todayDishRes, dailyRes, hourlyRes] =
-    await c.env.DB.batch([
+  const [
+    allTimeTotalsRes,
+    allTimeDistRes,
+    todayTotalsRes,
+    todayDistRes,
+    todayDishRes,
+    dailyRes,
+    hourlyRes,
+    playerRes,
+  ] = await c.env.DB.batch([
       c.env.DB.prepare(allTimeTotalsSql),
       c.env.DB.prepare(distSql("")).bind(MAX_GUESSES),
       c.env.DB.prepare(todayTotalsSql).bind(today),
@@ -488,6 +497,16 @@ app.get("/analytics", async (c) => {
         `SELECT strftime('%Y-%m-%d %H', started_at) AS bucket, COUNT(*) AS n
            FROM analytics_rounds WHERE started_at IS NOT NULL GROUP BY bucket`,
       ),
+      // New-vs-returning input: one row per (player, active UTC hour). Folded to
+      // ET days in JS; a player's earliest ET day is when they were "new", every
+      // later active ET day makes them "returning". Rows before player_id shipped
+      // (NULL) are excluded — the split is only meaningful going forward.
+      c.env.DB.prepare(
+        `SELECT player_id, strftime('%Y-%m-%d %H', started_at) AS bucket
+           FROM analytics_rounds
+           WHERE player_id IS NOT NULL AND started_at IS NOT NULL
+           GROUP BY player_id, bucket`,
+      ),
     ]);
 
   const emptyTotals = { started: 0, completed: 0, solved: 0, shared: 0, fails: 0 };
@@ -495,6 +514,7 @@ app.get("/analytics", async (c) => {
     totalsResult: D1Result,
     distResult: D1Result,
     startedByKind: StartedByKind,
+    players: PlayerSplit,
   ): AnalyticsPeriod => {
     const { fails, ...totals } =
       (totalsResult.results[0] as AnalyticsPeriod["totals"] & { fails: number }) ?? emptyTotals;
@@ -502,8 +522,46 @@ app.get("/analytics", async (c) => {
     for (const r of distResult.results as { guesses: number; n: number }[]) {
       guessDistribution[r.guesses - 1] = r.n;
     }
-    return { totals, startedByKind, guessDistribution, fails };
+    return { totals, startedByKind, guessDistribution, fails, players };
   };
+
+  // New vs returning players. Fold each player's active UTC-hour buckets into ET
+  // days; their earliest ET day is a "new" tally that day, every later active ET
+  // day is a "returning" tally. All-time `new` is the total distinct players and
+  // `returning` is those who came back on at least one later day.
+  const activeDaysByPlayer = new Map<string, Set<string>>();
+  for (const r of playerRes.results as { player_id: string; bucket: string }[]) {
+    const instant = new Date(`${r.bucket.replace(" ", "T")}:30:00Z`);
+    if (Number.isNaN(instant.getTime())) continue;
+    const et = gameToday(instant);
+    let set = activeDaysByPlayer.get(r.player_id);
+    if (!set) {
+      set = new Set();
+      activeDaysByPlayer.set(r.player_id, set);
+    }
+    set.add(et);
+  }
+  const newByDay = new Map<string, number>();
+  const returningByDay = new Map<string, number>();
+  let allTimeNew = 0;
+  let allTimeReturning = 0;
+  for (const days of activeDaysByPlayer.values()) {
+    const sorted = [...days].sort();
+    const firstDay = sorted[0];
+    newByDay.set(firstDay, (newByDay.get(firstDay) ?? 0) + 1);
+    allTimeNew += 1;
+    let returned = false;
+    for (const d of sorted) {
+      if (d === firstDay) continue;
+      returningByDay.set(d, (returningByDay.get(d) ?? 0) + 1);
+      returned = true;
+    }
+    if (returned) allTimeReturning += 1;
+  }
+  const playersOn = (date: string): PlayerSplit => ({
+    new: newByDay.get(date) ?? 0,
+    returning: returningByDay.get(date) ?? 0,
+  });
 
   const at = (allTimeTotalsRes.results[0] ?? {}) as Record<string, number>;
   const allTimeByKind: StartedByKind = {
@@ -513,7 +571,10 @@ app.get("/analytics", async (c) => {
   };
 
   // Fold the started_at buckets into ET days, splitting `started` by kind.
-  type DayAccum = Omit<AnalyticsDay, "date">;
+  // Player fields (newPlayers/returningPlayers) are computed separately via
+  // playersOn() and merged in when the daily array is built, so they're not part
+  // of this per-kind started/completed accumulator.
+  type DayAccum = Omit<AnalyticsDay, "date" | "newPlayers" | "returningPlayers">;
   const dayMap = new Map<string, DayAccum>();
   for (const r of dailyRes.results as {
     bucket: string;
@@ -542,11 +603,17 @@ app.get("/analytics", async (c) => {
   const daily: AnalyticsDay[] = [...dayMap.keys()]
     .sort()
     .slice(-30)
-    .map((date) => ({ date, ...dayMap.get(date)! }));
+    .map((date) => {
+      const p = playersOn(date);
+      return { date, ...dayMap.get(date)!, newPlayers: p.new, returningPlayers: p.returning };
+    });
   const todayByKind = dayMap.get(today)?.startedByKind ?? zeroByKind();
 
-  const allTime = toPeriod(allTimeTotalsRes, allTimeDistRes, allTimeByKind);
-  const todayPeriod = toPeriod(todayTotalsRes, todayDistRes, todayByKind);
+  const allTime = toPeriod(allTimeTotalsRes, allTimeDistRes, allTimeByKind, {
+    new: allTimeNew,
+    returning: allTimeReturning,
+  });
+  const todayPeriod = toPeriod(todayTotalsRes, todayDistRes, todayByKind, playersOn(today));
   const todayDish = todayDishRes.results[0] as { name: string } | undefined;
 
   // Fold each UTC hour-bucket ("YYYY-MM-DD HH", UTC) into its ET hour of day.
@@ -562,6 +629,7 @@ app.get("/analytics", async (c) => {
     startedByKind: allTime.startedByKind,
     guessDistribution: allTime.guessDistribution,
     fails: allTime.fails,
+    players: allTime.players,
     today: { date: today, dishName: todayDish?.name ?? null, ...todayPeriod },
     daily,
     hourly,

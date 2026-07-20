@@ -28,6 +28,27 @@ const STATE_KEY = "lunch-special:round";
 const STATS_KEY = "lunch-special:stats";
 const HOWTO_KEY = "lunch-special:howto-seen";
 const ARCHIVE_KEY = "lunch-special:archive";
+const PLAYER_KEY = "lunch-special:player";
+
+/**
+ * Stable, anonymous per-device id (a random UUID) kept in localStorage. Sent with
+ * the "start" analytics beacon so the dashboard can tell new players (first-ever
+ * play) from returning ones. No accounts, no personal data — same anonymous model
+ * as the round id. Generated lazily on first play and reused forever after.
+ */
+export function getPlayerId(): string {
+  try {
+    const existing = localStorage.getItem(PLAYER_KEY);
+    if (existing) return existing;
+    const id = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(PLAYER_KEY, id);
+    return id;
+  } catch {
+    // Storage blocked (e.g. private mode) — fall back to an ephemeral id so the
+    // beacon still has a shape; it just won't persist across sessions.
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+}
 
 export function emptyRound(date: string): RoundState {
   return { date, status: "playing", guesses: [], clues: [] };

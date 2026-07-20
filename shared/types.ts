@@ -144,6 +144,22 @@ export interface AnalyticsDay {
   completed: number;
   solved: number;
   shared: number;
+  /** Distinct players whose first-ever play landed on this ET day. */
+  newPlayers: number;
+  /** Distinct players active this ET day who had first played on an earlier day. */
+  returningPlayers: number;
+}
+
+/**
+ * New vs returning player counts. A "player" is an anonymous device (a random id
+ * kept in localStorage). For a day slice: `new` = devices whose first-ever play
+ * was that day, `returning` = devices active that day that first played earlier.
+ * For the all-time slice: `new` = total distinct players ever, `returning` = those
+ * who have come back on at least one later day.
+ */
+export interface PlayerSplit {
+  new: number;
+  returning: number;
 }
 
 /** Public engagement totals for the README badges. Aggregate-only, no guess content. */
@@ -171,6 +187,8 @@ export interface AnalyticsPeriod {
   guessDistribution: number[];
   /** Completed rounds that ran out of guesses. */
   fails: number;
+  /** New vs returning player counts for this slice (see PlayerSplit). */
+  players: PlayerSplit;
 }
 
 /** Anonymous engagement aggregates for the admin dashboard. No guess content. */

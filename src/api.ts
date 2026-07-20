@@ -76,7 +76,13 @@ function beacon(path: string, body: unknown): void {
   }
 }
 
-export function beaconStart(b: { roundId: string; puzzleNumber: number; date: string; kind: RoundKind }): void {
+export function beaconStart(b: {
+  roundId: string;
+  puzzleNumber: number;
+  date: string;
+  kind: RoundKind;
+  playerId: string;
+}): void {
   beacon("/api/analytics/start", b);
 }
 
