@@ -1053,8 +1053,17 @@
   text-align: center;
 }
 
+.footer-note p {
+  margin: 0;
+}
+
+.footer-note__links {
+  margin-top: 4px;
+}
+
 .footer-note a {
   color: inherit;
+  text-decoration: underline;
 }
 
 /* ---- animations (issue #7) ----
