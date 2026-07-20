@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { DailyInfo, DishSummary, GuessFeedback, RevealInfo } from "../../shared/types";
-import { MAX_GUESSES } from "../../shared/types";
+import { DISH_REQUEST_LIMITS, MAX_GUESSES, SURFACES } from "../../shared/types";
 import { verifyToken } from "../auth";
 import { getClues, getDishById, getSeededDish, getTargetDish } from "../db";
 import { computeFeedback, isPlayableDate, puzzleNumber } from "../game";
@@ -88,6 +88,50 @@ app.post("/guess", async (c) => {
     if (clue) feedback.clue = { index: guessNumber, text: clue.text };
   }
   return c.json(feedback);
+});
+
+/** Trim a field, coerce blank/absent to null, and cap its length. */
+function cleanField(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, max);
+}
+
+// A player-submitted dish suggestion. Public + anonymous (same client-trust model
+// as the analytics beacons); lands in the admin review inbox (dish_requests table).
+app.post("/requests", async (c) => {
+  const body = (await c.req.json().catch(() => null)) as
+    | { name?: unknown; country?: unknown; note?: unknown; surface?: unknown; playerId?: unknown }
+    | null;
+  const name = cleanField(body?.name, DISH_REQUEST_LIMITS.name);
+  if (!name) return c.json({ error: "A dish name is required" }, 400);
+  const country = cleanField(body?.country, DISH_REQUEST_LIMITS.country);
+  const note = cleanField(body?.note, DISH_REQUEST_LIMITS.note);
+  const surface = SURFACES.includes(body?.surface as never) ? (body!.surface as string) : "web";
+  const playerId =
+    typeof body?.playerId === "string" && body.playerId.length >= 8 && body.playerId.length <= 64
+      ? body.playerId
+      : null;
+
+  // Ignore an exact duplicate from the same device so a double-tap (or the same
+  // player resubmitting the same idea) doesn't clutter the inbox.
+  if (playerId) {
+    const dupe = await c.env.DB
+      .prepare("SELECT 1 FROM dish_requests WHERE player_id = ? AND name = ? COLLATE NOCASE LIMIT 1")
+      .bind(playerId, name)
+      .first();
+    if (dupe) return c.json({ ok: true, duplicate: true });
+  }
+
+  await c.env.DB
+    .prepare(
+      `INSERT INTO dish_requests (name, country, note, surface, player_id, created_at)
+       VALUES (?, ?, ?, ?, ?, datetime('now'))`,
+    )
+    .bind(name, country, note, surface, playerId)
+    .run();
+  return c.json({ ok: true });
 });
 
 // Full answer once the round is over. Client-initiated, same trust model as Wordle.

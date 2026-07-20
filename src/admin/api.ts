@@ -6,6 +6,7 @@ import type {
   AdminDishInput,
   AdminDishRow,
   AnalyticsSummary,
+  DishRequest,
   ScheduleEntry,
   Surface,
 } from "../../shared/types";
@@ -53,3 +54,5 @@ export const setSchedule = (date: string, dishId: number | null) =>
   request<{ ok: true }>("/schedule", { ...json({ date, dishId }), method: "PUT" });
 export const autofillSchedule = () => request<{ filled: number }>("/schedule/autofill", { method: "POST" });
 export const createPreview = (dishId: number) => request<{ token: string; url: string }>("/preview", json({ dishId }));
+export const getRequests = () => request<DishRequest[]>("/requests");
+export const deleteRequest = (id: number) => request<{ ok: true }>(`/requests/${id}`, { method: "DELETE" });

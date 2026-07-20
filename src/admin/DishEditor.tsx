@@ -110,8 +110,24 @@ function TagInput({
   );
 }
 
-export default function DishEditor({ dishId, onDone }: { dishId: number | null; onDone: () => void }) {
-  const [form, setForm] = useState<AdminDishInput>(emptyForm);
+export default function DishEditor({
+  dishId,
+  prefill,
+  requestId,
+  onRequestConsumed,
+  onDone,
+}: {
+  dishId: number | null;
+  /** Seed a new dish (name/country) from a player request. */
+  prefill?: { name: string; country: string };
+  /** The request this dish came from — removed from the inbox on first save. */
+  requestId?: number;
+  onRequestConsumed?: () => void;
+  onDone: () => void;
+}) {
+  const [form, setForm] = useState<AdminDishInput>(() =>
+    dishId === null && prefill ? { ...emptyForm, name: prefill.name, country: prefill.country } : emptyForm,
+  );
   const [vocabulary, setVocabulary] = useState<string[]>([]);
   const [loading, setLoading] = useState(dishId !== null);
   const [error, setError] = useState<string | null>(null);
@@ -159,10 +175,15 @@ export default function DishEditor({ dishId, onDone }: { dishId: number | null; 
     setError(null);
     setOkMsg(null);
     try {
+      const wasCreate = savedId === null;
       const payload = { ...form, clues: filledClues };
-      const res = savedId === null ? await api.createDish(payload) : await api.updateDish(savedId, payload);
+      const res = wasCreate ? await api.createDish(payload) : await api.updateDish(savedId, payload);
       setSavedId(res.id);
       setOkMsg("Saved. Order's in the window!");
+      // First save of a dish created from a player request — clear it from the inbox.
+      if (wasCreate && requestId != null) {
+        api.deleteRequest(requestId).then(() => onRequestConsumed?.(), () => {});
+      }
       return res.id;
     } catch (e) {
       setError((e as Error).message);
