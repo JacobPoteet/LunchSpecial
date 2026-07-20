@@ -8,6 +8,7 @@ import type {
   AnalyticsDay,
   AnalyticsPeriod,
   AnalyticsSummary,
+  DishRequest,
   PlayerSplit,
   RoundKind,
   ScheduleEntry,
@@ -371,6 +372,39 @@ app.post("/preview", async (c) => {
   if (!dish) return c.json({ error: "Dish not found" }, 404);
   const token = await createToken(`preview:${body.dishId}`, PREVIEW_TTL_MS, c.env.SESSION_SECRET);
   return c.json({ token, url: `/?preview=${encodeURIComponent(token)}` });
+});
+
+// ---- Player dish requests (review inbox) ----
+
+interface DishRequestDbRow {
+  id: number;
+  name: string;
+  country: string | null;
+  note: string | null;
+  surface: string;
+  created_at: string;
+}
+
+app.get("/requests", async (c) => {
+  const res = await c.env.DB
+    .prepare("SELECT id, name, country, note, surface, created_at FROM dish_requests ORDER BY created_at DESC, id DESC")
+    .all<DishRequestDbRow>();
+  const requests: DishRequest[] = res.results.map((r) => ({
+    id: r.id,
+    name: r.name,
+    country: r.country,
+    note: r.note,
+    surface: SURFACES.includes(r.surface as never) ? (r.surface as Surface) : "web",
+    createdAt: r.created_at,
+  }));
+  return c.json(requests);
+});
+
+app.delete("/requests/:id", async (c) => {
+  const id = Number(c.req.param("id"));
+  const res = await c.env.DB.prepare("DELETE FROM dish_requests WHERE id = ?").bind(id).run();
+  if (res.meta.changes === 0) return c.json({ error: "Request not found" }, 404);
+  return c.json({ ok: true });
 });
 
 app.get("/dashboard", async (c) => {

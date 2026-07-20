@@ -9,9 +9,10 @@ import {
   localToday,
   newAnalyticsId,
   postGuess,
+  submitDishRequest,
 } from "../api";
 import type { DailyInfo, DishSummary, RevealInfo, RoundKind } from "../../shared/types";
-import { MAX_GUESSES } from "../../shared/types";
+import { DISH_REQUEST_LIMITS, MAX_GUESSES } from "../../shared/types";
 import { ClueTicket, Countdown, GuessInput, GuessRow, Modal } from "./components";
 import ArchiveModal from "./ArchiveModal";
 import { dateLabel, isPastPuzzleDate } from "./archive";
@@ -95,6 +96,87 @@ function StatsPanel({ stats }: { stats: Stats }) {
         ))}
       </div>
     </>
+  );
+}
+
+/**
+ * "Suggest a dish for the menu" — shown on the receipt after a round. Collapsed
+ * to a single line until the player opens it; on submit it POSTs an anonymous
+ * request to the admin inbox (surface + device id, same model as analytics).
+ */
+function RequestDishForm() {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [country, setCountry] = useState("");
+  const [note, setNote] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
+
+  if (status === "done") {
+    return <p className="dish-request__thanks">🧑‍🍳 Thanks, hon — the cook's got your request!</p>;
+  }
+
+  if (!open) {
+    return (
+      <button className="dish-request__toggle" onClick={() => setOpen(true)}>
+        🍽️ Suggest a dish for the menu
+      </button>
+    );
+  }
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || status === "sending") return;
+    setStatus("sending");
+    try {
+      await submitDishRequest({
+        name: name.trim(),
+        country: country.trim() || undefined,
+        note: note.trim() || undefined,
+        surface: SURFACE,
+        playerId: getPlayerId(),
+      });
+      setStatus("done");
+    } catch {
+      setStatus("error");
+    }
+  };
+
+  return (
+    <form className="dish-request" onSubmit={submit}>
+      <p className="dish-request__title">Suggest a dish for the menu</p>
+      <input
+        className="dish-request__input"
+        placeholder="Dish name (required)"
+        value={name}
+        maxLength={DISH_REQUEST_LIMITS.name}
+        onChange={(e) => setName(e.target.value)}
+        autoFocus
+      />
+      <input
+        className="dish-request__input"
+        placeholder="Country of origin (optional)"
+        value={country}
+        maxLength={DISH_REQUEST_LIMITS.country}
+        onChange={(e) => setCountry(e.target.value)}
+      />
+      <textarea
+        className="dish-request__input"
+        placeholder="Anything else? (optional)"
+        value={note}
+        maxLength={DISH_REQUEST_LIMITS.note}
+        rows={2}
+        onChange={(e) => setNote(e.target.value)}
+      />
+      {status === "error" && <p className="dish-request__error">Couldn't send that — try again.</p>}
+      <div className="dish-request__actions">
+        <button className="replay-btn" type="submit" disabled={!name.trim() || status === "sending"}>
+          {status === "sending" ? "Sending…" : "Send to the kitchen"}
+        </button>
+        <button className="dish-request__cancel" type="button" onClick={() => setOpen(false)}>
+          Never mind
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -199,6 +281,7 @@ function ResultModal({
           <Countdown />
         </>
       )}
+      <RequestDishForm />
     </Modal>
   );
 }

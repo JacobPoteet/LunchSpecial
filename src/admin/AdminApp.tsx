@@ -3,9 +3,17 @@ import * as api from "./api";
 import Dashboard from "./Dashboard";
 import DishEditor from "./DishEditor";
 import DishList from "./DishList";
+import RequestsView from "./RequestsView";
 import ScheduleView from "./ScheduleView";
 
-export type AdminView = "dashboard" | "dishes" | "schedule";
+export type AdminView = "dashboard" | "dishes" | "schedule" | "requests";
+
+/** Prefill for a brand-new dish opened from a player request. */
+export interface DishDraft {
+  prefill: { name: string; country: string };
+  /** The request this draft came from; removed from the inbox once the dish saves. */
+  requestId: number;
+}
 
 function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
   const [password, setPassword] = useState("");
@@ -49,6 +57,17 @@ export default function AdminApp() {
   const [view, setView] = useState<AdminView>("dashboard");
   // undefined = not editing; null = new dish; number = existing dish
   const [editing, setEditing] = useState<number | null | undefined>(undefined);
+  // Prefill for a new dish opened from a request (only meaningful when editing === null).
+  const [draft, setDraft] = useState<DishDraft | null>(null);
+  // Count of pending player requests, shown as a nav badge.
+  const [requestCount, setRequestCount] = useState<number | null>(null);
+
+  const refreshRequestCount = useCallback(() => {
+    api.getRequests().then(
+      (rows) => setRequestCount(rows.length),
+      () => {},
+    );
+  }, []);
 
   useEffect(() => {
     api.getSession().then(
@@ -57,14 +76,27 @@ export default function AdminApp() {
     );
   }, []);
 
+  useEffect(() => {
+    if (session === "in") refreshRequestCount();
+  }, [session, refreshRequestCount]);
+
   const openDish = useCallback((id: number | null) => {
     setView("dishes");
     setEditing(id);
+    setDraft(null);
+  }, []);
+
+  // "Add as dish" from a request: open a prefilled new-dish editor.
+  const openDishFromRequest = useCallback((d: DishDraft) => {
+    setView("dishes");
+    setEditing(null);
+    setDraft(d);
   }, []);
 
   const changeView = (v: AdminView) => {
     setView(v);
     setEditing(undefined);
+    setDraft(null);
   };
 
   return (
@@ -86,6 +118,10 @@ export default function AdminApp() {
               <button className={view === "schedule" ? "active" : ""} onClick={() => changeView("schedule")}>
                 Schedule
               </button>
+              <button className={view === "requests" ? "active" : ""} onClick={() => changeView("requests")}>
+                Requests
+                {requestCount ? <span className="nav-badge">{requestCount}</span> : null}
+              </button>
               <button
                 onClick={() => {
                   api.logout().finally(() => setSession("out"));
@@ -106,9 +142,21 @@ export default function AdminApp() {
               (editing === undefined ? (
                 <DishList onOpenDish={openDish} />
               ) : (
-                <DishEditor dishId={editing} onDone={() => setEditing(undefined)} />
+                <DishEditor
+                  dishId={editing}
+                  prefill={editing === null ? draft?.prefill : undefined}
+                  requestId={editing === null ? draft?.requestId : undefined}
+                  onRequestConsumed={refreshRequestCount}
+                  onDone={() => {
+                    setEditing(undefined);
+                    setDraft(null);
+                  }}
+                />
               ))}
             {view === "schedule" && <ScheduleView onOpenDish={openDish} />}
+            {view === "requests" && (
+              <RequestsView onAddAsDish={openDishFromRequest} onCountChange={setRequestCount} />
+            )}
           </>
         )}
       </div>

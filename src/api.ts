@@ -1,6 +1,14 @@
 // Thin fetch wrappers around the public game API.
 
-import type { DailyInfo, DishSummary, GuessFeedback, RevealInfo, RoundKind, Surface } from "../shared/types";
+import type {
+  DailyInfo,
+  DishRequestInput,
+  DishSummary,
+  GuessFeedback,
+  RevealInfo,
+  RoundKind,
+  Surface,
+} from "../shared/types";
 import { gameToday } from "../shared/time";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -45,6 +53,15 @@ export function postGuess(body: {
 
 export function fetchReveal(date: string, preview?: string, random?: string): Promise<RevealInfo> {
   return request(withParams("/api/reveal", { date, preview, random }));
+}
+
+/** Submit a player's dish suggestion for the menu (lands in the admin inbox). */
+export function submitDishRequest(body: DishRequestInput): Promise<{ ok: true }> {
+  return request("/api/requests", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 /**

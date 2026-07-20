@@ -63,6 +63,25 @@
   border-color: var(--cherry);
 }
 
+.nav-badge {
+  display: inline-block;
+  margin-left: 7px;
+  min-width: 1.4em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--cream);
+  color: var(--cherry);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.admin-nav button.active .nav-badge,
+.admin-nav button:hover .nav-badge {
+  background: var(--paper);
+}
+
 .panel {
   background: var(--paper);
   border-radius: 12px;

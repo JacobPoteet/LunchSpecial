@@ -136,6 +136,33 @@ export interface ScheduleEntry {
   dishName: string | null;
 }
 
+/** What a player submits when suggesting a dish for the menu. */
+export interface DishRequestInput {
+  /** The requested dish name (required). */
+  name: string;
+  /** Optional country of origin, free text. */
+  country?: string;
+  /** Optional free-text note from the player. */
+  note?: string;
+  /** Where it was submitted from (web / Discord), like analytics beacons. */
+  surface: Surface;
+  /** Optional anonymous per-device id (same value as the analytics player_id). */
+  playerId?: string;
+}
+
+/** A player's dish suggestion, as shown in the admin review inbox. */
+export interface DishRequest {
+  id: number;
+  name: string;
+  country: string | null;
+  note: string | null;
+  surface: Surface;
+  createdAt: string;
+}
+
+/** Field length caps for a dish request, shared by the client form + server. */
+export const DISH_REQUEST_LIMITS = { name: 80, country: 60, note: 280 } as const;
+
 export interface AdminDashboard {
   today: { date: string; dishId: number | null; dishName: string | null };
   scheduledAhead: number;
