@@ -49,5 +49,12 @@ jobs:
       # re-inserts every dish, which would wipe out edits made through /admin.
       - run: npx wrangler d1 migrations apply lunch-special-db --remote
 
-      # build (tsc -b && vite build) + wrangler deploy
+      # build (tsc -b && vite build) + wrangler deploy.
+      # VITE_DISCORD_CLIENT_ID is a public build-time var baked into the client
+      # bundle so the app can run as a Discord Activity. Set it as a repo
+      # Actions *variable* (Settings → Secrets and variables → Actions →
+      # Variables), not a secret. If unset it's empty and only the Discord
+      # Activity path is affected — the public website builds normally.
       - run: npm run deploy
+        env:
+          VITE_DISCORD_CLIENT_ID: ${{ vars.VITE_DISCORD_CLIENT_ID }}
