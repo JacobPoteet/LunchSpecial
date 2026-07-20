@@ -52,6 +52,25 @@ CI runs migrations (idempotent, additive) but **never** the seed — `seed/seed.
 
 Note: the vite plugin writes a build-processed config into dist/; plain `wrangler deploy` from the repo root picks it up (the `deploy` script already chains build first).
 
+## Discord Activity
+
+The game also runs as a **Discord Activity** (embedded iframe app) — **no separate build**. Discord doesn't host the code; it frames `lunchspecial.app` through its proxy via a URL mapping. So the same `npm run build` / `npm run deploy` ships both the public site and the Activity. The only Discord-specific code is `src/discord/bootstrap.ts`, activated purely at runtime.
+
+- **Detection:** `isDiscordActivity()` checks for the `frame_id` query param Discord adds to the iframe URL. On the open web it's absent, so `initDiscord()` returns null and the Embedded App SDK (`@discord/embedded-app-sdk`, behind a **dynamic import**) is never downloaded — zero cost to web visitors.
+- **Boot:** `src/main.tsx` awaits `initDiscord()` before mounting React. When embedded, it completes the SDK `ready()` handshake, then the existing game runs **anonymously** exactly as on the web (localStorage state, no accounts). Current scope is "minimal embed": no OAuth / user identity yet.
+- **Why it works with no proxy gymnastics:** the app is same-origin + self-contained — all client calls are relative `/api/*`, all assets/fonts/art are Worker-served (no CDNs). Discord's "route everything through the proxy" rule is satisfied automatically by a root URL mapping.
+- **Client ID:** `VITE_DISCORD_CLIENT_ID` — a **public** build-time Vite var (ships in the bundle; NOT a secret; do not put it in `.dev.vars`). Local dev: add it to `.env.local` (gitignored; see `.env.example`). CI: set it as a repo Actions **Variable** (not secret) — `deploy.yml` passes it to the build.
+- **localStorage caveat:** inside Discord it's sandboxed to the `discordsays.com` origin, so Activity players have a **separate** game history from lunchspecial.app. Acceptable for the anonymous MVP; unifying stats is the (future) OAuth path.
+
+### Discord Developer Portal (one-time, manual — not in this repo)
+
+1. Create an app → copy **Client ID** into `VITE_DISCORD_CLIENT_ID` (local `.env.local` + CI Variable).
+2. Enable **Activities** in the app's Embedded settings.
+3. Add **URL Mapping**: prefix `/` → `lunchspecial.app`.
+4. Add an OAuth2 redirect URI (`https://127.0.0.1` placeholder is fine for the embedded flow).
+
+**Dev testing inside real Discord:** Discord can't reach `localhost`, so it needs a public HTTPS URL. Run `npm run dev` in one terminal and `npm run tunnel` (cloudflared quick tunnel → :5173) in another, then point the portal's URL Mapping at the printed `*.trycloudflare.com` URL while testing. (`cloudflared` must be installed separately.)
+
 ## Layout
 
 ```
@@ -67,6 +86,7 @@ shared/time.ts        GAME_TIMEZONE (America/New_York), gameToday, msUntilGameMi
 worker/routes/public.ts   /api/dishes, /daily, /guess, /reveal — never leak target except via /reveal
 worker/routes/admin.ts    /api/admin/*: login/logout/session, dish CRUD, ingredients vocab,
                           schedule GET/PUT, autofill, preview token, dashboard
+src/discord/          bootstrap.ts = Discord Activity runtime hook (frame_id detect + SDK ready); dynamic-imported, web pays nothing
 src/App.tsx           path startsWith /admin → lazy AdminApp, else GamePage (no router lib)
 src/api.ts            public fetch wrappers + localToday()
 src/game/             GamePage (orchestrator), components.tsx (Modal/GuessRow/ClueTicket/GuessInput/Countdown),
