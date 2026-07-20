@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { AnalyticsPeriod, AnalyticsSummary } from "../../shared/types";
+import type { AnalyticsPeriod, AnalyticsSummary, RoundKind, StartedByKind } from "../../shared/types";
 import type { AdminDashboard } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
 import { hms, msUntilGameMidnight } from "../../shared/time";
@@ -7,6 +7,18 @@ import * as api from "./api";
 import type { AdminView } from "./AdminApp";
 
 const pct = (n: number, of: number) => (of === 0 ? 0 : Math.round((n / of) * 100));
+
+/**
+ * The three game kinds, in display order. The first (daily) is the priority
+ * metric — "Today's Special". `cls` ties each to its bar colour in admin.css.
+ */
+const KIND_META: { key: RoundKind; label: string; cls: string }[] = [
+  { key: "daily", label: "Today's Special", cls: "daily" },
+  { key: "leftover", label: "Leftovers", cls: "leftover" },
+  { key: "random", label: "Chef's Special", cls: "random" },
+];
+
+const sumKinds = (s: StartedByKind) => s.daily + s.leftover + s.random;
 
 /** "2026-07-19" → "7/19" for compact axis labels (parsed as plain digits, no timezone). */
 const shortDate = (iso: string) => {
@@ -40,13 +52,31 @@ function avgGuesses(dist: number[]): number | null {
   return dist.reduce((sum, n, i) => sum + n * (i + 1), 0) / solved;
 }
 
-function MetricRow({ totals }: { totals: AnalyticsPeriod["totals"] }) {
+/**
+ * Games started, split into the three kinds — Today's Special (the priority
+ * metric, shown first and emphasised), Leftovers, and Chef's Special. Each tile
+ * carries the colour of its bar-graph segment.
+ */
+function StartedByKindRow({ startedByKind }: { startedByKind: StartedByKind }) {
+  return (
+    <div className="metric-row metric-row--kinds">
+      {KIND_META.map((k, i) => (
+        <div
+          className={`metric metric--kind metric--kind-${k.cls}${i === 0 ? " metric--primary" : ""}`}
+          key={k.key}
+        >
+          <span className="metric__num">{startedByKind[k.key]}</span>
+          <span className="metric__label">{k.label} started</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Completion / win / share rates for a slice of rounds. */
+function RatesRow({ totals }: { totals: AnalyticsPeriod["totals"] }) {
   return (
     <div className="metric-row">
-      <div className="metric">
-        <span className="metric__num">{totals.started}</span>
-        <span className="metric__label">Games started</span>
-      </div>
       <div className="metric">
         <span className="metric__num">{pct(totals.completed, totals.started)}%</span>
         <span className="metric__label">Completion</span>
@@ -59,6 +89,20 @@ function MetricRow({ totals }: { totals: AnalyticsPeriod["totals"] }) {
         <span className="metric__num">{pct(totals.shared, totals.completed)}%</span>
         <span className="metric__label">Share rate</span>
       </div>
+    </div>
+  );
+}
+
+/** The colour key shared by the started-by-kind tiles and the daily bar graph. */
+function KindLegend() {
+  return (
+    <div className="kind-legend">
+      {KIND_META.map((k) => (
+        <span className="kind-legend__item" key={k.key}>
+          <span className={`kind-legend__dot kind-legend__dot--${k.cls}`} />
+          {k.label}
+        </span>
+      ))}
     </div>
   );
 }
@@ -106,7 +150,7 @@ function EngagementPanel() {
     );
   }
 
-  const { totals, guessDistribution, fails, today, daily, hourly } = data;
+  const { totals, startedByKind, guessDistribution, fails, today, daily, hourly } = data;
   if (totals.started === 0) {
     return (
       <section className="panel">
@@ -129,6 +173,9 @@ function EngagementPanel() {
   // Positive delta = today needs more guesses than usual (harder than average).
   const avgDelta = todayAvg !== null && allTimeAvg !== null ? todayAvg - allTimeAvg : null;
 
+  // Any game started today (across all three kinds), vs. today's Special alone.
+  const todayStartedAny = sumKinds(today.startedByKind);
+
   return (
     <section className="panel">
       <h2>Player engagement</h2>
@@ -137,14 +184,22 @@ function EngagementPanel() {
         Today's Special · {today.dishName ?? today.date}
         {today.dishName && ` · ${today.date}`}
       </h3>
-      {today.totals.started === 0 ? (
+      {todayStartedAny === 0 ? (
         <p className="dash-note">No plays recorded for today yet — check back once the diner fills up.</p>
       ) : (
         <>
-          <MetricRow totals={today.totals} />
+          {/* Games started today, split by kind — Today's Special leads. */}
+          <StartedByKindRow startedByKind={today.startedByKind} />
+          {today.totals.started === 0 ? (
+            <p className="dash-note">
+              Only leftovers and chef's specials so far today — Today's Special hasn't been played yet.
+            </p>
+          ) : (
+            <RatesRow totals={today.totals} />
+          )}
           <div className="analytics-split">
             <div>
-              <h3 className="analytics-sub">Guess distribution · today</h3>
+              <h3 className="analytics-sub">Guess distribution · today's Special</h3>
               <GuessBars dist={today.guessDistribution} fails={today.fails} />
             </div>
             <div>
@@ -176,7 +231,9 @@ function EngagementPanel() {
       <hr className="analytics-rule" />
 
       <h3 className="analytics-sub">All time</h3>
-      <MetricRow totals={totals} />
+      {/* Games started across the game's life, Today's Special first. */}
+      <StartedByKindRow startedByKind={startedByKind} />
+      <RatesRow totals={totals} />
 
       <div className="analytics-split">
         <div>
@@ -189,19 +246,37 @@ function EngagementPanel() {
           {daily.length === 0 ? (
             <p className="dash-note">No dated activity yet.</p>
           ) : (
-            <div className="spark">
-              {daily.map((d, i) => {
-                // Tag every Nth day plus the final one so the newest date is always labeled.
-                const showTick = i % dayTickStep === 0 || i === daily.length - 1;
-                return (
-                  <div className="spark__col" key={d.date} title={`${d.date}: ${d.started} started, ${d.solved} solved`}>
-                    <span className="spark__num">{d.started}</span>
-                    <span className="spark__bar" style={{ height: `${6 + (d.started / dayMax) * 94}%` }} />
-                    {showTick && <span className="spark__tick">{shortDate(d.date)}</span>}
-                  </div>
-                );
-              })}
-            </div>
+            <>
+              <KindLegend />
+              <div className="spark">
+                {daily.map((d, i) => {
+                  // Tag every Nth day plus the final one so the newest date is always labeled.
+                  const showTick = i % dayTickStep === 0 || i === daily.length - 1;
+                  const tip = KIND_META.map((k) => `${k.label}: ${d.startedByKind[k.key]}`).join(", ");
+                  return (
+                    <div className="spark__col" key={d.date} title={`${d.date} · ${d.started} started (${tip})`}>
+                      <span className="spark__num">{d.started}</span>
+                      {/* Stacked: each column's total height is the day's games
+                          started; the three segments split it by kind. */}
+                      <span className="spark__bar" style={{ height: `${6 + (d.started / dayMax) * 94}%` }}>
+                        {KIND_META.map((k) => {
+                          const n = d.startedByKind[k.key];
+                          if (n === 0) return null;
+                          return (
+                            <span
+                              key={k.key}
+                              className={`spark__seg spark__seg--${k.cls}`}
+                              style={{ height: `${(n / d.started) * 100}%` }}
+                            />
+                          );
+                        })}
+                      </span>
+                      {showTick && <span className="spark__tick">{shortDate(d.date)}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -232,6 +307,9 @@ function EngagementPanel() {
                 <tr>
                   <th>Date</th>
                   <th>Started</th>
+                  <th title="Today's Special">Special</th>
+                  <th>Leftovers</th>
+                  <th title="Chef's Special">Chef's</th>
                   <th>Completed</th>
                   <th>Solved</th>
                   <th>Win rate</th>
@@ -243,6 +321,9 @@ function EngagementPanel() {
                   <tr key={d.date}>
                     <td>{d.date}</td>
                     <td>{d.started}</td>
+                    <td>{d.startedByKind.daily}</td>
+                    <td>{d.startedByKind.leftover}</td>
+                    <td>{d.startedByKind.random}</td>
                     <td>{d.completed}</td>
                     <td>{d.solved}</td>
                     <td>{pct(d.solved, d.completed)}%</td>

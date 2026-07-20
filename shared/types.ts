@@ -24,6 +24,17 @@ export type Region = (typeof REGIONS)[number];
 
 export type MatchLevel = "hit" | "near" | "miss";
 
+/**
+ * The kind of round, for analytics: the daily Special, a "leftover" (an archive
+ * replay of a past puzzle), or a "chef's special" (a random recipe). Preview
+ * (admin test play) is never tracked, so it isn't a kind here.
+ */
+export const ROUND_KINDS = ["daily", "leftover", "random"] as const;
+export type RoundKind = (typeof ROUND_KINDS)[number];
+
+/** Games started, split by round kind. The three always sum to `started`. */
+export type StartedByKind = Record<RoundKind, number>;
+
 export const MAX_GUESSES = 6;
 /** Date of puzzle #1. */
 export const EPOCH_DATE = "2026-07-17";
@@ -125,8 +136,11 @@ export interface AdminDashboard {
 }
 
 export interface AnalyticsDay {
+  /** ET calendar day the rounds were started on (YYYY-MM-DD). */
   date: string;
   started: number;
+  /** `started` split by kind (daily + leftover + random === started). */
+  startedByKind: StartedByKind;
   completed: number;
   solved: number;
   shared: number;
@@ -147,6 +161,12 @@ export interface PublicStats {
 /** Totals + guess distribution for one slice of rounds (today, or all time). */
 export interface AnalyticsPeriod {
   totals: { started: number; completed: number; solved: number; shared: number };
+  /**
+   * Games started split by kind. `started` counts all kinds; this breaks it into
+   * Today's Special (daily) / Leftovers (leftover) / Chef's Special (random).
+   * The three sum to `totals.started`.
+   */
+  startedByKind: StartedByKind;
   /** dist[i] = rounds solved in i+1 guesses. */
   guessDistribution: number[];
   /** Completed rounds that ran out of guesses. */
@@ -155,7 +175,13 @@ export interface AnalyticsPeriod {
 
 /** Anonymous engagement aggregates for the admin dashboard. No guess content. */
 export interface AnalyticsSummary extends AnalyticsPeriod {
-  /** Same figures scoped to today's puzzle (play_date = server today, midnight-ET rollover). */
+  /**
+   * Today's slice. `totals`/`guessDistribution`/`fails` cover today's Special
+   * only (play_date = server today AND kind = daily) — that's the puzzle's
+   * difficulty, so replays/random never dilute it. `startedByKind` instead
+   * counts every game *started today* (ET) split by kind, so the dashboard can
+   * headline "Today's Special started" alongside leftovers + chef's specials.
+   */
   today: AnalyticsPeriod & { date: string; dishName: string | null };
   /** Last 30 days with activity, oldest first. */
   daily: AnalyticsDay[];

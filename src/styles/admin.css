@@ -179,6 +179,55 @@
   margin-top: 3px;
 }
 
+/* Games-started split by kind. Each tile carries a top stripe in its bar colour;
+   the daily (Today's Special) tile is emphasised as the priority metric. */
+.metric-row--kinds { margin-bottom: 10px; }
+
+.metric--kind {
+  border-top: 3px solid transparent;
+  text-align: left;
+}
+
+.metric--kind-daily { border-top-color: var(--mustard); }
+.metric--kind-leftover { border-top-color: var(--teal); }
+.metric--kind-random { border-top-color: var(--cherry); }
+
+.metric--primary {
+  background: rgba(232, 165, 58, 0.14);
+}
+
+.metric--primary .metric__num {
+  font-size: 1.9rem;
+}
+
+.metric--primary .metric__label {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Colour key shared by the kind tiles and the daily bar graph. */
+.kind-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-bottom: 8px;
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+}
+
+.kind-legend__item { display: inline-flex; align-items: center; gap: 5px; }
+
+.kind-legend__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.kind-legend__dot--daily { background: var(--mustard); }
+.kind-legend__dot--leftover { background: var(--teal); }
+.kind-legend__dot--random { background: var(--cherry); }
+
 .analytics-split {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -255,9 +304,20 @@
 
 .spark__bar {
   width: 100%;
+  /* Stacks the per-kind segments from the bottom up; the mustard fallback shows
+     if a bar somehow has no segments. */
   background: var(--mustard);
   border-radius: 2px 2px 0 0;
+  display: flex;
+  flex-direction: column-reverse;
+  overflow: hidden;
 }
+
+/* Bottom-to-top stack: Today's Special, then Leftovers, then Chef's Special. */
+.spark__seg { width: 100%; display: block; }
+.spark__seg--daily { background: var(--mustard); }
+.spark__seg--leftover { background: var(--teal); }
+.spark__seg--random { background: var(--cherry); }
 
 .spark__tick {
   position: absolute;

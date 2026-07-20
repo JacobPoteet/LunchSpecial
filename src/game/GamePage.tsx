@@ -10,7 +10,7 @@ import {
   newAnalyticsId,
   postGuess,
 } from "../api";
-import type { DailyInfo, DishSummary, RevealInfo } from "../../shared/types";
+import type { DailyInfo, DishSummary, RevealInfo, RoundKind } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
 import { ClueTicket, Countdown, GuessInput, GuessRow, Modal } from "./components";
 import ArchiveModal from "./ArchiveModal";
@@ -99,6 +99,7 @@ function ResultModal({
   stats,
   isDaily,
   isRandom,
+  kind,
   canShare,
   canArchive,
   onNewGame,
@@ -111,6 +112,7 @@ function ResultModal({
   stats: Stats;
   isDaily: boolean;
   isRandom: boolean;
+  kind: RoundKind;
   canShare: boolean;
   canArchive: boolean;
   onNewGame: () => void;
@@ -121,9 +123,10 @@ function ResultModal({
   const won = round.status === "won";
   const share = async () => {
     const text = buildShareText(daily.puzzleNumber, round.guesses, won, daily.ingredientCount);
-    // Only the daily counts toward analytics; archive replays don't.
-    if (isDaily && round.analyticsId) {
-      beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date });
+    // The daily and leftover replays both carry an analytics id (only the share
+    // button's kinds reach here — random has no share button, preview no id).
+    if (round.analyticsId) {
+      beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date, kind });
     }
     // On mobile (and any browser with the Web Share API) bring up the native
     // share sheet so results can go straight to other apps. Fall back to the
@@ -218,6 +221,10 @@ export default function GamePage() {
   const isDaily = !isPreview && !isArchive && !isRandom;
   const date = isArchive ? (archiveDateParam as string) : today;
 
+  // The kind of round for analytics (preview is never tracked). Daily = Today's
+  // Special, archive = a Leftover, random = a Chef's Special.
+  const analyticsKind: RoundKind = isArchive ? "leftover" : isRandom ? "random" : "daily";
+
   // A random round is keyed by a random seed; a new seed = a new random dish.
   const [seed, setSeed] = useState(() => newSeed());
   const random = isRandom ? seed : undefined;
@@ -293,18 +300,22 @@ export default function GamePage() {
     }
   }, [round.status, reveal, date, preview, random]);
 
-  // Assign an anonymous analytics id once per daily puzzle so start/complete/share
-  // beacons can be linked. The "start" beacon itself doesn't fire here — merely
-  // opening the page (or closing the how-to modal) isn't a started game. It fires
-  // on the first guess (see submitGuess). Daily only — archive/random don't count.
+  // Assign an anonymous analytics id once per round so start/complete/share
+  // beacons can be linked. Every tracked kind gets one — daily, leftover, and
+  // chef's special — but preview (admin test play) never does. The "start"
+  // beacon itself doesn't fire here — merely opening the page (or closing the
+  // how-to modal) isn't a started game. It fires on the first guess (see
+  // submitGuess). A new random seed makes a fresh round, hence a fresh id.
   useEffect(() => {
-    if (!isDaily || !daily || round.analyticsId) return;
+    if (isPreview || !daily || round.analyticsId) return;
     const started = { ...round, analyticsId: newAnalyticsId() };
     setRound(started);
-    saveRound(started);
-    // Intentionally keyed on daily load — reads the round as it stands when the puzzle resolves.
+    // Persist the id where the round lives (daily/archive); random keeps it in
+    // memory only, which is enough to link its own beacons this session.
+    persist(started);
+    // Intentionally keyed on round load — reads the round as it stands when the puzzle resolves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [daily, isDaily]);
+  }, [daily, isPreview]);
 
   // Ticket animation is delayed until the guess row's drop finishes; its sound
   // must wait the same amount so it lands with the print, not the drop. Keep in
@@ -335,27 +346,27 @@ export default function GamePage() {
         // waits for the ticket's staggered print (see TICKET_STAGGER_MS).
         if (feedback.correct) playSfx("guess-correct");
         if (feedback.clue) setTimeout(() => playSfx("ticket-print"), TICKET_STAGGER_MS);
-        if (!ephemeral) {
-          persist(next);
-          // Only the daily counts toward analytics.
-          if (isDaily) {
-            const roundId = next.analyticsId ?? newAnalyticsId();
-            // A game counts as "started" on the first submitted guess — not on
-            // page open. (GitHub #27.)
-            if (guessNumber === 1) {
-              beaconStart({ roundId, puzzleNumber: daily.puzzleNumber, date });
-            }
-            // Only the daily updates lifetime stats + the completion beacon.
-            if (next.status !== "playing") {
-              setStats(recordResult(date, next.status === "won", next.guesses.length));
-              beaconComplete({
-                roundId,
-                puzzleNumber: daily.puzzleNumber,
-                date,
-                guesses: next.guesses.length,
-                solved: next.status === "won",
-              });
-            }
+        // Daily + leftover persist to localStorage; preview/random don't.
+        if (!ephemeral) persist(next);
+        // Every kind but preview counts toward analytics (daily, leftover, chef).
+        if (!isPreview) {
+          const roundId = next.analyticsId ?? newAnalyticsId();
+          // A game counts as "started" on the first submitted guess — not on
+          // page open. (GitHub #27.)
+          if (guessNumber === 1) {
+            beaconStart({ roundId, puzzleNumber: daily.puzzleNumber, date, kind: analyticsKind });
+          }
+          if (next.status !== "playing") {
+            // Lifetime player stats + streak stay daily-only (Wordle model).
+            if (isDaily) setStats(recordResult(date, next.status === "won", next.guesses.length));
+            beaconComplete({
+              roundId,
+              puzzleNumber: daily.puzzleNumber,
+              date,
+              kind: analyticsKind,
+              guesses: next.guesses.length,
+              solved: next.status === "won",
+            });
           }
         }
       } catch (e) {
@@ -365,7 +376,7 @@ export default function GamePage() {
         setBusy(false);
       }
     },
-    [daily, busy, round, date, preview, random, ephemeral, isDaily, persist],
+    [daily, busy, round, date, preview, random, ephemeral, isPreview, isDaily, analyticsKind, persist],
   );
 
   const guessedIds = useMemo(() => new Set(round.guesses.map((g) => g.dish.id)), [round.guesses]);
@@ -497,6 +508,7 @@ export default function GamePage() {
           stats={stats}
           isDaily={isDaily}
           isRandom={isRandom}
+          kind={analyticsKind}
           canShare={isDaily || isArchive}
           canArchive={canArchive}
           onNewGame={newGame}

@@ -5,9 +5,12 @@ import type {
   AdminDishDetail,
   AdminDishInput,
   AdminDishRow,
+  AnalyticsDay,
   AnalyticsPeriod,
   AnalyticsSummary,
+  RoundKind,
   ScheduleEntry,
+  StartedByKind,
 } from "../../shared/types";
 import { COURSES, MAX_GUESSES, PROTEINS, REGIONS, TEMPERATURES } from "../../shared/types";
 import {
@@ -20,7 +23,7 @@ import {
 } from "../auth";
 import { rowToDish, serverToday, type DishDbRow } from "../db";
 import { isValidDateString } from "../game";
-import { gameHour } from "../../shared/time";
+import { gameHour, gameToday, msUntilGameMidnight } from "../../shared/time";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -414,67 +417,141 @@ app.get("/dashboard", async (c) => {
   return c.json(dashboard);
 });
 
-// Anonymous engagement aggregates (see migrations/0005_add_analytics.sql).
+const zeroByKind = (): StartedByKind => ({ daily: 0, leftover: 0, random: 0 });
+
+// Anonymous engagement aggregates (see migrations/0005_add_analytics.sql and
+// 0007_add_analytics_kind.sql). A round is one of three kinds — the daily
+// Special, a leftover (archive replay), or a chef's special (random recipe).
 app.get("/analytics", async (c) => {
   const today = serverToday();
-  // Totals + guess distribution, computed the same way for all-time and for today.
-  const totalsSql = (where: string) =>
+
+  // started_at is stored in UTC; SQLite has no named-timezone support, so we
+  // fold UTC instants into ET days/hours in JS below. Compute the ET-"today"
+  // UTC window (and a ~5-week lower bound for the daily series) from the same
+  // midnight-ET countdown the rollover uses.
+  const nextMidnightUtcMs = Date.now() + msUntilGameMidnight();
+  const utcStamp = (ms: number) => new Date(ms).toISOString().slice(0, 19).replace("T", " ");
+  const dailyLowerBound = utcStamp(nextMidnightUtcMs - 36 * 86_400_000);
+
+  // All-time totals carry a per-kind split of `started` (COUNT(*)).
+  const allTimeTotalsSql =
+    `SELECT COUNT(*) AS started,
+       COALESCE(SUM(completed), 0) AS completed,
+       COALESCE(SUM(solved), 0) AS solved,
+       COALESCE(SUM(shared), 0) AS shared,
+       COALESCE(SUM(completed = 1 AND solved = 0), 0) AS fails,
+       COALESCE(SUM(kind = 'daily'), 0) AS started_daily,
+       COALESCE(SUM(kind = 'leftover'), 0) AS started_leftover,
+       COALESCE(SUM(kind = 'random'), 0) AS started_random
+     FROM analytics_rounds`;
+  // Today's Special engagement — the daily puzzle only, so replays/random never
+  // dilute its completion, win rate, or guess distribution.
+  const todayTotalsSql =
     `SELECT COUNT(*) AS started,
        COALESCE(SUM(completed), 0) AS completed,
        COALESCE(SUM(solved), 0) AS solved,
        COALESCE(SUM(shared), 0) AS shared,
        COALESCE(SUM(completed = 1 AND solved = 0), 0) AS fails
-     FROM analytics_rounds${where}`;
+     FROM analytics_rounds WHERE play_date = ? AND kind = 'daily'`;
   const distSql = (where: string) =>
     `SELECT guesses, COUNT(*) AS n FROM analytics_rounds
        WHERE completed = 1 AND solved = 1 AND guesses BETWEEN 1 AND ?${where}
        GROUP BY guesses`;
 
-  const [totalsRes, distRes, todayTotalsRes, todayDistRes, todayDishRes, dailyRes, hourlyRes] =
+  const [allTimeTotalsRes, allTimeDistRes, todayTotalsRes, todayDistRes, todayDishRes, dailyRes, hourlyRes] =
     await c.env.DB.batch([
-      c.env.DB.prepare(totalsSql("")),
+      c.env.DB.prepare(allTimeTotalsSql),
       c.env.DB.prepare(distSql("")).bind(MAX_GUESSES),
-      c.env.DB.prepare(totalsSql(" WHERE play_date = ?")).bind(today),
-      c.env.DB.prepare(distSql(" AND play_date = ?")).bind(MAX_GUESSES, today),
+      c.env.DB.prepare(todayTotalsSql).bind(today),
+      c.env.DB.prepare(distSql(" AND play_date = ? AND kind = 'daily'")).bind(MAX_GUESSES, today),
       c.env.DB
         .prepare("SELECT d.name FROM schedule s JOIN dishes d ON d.id = s.dish_id WHERE s.date = ?")
         .bind(today),
+      // Daily series: bucket started_at by UTC hour + kind, folded into ET days
+      // below. "Games started" is a started-at metric, so a leftover replayed
+      // today lands on today — not on the old puzzle's date.
+      c.env.DB
+        .prepare(
+          `SELECT strftime('%Y-%m-%d %H', started_at) AS bucket, kind,
+             COUNT(*) AS started,
+             COALESCE(SUM(completed), 0) AS completed,
+             COALESCE(SUM(solved), 0) AS solved,
+             COALESCE(SUM(shared), 0) AS shared
+           FROM analytics_rounds
+           WHERE started_at IS NOT NULL AND started_at >= ?
+           GROUP BY bucket, kind`,
+        )
+        .bind(dailyLowerBound),
       c.env.DB.prepare(
-        `SELECT play_date AS date, COUNT(*) AS started,
-           COALESCE(SUM(completed), 0) AS completed,
-           COALESCE(SUM(solved), 0) AS solved,
-           COALESCE(SUM(shared), 0) AS shared
-         FROM analytics_rounds GROUP BY play_date ORDER BY play_date DESC LIMIT 30`,
-      ),
-      c.env.DB.prepare(
-        // Started-at is stored in UTC. SQLite has no named-timezone support and
-        // ET has DST, so we bucket by UTC hour-of-history here and fold each
-        // bucket into its ET hour-of-day in JS below (offset is whole hours, so
-        // a UTC hour maps cleanly to one ET hour).
+        // Started-at is stored in UTC. ET has DST, so we bucket by UTC hour and
+        // fold each bucket into its ET hour-of-day (the offset is whole hours).
         `SELECT strftime('%Y-%m-%d %H', started_at) AS bucket, COUNT(*) AS n
            FROM analytics_rounds WHERE started_at IS NOT NULL GROUP BY bucket`,
       ),
     ]);
 
   const emptyTotals = { started: 0, completed: 0, solved: 0, shared: 0, fails: 0 };
-  const toPeriod = (totalsResult: D1Result, distResult: D1Result): AnalyticsPeriod => {
+  const toPeriod = (
+    totalsResult: D1Result,
+    distResult: D1Result,
+    startedByKind: StartedByKind,
+  ): AnalyticsPeriod => {
     const { fails, ...totals } =
       (totalsResult.results[0] as AnalyticsPeriod["totals"] & { fails: number }) ?? emptyTotals;
     const guessDistribution = Array.from({ length: MAX_GUESSES }, () => 0);
     for (const r of distResult.results as { guesses: number; n: number }[]) {
       guessDistribution[r.guesses - 1] = r.n;
     }
-    return { totals, guessDistribution, fails };
+    return { totals, startedByKind, guessDistribution, fails };
   };
 
-  const allTime = toPeriod(totalsRes, distRes);
-  const todayPeriod = toPeriod(todayTotalsRes, todayDistRes);
+  const at = (allTimeTotalsRes.results[0] ?? {}) as Record<string, number>;
+  const allTimeByKind: StartedByKind = {
+    daily: at.started_daily ?? 0,
+    leftover: at.started_leftover ?? 0,
+    random: at.started_random ?? 0,
+  };
+
+  // Fold the started_at buckets into ET days, splitting `started` by kind.
+  type DayAccum = Omit<AnalyticsDay, "date">;
+  const dayMap = new Map<string, DayAccum>();
+  for (const r of dailyRes.results as {
+    bucket: string;
+    kind: RoundKind;
+    started: number;
+    completed: number;
+    solved: number;
+    shared: number;
+  }[]) {
+    // Rebuild the instant at mid-hour to stay clear of any boundary rounding.
+    const instant = new Date(`${r.bucket.replace(" ", "T")}:30:00Z`);
+    if (Number.isNaN(instant.getTime())) continue;
+    const et = gameToday(instant);
+    let acc = dayMap.get(et);
+    if (!acc) {
+      acc = { started: 0, startedByKind: zeroByKind(), completed: 0, solved: 0, shared: 0 };
+      dayMap.set(et, acc);
+    }
+    acc.started += r.started;
+    if (r.kind in acc.startedByKind) acc.startedByKind[r.kind] += r.started;
+    acc.completed += r.completed;
+    acc.solved += r.solved;
+    acc.shared += r.shared;
+  }
+  // Oldest first; keep the most recent 30 ET days that saw activity.
+  const daily: AnalyticsDay[] = [...dayMap.keys()]
+    .sort()
+    .slice(-30)
+    .map((date) => ({ date, ...dayMap.get(date)! }));
+  const todayByKind = dayMap.get(today)?.startedByKind ?? zeroByKind();
+
+  const allTime = toPeriod(allTimeTotalsRes, allTimeDistRes, allTimeByKind);
+  const todayPeriod = toPeriod(todayTotalsRes, todayDistRes, todayByKind);
   const todayDish = todayDishRes.results[0] as { name: string } | undefined;
 
   // Fold each UTC hour-bucket ("YYYY-MM-DD HH", UTC) into its ET hour of day.
   const hourly = Array.from({ length: 24 }, () => 0);
   for (const r of hourlyRes.results as { bucket: string; n: number }[]) {
-    // Rebuild the instant at mid-hour to stay clear of any boundary rounding.
     const instant = new Date(`${r.bucket.replace(" ", "T")}:30:00Z`);
     if (Number.isNaN(instant.getTime())) continue;
     hourly[gameHour(instant)] += r.n;
@@ -482,10 +559,11 @@ app.get("/analytics", async (c) => {
 
   const summary: AnalyticsSummary = {
     totals: allTime.totals,
+    startedByKind: allTime.startedByKind,
     guessDistribution: allTime.guessDistribution,
     fails: allTime.fails,
     today: { date: today, dishName: todayDish?.name ?? null, ...todayPeriod },
-    daily: (dailyRes.results as AnalyticsSummary["daily"]).reverse(),
+    daily,
     hourly,
   };
   return c.json(summary);
