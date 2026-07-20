@@ -1,4 +1,4 @@
-// The "Menu Archive": a calendar of every past Special, plus a random-recipe
+// The "Leftovers": a calendar of every past Special, plus a random-recipe
 // shortcut. Unlocked once today's Special is done — replay any day you missed.
 
 import { useMemo } from "react";
@@ -126,10 +126,10 @@ export default function ArchiveModal({
 
   return (
     <Modal onClose={onClose}>
-      <h2 className="archive-cal__title">Menu Archive</h2>
+      <h2 className="archive-cal__title">Leftovers</h2>
       <p className="archive-cal__lede">Missed a day? Pull up an old Special and give it a shot.</p>
       <button className="share-btn" onClick={onRandom}>
-        🎲 Cook's choice — random recipe
+        🎲 Chef's choice — random recipe
       </button>
       <div className="archive-cal__legend">
         <span><span className="archive-cal__swatch archive-cal__swatch--won" /> solved</span>

@@ -205,7 +205,7 @@ export default function GamePage() {
   const archiveDateParam = useMemo(() => search.get("date") ?? undefined, [search]);
   const isArchive = !isPreview && !!archiveDateParam && isPastPuzzleDate(archiveDateParam, today);
 
-  // Random recipe ("cook's choice"): ?random serves a random dish, nothing
+  // Random recipe ("chef's choice"): ?random serves a random dish, nothing
   // saved. Available to everyone. Dev keeps the legacy /play and ?freeplay
   // entrances too.
   const isRandom = useMemo(() => {
@@ -414,7 +414,7 @@ export default function GamePage() {
           <img src={clocheUrl} alt="" aria-hidden="true" />
           <div className="special-line__body">
             <p className="special-line__label">
-              <span>{isRandom ? "Cook's choice" : "Daily Special"}</span>
+              <span>{isRandom ? "Chef's choice" : "Daily Special"}</span>
               <span className="leader" aria-hidden="true" />
               <span className="special-line__price">mp</span>
             </p>
