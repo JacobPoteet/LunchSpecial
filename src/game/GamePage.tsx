@@ -19,6 +19,7 @@ import { playSfx } from "./sfx";
 import { buildShareText } from "./share";
 import {
   emptyRound,
+  getPlayerId,
   hasSeenHowTo,
   loadArchiveRound,
   loadRound,
@@ -354,7 +355,13 @@ export default function GamePage() {
           // A game counts as "started" on the first submitted guess — not on
           // page open. (GitHub #27.)
           if (guessNumber === 1) {
-            beaconStart({ roundId, puzzleNumber: daily.puzzleNumber, date, kind: analyticsKind });
+            beaconStart({
+              roundId,
+              puzzleNumber: daily.puzzleNumber,
+              date,
+              kind: analyticsKind,
+              playerId: getPlayerId(),
+            });
           }
           if (next.status !== "playing") {
             // Lifetime player stats + streak stay daily-only (Wordle model).

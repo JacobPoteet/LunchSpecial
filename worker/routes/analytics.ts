@@ -30,14 +30,22 @@ function base(body: unknown): Base | null {
 }
 
 app.post("/start", async (c) => {
-  const b = base(await c.req.json().catch(() => null));
+  const raw = (await c.req.json().catch(() => null)) as (Partial<Base> & { playerId?: unknown }) | null;
+  const b = base(raw);
   if (!b) return c.json({ error: "Invalid analytics payload" }, 400);
+  // Anonymous per-device id (random UUID from localStorage). Optional — older
+  // clients omit it — so a bad/absent value just stores NULL. Powers the
+  // new-vs-returning player split in the admin dashboard.
+  const playerId =
+    typeof raw!.playerId === "string" && raw!.playerId.length >= 8 && raw!.playerId.length <= 64
+      ? raw!.playerId
+      : null;
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, started_at, updated_at)
-     VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, player_id, started_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO NOTHING`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, playerId)
     .run();
   return c.json({ ok: true });
 });
