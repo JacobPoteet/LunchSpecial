@@ -163,7 +163,7 @@ export interface AnalyticsPeriod {
   totals: { started: number; completed: number; solved: number; shared: number };
   /**
    * Games started split by kind. `started` counts all kinds; this breaks it into
-   * Today's Special (daily) / Leftovers (leftover) / Chef's Special (random).
+   * Today's Special (daily) / Leftovers (leftover) / Chef's Choice (random).
    * The three sum to `totals.started`.
    */
   startedByKind: StartedByKind;

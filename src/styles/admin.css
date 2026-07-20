@@ -313,7 +313,7 @@
   overflow: hidden;
 }
 
-/* Bottom-to-top stack: Today's Special, then Leftovers, then Chef's Special. */
+/* Bottom-to-top stack: Today's Special, then Leftovers, then Chef's Choice. */
 .spark__seg { width: 100%; display: block; }
 .spark__seg--daily { background: var(--mustard); }
 .spark__seg--leftover { background: var(--teal); }

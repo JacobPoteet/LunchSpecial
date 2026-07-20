@@ -15,7 +15,7 @@ const pct = (n: number, of: number) => (of === 0 ? 0 : Math.round((n / of) * 100
 const KIND_META: { key: RoundKind; label: string; cls: string }[] = [
   { key: "daily", label: "Today's Special", cls: "daily" },
   { key: "leftover", label: "Leftovers", cls: "leftover" },
-  { key: "random", label: "Chef's Special", cls: "random" },
+  { key: "random", label: "Chef's Choice", cls: "random" },
 ];
 
 const sumKinds = (s: StartedByKind) => s.daily + s.leftover + s.random;
@@ -54,7 +54,7 @@ function avgGuesses(dist: number[]): number | null {
 
 /**
  * Games started, split into the three kinds — Today's Special (the priority
- * metric, shown first and emphasised), Leftovers, and Chef's Special. Each tile
+ * metric, shown first and emphasised), Leftovers, and Chef's Choice. Each tile
  * carries the colour of its bar-graph segment.
  */
 function StartedByKindRow({ startedByKind }: { startedByKind: StartedByKind }) {
@@ -309,7 +309,7 @@ function EngagementPanel() {
                   <th>Started</th>
                   <th title="Today's Special">Special</th>
                   <th>Leftovers</th>
-                  <th title="Chef's Special">Chef's</th>
+                  <th title="Chef's Choice">Chef's</th>
                   <th>Completed</th>
                   <th>Solved</th>
                   <th>Win rate</th>
