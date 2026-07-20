@@ -155,6 +155,9 @@ function ResultModal({
           <p className="receipt__facts">
             {reveal.country} · {reveal.course} · served {reveal.temperature} · {reveal.protein}
           </p>
+          {reveal.ingredients.length > 0 && (
+            <p className="receipt__ingredients">{reveal.ingredients.join(" · ")}</p>
+          )}
           <div className="receipt__story">
             {reveal.clues.slice(1).map((clue) => (
               <p key={clue}>{clue}</p>
