@@ -182,7 +182,7 @@ function ResultModal({
           )}
           {canArchive && (
             <button className="replay-btn" onClick={onArchive}>
-              📅 Play another day
+              📅 Play again
             </button>
           )}
         </div>
