@@ -12,8 +12,9 @@ import type {
   RoundKind,
   ScheduleEntry,
   StartedByKind,
+  Surface,
 } from "../../shared/types";
-import { COURSES, MAX_GUESSES, PROTEINS, REGIONS, TEMPERATURES } from "../../shared/types";
+import { COURSES, MAX_GUESSES, PROTEINS, REGIONS, SURFACES, TEMPERATURES } from "../../shared/types";
 import {
   createToken,
   passwordMatches,
@@ -426,6 +427,16 @@ const zeroByKind = (): StartedByKind => ({ daily: 0, leftover: 0, random: 0 });
 app.get("/analytics", async (c) => {
   const today = serverToday();
 
+  // Optional surface filter (web / discord). Absent or unrecognised → all
+  // surfaces. The value is whitelisted against the SURFACES enum, so it's safe
+  // to splice the literal straight into the SQL (no bind-param reshuffling
+  // across the eight queries below). `surfAnd` extends an existing WHERE;
+  // `surfWhere` starts one for the queries that otherwise have none.
+  const surfaceParam = c.req.query("surface");
+  const surface = SURFACES.includes(surfaceParam as never) ? (surfaceParam as Surface) : null;
+  const surfAnd = surface ? ` AND surface = '${surface}'` : "";
+  const surfWhere = surface ? ` WHERE surface = '${surface}'` : "";
+
   // started_at is stored in UTC; SQLite has no named-timezone support, so we
   // fold UTC instants into ET days/hours in JS below. Compute the ET-"today"
   // UTC window (and a ~5-week lower bound for the daily series) from the same
@@ -444,7 +455,7 @@ app.get("/analytics", async (c) => {
        COALESCE(SUM(kind = 'daily'), 0) AS started_daily,
        COALESCE(SUM(kind = 'leftover'), 0) AS started_leftover,
        COALESCE(SUM(kind = 'random'), 0) AS started_random
-     FROM analytics_rounds`;
+     FROM analytics_rounds${surfWhere}`;
   // Today's Special engagement — the daily puzzle only, so replays/random never
   // dilute its completion, win rate, or guess distribution.
   const todayTotalsSql =
@@ -453,10 +464,10 @@ app.get("/analytics", async (c) => {
        COALESCE(SUM(solved), 0) AS solved,
        COALESCE(SUM(shared), 0) AS shared,
        COALESCE(SUM(completed = 1 AND solved = 0), 0) AS fails
-     FROM analytics_rounds WHERE play_date = ? AND kind = 'daily'`;
+     FROM analytics_rounds WHERE play_date = ? AND kind = 'daily'${surfAnd}`;
   const distSql = (where: string) =>
     `SELECT guesses, COUNT(*) AS n FROM analytics_rounds
-       WHERE completed = 1 AND solved = 1 AND guesses BETWEEN 1 AND ?${where}
+       WHERE completed = 1 AND solved = 1 AND guesses BETWEEN 1 AND ?${where}${surfAnd}
        GROUP BY guesses`;
 
   const [
@@ -487,7 +498,7 @@ app.get("/analytics", async (c) => {
              COALESCE(SUM(solved), 0) AS solved,
              COALESCE(SUM(shared), 0) AS shared
            FROM analytics_rounds
-           WHERE started_at IS NOT NULL AND started_at >= ?
+           WHERE started_at IS NOT NULL AND started_at >= ?${surfAnd}
            GROUP BY bucket, kind`,
         )
         .bind(dailyLowerBound),
@@ -495,7 +506,7 @@ app.get("/analytics", async (c) => {
         // Started-at is stored in UTC. ET has DST, so we bucket by UTC hour and
         // fold each bucket into its ET hour-of-day (the offset is whole hours).
         `SELECT strftime('%Y-%m-%d %H', started_at) AS bucket, COUNT(*) AS n
-           FROM analytics_rounds WHERE started_at IS NOT NULL GROUP BY bucket`,
+           FROM analytics_rounds WHERE started_at IS NOT NULL${surfAnd} GROUP BY bucket`,
       ),
       // New-vs-returning input: one row per (player, active UTC hour). Folded to
       // ET days in JS; a player's earliest ET day is when they were "new", every
@@ -504,7 +515,7 @@ app.get("/analytics", async (c) => {
       c.env.DB.prepare(
         `SELECT player_id, strftime('%Y-%m-%d %H', started_at) AS bucket
            FROM analytics_rounds
-           WHERE player_id IS NOT NULL AND started_at IS NOT NULL
+           WHERE player_id IS NOT NULL AND started_at IS NOT NULL${surfAnd}
            GROUP BY player_id, bucket`,
       ),
     ]);

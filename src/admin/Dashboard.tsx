@@ -6,6 +6,7 @@ import type {
   PlayerSplit,
   RoundKind,
   StartedByKind,
+  Surface,
 } from "../../shared/types";
 import type { AdminDashboard } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
@@ -229,18 +230,62 @@ function GuessBars({ dist, fails }: { dist: number[]; fails: number }) {
   );
 }
 
+/** Surface filter options for the engagement panel, in display order. */
+type SurfaceFilter = "all" | Surface;
+const SURFACE_FILTERS: { key: SurfaceFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "web", label: "Web" },
+  { key: "discord", label: "Discord" },
+];
+
+/** Segmented control that slices the whole engagement panel by play surface. */
+function SurfaceToggle({ value, onChange }: { value: SurfaceFilter; onChange: (s: SurfaceFilter) => void }) {
+  return (
+    <div className="surface-toggle" role="tablist" aria-label="Filter engagement by surface">
+      {SURFACE_FILTERS.map((s) => (
+        <button
+          key={s.key}
+          role="tab"
+          aria-selected={value === s.key}
+          className={`surface-toggle__btn${value === s.key ? " surface-toggle__btn--active" : ""}`}
+          onClick={() => onChange(s.key)}
+        >
+          {s.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function EngagementPanel() {
   const [data, setData] = useState<AnalyticsSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [surface, setSurface] = useState<SurfaceFilter>("all");
 
   useEffect(() => {
-    api.getAnalytics().then(setData, (e: Error) => setError(e.message));
-  }, []);
+    let live = true;
+    setError(null);
+    api.getAnalytics(surface === "all" ? undefined : surface).then(
+      (d) => live && setData(d),
+      (e: Error) => live && setError(e.message),
+    );
+    return () => {
+      live = false;
+    };
+  }, [surface]);
+
+  const surfaceToggle = <SurfaceToggle value={surface} onChange={setSurface} />;
+  const header = (
+    <div className="analytics-head">
+      <h2>Player engagement</h2>
+      {surfaceToggle}
+    </div>
+  );
 
   if (error) {
     return (
       <section className="panel">
-        <h2>Player engagement</h2>
+        {header}
         <p className="dash-note">Couldn't load analytics: {error}</p>
       </section>
     );
@@ -248,7 +293,7 @@ function EngagementPanel() {
   if (!data) {
     return (
       <section className="panel">
-        <h2>Player engagement</h2>
+        {header}
         <p className="dash-note">Counting the receipts…</p>
       </section>
     );
@@ -258,8 +303,12 @@ function EngagementPanel() {
   if (totals.started === 0) {
     return (
       <section className="panel">
-        <h2>Player engagement</h2>
-        <p className="dash-note">No rounds recorded yet. Numbers show up here once players start playing.</p>
+        {header}
+        <p className="dash-note">
+          {surface === "all"
+            ? "No rounds recorded yet. Numbers show up here once players start playing."
+            : `No ${surface === "web" ? "web" : "Discord"} rounds recorded yet.`}
+        </p>
       </section>
     );
   }
@@ -282,7 +331,7 @@ function EngagementPanel() {
 
   return (
     <section className="panel">
-      <h2>Player engagement</h2>
+      {header}
 
       <h3 className="analytics-sub">
         Today's Special · {today.dishName ?? today.date}

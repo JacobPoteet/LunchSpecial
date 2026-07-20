@@ -3,7 +3,7 @@
 // by a client-generated round_id. Never records guess content.
 
 import { Hono } from "hono";
-import { MAX_GUESSES, ROUND_KINDS, type RoundKind } from "../../shared/types";
+import { MAX_GUESSES, ROUND_KINDS, SURFACES, type RoundKind, type Surface } from "../../shared/types";
 import { isValidDateString } from "../game";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -13,11 +13,12 @@ interface Base {
   puzzleNumber: number;
   date: string;
   kind: RoundKind;
+  surface: Surface;
 }
 
 /** Validate the fields every beacon carries. */
 function base(body: unknown): Base | null {
-  const b = body as (Partial<Base> & { kind?: string }) | null;
+  const b = body as (Partial<Base> & { kind?: string; surface?: string }) | null;
   if (!b || typeof b.roundId !== "string" || b.roundId.length < 8 || b.roundId.length > 64) return null;
   const puzzleNumber = Number(b.puzzleNumber);
   if (!Number.isInteger(puzzleNumber) || puzzleNumber < 0) return null;
@@ -26,7 +27,10 @@ function base(body: unknown): Base | null {
   // used to fire beacons). Anything not in the enum is rejected.
   const kind = b.kind === undefined ? "daily" : (b.kind as RoundKind);
   if (!ROUND_KINDS.includes(kind)) return null;
-  return { roundId: b.roundId, puzzleNumber, date: b.date, kind };
+  // Older clients (pre-Discord split) omit `surface`; default to the open web.
+  const surface = b.surface === undefined ? "web" : (b.surface as Surface);
+  if (!SURFACES.includes(surface)) return null;
+  return { roundId: b.roundId, puzzleNumber, date: b.date, kind, surface };
 }
 
 app.post("/start", async (c) => {
@@ -41,11 +45,11 @@ app.post("/start", async (c) => {
       ? raw!.playerId
       : null;
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, player_id, started_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, player_id, started_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO NOTHING`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, playerId)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, playerId)
     .run();
   return c.json({ ok: true });
 });
@@ -60,14 +64,14 @@ app.post("/complete", async (c) => {
   }
   const solved = raw!.solved === true ? 1 : 0;
   // Upsert so a missed /start (e.g. a round begun before analytics shipped) still
-  // records. `kind` is only set on insert — a prior /start already fixed it.
+  // records. `kind`/`surface` are only set on insert — a prior /start already fixed them.
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, started_at, guesses, solved, completed, updated_at)
-     VALUES (?, ?, ?, ?, datetime('now'), ?, ?, 1, datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, started_at, guesses, solved, completed, updated_at)
+     VALUES (?, ?, ?, ?, ?, datetime('now'), ?, ?, 1, datetime('now'))
      ON CONFLICT(round_id) DO UPDATE SET
        guesses = excluded.guesses, solved = excluded.solved, completed = 1, updated_at = excluded.updated_at`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, guesses, solved)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, guesses, solved)
     .run();
   return c.json({ ok: true });
 });
@@ -77,11 +81,11 @@ app.post("/share", async (c) => {
   if (!b) return c.json({ error: "Invalid analytics payload" }, 400);
   // Idempotent: re-sharing just re-sets the flag.
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, started_at, shared, updated_at)
-     VALUES (?, ?, ?, ?, datetime('now'), 1, datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, started_at, shared, updated_at)
+     VALUES (?, ?, ?, ?, ?, datetime('now'), 1, datetime('now'))
      ON CONFLICT(round_id) DO UPDATE SET shared = 1, updated_at = excluded.updated_at`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface)
     .run();
   return c.json({ ok: true });
 });

@@ -15,6 +15,7 @@ import { MAX_GUESSES } from "../../shared/types";
 import { ClueTicket, Countdown, GuessInput, GuessRow, Modal } from "./components";
 import ArchiveModal from "./ArchiveModal";
 import { dateLabel, isPastPuzzleDate } from "./archive";
+import { currentSurface } from "../discord/bootstrap";
 import { playSfx } from "./sfx";
 import { buildShareText, SHARE_URL } from "./share";
 import {
@@ -33,6 +34,10 @@ import {
   type Stats,
 } from "./storage";
 import clocheUrl from "../assets/art/ai-cloche.svg";
+
+// Web vs Discord Activity — stable for the page's lifetime, so resolve it once
+// and stamp it on every analytics beacon.
+const SURFACE = currentSurface();
 
 /** A fresh random seed for a random recipe; the server maps it to a random dish. */
 function newSeed(): string {
@@ -127,7 +132,7 @@ function ResultModal({
     // The daily and leftover replays both carry an analytics id (only the share
     // button's kinds reach here — random has no share button, preview no id).
     if (round.analyticsId) {
-      beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date, kind });
+      beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date, kind, surface: SURFACE });
     }
     // On mobile (and any browser with the Web Share API) bring up the native
     // share sheet so results can go straight to other apps. Fall back to the
@@ -360,6 +365,7 @@ export default function GamePage() {
               puzzleNumber: daily.puzzleNumber,
               date,
               kind: analyticsKind,
+              surface: SURFACE,
               playerId: getPlayerId(),
             });
           }
@@ -371,6 +377,7 @@ export default function GamePage() {
               puzzleNumber: daily.puzzleNumber,
               date,
               kind: analyticsKind,
+              surface: SURFACE,
               guesses: next.guesses.length,
               solved: next.status === "won",
             });
