@@ -12,6 +12,8 @@
 // (localStorage state, no accounts). OAuth / per-user identity is intentionally
 // not wired up yet; see CLAUDE.md.
 
+import type { Surface } from "../../shared/types";
+
 /**
  * True when we're running inside the Discord client's Activity iframe. Discord
  * always appends `frame_id` (plus `instance_id`, `platform`, …) to the iframe
@@ -20,6 +22,15 @@
  */
 export function isDiscordActivity(): boolean {
   return new URLSearchParams(window.location.search).has("frame_id");
+}
+
+/**
+ * Which surface the player is on, for analytics: the Discord Activity embed or
+ * the open web. Same synchronous `frame_id` check as {@link isDiscordActivity} —
+ * stable for the session, so it's safe to read at beacon time.
+ */
+export function currentSurface(): Surface {
+  return isDiscordActivity() ? "discord" : "web";
 }
 
 /**

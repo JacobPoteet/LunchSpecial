@@ -7,6 +7,7 @@ import type {
   AdminDishRow,
   AnalyticsSummary,
   ScheduleEntry,
+  Surface,
 } from "../../shared/types";
 
 export class ApiError extends Error {
@@ -37,7 +38,9 @@ export const login = (password: string) => request<{ ok: true }>("/login", json(
 export const logout = () => request<{ ok: true }>("/logout", { method: "POST" });
 export const getSession = () => request<{ loggedIn: boolean }>("/session");
 export const getDashboard = () => request<AdminDashboard>("/dashboard");
-export const getAnalytics = () => request<AnalyticsSummary>("/analytics");
+/** Optionally filter engagement to one surface (web / discord); omit for all. */
+export const getAnalytics = (surface?: Surface) =>
+  request<AnalyticsSummary>(`/analytics${surface ? `?surface=${surface}` : ""}`);
 export const getDishes = () => request<AdminDishRow[]>("/dishes");
 export const getDish = (id: number) => request<AdminDishDetail>(`/dishes/${id}`);
 export const createDish = (input: AdminDishInput) => request<{ id: number }>("/dishes", json(input));

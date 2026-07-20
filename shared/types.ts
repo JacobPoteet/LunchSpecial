@@ -35,6 +35,14 @@ export type RoundKind = (typeof ROUND_KINDS)[number];
 /** Games started, split by round kind. The three always sum to `started`. */
 export type StartedByKind = Record<RoundKind, number>;
 
+/**
+ * Where a round was played: the open web or the Discord Activity embed. Derived
+ * client-side from Discord's `frame_id` iframe signal (see
+ * src/discord/bootstrap.ts). The admin dashboard can slice engagement by surface.
+ */
+export const SURFACES = ["web", "discord"] as const;
+export type Surface = (typeof SURFACES)[number];
+
 export const MAX_GUESSES = 6;
 /** Date of puzzle #1. */
 export const EPOCH_DATE = "2026-07-17";
