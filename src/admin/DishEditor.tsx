@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AdminDishInput, GuessFeedback } from "../../shared/types";
 import { COURSES, PROTEINS, REGIONS, TEMPERATURES } from "../../shared/types";
-import { ClueTicket, GuessRow } from "../game/components";
+import { ClueTicket, GuessRow, Modal } from "../game/components";
 import * as api from "./api";
 
 const CLUE_HINTS = [
@@ -117,6 +117,7 @@ export default function DishEditor({ dishId, onDone }: { dishId: number | null; 
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [savedId, setSavedId] = useState<number | null>(dishId);
 
   useEffect(() => {
@@ -184,7 +185,7 @@ export default function DishEditor({ dishId, onDone }: { dishId: number | null; 
 
   const remove = async () => {
     if (savedId === null) return;
-    if (!window.confirm(`Delete "${form.name}" from the recipe box? This can't be undone.`)) return;
+    setConfirmingDelete(false);
     setBusy(true);
     try {
       await api.deleteDish(savedId);
@@ -331,7 +332,7 @@ export default function DishEditor({ dishId, onDone }: { dishId: number | null; 
               Save + test play ▶
             </button>
             {savedId !== null && (
-              <button className="btn btn--ghost" disabled={busy} onClick={() => void remove()}>
+              <button className="btn btn--ghost" disabled={busy} onClick={() => setConfirmingDelete(true)}>
                 Delete
               </button>
             )}
@@ -348,6 +349,24 @@ export default function DishEditor({ dishId, onDone }: { dishId: number | null; 
           </div>
         </div>
       </div>
+
+      {confirmingDelete && (
+        <Modal onClose={() => setConfirmingDelete(false)}>
+          <h3 style={{ marginTop: 0 }}>Delete this dish?</h3>
+          <p>
+            Delete <strong>{form.name || "this dish"}</strong> from the recipe box? This also removes its clues and
+            can't be undone.
+          </p>
+          <div className="btn-row" style={{ marginTop: 16 }}>
+            <button className="btn btn--red" disabled={busy} onClick={() => void remove()}>
+              {busy ? "Deleting…" : "Delete dish"}
+            </button>
+            <button className="btn btn--ghost" disabled={busy} onClick={() => setConfirmingDelete(false)}>
+              Keep it
+            </button>
+          </div>
+        </Modal>
+      )}
     </section>
   );
 }
