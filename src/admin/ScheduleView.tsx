@@ -98,7 +98,6 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
             <li key={entry.date} className={classes}>
               <span className="sched-date">
                 {weekday(entry.date)}
-                {isToday ? " · TODAY" : ""}
               </span>
               {isPast ? (
                 <span className="sched-dish">{entry.dishName ?? "— nothing served —"}</span>
