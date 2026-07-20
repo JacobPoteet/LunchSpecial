@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Press Kit | Lunch Special</title>
+    <meta name="description" content="Press kit for Lunch Special, the daily dish guessing game: fact sheet, logos, key art, brand colors, fonts, and a downloadable asset bundle." />
+    <meta name="robots" content="index, follow" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Lunch Special" />
+    <meta property="og:url" content="https://lunchspecial.app/press" />
+    <meta property="og:title" content="Lunch Special Press Kit" />
+    <meta property="og:description" content="Fact sheet, logos, key art, colors, fonts, and a downloadable asset bundle for Lunch Special." />
+    <meta property="og:image" content="https://lunchspecial.app/press/key-art.png" />
+
+    <style>
+      @font-face { font-family: "Alfa Slab One"; src: url("/press/fonts/alfa-slab-one.ttf") format("truetype"); font-display: swap; }
+      @font-face { font-family: "Yellowtail"; src: url("/press/fonts/yellowtail.ttf") format("truetype"); font-display: swap; }
+
+      :root {
+        --cream: #f6edd9; --paper: #fbf4e0; --paper-edge: #e6d9b8;
+        --ink: #2b2320; --ink-soft: #5b4f45;
+        --teal: #1b4f4a; --teal-dark: #123833;
+        --cherry: #c9354a; --cherry-dark: #8f1f2e;
+        --mustard: #e8a53a; --chrome: #cfd8dc; --neon-pink: #ff5f7a;
+        --font-display: "Alfa Slab One", "Arial Black", sans-serif;
+        --font-script: "Yellowtail", "Brush Script MT", cursive;
+        --font-body: Georgia, "Times New Roman", serif;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+      body {
+        font-family: var(--font-body); color: var(--ink);
+        background: var(--teal-dark); line-height: 1.6; -webkit-font-smoothing: antialiased;
+      }
+      a { color: var(--cherry); }
+      .wrap { max-width: 940px; margin: 0 auto; padding: 20px 20px 72px; }
+      .home {
+        display: inline-block; margin: 4px 0 18px; color: var(--mustard); text-decoration: none;
+        font-family: var(--font-display); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em;
+      }
+
+      /* ---- hero ---- */
+      .hero {
+        position: relative; overflow: hidden; border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: #0d201d center 30% / cover no-repeat;
+        background-image: linear-gradient(180deg, rgba(11,31,28,0.35), rgba(11,31,28,0.82)), url("/press/backdrop.png");
+        padding: 54px 28px 46px; text-align: center;
+        box-shadow: 0 22px 60px rgba(8,18,16,0.5);
+      }
+      .hero .eyebrow {
+        font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.18em;
+        font-size: 0.7rem; color: var(--mustard); margin: 0 0 10px;
+      }
+      .hero h1 {
+        font-family: var(--font-script); font-weight: 400;
+        font-size: clamp(3.2rem, 13vw, 6rem); line-height: 0.92; margin: 0;
+        color: #ffe9ef;
+        text-shadow: 0 0 10px rgba(255,95,122,0.9), 0 0 26px rgba(255,95,122,0.6), 0 0 46px rgba(255,95,122,0.4);
+      }
+      .hero .tag {
+        font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.14em;
+        font-size: clamp(0.7rem, 2.6vw, 0.9rem); color: var(--cream); margin: 14px 0 0; opacity: 0.92;
+      }
+      .cta { margin-top: 26px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+      .btn {
+        font-family: var(--font-display); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em;
+        text-decoration: none; padding: 12px 20px; border-radius: 10px; border: 2px solid transparent; display: inline-block;
+      }
+      .btn--primary { background: var(--cherry); color: #fff; border-color: var(--cherry-dark); }
+      .btn--ghost { background: rgba(246,237,217,0.08); color: var(--cream); border-color: rgba(246,237,217,0.5); }
+
+      /* ---- cards / sections ---- */
+      .card {
+        background: var(--paper); border: 1px solid var(--paper-edge); border-radius: 14px;
+        box-shadow: 0 14px 40px rgba(10,20,18,0.4); padding: 26px 26px 30px; margin-top: 22px;
+      }
+      .card > h2 {
+        font-family: var(--font-display); font-size: 1.2rem; color: var(--teal);
+        margin: 0 0 4px; letter-spacing: 0.01em;
+      }
+      .card > h2 + p.lede { margin-top: 2px; color: var(--ink-soft); }
+      .card p { font-size: 1rem; }
+
+      /* fact sheet */
+      dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; margin: 12px 0 0; }
+      dl.facts dt { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cherry); padding-top: 2px; }
+      dl.facts dd { margin: 0; }
+      @media (max-width: 560px) { dl.facts { grid-template-columns: 1fr; gap: 2px 0; } dl.facts dd { margin-bottom: 10px; } }
+
+      ul.feat { padding-left: 0; list-style: none; margin: 8px 0 0; }
+      ul.feat li { padding-left: 1.5rem; position: relative; margin-bottom: 8px; }
+      ul.feat li::before { content: "◆"; position: absolute; left: 0; color: var(--mustard); font-size: 0.7rem; top: 0.35em; }
+
+      /* asset gallery */
+      .assets { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 16px; }
+      .asset { border: 1px solid var(--paper-edge); border-radius: 12px; overflow: hidden; background: #fff; display: flex; flex-direction: column; }
+      .asset .thumb {
+        aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; padding: 10px;
+        background:
+          linear-gradient(45deg, #e7e0cf 25%, transparent 25%, transparent 75%, #e7e0cf 75%),
+          linear-gradient(45deg, #e7e0cf 25%, #f4eedd 25%, #f4eedd 75%, #e7e0cf 75%);
+        background-size: 22px 22px; background-position: 0 0, 11px 11px;
+      }
+      .asset .thumb.dark { background: var(--teal-dark); }
+      .asset .thumb img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; border-radius: 4px; }
+      .asset .thumb img.icon { max-height: 92px; border-radius: 18px; }
+      .asset .meta { padding: 10px 12px 12px; border-top: 1px solid var(--paper-edge); }
+      .asset .meta .name { font-family: var(--font-display); font-size: 0.82rem; color: var(--ink); }
+      .asset .meta .spec { font-size: 0.78rem; color: var(--ink-soft); margin: 2px 0 8px; }
+      .asset .meta a { font-family: var(--font-display); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; text-decoration: none; color: var(--cherry); }
+
+      /* palette */
+      .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 14px; }
+      .sw { border-radius: 10px; overflow: hidden; border: 1px solid var(--paper-edge); }
+      .sw .chip { height: 58px; }
+      .sw .lbl { padding: 7px 9px; font-size: 0.74rem; }
+      .sw .lbl b { display: block; font-family: var(--font-display); font-size: 0.72rem; color: var(--ink); }
+      .sw .lbl span { color: var(--ink-soft); font-variant-numeric: tabular-nums; text-transform: uppercase; }
+
+      /* type specimens */
+      .type-row { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
+      .spec { border: 1px solid var(--paper-edge); border-radius: 12px; padding: 16px 18px; background: #fff; }
+      .spec .ki { font-family: var(--font-display); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cherry); }
+      .spec .big-display { font-family: var(--font-display); font-size: clamp(1.6rem, 6vw, 2.4rem); color: var(--teal); line-height: 1.1; margin: 6px 0 2px; }
+      .spec .big-script { font-family: var(--font-script); font-size: clamp(2.4rem, 9vw, 3.6rem); color: var(--cherry); line-height: 1; margin: 4px 0; }
+      .spec .note { font-size: 0.82rem; color: var(--ink-soft); margin: 4px 0 0; }
+      .spec .note a { font-weight: bold; }
+
+      hr { border: none; border-top: 1px solid var(--paper-edge); margin: 22px 0; }
+      footer { text-align: center; margin-top: 26px; color: var(--cream); font-size: 0.85rem; }
+      footer a { color: var(--mustard); }
+      .fine { font-size: 0.82rem; color: var(--ink-soft); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <a class="home" href="/">&larr; Back to the diner</a>
+
+      <!-- HERO -->
+      <header class="hero">
+        <p class="eyebrow">Press Kit</p>
+        <h1>Lunch Special</h1>
+        <p class="tag">The daily dish guessing game</p>
+        <div class="cta">
+          <a class="btn btn--primary" href="/">Play the game</a>
+          <a class="btn btn--ghost" href="/press/lunch-special-press-kit.zip" download>Download press kit (.zip)</a>
+        </div>
+      </header>
+
+      <!-- FACT SHEET -->
+      <section class="card">
+        <h2>Fact sheet</h2>
+        <dl class="facts">
+          <dt>Title</dt><dd>Lunch Special</dd>
+          <dt>Genre</dt><dd>Daily word / guessing game</dd>
+          <dt>Platforms</dt><dd>Web (any modern browser) &amp; Discord Activity</dd>
+          <dt>Price</dt><dd>Free. No accounts, no ads</dd>
+          <dt>Play at</dt><dd><a href="https://lunchspecial.app">lunchspecial.app</a></dd>
+          <dt>Availability</dt><dd>Live now</dd>
+          <dt>Press contact</dt><dd><a href="mailto:press@lunchspecial.app">press@lunchspecial.app</a></dd>
+        </dl>
+      </section>
+
+      <!-- ABOUT -->
+      <section class="card">
+        <h2>About the game</h2>
+        <p class="lede"><strong>One new dish a day. Six guesses. Can you name the diner's Special?</strong></p>
+        <p>
+          Lunch Special is a bite-sized daily puzzle dressed up as a 1950s diner. Every day a
+          single world dish is the "Special" (Pho, Bibimbap, Shepherd's Pie, a humble Hamburger),
+          and you have six guesses to name it. Each miss slides a fresh clue ticket across the
+          counter: first the region, then origin and history, a pop-culture moment, a key
+          ingredient, and finally a near-giveaway. Guesses come back with a Wordle-style read on
+          country, region, course, temperature, protein, and shared ingredients.
+        </p>
+        <p>
+          It's free, needs no account, and keeps your streak in the browser. Finished today's plate?
+          The <em>Menu Archive</em> lets you cook through every past Special, and "Chef's Choice"
+          serves a random dish any time. Share your result as a spoiler-free emoji grid.
+        </p>
+        <p class="fine">
+          Short version (copy-paste): <em>Lunch Special is a free daily guessing game: name the
+          diner's mystery world dish in six guesses, with a new Special every day, on the web and
+          as a Discord Activity.</em>
+        </p>
+      </section>
+
+      <!-- FEATURES -->
+      <section class="card">
+        <h2>Features</h2>
+        <ul class="feat">
+          <li>A new world dish to guess every day, with six guesses and five escalating clue tickets.</li>
+          <li>Wordle-style feedback across country, region, course, temperature, protein &amp; ingredients.</li>
+          <li>Spoiler-free emoji result grid, built to share.</li>
+          <li>Menu Archive: replay every past Special; "Chef's Choice" serves a random dish on demand.</li>
+          <li>Runs as a Discord Activity, playable together in a voice channel.</li>
+          <li>No accounts, no ads. Play anonymously; your streak lives in your browser.</li>
+        </ul>
+      </section>
+
+      <!-- LOGOS & KEY ART -->
+      <section class="card">
+        <h2>Logos &amp; key art</h2>
+        <p class="lede">Right-click / tap to save, or grab everything in the <a href="/press/lunch-special-press-kit.zip" download>press-kit .zip</a>.</p>
+        <div class="assets">
+          <figure class="asset" style="margin:0">
+            <div class="thumb"><img class="icon" src="/press/app-icon.png" alt="Lunch Special app icon, silver cloche on cherry-red" /></div>
+            <figcaption class="meta"><div class="name">App icon</div><div class="spec">PNG · 1024×1024</div><a href="/press/app-icon.png" download>Download</a></figcaption>
+          </figure>
+          <figure class="asset" style="margin:0">
+            <div class="thumb"><img src="/press/key-art.png" alt="Lunch Special key art, neon wordmark over a diner scene" /></div>
+            <figcaption class="meta"><div class="name">Key art</div><div class="spec">PNG · 1280×720 (16:9)</div><a href="/press/key-art.png" download>Download</a></figcaption>
+          </figure>
+          <figure class="asset" style="margin:0">
+            <div class="thumb"><img src="/press/backdrop.png" alt="Diner interior backdrop" /></div>
+            <figcaption class="meta"><div class="name">Diner backdrop</div><div class="spec">PNG · 1280×720 (16:9)</div><a href="/press/backdrop.png" download>Download</a></figcaption>
+          </figure>
+          <figure class="asset" style="margin:0">
+            <div class="thumb dark"><img class="icon" src="/press/favicon.svg" alt="Favicon, cloche mark" /></div>
+            <figcaption class="meta"><div class="name">Favicon / mark</div><div class="spec">SVG · scalable</div><a href="/press/favicon.svg" download>Download</a></figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- DISCORD ACTIVITY ART -->
+      <section class="card">
+        <h2>Discord Activity art</h2>
+        <p class="lede">Assets used for the game's Discord Activity listing.</p>
+        <div class="assets">
+          <figure class="asset" style="margin:0">
+            <div class="thumb"><img src="/press/key-art.png" alt="Discord cover art" /></div>
+            <figcaption class="meta"><div class="name">Cover art</div><div class="spec">PNG · 1280×720 · Activity Shelf</div><a href="/press/key-art.png" download>Download</a></figcaption>
+          </figure>
+          <figure class="asset" style="margin:0">
+            <div class="thumb"><img src="/press/backdrop.png" alt="Discord embedded background" /></div>
+            <figcaption class="meta"><div class="name">Embedded background</div><div class="spec">PNG · 1280×720 · Grid view</div><a href="/press/backdrop.png" download>Download</a></figcaption>
+          </figure>
+          <figure class="asset" style="margin:0">
+            <div class="thumb"><img class="icon" src="/press/app-icon.png" alt="Discord app icon" /></div>
+            <figcaption class="meta"><div class="name">App icon</div><div class="spec">PNG · 1024×1024</div><a href="/press/app-icon.png" download>Download</a></figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- BRAND: COLORS -->
+      <section class="card">
+        <h2>Brand colors</h2>
+        <p class="lede">Golden-age American diner: cream &amp; chrome, cherry red, deep teal, mustard, neon pink.</p>
+        <div class="swatches">
+          <div class="sw"><div class="chip" style="background:#f6edd9"></div><div class="lbl"><b>Cream</b><span>#F6EDD9</span></div></div>
+          <div class="sw"><div class="chip" style="background:#1b4f4a"></div><div class="lbl"><b>Teal</b><span>#1B4F4A</span></div></div>
+          <div class="sw"><div class="chip" style="background:#123833"></div><div class="lbl"><b>Teal Dark</b><span>#123833</span></div></div>
+          <div class="sw"><div class="chip" style="background:#c9354a"></div><div class="lbl"><b>Cherry</b><span>#C9354A</span></div></div>
+          <div class="sw"><div class="chip" style="background:#8f1f2e"></div><div class="lbl"><b>Cherry Dark</b><span>#8F1F2E</span></div></div>
+          <div class="sw"><div class="chip" style="background:#e8a53a"></div><div class="lbl"><b>Mustard</b><span>#E8A53A</span></div></div>
+          <div class="sw"><div class="chip" style="background:#cfd8dc"></div><div class="lbl"><b>Chrome</b><span>#CFD8DC</span></div></div>
+          <div class="sw"><div class="chip" style="background:#ff5f7a"></div><div class="lbl"><b>Neon Pink</b><span>#FF5F7A</span></div></div>
+        </div>
+      </section>
+
+      <!-- BRAND: TYPE -->
+      <section class="card">
+        <h2>Typography</h2>
+        <div class="type-row">
+          <div class="spec">
+            <div class="ki">Display: Alfa Slab One</div>
+            <div class="big-display">TODAY'S SPECIAL</div>
+            <p class="note">Headings, menu titles, buttons. SIL Open Font License 1.1 · <a href="/press/fonts/alfa-slab-one.ttf" download>download .ttf</a></p>
+          </div>
+          <div class="spec">
+            <div class="ki">Script: Yellowtail</div>
+            <div class="big-script">Lunch Special</div>
+            <p class="note">The neon logo wordmark. SIL Open Font License 1.1 · <a href="/press/fonts/yellowtail.ttf" download>download .ttf</a></p>
+          </div>
+          <div class="spec">
+            <div class="ki">Body: Georgia</div>
+            <p style="margin:6px 0 0">Set body copy in Georgia (or any classic serif). It's a system font, nothing to download.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- CREDITS / CONTACT -->
+      <section class="card">
+        <h2>Credits &amp; usage</h2>
+        <p>
+          Lunch Special is an independent project. You're welcome to use the logos, key art, and
+          screenshots on this page to write about or feature the game. The fonts above are licensed
+          under the <a href="https://openfontlicense.org" target="_blank" rel="noopener">SIL Open Font License 1.1</a>;
+          some artwork is placeholder art pending commissioned replacements.
+        </p>
+        <p class="fine">Need a specific size, a hi-res gameplay capture, or a quote? Email <a href="mailto:press@lunchspecial.app">press@lunchspecial.app</a>.</p>
+        <hr />
+        <p class="fine">See also our <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
+      </section>
+
+      <footer>
+        Lunch Special &middot; <a href="/">Play the game</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a>
+      </footer>
+    </div>
+  </body>
+</html>

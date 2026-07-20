@@ -37,6 +37,20 @@ Golden-age American diner, roughly 1950s: cream + chrome + cherry-red + deep tea
 - **Where**: Browser tab icon.
 - **Size**: 64×64 viewBox. Must read at 16×16.
 
+## Discord Activity assets (`discord-assets/`)
+
+Uploaded by hand to the Discord Developer Portal — not served by the Worker. All derived
+from the art above (backdrop + cloche mark + fonts); regenerate with `npm run assets:discord`.
+See [`discord-assets/README.md`](discord-assets/README.md) for Portal upload locations.
+
+| File | What | Spec |
+|---|---|---|
+| `discord-assets/app-icon.png` | Cloche mark on a cherry radial ground (from favicon) | 1024×1024, circular safe zone |
+| `discord-assets/cover-art.png` | Backdrop + neon "Lunch Special" wordmark — Activity Shelf hero | 1280×720 (16:9, crops to 13:11) |
+| `discord-assets/embedded-background.png` | Diner backdrop cropped to 16:9 — Grid-view backdrop | 1280×720 |
+| `discord-assets/preview.mp4` | Slow zoom over the cover (optional hover preview) | 640×360, <1 MB, 9s |
+| `discord-assets/app-icon.svg` | Vector source for the icon | 1024 viewBox |
+
 ## Fonts (licensed, not placeholders)
 
 | File | Family | License | Use |

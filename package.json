@@ -14,6 +14,7 @@
     "test": "vitest run",
     "check": "tsc -b",
     "cf-typegen": "wrangler types",
+    "assets:discord": "node discord-assets/build.mjs",
     "db:migrate": "wrangler d1 migrations apply lunch-special-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply lunch-special-db --remote",
     "db:seed": "wrangler d1 execute lunch-special-db --local --file=seed/seed.sql",
