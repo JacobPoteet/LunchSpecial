@@ -16,7 +16,7 @@ import { ClueTicket, Countdown, GuessInput, GuessRow, Modal } from "./components
 import ArchiveModal from "./ArchiveModal";
 import { dateLabel, isPastPuzzleDate } from "./archive";
 import { playSfx } from "./sfx";
-import { buildShareText } from "./share";
+import { buildShareText, SHARE_URL } from "./share";
 import {
   emptyRound,
   getPlayerId,
@@ -134,7 +134,7 @@ function ResultModal({
     // clipboard when it's unavailable.
     if (typeof navigator.share === "function") {
       try {
-        await navigator.share({ text });
+        await navigator.share({ text, url: SHARE_URL });
         return;
       } catch (err) {
         // User dismissed the share sheet — leave the button as-is, don't copy.
@@ -142,7 +142,7 @@ function ResultModal({
         // Any other failure: fall through to the clipboard path below.
       }
     }
-    navigator.clipboard.writeText(text).then(
+    navigator.clipboard.writeText(`${text}\n${SHARE_URL}`).then(
       () => setCopied(true),
       () => setCopied(false),
     );

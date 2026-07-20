@@ -5,6 +5,11 @@ import { MAX_GUESSES } from "../../shared/types";
 
 const SQUARE: Record<MatchLevel, string> = { hit: "🟩", near: "🟨", miss: "⬜" };
 
+export const SHARE_URL = "https://lunchspecial.app";
+
+// The score card only — NO url. Callers pass the url as a separate Web Share
+// field (and append it for the clipboard fallback). Keeping them apart lets
+// each share target format the link itself.
 export function buildShareText(
   puzzleNumber: number,
   guesses: GuessFeedback[],
@@ -20,5 +25,5 @@ export function buildShareText(
     const pantry = g.correct ? "🛎️" : `${g.matchedIngredients.length}/${ingredientCount}🥄`;
     return `${tiles} ${pantry}`;
   });
-  return [`Lunch Special #${puzzleNumber} — ${score}`, ...rows, "https://lunchspecial.app"].join("\n");
+  return [`Lunch Special #${puzzleNumber} — ${score}`, ...rows].join("\n");
 }
