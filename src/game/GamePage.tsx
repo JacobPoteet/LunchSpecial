@@ -222,7 +222,7 @@ export default function GamePage() {
   const date = isArchive ? (archiveDateParam as string) : today;
 
   // The kind of round for analytics (preview is never tracked). Daily = Today's
-  // Special, archive = a Leftover, random = a Chef's Special.
+  // Special, archive = a Leftover, random = a Chef's Choice.
   const analyticsKind: RoundKind = isArchive ? "leftover" : isRandom ? "random" : "daily";
 
   // A random round is keyed by a random seed; a new seed = a new random dish.
