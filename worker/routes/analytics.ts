@@ -3,7 +3,7 @@
 // by a client-generated round_id. Never records guess content.
 
 import { Hono } from "hono";
-import { MAX_GUESSES } from "../../shared/types";
+import { MAX_GUESSES, ROUND_KINDS, type RoundKind } from "../../shared/types";
 import { isValidDateString } from "../game";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -12,27 +12,32 @@ interface Base {
   roundId: string;
   puzzleNumber: number;
   date: string;
+  kind: RoundKind;
 }
 
 /** Validate the fields every beacon carries. */
 function base(body: unknown): Base | null {
-  const b = body as Partial<Base> | null;
+  const b = body as (Partial<Base> & { kind?: string }) | null;
   if (!b || typeof b.roundId !== "string" || b.roundId.length < 8 || b.roundId.length > 64) return null;
   const puzzleNumber = Number(b.puzzleNumber);
   if (!Number.isInteger(puzzleNumber) || puzzleNumber < 0) return null;
   if (typeof b.date !== "string" || !isValidDateString(b.date)) return null;
-  return { roundId: b.roundId, puzzleNumber, date: b.date };
+  // Older clients omit `kind`; treat those as the daily (the only kind that
+  // used to fire beacons). Anything not in the enum is rejected.
+  const kind = b.kind === undefined ? "daily" : (b.kind as RoundKind);
+  if (!ROUND_KINDS.includes(kind)) return null;
+  return { roundId: b.roundId, puzzleNumber, date: b.date, kind };
 }
 
 app.post("/start", async (c) => {
   const b = base(await c.req.json().catch(() => null));
   if (!b) return c.json({ error: "Invalid analytics payload" }, 400);
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, started_at, updated_at)
-     VALUES (?, ?, ?, datetime('now'), datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, started_at, updated_at)
+     VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO NOTHING`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind)
     .run();
   return c.json({ ok: true });
 });
@@ -46,14 +51,15 @@ app.post("/complete", async (c) => {
     return c.json({ error: "guesses must be 1-6" }, 400);
   }
   const solved = raw!.solved === true ? 1 : 0;
-  // Upsert so a missed /start (e.g. a round begun before analytics shipped) still records.
+  // Upsert so a missed /start (e.g. a round begun before analytics shipped) still
+  // records. `kind` is only set on insert — a prior /start already fixed it.
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, started_at, guesses, solved, completed, updated_at)
-     VALUES (?, ?, ?, datetime('now'), ?, ?, 1, datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, started_at, guesses, solved, completed, updated_at)
+     VALUES (?, ?, ?, ?, datetime('now'), ?, ?, 1, datetime('now'))
      ON CONFLICT(round_id) DO UPDATE SET
        guesses = excluded.guesses, solved = excluded.solved, completed = 1, updated_at = excluded.updated_at`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, guesses, solved)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, guesses, solved)
     .run();
   return c.json({ ok: true });
 });
@@ -63,11 +69,11 @@ app.post("/share", async (c) => {
   if (!b) return c.json({ error: "Invalid analytics payload" }, 400);
   // Idempotent: re-sharing just re-sets the flag.
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, started_at, shared, updated_at)
-     VALUES (?, ?, ?, datetime('now'), 1, datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, started_at, shared, updated_at)
+     VALUES (?, ?, ?, ?, datetime('now'), 1, datetime('now'))
      ON CONFLICT(round_id) DO UPDATE SET shared = 1, updated_at = excluded.updated_at`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind)
     .run();
   return c.json({ ok: true });
 });

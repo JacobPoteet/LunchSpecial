@@ -1,6 +1,6 @@
 // Thin fetch wrappers around the public game API.
 
-import type { DailyInfo, DishSummary, GuessFeedback, RevealInfo } from "../shared/types";
+import type { DailyInfo, DishSummary, GuessFeedback, RevealInfo, RoundKind } from "../shared/types";
 import { gameToday } from "../shared/time";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -76,7 +76,7 @@ function beacon(path: string, body: unknown): void {
   }
 }
 
-export function beaconStart(b: { roundId: string; puzzleNumber: number; date: string }): void {
+export function beaconStart(b: { roundId: string; puzzleNumber: number; date: string; kind: RoundKind }): void {
   beacon("/api/analytics/start", b);
 }
 
@@ -84,12 +84,13 @@ export function beaconComplete(b: {
   roundId: string;
   puzzleNumber: number;
   date: string;
+  kind: RoundKind;
   guesses: number;
   solved: boolean;
 }): void {
   beacon("/api/analytics/complete", b);
 }
 
-export function beaconShare(b: { roundId: string; puzzleNumber: number; date: string }): void {
+export function beaconShare(b: { roundId: string; puzzleNumber: number; date: string; kind: RoundKind }): void {
   beacon("/api/analytics/share", b);
 }
