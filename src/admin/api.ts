@@ -5,6 +5,7 @@ import type {
   AdminDishDetail,
   AdminDishInput,
   AdminDishRow,
+  AnalyticsEvent,
   AnalyticsSummary,
   DishRequest,
   ScheduleEntry,
@@ -42,6 +43,9 @@ export const getDashboard = () => request<AdminDashboard>("/dashboard");
 /** Optionally filter engagement to one surface (web / discord); omit for all. */
 export const getAnalytics = (surface?: Surface) =>
   request<AnalyticsSummary>(`/analytics${surface ? `?surface=${surface}` : ""}`);
+/** Recent activity feed, newest first. Same optional surface filter as above. */
+export const getAnalyticsEvents = (surface: Surface | undefined, limit: number) =>
+  request<AnalyticsEvent[]>(`/analytics/events?limit=${limit}${surface ? `&surface=${surface}` : ""}`);
 export const getDishes = () => request<AdminDishRow[]>("/dishes");
 export const getDish = (id: number) => request<AdminDishDetail>(`/dishes/${id}`);
 export const createDish = (input: AdminDishInput) => request<{ id: number }>("/dishes", json(input));

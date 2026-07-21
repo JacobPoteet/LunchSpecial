@@ -226,6 +226,40 @@ export interface AnalyticsPeriod {
   players: PlayerSplit;
 }
 
+/** The three things a round can report, in the order they happen. */
+export const ANALYTICS_EVENT_TYPES = ["start", "complete", "share"] as const;
+export type AnalyticsEventType = (typeof ANALYTICS_EVENT_TYPES)[number];
+
+/**
+ * One entry in the admin's recent-activity feed — a single beacon a round fired,
+ * derived from the analytics_rounds row (see migrations/0011). Still anonymous:
+ * no guess content, and `playerId` is a random per-device id, not an account.
+ */
+export interface AnalyticsEvent {
+  type: AnalyticsEventType;
+  /** When it happened, as an ISO-8601 UTC instant ("2026-07-20T14:32:07Z"). */
+  at: string;
+  /** The round this belongs to — a start/complete/share trio shares one id. */
+  roundId: string;
+  puzzleNumber: number;
+  /** The puzzle's date (YYYY-MM-DD) — not necessarily the day it was played. */
+  date: string;
+  kind: RoundKind;
+  surface: Surface;
+  /** Anonymous per-device id, or null for rounds from clients that omit it. */
+  playerId: string | null;
+  /** Scheduled dish for `date`; null for random rounds (they ignore the schedule). */
+  dishName: string | null;
+  /** Guesses used — `complete` events only. */
+  guesses: number | null;
+  /** Whether the round was won — `complete` events only. */
+  solved: boolean | null;
+}
+
+/** How many events the admin feed asks for at a time, and its server-side cap. */
+export const ANALYTICS_EVENTS_PAGE = 50;
+export const ANALYTICS_EVENTS_MAX = 200;
+
 /** Anonymous engagement aggregates for the admin dashboard. No guess content. */
 export interface AnalyticsSummary extends AnalyticsPeriod {
   /**
