@@ -290,6 +290,9 @@
 .surface-toggle__btn:hover { background: rgba(27, 79, 74, 0.1); }
 .surface-toggle__btn--active,
 .surface-toggle__btn--active:hover { background: var(--teal); color: var(--cream); }
+/* No player id on this device yet — nothing to match, so the mine options are inert. */
+.surface-toggle__btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.surface-toggle__btn:disabled:hover { background: transparent; }
 
 .analytics-sub {
   /* Body serif, not the heavy display slab — far more legible at this small,
@@ -551,8 +554,29 @@
   color: var(--ink-soft);
 }
 
+/* Marks a row as this browser's own play-testing. */
+.ev-you {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid var(--teal);
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teal);
+  vertical-align: middle;
+}
+
 /* Sub-heading row inside a panel: title left, its own control right. */
 .analytics-head--sub { margin-bottom: 8px; }
+/* Right-hand cluster of that row (filter + Refresh); wraps together at 375px. */
+.analytics-head__tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 
 .btn--small {
   font-size: 0.68rem;

@@ -711,6 +711,20 @@ app.get("/recent-rounds", async (c) => {
   const asked = Number(c.req.query("limit"));
   const limit = Number.isInteger(asked) && asked > 0 ? Math.min(asked, ANALYTICS_EVENTS_MAX) : ANALYTICS_EVENTS_PAGE;
 
+  // "Mine" filter: the admin's own device sends its player_id so it can show
+  // only its test rounds or drop them from the feed. Unlike `surface` (a
+  // whitelisted enum, spliced as a literal) this is free text, so it's a bound
+  // param — one bind per UNION branch, in branch order, before the LIMIT.
+  const player = c.req.query("player");
+  const mode = c.req.query("playerMode");
+  const mineAnd =
+    player && mode === "only"
+      ? " AND player_id = ?"
+      : player && mode === "hide"
+        ? " AND (player_id IS NULL OR player_id != ?)"
+        : "";
+  const mineBinds = mineAnd ? [player, player, player] : [];
+
   // Rows written before migrations/0011 have no completed_at/shared_at — fall
   // back to updated_at (the last beacon's time), then started_at.
   const cols = "round_id, puzzle_number, play_date, kind, surface, player_id";
@@ -718,13 +732,13 @@ app.get("/recent-rounds", async (c) => {
     `SELECT e.*, CASE WHEN e.kind = 'random' THEN NULL ELSE d.name END AS dish_name
        FROM (
          SELECT 'start' AS type, started_at AS at, ${cols}, NULL AS guesses, NULL AS solved
-           FROM analytics_rounds WHERE started_at IS NOT NULL${surfAnd}
+           FROM analytics_rounds WHERE started_at IS NOT NULL${surfAnd}${mineAnd}
          UNION ALL
          SELECT 'complete', COALESCE(completed_at, updated_at, started_at), ${cols}, guesses, solved
-           FROM analytics_rounds WHERE completed = 1${surfAnd}
+           FROM analytics_rounds WHERE completed = 1${surfAnd}${mineAnd}
          UNION ALL
          SELECT 'share', COALESCE(shared_at, updated_at, started_at), ${cols}, NULL, NULL
-           FROM analytics_rounds WHERE shared = 1${surfAnd}
+           FROM analytics_rounds WHERE shared = 1${surfAnd}${mineAnd}
          ORDER BY at DESC, round_id, type
          LIMIT ?
        ) e
@@ -732,7 +746,7 @@ app.get("/recent-rounds", async (c) => {
        LEFT JOIN dishes d ON d.id = s.dish_id
       ORDER BY e.at DESC, e.round_id, e.type`,
   )
-    .bind(limit)
+    .bind(...mineBinds, limit)
     .all();
 
   const events: AnalyticsEvent[] = (

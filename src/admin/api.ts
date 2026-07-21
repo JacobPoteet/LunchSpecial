@@ -52,12 +52,22 @@ export const getDashboard = () => request<AdminDashboard>("/dashboard");
 export const getAnalytics = (surface?: Surface) =>
   request<AnalyticsSummary>(`/analytics${surface ? `?surface=${surface}` : ""}`);
 /**
- * Recent activity feed, newest first. Same optional surface filter as above.
+ * Recent activity feed, newest first. Same optional surface filter as above,
+ * plus an optional "mine" filter that keeps or drops one player id (this
+ * device's own test rounds) — applied server-side so `limit` counts the rows
+ * that actually come back.
  * Path is "/recent-rounds", not "/analytics/events" — see the route comment in
  * worker/routes/admin.ts: ad blockers block the latter shape outright.
  */
-export const getAnalyticsEvents = (surface: Surface | undefined, limit: number) =>
-  request<AnalyticsEvent[]>(`/recent-rounds?limit=${limit}${surface ? `&surface=${surface}` : ""}`);
+export const getAnalyticsEvents = (
+  surface: Surface | undefined,
+  limit: number,
+  mine?: { playerId: string; mode: "only" | "hide" },
+) =>
+  request<AnalyticsEvent[]>(
+    `/recent-rounds?limit=${limit}${surface ? `&surface=${surface}` : ""}` +
+      (mine ? `&player=${encodeURIComponent(mine.playerId)}&playerMode=${mine.mode}` : ""),
+  );
 export const getDishes = () => request<AdminDishRow[]>("/dishes");
 export const getDish = (id: number) => request<AdminDishDetail>(`/dishes/${id}`);
 export const createDish = (input: AdminDishInput) => request<{ id: number }>("/dishes", json(input));
