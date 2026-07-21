@@ -12,6 +12,7 @@
 // (localStorage state, no accounts). OAuth / per-user identity is intentionally
 // not wired up yet; see CLAUDE.md.
 
+import type { DiscordSDK } from "@discord/embedded-app-sdk";
 import type { Surface } from "../../shared/types";
 
 /**
@@ -108,14 +109,50 @@ export function surfaceUrl(url: string): string {
 const READY_TIMEOUT_MS = 5000;
 
 /**
+ * The live SDK instance, once {@link initDiscord} has completed the handshake —
+ * `null` on the web, and also when the handshake failed or timed out. Held here
+ * rather than passed through React because the game itself is surface-agnostic:
+ * only the share button reaches for Discord, and it can ask for the SDK the same
+ * way it asks for the surface.
+ */
+let sdkInstance: DiscordSDK | null = null;
+
+/**
+ * Post a finished round's score card to the channel the Activity is running in.
+ *
+ * Discord's own "activity ended" card says nothing about how the round went, so
+ * players had no way to show off a result (and the web share button is a dead
+ * end inside the embed — the iframe has neither a share sheet nor clipboard
+ * permission). `shareLink` hands the text to Discord's own share modal, which
+ * posts it as the player along with a link back into the Activity, so anyone
+ * reading the channel can launch the game from the result.
+ *
+ * Needs no OAuth scopes and works on web/iOS/Android. Returns false when the
+ * SDK isn't available so callers can fall back.
+ */
+export async function shareToDiscord(message: string): Promise<boolean> {
+  if (!sdkInstance) return false;
+  try {
+    await sdkInstance.commands.shareLink({ message });
+    // `success: false` just means the player closed the modal without posting —
+    // still a handled share, so don't fall back to the (unusable) clipboard.
+    return true;
+  } catch (err) {
+    console.error("[discord] shareLink failed:", err);
+    return false;
+  }
+}
+
+/**
  * When embedded in Discord, download + initialize the Embedded App SDK and
  * complete the `ready()` handshake. Resolves to the live SDK instance, or
  * `null` when running on the open web (or if init fails — we never block the
- * game from rendering over a Discord hiccup).
+ * game from rendering over a Discord hiccup). The instance is also stashed for
+ * {@link shareToDiscord}.
  *
  * Awaited once in main.tsx before React mounts.
  */
-export async function initDiscord(): Promise<unknown | null> {
+export async function initDiscord(): Promise<DiscordSDK | null> {
   if (!isDiscordActivity()) return null;
 
   const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID;
@@ -144,6 +181,7 @@ export async function initDiscord(): Promise<unknown | null> {
       console.warn(`[discord] SDK ready() didn't resolve in ${READY_TIMEOUT_MS}ms — mounting the game anyway.`);
       return null;
     }
+    sdkInstance = result;
     return result;
   } catch (err) {
     // A failed handshake shouldn't white-screen the game. Log and let the
