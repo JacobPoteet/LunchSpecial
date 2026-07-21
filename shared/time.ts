@@ -50,6 +50,20 @@ export function gameHour(instant: Date): number {
   return Number(zoneHour.format(instant));
 }
 
+const zoneDay = new Intl.DateTimeFormat("en-US", {
+  timeZone: GAME_TIMEZONE,
+  month: "numeric",
+  day: "numeric",
+});
+
+/**
+ * An instant as a compact wall clock in GAME_TIMEZONE — "7/20 14:32:07". Used by
+ * the admin activity feed, which logs UTC instants but reads them in game time.
+ */
+export function gameTimestamp(instant: Date): string {
+  return `${zoneDay.format(instant)} ${wallClock.format(instant)}`;
+}
+
 /** Break a millisecond span into zero-padded hh/mm/ss strings for a countdown. */
 export function hms(ms: number): { h: string; m: string; s: string } {
   const clamped = Math.max(0, ms);

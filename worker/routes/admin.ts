@@ -6,6 +6,8 @@ import type {
   AdminDishInput,
   AdminDishRow,
   AnalyticsDay,
+  AnalyticsEvent,
+  AnalyticsEventType,
   AnalyticsPeriod,
   AnalyticsSummary,
   DishRequest,
@@ -15,7 +17,16 @@ import type {
   StartedByKind,
   Surface,
 } from "../../shared/types";
-import { COURSES, MAX_GUESSES, PROTEINS, REGIONS, SURFACES, TEMPERATURES } from "../../shared/types";
+import {
+  ANALYTICS_EVENTS_MAX,
+  ANALYTICS_EVENTS_PAGE,
+  COURSES,
+  MAX_GUESSES,
+  PROTEINS,
+  REGIONS,
+  SURFACES,
+  TEMPERATURES,
+} from "../../shared/types";
 import {
   createToken,
   passwordMatches,
@@ -455,21 +466,26 @@ app.get("/dashboard", async (c) => {
 
 const zeroByKind = (): StartedByKind => ({ daily: 0, leftover: 0, random: 0 });
 
+/**
+ * Optional surface filter (web / discord) for the analytics reads. Absent or
+ * unrecognised → all surfaces. The value is whitelisted against the SURFACES
+ * enum, so it's safe to splice the literal straight into the SQL (no bind-param
+ * reshuffling across the many queries below). `and` extends an existing WHERE;
+ * `where` starts one for the queries that otherwise have none.
+ */
+function surfaceClause(c: Context): { and: string; where: string } {
+  const param = c.req.query("surface");
+  const surface = SURFACES.includes(param as never) ? (param as Surface) : null;
+  return surface ? { and: ` AND surface = '${surface}'`, where: ` WHERE surface = '${surface}'` } : { and: "", where: "" };
+}
+
 // Anonymous engagement aggregates (see migrations/0005_add_analytics.sql and
 // 0007_add_analytics_kind.sql). A round is one of three kinds — the daily
 // Special, a leftover (archive replay), or a chef's special (random recipe).
 app.get("/analytics", async (c) => {
   const today = serverToday();
 
-  // Optional surface filter (web / discord). Absent or unrecognised → all
-  // surfaces. The value is whitelisted against the SURFACES enum, so it's safe
-  // to splice the literal straight into the SQL (no bind-param reshuffling
-  // across the eight queries below). `surfAnd` extends an existing WHERE;
-  // `surfWhere` starts one for the queries that otherwise have none.
-  const surfaceParam = c.req.query("surface");
-  const surface = SURFACES.includes(surfaceParam as never) ? (surfaceParam as Surface) : null;
-  const surfAnd = surface ? ` AND surface = '${surface}'` : "";
-  const surfWhere = surface ? ` WHERE surface = '${surface}'` : "";
+  const { and: surfAnd, where: surfWhere } = surfaceClause(c);
 
   // started_at is stored in UTC; SQLite has no named-timezone support, so we
   // fold UTC instants into ET days/hours in JS below. Compute the ET-"today"
@@ -680,6 +696,71 @@ app.get("/analytics", async (c) => {
     hourly,
   };
   return c.json(summary);
+});
+
+// Recent activity feed (GitHub #47): the aggregates above tell you *how much*
+// changed, this tells you *what just happened*. analytics_rounds is one row per
+// round, so the three beacons a round can fire are un-flattened back into
+// separate events with a UNION and re-sorted by time.
+app.get("/analytics/events", async (c) => {
+  const { and: surfAnd } = surfaceClause(c);
+  const asked = Number(c.req.query("limit"));
+  const limit = Number.isInteger(asked) && asked > 0 ? Math.min(asked, ANALYTICS_EVENTS_MAX) : ANALYTICS_EVENTS_PAGE;
+
+  // Rows written before migrations/0011 have no completed_at/shared_at — fall
+  // back to updated_at (the last beacon's time), then started_at.
+  const cols = "round_id, puzzle_number, play_date, kind, surface, player_id";
+  const res = await c.env.DB.prepare(
+    `SELECT e.*, CASE WHEN e.kind = 'random' THEN NULL ELSE d.name END AS dish_name
+       FROM (
+         SELECT 'start' AS type, started_at AS at, ${cols}, NULL AS guesses, NULL AS solved
+           FROM analytics_rounds WHERE started_at IS NOT NULL${surfAnd}
+         UNION ALL
+         SELECT 'complete', COALESCE(completed_at, updated_at, started_at), ${cols}, guesses, solved
+           FROM analytics_rounds WHERE completed = 1${surfAnd}
+         UNION ALL
+         SELECT 'share', COALESCE(shared_at, updated_at, started_at), ${cols}, NULL, NULL
+           FROM analytics_rounds WHERE shared = 1${surfAnd}
+         ORDER BY at DESC, round_id, type
+         LIMIT ?
+       ) e
+       LEFT JOIN schedule s ON s.date = e.play_date
+       LEFT JOIN dishes d ON d.id = s.dish_id
+      ORDER BY e.at DESC, e.round_id, e.type`,
+  )
+    .bind(limit)
+    .all();
+
+  const events: AnalyticsEvent[] = (
+    res.results as {
+      type: AnalyticsEventType;
+      at: string;
+      round_id: string;
+      puzzle_number: number;
+      play_date: string;
+      kind: RoundKind;
+      surface: Surface;
+      player_id: string | null;
+      dish_name: string | null;
+      guesses: number | null;
+      solved: number | null;
+    }[]
+  ).map((r) => ({
+    type: r.type,
+    // SQLite stores "YYYY-MM-DD HH:MM:SS" in UTC; hand the client a real instant
+    // so it can render the time in whatever zone it wants.
+    at: `${r.at.replace(" ", "T")}Z`,
+    roundId: r.round_id,
+    puzzleNumber: r.puzzle_number,
+    date: r.play_date,
+    kind: r.kind,
+    surface: r.surface,
+    playerId: r.player_id,
+    dishName: r.dish_name,
+    guesses: r.guesses ?? null,
+    solved: r.solved === null || r.solved === undefined ? null : r.solved === 1,
+  }));
+  return c.json(events);
 });
 
 export default app;

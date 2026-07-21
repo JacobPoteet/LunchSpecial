@@ -65,11 +65,15 @@ app.post("/complete", async (c) => {
   const solved = raw!.solved === true ? 1 : 0;
   // Upsert so a missed /start (e.g. a round begun before analytics shipped) still
   // records. `kind`/`surface` are only set on insert — a prior /start already fixed them.
+  // `completed_at` keeps the FIRST completion time (a replayed beacon must not
+  // move it) — it's what the admin activity feed timestamps the event with.
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, started_at, guesses, solved, completed, updated_at)
-     VALUES (?, ?, ?, ?, ?, datetime('now'), ?, ?, 1, datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, started_at, guesses, solved, completed, completed_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, datetime('now'), ?, ?, 1, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO UPDATE SET
-       guesses = excluded.guesses, solved = excluded.solved, completed = 1, updated_at = excluded.updated_at`,
+       guesses = excluded.guesses, solved = excluded.solved, completed = 1,
+       completed_at = COALESCE(analytics_rounds.completed_at, excluded.completed_at),
+       updated_at = excluded.updated_at`,
   )
     .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, guesses, solved)
     .run();
@@ -79,11 +83,14 @@ app.post("/complete", async (c) => {
 app.post("/share", async (c) => {
   const b = base(await c.req.json().catch(() => null));
   if (!b) return c.json({ error: "Invalid analytics payload" }, 400);
-  // Idempotent: re-sharing just re-sets the flag.
+  // Idempotent: re-sharing just re-sets the flag. `shared_at` keeps the first
+  // share's time, like `completed_at` above.
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, started_at, shared, updated_at)
-     VALUES (?, ?, ?, ?, ?, datetime('now'), 1, datetime('now'))
-     ON CONFLICT(round_id) DO UPDATE SET shared = 1, updated_at = excluded.updated_at`,
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, started_at, shared, shared_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, datetime('now'), 1, datetime('now'), datetime('now'))
+     ON CONFLICT(round_id) DO UPDATE SET shared = 1,
+       shared_at = COALESCE(analytics_rounds.shared_at, excluded.shared_at),
+       updated_at = excluded.updated_at`,
   )
     .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface)
     .run();
