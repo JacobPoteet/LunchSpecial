@@ -207,9 +207,10 @@ function ResultModal({
   onArchive: () => void;
   onClose: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [shareState, setShareState] = useState<"idle" | "copied" | "failed">("idle");
   const won = round.status === "won";
   const share = async () => {
+    setShareState("idle");
     const text = buildShareText(daily.puzzleNumber, round.guesses, won, daily.ingredientCount);
     // The daily and leftover replays both carry an analytics id (only the share
     // button's kinds reach here — random has no share button, preview no id).
@@ -219,8 +220,19 @@ function ResultModal({
     // Inside the Activity, hand off to Discord's share modal, which posts the
     // score card to the channel with a link back into the game. It replaces
     // both paths below outright: the embed's iframe has no share sheet and no
-    // clipboard permission, so the web button silently did nothing there.
-    if (SURFACE === "discord" && (await shareToDiscord(text))) return;
+    // clipboard permission, so the web button silently did nothing there. Which
+    // is also why a Discord-side failure has to surface here rather than fall
+    // through — the fallbacks below are dead ends in the embed.
+    if (SURFACE === "discord") {
+      const result = await shareToDiscord(text);
+      if (result === "shared") return;
+      if (result === "failed") {
+        setShareState("failed");
+        return;
+      }
+      // "unavailable": no SDK at all (a sticky Discord surface on a page load
+      // that lost Discord's params). Nothing to lose by trying the web paths.
+    }
     // On mobile (and any browser with the Web Share API) bring up the native
     // share sheet so results can go straight to other apps. Fall back to the
     // clipboard when it's unavailable.
@@ -235,8 +247,8 @@ function ResultModal({
       }
     }
     navigator.clipboard.writeText(`${text}\n${SHARE_URL}`).then(
-      () => setCopied(true),
-      () => setCopied(false),
+      () => setShareState("copied"),
+      () => setShareState("failed"),
     );
   };
   return (
@@ -263,11 +275,13 @@ function ResultModal({
       )}
       {canShare && (
         <button className="share-btn share-btn--primary" onClick={share}>
-          {copied
+          {shareState === "copied"
             ? "Copied to clipboard!"
-            : SURFACE === "discord"
-              ? "📣 Post your results"
-              : "📋 Share your order"}
+            : shareState === "failed"
+              ? "Couldn't share — tap to retry"
+              : SURFACE === "discord"
+                ? "📣 Post your results"
+                : "📋 Share your order"}
         </button>
       )}
       {(isRandom || canArchive) && (

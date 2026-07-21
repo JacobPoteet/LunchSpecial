@@ -108,14 +108,42 @@ export function surfaceUrl(url: string): string {
 /** How long to wait on the Activity handshake before mounting the game regardless. */
 const READY_TIMEOUT_MS = 5000;
 
+/** How long a share is willing to wait on a handshake that's still in flight. */
+const SHARE_HANDSHAKE_WAIT_MS = 3000;
+
 /**
- * The live SDK instance, once {@link initDiscord} has completed the handshake —
- * `null` on the web, and also when the handshake failed or timed out. Held here
- * rather than passed through React because the game itself is surface-agnostic:
- * only the share button reaches for Discord, and it can ask for the SDK the same
- * way it asks for the surface.
+ * The live SDK instance, once the handshake has completed — `null` on the web,
+ * and until then inside the Activity. Held here rather than passed through React
+ * because the game itself is surface-agnostic: only the share button reaches for
+ * Discord, and it can ask for the SDK the same way it asks for the surface.
  */
 let sdkInstance: DiscordSDK | null = null;
+
+/**
+ * The in-flight handshake, so a share that fires before it lands can wait on it
+ * instead of reading a `null` snapshot and giving up. `null` on the web.
+ */
+let handshake: Promise<DiscordSDK | null> | null = null;
+
+/** Resolve to the SDK, waiting out a handshake that hasn't landed yet. */
+async function activeSdk(): Promise<DiscordSDK | null> {
+  if (sdkInstance) return sdkInstance;
+  if (!handshake) return null;
+  const timedOut = Symbol("timeout");
+  const result = await Promise.race([
+    handshake,
+    new Promise<typeof timedOut>((resolve) => setTimeout(() => resolve(timedOut), SHARE_HANDSHAKE_WAIT_MS)),
+  ]);
+  return result === timedOut ? null : result;
+}
+
+/**
+ * Outcome of {@link shareToDiscord}. `unavailable` means we never reached
+ * Discord at all, so the caller may still try the web paths; `failed` means the
+ * command itself blew up, which the player needs to be told about rather than
+ * silently dropped.
+ */
+export type DiscordShareResult = "shared" | "unavailable" | "failed";
 
 /**
  * Post a finished round's score card to the channel the Activity is running in.
@@ -127,19 +155,22 @@ let sdkInstance: DiscordSDK | null = null;
  * posts it as the player along with a link back into the Activity, so anyone
  * reading the channel can launch the game from the result.
  *
- * Needs no OAuth scopes and works on web/iOS/Android. Returns false when the
- * SDK isn't available so callers can fall back.
+ * Needs no OAuth scopes and works on web/iOS/Android.
  */
-export async function shareToDiscord(message: string): Promise<boolean> {
-  if (!sdkInstance) return false;
+export async function shareToDiscord(message: string): Promise<DiscordShareResult> {
+  const sdk = await activeSdk();
+  if (!sdk) {
+    console.warn("[discord] share requested but the SDK handshake never completed.");
+    return "unavailable";
+  }
   try {
-    await sdkInstance.commands.shareLink({ message });
+    await sdk.commands.shareLink({ message });
     // `success: false` just means the player closed the modal without posting —
     // still a handled share, so don't fall back to the (unusable) clipboard.
-    return true;
+    return "shared";
   } catch (err) {
     console.error("[discord] shareLink failed:", err);
-    return false;
+    return "failed";
   }
 }
 
@@ -168,20 +199,30 @@ export async function initDiscord(): Promise<DiscordSDK | null> {
     // (tree-shaken/code-split), so open-web visitors pay nothing for it.
     const { DiscordSDK } = await import("@discord/embedded-app-sdk");
     const sdk = new DiscordSDK(clientId);
-    // `ready()` waits on Discord's RPC parent and never rejects on its own, so
-    // race it: mode switches re-run this handshake on every page load, and a
-    // stalled one would leave the player staring at a blank iframe. The game
-    // itself doesn't use the SDK, so mounting without it is always better.
+    // Register the handshake the moment it lands, *whether or not* it beat the
+    // timeout below. The timeout only decides when React mounts; a handshake
+    // that shows up at 5.1s is still a perfectly good SDK, and abandoning it
+    // left the share button permanently dead on slow Activity starts.
+    handshake = sdk
+      .ready()
+      .then(() => (sdkInstance = sdk))
+      .catch((err) => {
+        console.error("[discord] SDK ready() failed:", err);
+        return null;
+      });
+    // `ready()` waits on Discord's RPC parent, so race it: mode switches re-run
+    // this handshake on every page load, and a stalled one would leave the
+    // player staring at a blank iframe. The game itself doesn't need the SDK to
+    // render, so mounting without it is always better.
     const timedOut = Symbol("timeout");
     const result = await Promise.race([
-      sdk.ready().then(() => sdk),
+      handshake,
       new Promise<typeof timedOut>((resolve) => setTimeout(() => resolve(timedOut), READY_TIMEOUT_MS)),
     ]);
     if (result === timedOut) {
       console.warn(`[discord] SDK ready() didn't resolve in ${READY_TIMEOUT_MS}ms — mounting the game anyway.`);
       return null;
     }
-    sdkInstance = result;
     return result;
   } catch (err) {
     // A failed handshake shouldn't white-screen the game. Log and let the
