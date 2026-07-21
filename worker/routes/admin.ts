@@ -702,7 +702,11 @@ app.get("/analytics", async (c) => {
 // changed, this tells you *what just happened*. analytics_rounds is one row per
 // round, so the three beacons a round can fire are un-flattened back into
 // separate events with a UNION and re-sorted by time.
-app.get("/analytics/events", async (c) => {
+//
+// The path deliberately avoids "analytics/events" — ad blockers ship filter
+// rules for that shape (it's what tracking beacons look like), and they killed
+// the request in-browser before it ever reached the Worker.
+app.get("/recent-rounds", async (c) => {
   const { and: surfAnd } = surfaceClause(c);
   const asked = Number(c.req.query("limit"));
   const limit = Number.isInteger(asked) && asked > 0 ? Math.min(asked, ANALYTICS_EVENTS_MAX) : ANALYTICS_EVENTS_PAGE;

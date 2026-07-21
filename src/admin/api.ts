@@ -22,7 +22,15 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api/admin${path}`, init);
+  let res: Response;
+  try {
+    res = await fetch(`/api/admin${path}`, init);
+  } catch {
+    // fetch() itself rejected, so nothing reached the Worker: offline, or a
+    // content blocker cancelled the request in the browser. The native message
+    // ("NetworkError when attempting to fetch resource") explains neither.
+    throw new ApiError("Couldn't reach the kitchen — check your connection or an ad/content blocker", 0);
+  }
   const body = (await res.json().catch(() => null)) as (T & { error?: string }) | null;
   if (!res.ok || body === null) {
     throw new ApiError(body?.error ?? `Request failed (${res.status})`, res.status);
@@ -43,9 +51,13 @@ export const getDashboard = () => request<AdminDashboard>("/dashboard");
 /** Optionally filter engagement to one surface (web / discord); omit for all. */
 export const getAnalytics = (surface?: Surface) =>
   request<AnalyticsSummary>(`/analytics${surface ? `?surface=${surface}` : ""}`);
-/** Recent activity feed, newest first. Same optional surface filter as above. */
+/**
+ * Recent activity feed, newest first. Same optional surface filter as above.
+ * Path is "/recent-rounds", not "/analytics/events" — see the route comment in
+ * worker/routes/admin.ts: ad blockers block the latter shape outright.
+ */
 export const getAnalyticsEvents = (surface: Surface | undefined, limit: number) =>
-  request<AnalyticsEvent[]>(`/analytics/events?limit=${limit}${surface ? `&surface=${surface}` : ""}`);
+  request<AnalyticsEvent[]>(`/recent-rounds?limit=${limit}${surface ? `&surface=${surface}` : ""}`);
 export const getDishes = () => request<AdminDishRow[]>("/dishes");
 export const getDish = (id: number) => request<AdminDishDetail>(`/dishes/${id}`);
 export const createDish = (input: AdminDishInput) => request<{ id: number }>("/dishes", json(input));
