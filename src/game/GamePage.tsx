@@ -16,7 +16,7 @@ import { DISH_REQUEST_LIMITS, MAX_GUESSES } from "../../shared/types";
 import { ClueTicket, Countdown, GuessInput, GuessRow, Modal } from "./components";
 import ArchiveModal from "./ArchiveModal";
 import { dateLabel, isPastPuzzleDate } from "./archive";
-import { currentSurface, surfaceUrl } from "../discord/bootstrap";
+import { currentSurface, shareToDiscord, surfaceUrl } from "../discord/bootstrap";
 import { playSfx } from "./sfx";
 import { buildShareText, SHARE_URL } from "./share";
 import {
@@ -216,6 +216,11 @@ function ResultModal({
     if (round.analyticsId) {
       beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date, kind, surface: SURFACE });
     }
+    // Inside the Activity, hand off to Discord's share modal, which posts the
+    // score card to the channel with a link back into the game. It replaces
+    // both paths below outright: the embed's iframe has no share sheet and no
+    // clipboard permission, so the web button silently did nothing there.
+    if (SURFACE === "discord" && (await shareToDiscord(text))) return;
     // On mobile (and any browser with the Web Share API) bring up the native
     // share sheet so results can go straight to other apps. Fall back to the
     // clipboard when it's unavailable.
@@ -258,7 +263,11 @@ function ResultModal({
       )}
       {canShare && (
         <button className="share-btn share-btn--primary" onClick={share}>
-          {copied ? "Copied to clipboard!" : "📋 Share your order"}
+          {copied
+            ? "Copied to clipboard!"
+            : SURFACE === "discord"
+              ? "📣 Post your results"
+              : "📋 Share your order"}
         </button>
       )}
       {(isRandom || canArchive) && (
