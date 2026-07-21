@@ -10,7 +10,12 @@ import statsRoutes from "./routes/stats";
 const app = new Hono<{ Bindings: Env }>();
 
 app.route("/api/admin", adminRoutes);
-app.route("/api/analytics", analyticsRoutes);
+// Engagement beacons. Mounted at "/api/rounds", NOT "/api/analytics" — ad
+// blockers ship filter rules matching that path shape, and a blocked beacon is
+// indistinguishable from a delivered one (they're fire-and-forget), so those
+// players silently vanished from every count. The data is anonymous and
+// device-scoped, never tied to a person. See routes/analytics.ts.
+app.route("/api/rounds", analyticsRoutes);
 app.route("/api/stats", statsRoutes);
 app.route("/api", publicRoutes);
 

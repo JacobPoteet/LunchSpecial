@@ -74,6 +74,11 @@ export function localToday(): string {
 }
 
 // ---- Anonymous analytics beacons (fire-and-forget; never block gameplay) ----
+//
+// These POST to "/api/rounds/*", deliberately not "/api/analytics/*": ad
+// blockers block the latter by pattern, and because a beacon is fire-and-forget
+// a blocked one looks exactly like a delivered one — those players just never
+// showed up in the numbers. Keep the paths boring. (See worker/index.ts.)
 
 /** Opaque per-round id linking start → completion → share. */
 export function newAnalyticsId(): string {
@@ -101,7 +106,7 @@ export function beaconStart(b: {
   surface: Surface;
   playerId: string;
 }): void {
-  beacon("/api/analytics/start", b);
+  beacon("/api/rounds/start", b);
 }
 
 export function beaconComplete(b: {
@@ -113,7 +118,7 @@ export function beaconComplete(b: {
   guesses: number;
   solved: boolean;
 }): void {
-  beacon("/api/analytics/complete", b);
+  beacon("/api/rounds/complete", b);
 }
 
 export function beaconShare(b: {
@@ -123,5 +128,5 @@ export function beaconShare(b: {
   kind: RoundKind;
   surface: Surface;
 }): void {
-  beacon("/api/analytics/share", b);
+  beacon("/api/rounds/share", b);
 }

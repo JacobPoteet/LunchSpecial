@@ -86,7 +86,7 @@ You can also run it on demand from **Actions → Deploy to Cloudflare → Run wo
 
 ## Engagement stats
 
-The game fires anonymous, fire-and-forget beacons — one row per round (start, completion, share) keyed by a client-generated id, **never any guess content** (`worker/routes/analytics.ts`, `analytics_rounds` table). Two ways to read them back:
+The game fires anonymous, fire-and-forget beacons to `/api/rounds/*` — one row per round (start, completion, share) keyed by a client-generated id, **never any guess content** (`worker/routes/analytics.ts`, `analytics_rounds` table). Two ways to read them back:
 
 - **Admin dashboard** — full breakdown: guess distribution, fail count, and the last 30 days (login required).
 - **Public totals** — `GET /api/stats` returns aggregate-only counts:
