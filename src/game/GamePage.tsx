@@ -16,7 +16,7 @@ import { DISH_REQUEST_LIMITS, MAX_GUESSES } from "../../shared/types";
 import { ClueTicket, Countdown, GuessInput, GuessRow, Modal } from "./components";
 import ArchiveModal from "./ArchiveModal";
 import { dateLabel, isPastPuzzleDate } from "./archive";
-import { currentSurface } from "../discord/bootstrap";
+import { currentSurface, surfaceUrl } from "../discord/bootstrap";
 import { playSfx } from "./sfx";
 import { buildShareText, SHARE_URL } from "./share";
 import {
@@ -354,11 +354,13 @@ export default function GamePage() {
   const dailyDone = dailyStatus !== "playing";
   const canArchive = !isPreview && (dailyDone || isArchive || isRandom);
 
-  // Navigation between modes is URL-driven (the app has no router).
-  const goToday = useCallback(() => window.location.assign("/"), []);
-  const goRandom = useCallback(() => window.location.assign("/?random"), []);
+  // Navigation between modes is URL-driven (the app has no router). Every hop
+  // goes through surfaceUrl() so a Discord Activity keeps its iframe params —
+  // otherwise the new URL loses `frame_id` and the round logs as a web play.
+  const goToday = useCallback(() => window.location.assign(surfaceUrl("/")), []);
+  const goRandom = useCallback(() => window.location.assign(surfaceUrl("/?random")), []);
   const openArchiveDate = useCallback(
-    (d: string) => window.location.assign(d === today ? "/" : `/?date=${d}`),
+    (d: string) => window.location.assign(surfaceUrl(d === today ? "/" : `/?date=${d}`)),
     [today],
   );
 
