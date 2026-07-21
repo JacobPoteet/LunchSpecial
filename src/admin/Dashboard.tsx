@@ -14,6 +14,7 @@ import type { AdminDashboard } from "../../shared/types";
 import { ANALYTICS_EVENTS_MAX, ANALYTICS_EVENTS_PAGE, MAX_GUESSES } from "../../shared/types";
 import { gameTimestamp, hms, msUntilGameMidnight } from "../../shared/time";
 import * as api from "./api";
+import { peekPlayerId } from "../game/storage";
 import type { AdminView } from "./AdminApp";
 
 const pct = (n: number, of: number) => (of === 0 ? 0 : Math.round((n / of) * 100));
@@ -265,6 +266,72 @@ function eventDetail(e: AnalyticsEvent): string {
  * newest first, so you can watch what actually changed instead of diffing
  * numbers. Inherits the panel's surface filter; times render in game time (ET).
  */
+/**
+ * Whether the activity feed keeps, drops, or isolates rows from *this* browser —
+ * i.e. the admin's own play-testing. "Mine" is per-device by design: it matches
+ * the anonymous player id in this browser's localStorage, so rounds played on
+ * your phone or inside the Discord Activity (a separate origin, separate id)
+ * still read as other players.
+ */
+type MineFilter = "all" | "hide" | "only";
+const MINE_FILTERS: { key: MineFilter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "hide", label: "Hide mine" },
+  { key: "only", label: "Only mine" },
+];
+const MINE_KEY = "lunch-special:admin-activity-mine";
+
+/** Remembered across reloads — but defaults to "all" so the feed never hides rows unasked. */
+function loadMineFilter(): MineFilter {
+  try {
+    const saved = localStorage.getItem(MINE_KEY);
+    return MINE_FILTERS.some((f) => f.key === saved) ? (saved as MineFilter) : "all";
+  } catch {
+    return "all";
+  }
+}
+function saveMineFilter(value: MineFilter) {
+  try {
+    localStorage.setItem(MINE_KEY, value);
+  } catch {
+    // Storage blocked — the filter just won't survive a reload.
+  }
+}
+
+/** Segmented control (same look as SurfaceToggle) scoping the feed by "is this me?". */
+function MineToggle({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: MineFilter;
+  onChange: (m: MineFilter) => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="surface-toggle" role="tablist" aria-label="Filter activity by this device">
+      {MINE_FILTERS.map((f) => {
+        // Nothing has ever been played in this browser, so there's no id to
+        // match — leave the control visible (it explains itself) but inert.
+        const off = disabled && f.key !== "all";
+        return (
+          <button
+            key={f.key}
+            role="tab"
+            aria-selected={value === f.key}
+            disabled={off}
+            title={off ? "Play a round in this browser first" : undefined}
+            className={`surface-toggle__btn${value === f.key ? " surface-toggle__btn--active" : ""}`}
+            onClick={() => onChange(f.key)}
+          >
+            {f.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function RecentEvents({ surface }: { surface: SurfaceFilter }) {
   const [events, setEvents] = useState<AnalyticsEvent[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -272,11 +339,21 @@ function RecentEvents({ surface }: { surface: SurfaceFilter }) {
   // Bumped by the Refresh button to re-run the fetch without changing its inputs.
   const [reloads, setReloads] = useState(0);
   const [now, setNow] = useState(() => Date.now());
+  // This browser's own anonymous player id — read once, never minted (see
+  // peekPlayerId). Null when nothing has been played here, which disables the
+  // mine filter entirely.
+  const [myId] = useState(peekPlayerId);
+  const [mine, setMine] = useState<MineFilter>(loadMineFilter);
+
+  useEffect(() => {
+    saveMineFilter(mine);
+  }, [mine]);
 
   useEffect(() => {
     let live = true;
     setError(null);
-    api.getAnalyticsEvents(surface === "all" ? undefined : surface, limit).then(
+    const mineArg = myId && mine !== "all" ? { playerId: myId, mode: mine } : undefined;
+    api.getAnalyticsEvents(surface === "all" ? undefined : surface, limit, mineArg).then(
       (e) => {
         if (!live) return;
         setEvents(e);
@@ -287,7 +364,7 @@ function RecentEvents({ surface }: { surface: SurfaceFilter }) {
     return () => {
       live = false;
     };
-  }, [surface, limit, reloads]);
+  }, [surface, limit, reloads, mine, myId]);
 
   // Keep the "3m ago" column honest without refetching.
   useEffect(() => {
@@ -300,9 +377,12 @@ function RecentEvents({ surface }: { surface: SurfaceFilter }) {
       <h3 className="analytics-sub" style={{ margin: 0 }}>
         Recent activity
       </h3>
-      <button className="btn btn--ghost btn--small" onClick={() => setReloads((n) => n + 1)}>
-        Refresh
-      </button>
+      <div className="analytics-head__tools">
+        <MineToggle value={mine} onChange={setMine} disabled={!myId} />
+        <button className="btn btn--ghost btn--small" onClick={() => setReloads((n) => n + 1)}>
+          Refresh
+        </button>
+      </div>
     </div>
   );
 
@@ -326,7 +406,13 @@ function RecentEvents({ surface }: { surface: SurfaceFilter }) {
     return (
       <div className="analytics-block">
         {header}
-        <p className="dash-note">Nothing has happened yet.</p>
+        <p className="dash-note">
+          {mine === "only"
+            ? "Nothing from this device yet."
+            : mine === "hide"
+              ? "Nothing yet from anyone but this device."
+              : "Nothing has happened yet."}
+        </p>
       </div>
     );
   }
@@ -377,9 +463,14 @@ function RecentEvents({ surface }: { surface: SurfaceFilter }) {
                   <td>{e.surface === "discord" ? "Discord" : "Web"}</td>
                   <td>
                     {e.playerId ? (
-                      <code className="ev-player" title={e.playerId}>
-                        {e.playerId.slice(0, 8)}
-                      </code>
+                      <>
+                        <code className="ev-player" title={e.playerId}>
+                          {e.playerId.slice(0, 8)}
+                        </code>
+                        {/* Flags your own test rounds even in "All" mode — makes
+                            the filter above discoverable. */}
+                        {e.playerId === myId && <span className="ev-you">you</span>}
+                      </>
                     ) : (
                       "—"
                     )}
@@ -392,6 +483,8 @@ function RecentEvents({ surface }: { surface: SurfaceFilter }) {
       </div>
       <p className="dash-note" style={{ marginTop: 8 }}>
         Newest first · {events.length} event{events.length === 1 ? "" : "s"}
+        {mine === "only" && " · this device only"}
+        {mine === "hide" && " · this device hidden"}
         {events.length >= limit && limit < ANALYTICS_EVENTS_MAX && (
           <>
             {" · "}

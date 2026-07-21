@@ -50,6 +50,20 @@ export function getPlayerId(): string {
   }
 }
 
+/**
+ * Read-only peek at this device's player id — null if it's never played here.
+ * The admin activity feed uses it to filter its own test rounds in or out;
+ * unlike getPlayerId() it must NOT mint an id, or merely opening the dashboard
+ * would create one that appears in zero rows.
+ */
+export function peekPlayerId(): string | null {
+  try {
+    return localStorage.getItem(PLAYER_KEY);
+  } catch {
+    return null;
+  }
+}
+
 export function emptyRound(date: string): RoundState {
   return { date, status: "playing", guesses: [], clues: [] };
 }
