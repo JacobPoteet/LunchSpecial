@@ -4,6 +4,7 @@
 
 import { Hono } from "hono";
 import { MAX_GUESSES, ROUND_KINDS, SURFACES, type RoundKind, type Surface } from "../../shared/types";
+import { getSeededDish, getTargetDish } from "../db";
 import { isValidDateString } from "../game";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -14,6 +15,29 @@ interface Base {
   date: string;
   kind: RoundKind;
   surface: Surface;
+}
+
+/**
+ * The dish this round played, resolved the same way gameplay does: a `random`
+ * (Chef's Choice) round is a deterministic pick from its `seed`; every other
+ * kind is the scheduled dish (or the date's deterministic fallback). Stored on
+ * the row so the admin feed can name the dish for random rounds, whose dish is
+ * never in the `schedule` table. Best-effort — a lookup miss just stores NULL
+ * (the feed still falls back to the schedule join for scheduled kinds).
+ */
+async function resolveDishId(env: Env, kind: RoundKind, date: string, seed: string | null): Promise<number | null> {
+  try {
+    const dish = kind === "random" ? (seed ? await getSeededDish(env.DB, seed) : null) : await getTargetDish(env.DB, date);
+    return dish?.id ?? null;
+  } catch {
+    return null; // analytics must never break gameplay
+  }
+}
+
+/** The `?random=<seed>` a random round was played on, if the client sent it. */
+function seedOf(body: unknown): string | null {
+  const s = (body as { seed?: unknown } | null)?.seed;
+  return typeof s === "string" && s.length > 0 && s.length <= 64 ? s : null;
 }
 
 /** Validate the fields every beacon carries. */
@@ -44,12 +68,13 @@ app.post("/start", async (c) => {
     typeof raw!.playerId === "string" && raw!.playerId.length >= 8 && raw!.playerId.length <= 64
       ? raw!.playerId
       : null;
+  const dishId = await resolveDishId(c.env, b.kind, b.date, seedOf(raw));
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, player_id, started_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, player_id, dish_id, started_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO NOTHING`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, playerId)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, playerId, dishId)
     .run();
   return c.json({ ok: true });
 });
@@ -64,35 +89,40 @@ app.post("/complete", async (c) => {
   }
   const solved = raw!.solved === true ? 1 : 0;
   // Upsert so a missed /start (e.g. a round begun before analytics shipped) still
-  // records. `kind`/`surface` are only set on insert — a prior /start already fixed them.
-  // `completed_at` keeps the FIRST completion time (a replayed beacon must not
-  // move it) — it's what the admin activity feed timestamps the event with.
+  // records. `kind`/`surface`/`dish_id` are only set on insert — a prior /start
+  // already fixed them, so the conflict path leaves them alone. `completed_at`
+  // keeps the FIRST completion time (a replayed beacon must not move it) — it's
+  // what the admin activity feed timestamps the event with.
+  const dishId = await resolveDishId(c.env, b.kind, b.date, seedOf(raw));
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, started_at, guesses, solved, completed, completed_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, datetime('now'), ?, ?, 1, datetime('now'), datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, dish_id, started_at, guesses, solved, completed, completed_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, 1, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO UPDATE SET
        guesses = excluded.guesses, solved = excluded.solved, completed = 1,
        completed_at = COALESCE(analytics_rounds.completed_at, excluded.completed_at),
        updated_at = excluded.updated_at`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, guesses, solved)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, dishId, guesses, solved)
     .run();
   return c.json({ ok: true });
 });
 
 app.post("/share", async (c) => {
-  const b = base(await c.req.json().catch(() => null));
+  const raw = await c.req.json().catch(() => null);
+  const b = base(raw);
   if (!b) return c.json({ error: "Invalid analytics payload" }, 400);
   // Idempotent: re-sharing just re-sets the flag. `shared_at` keeps the first
-  // share's time, like `completed_at` above.
+  // share's time, like `completed_at` above. `dish_id` is insert-only; only the
+  // share button's kinds (daily/leftover) reach here, so a date lookup suffices.
+  const dishId = await resolveDishId(c.env, b.kind, b.date, seedOf(raw));
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, started_at, shared, shared_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, datetime('now'), 1, datetime('now'), datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, dish_id, started_at, shared, shared_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'), 1, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO UPDATE SET shared = 1,
        shared_at = COALESCE(analytics_rounds.shared_at, excluded.shared_at),
        updated_at = excluded.updated_at`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, dishId)
     .run();
   return c.json({ ok: true });
 });

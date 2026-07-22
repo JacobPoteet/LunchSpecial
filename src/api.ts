@@ -105,6 +105,9 @@ export function beaconStart(b: {
   kind: RoundKind;
   surface: Surface;
   playerId: string;
+  // A random (Chef's Choice) round's dish is picked from this seed; the server
+  // resolves it so the admin feed can name the dish (it's never in the schedule).
+  seed?: string;
 }): void {
   beacon("/api/rounds/start", b);
 }
@@ -117,6 +120,7 @@ export function beaconComplete(b: {
   surface: Surface;
   guesses: number;
   solved: boolean;
+  seed?: string;
 }): void {
   beacon("/api/rounds/complete", b);
 }
