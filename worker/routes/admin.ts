@@ -761,9 +761,14 @@ app.get("/recent-rounds", async (c) => {
 
   // Rows written before migrations/0011 have no completed_at/shared_at — fall
   // back to updated_at (the last beacon's time), then started_at.
-  const cols = "round_id, puzzle_number, play_date, kind, surface, player_id";
+  const cols = "round_id, puzzle_number, play_date, kind, surface, player_id, dish_id";
+  // Name the dish from the dish_id stored on the round (migrations/0012) — this
+  // is the only way a `random` (Chef's Choice) dish, which is never scheduled,
+  // can be resolved. Pre-0012 rows have no dish_id, so fall back to the old
+  // schedule-by-date join for scheduled kinds (random stays blank for those,
+  // exactly as before).
   const res = await c.env.DB.prepare(
-    `SELECT e.*, CASE WHEN e.kind = 'random' THEN NULL ELSE d.name END AS dish_name
+    `SELECT e.*, COALESCE(dd.name, CASE WHEN e.kind = 'random' THEN NULL ELSE ds.name END) AS dish_name
        FROM (
          SELECT 'start' AS type, started_at AS at, ${cols}, NULL AS guesses, NULL AS solved
            FROM analytics_rounds WHERE started_at IS NOT NULL${surfAnd}${mineAnd}
@@ -776,8 +781,9 @@ app.get("/recent-rounds", async (c) => {
          ORDER BY at DESC, round_id, type
          LIMIT ?
        ) e
+       LEFT JOIN dishes dd ON dd.id = e.dish_id
        LEFT JOIN schedule s ON s.date = e.play_date
-       LEFT JOIN dishes d ON d.id = s.dish_id
+       LEFT JOIN dishes ds ON ds.id = s.dish_id
       ORDER BY e.at DESC, e.round_id, e.type`,
   )
     .bind(...mineBinds, limit)

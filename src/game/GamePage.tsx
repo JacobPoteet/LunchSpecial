@@ -467,6 +467,7 @@ export default function GamePage() {
               kind: analyticsKind,
               surface: SURFACE,
               playerId: getPlayerId(),
+              seed: random,
             });
           }
           if (next.status !== "playing") {
@@ -480,6 +481,7 @@ export default function GamePage() {
               surface: SURFACE,
               guesses: next.guesses.length,
               solved: next.status === "won",
+              seed: random,
             });
           }
         }
