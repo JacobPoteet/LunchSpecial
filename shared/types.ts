@@ -263,13 +263,22 @@ export const ANALYTICS_EVENTS_MAX = 200;
 /** Anonymous engagement aggregates for the admin dashboard. No guess content. */
 export interface AnalyticsSummary extends AnalyticsPeriod {
   /**
-   * Today's slice. `totals`/`guessDistribution`/`fails` cover today's Special
-   * only (play_date = server today AND kind = daily) — that's the puzzle's
-   * difficulty, so replays/random never dilute it. `startedByKind` instead
-   * counts every game *started today* (ET) split by kind, so the dashboard can
-   * headline "Today's Special started" alongside leftovers + chef's specials.
+   * One ET day's slice — today unless `?date=` asked for an earlier one.
+   * `totals`/`guessDistribution`/`fails` cover that day's Special only
+   * (play_date = the day AND kind = daily) — that's the puzzle's difficulty, so
+   * replays/random never dilute it. `startedByKind` instead counts every game
+   * *started* that ET day split by kind, so the dashboard can headline "Today's
+   * Special started" alongside leftovers + chef's specials.
    */
-  today: AnalyticsPeriod & { date: string; dishName: string | null };
+  day: AnalyticsPeriod & { date: string; dishName: string | null };
+  /** The server's current ET day. `day.date` equals it unless a past day was asked for. */
+  today: string;
+  /**
+   * Every ET day that recorded any activity, oldest first — the set the admin's
+   * day picker offers. Surface-filtered like everything else, so switching to
+   * Discord narrows it to days Discord players actually showed up.
+   */
+  activeDates: string[];
   /** Last 30 days with activity, oldest first. */
   daily: AnalyticsDay[];
   /** Games started per hour of day (ET, the daily-rollover zone), index 0..23. */

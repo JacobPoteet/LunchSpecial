@@ -859,3 +859,122 @@
     color: var(--ink-soft);
   }
 }
+
+/* ---- day picker (engagement panel's calendar dialog) ---- */
+
+.daypick__title {
+  font-family: var(--font-display);
+  color: var(--teal);
+  margin: 0 0 4px;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.daypick__lede {
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  margin: 0 0 14px;
+}
+
+.daypick__legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+  margin-bottom: 14px;
+}
+.daypick__legend span { display: inline-flex; align-items: center; gap: 5px; }
+
+.daypick__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid var(--paper-edge);
+}
+.daypick__swatch--active { background: var(--hit-soft); border-color: var(--hit); }
+.daypick__swatch--selected { background: var(--teal); border-color: var(--teal); }
+.daypick__swatch--quiet { background: var(--miss-soft); }
+
+/* "Jump to today" shortcut, so a far-back month doesn't need scrolling back. */
+.daypick__jump { display: block; margin: 0 auto 16px; }
+
+.daypick__month { margin-bottom: 16px; }
+
+.daypick__month-name {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-align: center;
+  margin: 0 0 8px;
+}
+
+.daypick__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.daypick__dow {
+  text-align: center;
+  font-size: 0.66rem;
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  padding-bottom: 2px;
+}
+
+.daypick__day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--paper-edge);
+  border-radius: 7px;
+  background: #fffdf6;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.daypick__day--blank {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* No activity — shown for context, but nothing to open. */
+.daypick__day--quiet {
+  background: var(--miss-soft);
+  color: var(--miss);
+  border-color: transparent;
+}
+
+.daypick__day--active {
+  background: var(--hit-soft);
+  border-color: var(--hit);
+  color: var(--hit);
+  font-weight: bold;
+  cursor: pointer;
+}
+.daypick__day--active:hover {
+  background: var(--mustard);
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.daypick__day--today { outline: 2px solid var(--ink); outline-offset: 1px; }
+
+.daypick__day--selected,
+.daypick__day--selected:hover {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: var(--cream);
+}
