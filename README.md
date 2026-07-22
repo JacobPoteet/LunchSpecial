@@ -13,9 +13,13 @@
 
 Every day the diner runs one *Special* — a famous dish from somewhere in the world. Players get 6 guesses. Each guess (any dish on the menu) reveals which ingredients it shares with the Special and how its country, course, serving temperature, and protein compare. After every miss, the kitchen slips you a clue ticket: country of origin, history, the moment that made the dish famous.
 
-Finished today's check? Open the **Menu Archive** — a calendar of every past Special, marked with what you've solved and what you missed — and replay any day you skipped. Or have the cook fire a **random recipe** for a no-stakes round on a dish picked at random.
+Finished today's check? Open **Leftovers** — a calendar of every past Special, marked with what you've solved and what you missed — and replay any day you skipped. Or order **Chef's Choice** for a no-stakes round on a dish picked at random. Think something's missing from the menu? The receipt at the end of a round has a form to suggest a dish, which lands in an admin inbox.
+
+The same build also runs as a **Discord Activity** — see [Discord Activity](#discord-activity) below.
 
 Built as a single Cloudflare Worker: React SPA served from Workers Static Assets, Hono API, D1 (SQLite) database.
+
+📄 **[Project breakdown](https://jacobpoteet.github.io/LunchSpecial/)** — a longer write-up of the feedback design, the stack, and what the live numbers say about difficulty.
 
 ## Stack
 
@@ -23,10 +27,11 @@ Built as a single Cloudflare Worker: React SPA served from Workers Static Assets
 |---|---|
 | Frontend | React 19 + Vite, hand-written CSS (no framework), self-hosted OFL fonts |
 | API | [Hono](https://hono.dev) on Cloudflare Workers (`worker/`) |
-| Database | Cloudflare D1 — dishes, clues, schedule (`migrations/`, `seed/`) |
+| Database | Cloudflare D1 — dishes, clues, schedule, analytics, dish requests (`migrations/`, `seed/`) |
 | Dev/build | `@cloudflare/vite-plugin` (Worker runs in workerd during `vite dev`) |
-| Tests | Vitest (pure game engine in `worker/game.ts`) |
-| CI/CD | GitHub Actions — push a `v*` tag to test, migrate, and deploy the Worker automatically (`.github/workflows/deploy.yml`) |
+| Discord | `@discord/embedded-app-sdk`, dynamically imported only inside the Activity iframe (`src/discord/`) |
+| Tests | Vitest — pure game engine, badge/stats formatting, and a catalog data-integrity check (`worker/*.test.ts`) |
+| CI/CD | GitHub Actions — push a `v*` tag to test, migrate, and deploy the Worker automatically (`.github/workflows/deploy.yml`); a lighter `ci.yml` validates catalog data on PRs that touch it |
 
 ## Local development
 
@@ -34,14 +39,16 @@ Built as a single Cloudflare Worker: React SPA served from Workers Static Assets
 npm install
 cp .dev.vars.example .dev.vars       # set ADMIN_PASSWORD + SESSION_SECRET
 npm run db:migrate                   # create tables in local D1
-npm run db:seed                      # 68 dishes, 340 clues, 30 scheduled days
+npm run db:seed                      # 283 dishes, 1,415 clues, 30 scheduled days
 npm run dev                          # http://localhost:5173
 ```
 
 - Game: `http://localhost:5173/`
 - Admin: `http://localhost:5173/admin` (password = `ADMIN_PASSWORD` from `.dev.vars`)
 
-`npm test` runs the game-engine unit tests; `npm run check` typechecks everything.
+`.dev.vars` holds **Worker** secrets. Client build-time vars (currently just `VITE_DISCORD_CLIENT_ID`) go in a gitignored `.env.local` — see `.env.example`. Neither is needed to play the game locally.
+
+`npm test` runs the unit tests; `npm run check` typechecks everything.
 
 ### Debug / testing options
 
@@ -53,7 +60,7 @@ Ways to poke at the game locally without editing the schedule or touching your s
 | `/play` or `?freeplay` | The same free-play mode by URL (e.g. `http://localhost:5173/play`). |
 | Admin **Test play** | From `/admin`, a signed preview link that plays a *specific* dish (see [Admin panel](#admin-panel-admin)). |
 
-Under the hood a random seed is sent to the API and mapped to an active dish deterministically — one round stays on a single dish, while a new seed rolls a new one. This is the same **random recipe** ("cook's choice") players can launch from the Menu Archive in production; it's spoiler-free (it never touches the schedule) and saves nothing. The `/play` and `?freeplay` entrances above are dev conveniences (client behind `import.meta.env.DEV`) that drop you straight into a random round on load.
+Under the hood a random seed is sent to the API and mapped to an active dish deterministically — one round stays on a single dish, while a new seed rolls a new one. This is the same **Chef's Choice** round players can launch from Leftovers in production; it's spoiler-free (it never touches the schedule) and saves no local stats. The `/play` and `?freeplay` entrances above are dev conveniences (client behind `import.meta.env.DEV`) that drop you straight into a random round on load.
 
 ## Deploying to Cloudflare
 
@@ -77,6 +84,17 @@ You can also run it on demand from **Actions → Deploy to Cloudflare → Run wo
 4. `npx wrangler secret put ADMIN_PASSWORD` and `npx wrangler secret put SESSION_SECRET` (use a long random string)
 5. `npm run deploy` for the first manual deploy, then add the two GitHub Actions secrets to arm CI
 
+## Discord Activity
+
+The game also runs inside Discord as an [Activity](https://discord.com/developers/docs/activities/overview) — **no separate build or deploy**. Discord doesn't host the code; it frames `lunchspecial.app` through its proxy via a URL mapping, so `npm run deploy` ships the public site and the Activity at once.
+
+- **Detection is runtime-only.** `src/discord/bootstrap.ts` looks for the `frame_id` query param Discord adds to the iframe URL. On the open web it's absent, the Embedded App SDK (behind a dynamic import) is never downloaded, and web visitors pay nothing for it.
+- **Anonymous, same as the web.** The embed completes the SDK handshake and then runs the ordinary game — localStorage state, no OAuth, no accounts. (Caveat: localStorage inside Discord is scoped to the `discordsays.com` origin, so Activity players have a separate history from the website.)
+- **Sharing posts to the channel.** In the embed the receipt's share button calls `shareLink()` with the same emoji grid the web build builds, and Discord's own modal posts it as the player — the iframe has neither Web Share nor clipboard access, so this replaces that path rather than falling back to it.
+- Analytics record which **surface** a round came from (`web` or `discord`), which the admin dashboard can filter by.
+
+Setup is four clicks in the Discord Developer Portal (enable Activities, map `/` → `lunchspecial.app`, add a redirect URI) plus `VITE_DISCORD_CLIENT_ID` — a **public** build-time var, not a secret. Discord can't reach `localhost`, so testing in real Discord means `npm run dev` in one terminal and `npm run tunnel` (cloudflared) in another, with the portal's URL mapping pointed at the tunnel.
+
 ## How the daily Special works
 
 - The daily Special **rolls over at midnight Eastern Time (`America/New_York`)** for every player, wherever they are — the same puzzle switches for everyone at the same moment. The server accepts dates within ±2 days of the current ET date for clock/rollover slack.
@@ -86,9 +104,9 @@ You can also run it on demand from **Actions → Deploy to Cloudflare → Run wo
 
 ## Engagement stats
 
-The game fires anonymous, fire-and-forget beacons to `/api/rounds/*` — one row per round (start, completion, share) keyed by a client-generated id, **never any guess content** (`worker/routes/analytics.ts`, `analytics_rounds` table). Two ways to read them back:
+The game fires anonymous, fire-and-forget beacons to `/api/rounds/*` — one row per round (start, completion, share) keyed by a client-generated id, **never any guess content** (`worker/routes/analytics.ts`, `analytics_rounds` table). Rounds are tagged with their **kind** (Today's Special / Leftovers / Chef's Choice), their **surface** (web / Discord), and a random per-device player id used only to tell new players from returning ones. Two ways to read them back:
 
-- **Admin dashboard** — full breakdown: guess distribution, fail count, and the last 30 days (login required).
+- **Admin dashboard** — full breakdown: guess distribution, fail count, hourly and daily activity, new-vs-returning players, a web/Discord filter, a calendar picker for any past day, and a feed of the individual events behind the charts (login required).
 - **Public totals** — `GET /api/stats` returns aggregate-only counts:
 
   ```json
@@ -99,11 +117,12 @@ The game fires anonymous, fire-and-forget beacons to `/api/rounds/*` — one row
 
 ## Admin panel (`/admin`)
 
-Password login (Worker secret + HMAC-signed session cookie, 7 days). Four areas:
+Password login (Worker secret + HMAC-signed session cookie, 7 days). Four tabs plus a test-play escape hatch:
 
-- **Dashboard** — today's Special, schedule health (warns under 7 days ahead), content warnings (dishes missing clues/ingredients)
+- **Dashboard** — today's Special and the countdown to the next one, schedule health (warns under 7 days ahead), content warnings (dishes missing clues/ingredients), and the engagement panel described above
 - **Dishes** — searchable/filterable table; per-dish editor with canonical-ingredient tag input, 5 ordered clues, and a **live player preview**
 - **Schedule** — upcoming board, assign/swap/clear days, **auto-fill 30 days** (least-recently-served, no repeats within 60 days), past days locked
+- **Requests** — inbox of player-suggested dishes (badge = pending count); review, remove, or open one prefilled in a new dish editor
 - **Test play** — signed preview link that opens the real game against any dish without touching daily state or stats
 
 ## Content model
@@ -111,9 +130,18 @@ Password login (Worker secret + HMAC-signed session cookie, 7 days). Four areas:
 - `dishes` — name, country, region (drives the yellow "close" country match), course, hot/cold, protein, JSON array of canonical ingredients
 - `clues` — 5 per dish, ordered vague → specific (region hint → origin → famous moment → key ingredient → near-giveaway)
 - `schedule` — `date (YYYY-MM-DD) → dish_id`
+- `dish_requests` — player suggestions, an inbox kept deliberately separate from the `dishes` catalog
 
 Ingredient names are canonical (lowercase, singular: `tomato`, not `tomatoes`) so matches line up across dishes. The admin tag input autocompletes against the existing pantry to keep it that way.
+
+The catalog ships two ways: `seed/seed.sql` is the canonical, idempotent snapshot used for local setup, and each batch of new dishes also gets an additive migration so releases can extend the live database without clobbering edits made in `/admin`. A data-integrity test guards both against bad enum values and dishes missing clues or ingredients.
 
 ## Art & fonts
 
 **All current art is AI-generated placeholder work, tagged for replacement** — every asset is named `ai-*.svg` and carries an `AI-GENERATED PLACEHOLDER` comment. See [ASSETS.md](ASSETS.md) for the full manifest an artist can work from. Fonts (Alfa Slab One, Yellowtail) are SIL OFL, self-hosted in `src/assets/fonts/`.
+
+## Also in this repo
+
+- [`docs/`](docs/) — the [project breakdown page](https://jacobpoteet.github.io/LunchSpecial/), published with GitHub Pages
+- [`public/`](public/) — press kit (`/press`) and the Privacy Policy / Terms pages (`/privacy`, `/terms`) required for Discord verification
+- [`discord-assets/`](discord-assets/) — source + build script for the Activity's store art
