@@ -484,6 +484,11 @@ function surfaceClause(c: Context): { and: string; where: string } {
 // Special, a leftover (archive replay), or a chef's special (random recipe).
 app.get("/analytics", async (c) => {
   const today = serverToday();
+  // The day slice defaults to today; `?date=` swaps in an earlier ET day so the
+  // dashboard can look back. Future dates are ignored (nothing to show) rather
+  // than rejected — the panel just falls back to today.
+  const asked = c.req.query("date");
+  const day = asked && isValidDateString(asked) && asked <= today ? asked : today;
 
   const { and: surfAnd, where: surfWhere } = surfaceClause(c);
 
@@ -506,9 +511,9 @@ app.get("/analytics", async (c) => {
        COALESCE(SUM(kind = 'leftover'), 0) AS started_leftover,
        COALESCE(SUM(kind = 'random'), 0) AS started_random
      FROM analytics_rounds${surfWhere}`;
-  // Today's Special engagement — the daily puzzle only, so replays/random never
+  // The selected day's Special — the daily puzzle only, so replays/random never
   // dilute its completion, win rate, or guess distribution.
-  const todayTotalsSql =
+  const dayTotalsSql =
     `SELECT COUNT(*) AS started,
        COALESCE(SUM(completed), 0) AS completed,
        COALESCE(SUM(solved), 0) AS solved,
@@ -523,20 +528,35 @@ app.get("/analytics", async (c) => {
   const [
     allTimeTotalsRes,
     allTimeDistRes,
-    todayTotalsRes,
-    todayDistRes,
-    todayDishRes,
+    dayTotalsRes,
+    dayDistRes,
+    dayDishRes,
+    dayKindRes,
     dailyRes,
     hourlyRes,
     playerRes,
   ] = await c.env.DB.batch([
       c.env.DB.prepare(allTimeTotalsSql),
       c.env.DB.prepare(distSql("")).bind(MAX_GUESSES),
-      c.env.DB.prepare(todayTotalsSql).bind(today),
-      c.env.DB.prepare(distSql(" AND play_date = ? AND kind = 'daily'")).bind(MAX_GUESSES, today),
+      c.env.DB.prepare(dayTotalsSql).bind(day),
+      c.env.DB.prepare(distSql(" AND play_date = ? AND kind = 'daily'")).bind(MAX_GUESSES, day),
       c.env.DB
         .prepare("SELECT d.name FROM schedule s JOIN dishes d ON d.id = s.dish_id WHERE s.date = ?")
-        .bind(today),
+        .bind(day),
+      // Games *started* on the selected ET day, split by kind. The daily series
+      // below only reaches back ~5 weeks, so a day picked from further back
+      // wouldn't be in it — this asks directly. Widen to a ±1-day UTC window and
+      // fold to ET in JS, since SQLite can't do named timezones.
+      c.env.DB
+        .prepare(
+          `SELECT strftime('%Y-%m-%d %H', started_at) AS bucket, kind, COUNT(*) AS started
+             FROM analytics_rounds
+             WHERE started_at IS NOT NULL
+               AND started_at >= datetime(?, '-1 day') AND started_at < datetime(?, '+2 days')
+               ${surfAnd}
+             GROUP BY bucket, kind`,
+        )
+        .bind(day, day),
       // Daily series: bucket started_at by UTC hour + kind, folded into ET days
       // below. "Games started" is a started-at metric, so a leftover replayed
       // today lands on today — not on the old puzzle's date.
@@ -668,21 +688,33 @@ app.get("/analytics", async (c) => {
       const p = playersOn(date);
       return { date, ...dayMap.get(date)!, newPlayers: p.new, returningPlayers: p.returning };
     });
-  const todayByKind = dayMap.get(today)?.startedByKind ?? zeroByKind();
+
+  // Selected day's games-started split, from its own ±1-day window.
+  const dayByKind = zeroByKind();
+  for (const r of dayKindRes.results as { bucket: string; kind: RoundKind; started: number }[]) {
+    const instant = new Date(`${r.bucket.replace(" ", "T")}:30:00Z`);
+    if (Number.isNaN(instant.getTime())) continue;
+    if (gameToday(instant) !== day) continue;
+    if (r.kind in dayByKind) dayByKind[r.kind] += r.started;
+  }
 
   const allTime = toPeriod(allTimeTotalsRes, allTimeDistRes, allTimeByKind, {
     new: allTimeNew,
     returning: allTimeReturning,
   });
-  const todayPeriod = toPeriod(todayTotalsRes, todayDistRes, todayByKind, playersOn(today));
-  const todayDish = todayDishRes.results[0] as { name: string } | undefined;
+  const dayPeriod = toPeriod(dayTotalsRes, dayDistRes, dayByKind, playersOn(day));
+  const dayDish = dayDishRes.results[0] as { name: string } | undefined;
 
   // Fold each UTC hour-bucket ("YYYY-MM-DD HH", UTC) into its ET hour of day.
+  // The same all-time buckets also give the set of ET days that saw any play —
+  // the only days the admin's day picker offers.
   const hourly = Array.from({ length: 24 }, () => 0);
+  const active = new Set<string>();
   for (const r of hourlyRes.results as { bucket: string; n: number }[]) {
     const instant = new Date(`${r.bucket.replace(" ", "T")}:30:00Z`);
     if (Number.isNaN(instant.getTime())) continue;
     hourly[gameHour(instant)] += r.n;
+    active.add(gameToday(instant));
   }
 
   const summary: AnalyticsSummary = {
@@ -691,7 +723,9 @@ app.get("/analytics", async (c) => {
     guessDistribution: allTime.guessDistribution,
     fails: allTime.fails,
     players: allTime.players,
-    today: { date: today, dishName: todayDish?.name ?? null, ...todayPeriod },
+    day: { date: day, dishName: dayDish?.name ?? null, ...dayPeriod },
+    today,
+    activeDates: [...active].sort(),
     daily,
     hourly,
   };

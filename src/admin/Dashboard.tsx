@@ -15,6 +15,7 @@ import { ANALYTICS_EVENTS_MAX, ANALYTICS_EVENTS_PAGE, MAX_GUESSES } from "../../
 import { gameTimestamp, hms, msUntilGameMidnight } from "../../shared/time";
 import * as api from "./api";
 import { peekPlayerId } from "../game/storage";
+import DayPicker from "./DayPicker";
 import type { AdminView } from "./AdminApp";
 
 const pct = (n: number, of: number) => (of === 0 ? 0 : Math.round((n / of) * 100));
@@ -529,18 +530,22 @@ function EngagementPanel() {
   const [data, setData] = useState<AnalyticsSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [surface, setSurface] = useState<SurfaceFilter>("all");
+  // Which service the day slice shows. null = today, and stays null so the panel
+  // keeps following the midnight-ET rollover instead of pinning to a stale date.
+  const [date, setDate] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
 
   useEffect(() => {
     let live = true;
     setError(null);
-    api.getAnalytics(surface === "all" ? undefined : surface).then(
+    api.getAnalytics(surface === "all" ? undefined : surface, date ?? undefined).then(
       (d) => live && setData(d),
       (e: Error) => live && setError(e.message),
     );
     return () => {
       live = false;
     };
-  }, [surface]);
+  }, [surface, date]);
 
   const surfaceToggle = <SurfaceToggle value={surface} onChange={setSurface} />;
   const header = (
@@ -567,7 +572,11 @@ function EngagementPanel() {
     );
   }
 
-  const { totals, startedByKind, guessDistribution, fails, players, today, daily, hourly } = data;
+  const { totals, startedByKind, guessDistribution, fails, players, day, today, activeDates, daily, hourly } =
+    data;
+  // The server settles what day we're actually looking at, so trust `day.date`
+  // over the requested one (a future/garbage date falls back to today).
+  const isToday = day.date === today;
   if (totals.started === 0) {
     return (
       <section className="panel">
@@ -576,6 +585,14 @@ function EngagementPanel() {
           {surface === "all"
             ? "No rounds recorded yet. Numbers show up here once players start playing."
             : `No ${surface === "web" ? "web" : "Discord"} rounds recorded yet.`}
+          {!isToday && (
+            <>
+              {" "}
+              <button className="link-btn" onClick={() => setDate(null)}>
+                Back to today
+              </button>
+            </>
+          )}
         </p>
       </section>
     );
@@ -590,47 +607,78 @@ function EngagementPanel() {
   const recentDays = [...daily].reverse();
 
   const allTimeAvg = avgGuesses(guessDistribution);
-  const todayAvg = avgGuesses(today.guessDistribution);
-  // Positive delta = today needs more guesses than usual (harder than average).
-  const avgDelta = todayAvg !== null && allTimeAvg !== null ? todayAvg - allTimeAvg : null;
+  const dayAvg = avgGuesses(day.guessDistribution);
+  // Positive delta = this day needed more guesses than usual (harder than average).
+  const avgDelta = dayAvg !== null && allTimeAvg !== null ? dayAvg - allTimeAvg : null;
 
-  // Any game started today (across all three kinds), vs. today's Special alone.
-  const todayStartedAny = sumKinds(today.startedByKind);
+  // Any game started that day (across all three kinds), vs. its Special alone.
+  const dayStartedAny = sumKinds(day.startedByKind);
 
   return (
     <section className="panel">
       {header}
 
-      <h3 className="analytics-sub">
-        Today's Special · {today.dishName ?? today.date}
-        {today.dishName && ` · ${today.date}`}
-      </h3>
-      {todayStartedAny === 0 ? (
-        <p className="dash-note">No plays recorded for today yet — check back once the diner fills up.</p>
+      {/* Day slice. Defaults to today; the calendar swaps in an earlier service
+          (only days that recorded activity are offered). */}
+      <div className="analytics-head analytics-head--sub">
+        <h3 className="analytics-sub" style={{ margin: 0 }}>
+          {isToday ? "Today's Special" : "The Special"} · {day.dishName ?? day.date}
+          {day.dishName && ` · ${day.date}`}
+        </h3>
+        <div className="analytics-head__tools">
+          <button className="btn btn--ghost btn--small" onClick={() => setPicking(true)}>
+            📅 {isToday ? "Today" : day.date}
+          </button>
+          {!isToday && (
+            <button className="link-btn" onClick={() => setDate(null)}>
+              Back to today
+            </button>
+          )}
+        </div>
+      </div>
+      {picking && (
+        <DayPicker
+          activeDates={activeDates}
+          selected={day.date}
+          today={today}
+          onPick={(d) => {
+            setDate(d === today ? null : d);
+            setPicking(false);
+          }}
+          onClose={() => setPicking(false)}
+        />
+      )}
+      {dayStartedAny === 0 ? (
+        <p className="dash-note">
+          {isToday
+            ? "No plays recorded for today yet — check back once the diner fills up."
+            : `Nobody played on ${day.date}.`}
+        </p>
       ) : (
         <>
-          {/* Games started today, split by kind — Today's Special leads. */}
-          <StartedByKindRow startedByKind={today.startedByKind} />
-          {today.totals.started === 0 ? (
+          {/* Games started that day, split by kind — the Special leads. */}
+          <StartedByKindRow startedByKind={day.startedByKind} />
+          {day.totals.started === 0 ? (
             <p className="dash-note">
-              Only leftovers and chef's specials so far today — Today's Special hasn't been played yet.
+              Only leftovers and chef's specials {isToday ? "so far today" : "that day"} — the Special
+              itself went unplayed.
             </p>
           ) : (
-            <RatesRow totals={today.totals} />
+            <RatesRow totals={day.totals} />
           )}
-          {/* New vs returning players today (all kinds, one count per device). */}
-          <PlayersRow players={today.players} />
+          {/* New vs returning players that day (all kinds, one count per device). */}
+          <PlayersRow players={day.players} />
           <div className="analytics-split">
             <div>
-              <h3 className="analytics-sub">Guess distribution · today's Special</h3>
-              <GuessBars dist={today.guessDistribution} fails={today.fails} />
+              <h3 className="analytics-sub">Guess distribution · {isToday ? "today's" : "that day's"} Special</h3>
+              <GuessBars dist={day.guessDistribution} fails={day.fails} />
             </div>
             <div>
               <h3 className="analytics-sub">Average guesses</h3>
               <div className="metric-row" style={{ marginBottom: 0 }}>
                 <div className="metric">
-                  <span className="metric__num">{todayAvg === null ? "—" : todayAvg.toFixed(2)}</span>
-                  <span className="metric__label">Today</span>
+                  <span className="metric__num">{dayAvg === null ? "—" : dayAvg.toFixed(2)}</span>
+                  <span className="metric__label">{isToday ? "Today" : shortDate(day.date)}</span>
                 </div>
                 <div className="metric">
                   <span className="metric__num">{allTimeAvg === null ? "—" : allTimeAvg.toFixed(2)}</span>
@@ -643,7 +691,9 @@ function EngagementPanel() {
                     ? "Right on the all-time average."
                     : `${avgDelta > 0 ? "▲" : "▼"} ${Math.abs(avgDelta).toFixed(2)} ${
                         avgDelta > 0 ? "more" : "fewer"
-                      } guesses than average — today's Special is playing ${avgDelta > 0 ? "harder" : "easier"}.`}
+                      } guesses than average — ${isToday ? "today's" : "that day's"} Special played ${
+                        avgDelta > 0 ? "harder" : "easier"
+                      }.`}
                 </p>
               )}
             </div>

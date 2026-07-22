@@ -48,9 +48,17 @@ export const login = (password: string) => request<{ ok: true }>("/login", json(
 export const logout = () => request<{ ok: true }>("/logout", { method: "POST" });
 export const getSession = () => request<{ loggedIn: boolean }>("/session");
 export const getDashboard = () => request<AdminDashboard>("/dashboard");
-/** Optionally filter engagement to one surface (web / discord); omit for all. */
-export const getAnalytics = (surface?: Surface) =>
-  request<AnalyticsSummary>(`/analytics${surface ? `?surface=${surface}` : ""}`);
+/**
+ * Optionally filter engagement to one surface (web / discord); omit for all.
+ * `date` (YYYY-MM-DD) moves the day slice to an earlier ET day; omit for today.
+ */
+export const getAnalytics = (surface?: Surface, date?: string) => {
+  const q = new URLSearchParams();
+  if (surface) q.set("surface", surface);
+  if (date) q.set("date", date);
+  const qs = q.toString();
+  return request<AnalyticsSummary>(`/analytics${qs ? `?${qs}` : ""}`);
+};
 /**
  * Recent activity feed, newest first. Same optional surface filter as above,
  * plus an optional "mine" filter that keeps or drops one player id (this
