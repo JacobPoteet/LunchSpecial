@@ -16,9 +16,9 @@ import { DISH_REQUEST_LIMITS, MAX_GUESSES } from "../../shared/types";
 import { ClueTicket, Countdown, GuessInput, GuessRow, Modal } from "./components";
 import ArchiveModal from "./ArchiveModal";
 import { dateLabel, isPastPuzzleDate } from "./archive";
-import { currentSurface, shareToDiscord, surfaceUrl } from "../discord/bootstrap";
+import { currentSurface, surfaceUrl } from "../discord/bootstrap";
 import { playSfx } from "./sfx";
-import { buildShareText, SHARE_URL } from "./share";
+import { buildShareText, copyShareText, SHARE_URL } from "./share";
 import {
   emptyRound,
   getPlayerId,
@@ -217,21 +217,14 @@ function ResultModal({
     if (round.analyticsId) {
       beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date, kind, surface: SURFACE });
     }
-    // Inside the Activity, hand off to Discord's share modal, which posts the
-    // score card to the channel with a link back into the game. It replaces
-    // both paths below outright: the embed's iframe has no share sheet and no
-    // clipboard permission, so the web button silently did nothing there. Which
-    // is also why a Discord-side failure has to surface here rather than fall
-    // through — the fallbacks below are dead ends in the embed.
+    // Inside the Activity, copy the score card and let the player paste it into
+    // the channel themselves. The Web Share sheet doesn't exist in the iframe,
+    // and the SDK's own share modal (`shareLink`) kept erroring out, so this is
+    // the path that reliably works today — a Discord-native share is a later
+    // revisit, see CLAUDE.md.
     if (SURFACE === "discord") {
-      const result = await shareToDiscord(text);
-      if (result === "shared") return;
-      if (result === "failed") {
-        setShareState("failed");
-        return;
-      }
-      // "unavailable": no SDK at all (a sticky Discord surface on a page load
-      // that lost Discord's params). Nothing to lose by trying the web paths.
+      setShareState((await copyShareText(`${text}\n${SHARE_URL}`)) ? "copied" : "failed");
+      return;
     }
     // On mobile (and any browser with the Web Share API) bring up the native
     // share sheet so results can go straight to other apps. Fall back to the
@@ -246,10 +239,7 @@ function ResultModal({
         // Any other failure: fall through to the clipboard path below.
       }
     }
-    navigator.clipboard.writeText(`${text}\n${SHARE_URL}`).then(
-      () => setShareState("copied"),
-      () => setShareState("failed"),
-    );
+    setShareState((await copyShareText(`${text}\n${SHARE_URL}`)) ? "copied" : "failed");
   };
   return (
     <Modal onClose={onClose} receipt>
@@ -276,11 +266,13 @@ function ResultModal({
       {canShare && (
         <button className="share-btn share-btn--primary" onClick={share}>
           {shareState === "copied"
-            ? "Copied to clipboard!"
+            ? SURFACE === "discord"
+              ? "Copied — paste it in chat!"
+              : "Copied to clipboard!"
             : shareState === "failed"
               ? "Couldn't share — tap to retry"
               : SURFACE === "discord"
-                ? "📣 Post your results"
+                ? "📋 Copy your results"
                 : "📋 Share your order"}
         </button>
       )}

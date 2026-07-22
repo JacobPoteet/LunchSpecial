@@ -27,3 +27,40 @@ export function buildShareText(
   });
   return [`Lunch Special #${puzzleNumber} — ${score}`, ...rows].join("\n");
 }
+
+/**
+ * Copy text to the clipboard, with a legacy fallback.
+ *
+ * `navigator.clipboard` is gated behind the `clipboard-write` permissions
+ * policy, which the Discord Activity iframe does not grant — the promise just
+ * rejects there. The old `execCommand("copy")` path has no such gate (it only
+ * needs the call to happen inside a user gesture), so it's what actually gets
+ * the score card onto a Discord player's clipboard. Try the modern API first
+ * and fall back rather than the other way round: `execCommand` is deprecated
+ * and steals focus for a tick.
+ */
+export async function copyShareText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // Fall through to the legacy path.
+  }
+  try {
+    const el = document.createElement("textarea");
+    el.value = text;
+    // Keep it off-screen and unfocusable-looking, but still selectable.
+    el.setAttribute("readonly", "");
+    el.style.position = "fixed";
+    el.style.top = "-9999px";
+    el.style.opacity = "0";
+    document.body.appendChild(el);
+    el.select();
+    el.setSelectionRange(0, text.length);
+    const ok = document.execCommand("copy");
+    document.body.removeChild(el);
+    return ok;
+  } catch {
+    return false;
+  }
+}
