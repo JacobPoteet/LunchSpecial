@@ -809,6 +809,102 @@
       main > .field {
         padding-top: 48px;
       }
+
+      /* ============================================================
+         Motion. All of it is opt-in: the `.anim` class is added to
+         <html> by script ONLY when the browser supports
+         IntersectionObserver AND the viewer hasn't asked for reduced
+         motion. So with JS off, or motion reduced, nothing below hides
+         content or moves — the page is fully legible as static HTML.
+         The global prefers-reduced-motion rule up top is the backstop.
+         ============================================================ */
+
+      /* Neon sign flickering to life — one-shot on load, diner-sign candy
+         on the wordmark that already carries the pink glow. */
+      @keyframes neon-on {
+        0% { opacity: 0.3; text-shadow: none; }
+        6% { opacity: 1; text-shadow: 0 0 8px rgba(255, 95, 122, 0.9), 0 0 26px rgba(255, 95, 122, 0.5); }
+        8% { opacity: 0.35; text-shadow: none; }
+        13% { opacity: 1; text-shadow: 0 0 8px rgba(255, 95, 122, 0.9), 0 0 26px rgba(255, 95, 122, 0.5); }
+        16% { opacity: 0.5; text-shadow: 0 0 6px rgba(255, 95, 122, 0.5); }
+        20% { opacity: 1; text-shadow: 0 0 8px rgba(255, 95, 122, 0.9), 0 0 26px rgba(255, 95, 122, 0.5); }
+        100% { opacity: 1; text-shadow: 0 0 8px rgba(255, 95, 122, 0.9), 0 0 26px rgba(255, 95, 122, 0.5); }
+      }
+      .anim .hero__mark {
+        animation: neon-on 1.5s ease-out both;
+      }
+      /* A slow steady breathing glow after it settles. */
+      @keyframes neon-breathe {
+        0%, 100% { text-shadow: 0 0 8px rgba(255, 95, 122, 0.9), 0 0 26px rgba(255, 95, 122, 0.5); }
+        50% { text-shadow: 0 0 12px rgba(255, 95, 122, 1), 0 0 34px rgba(255, 95, 122, 0.65); }
+      }
+      .anim .hero__mark {
+        animation: neon-on 1.5s ease-out both, neon-breathe 4.5s ease-in-out 1.6s infinite;
+      }
+
+      /* Scroll reveal — sections/cards rise and fade in as they enter view. */
+      .anim .reveal {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      .anim .reveal.in {
+        opacity: 1;
+        transform: none;
+        transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      /* A little stagger for grids of cards. */
+      .anim .reveal.reveal--d1.in { transition-delay: 0.08s; }
+      .anim .reveal.reveal--d2.in { transition-delay: 0.16s; }
+      .anim .reveal.reveal--d3.in { transition-delay: 0.24s; }
+
+      /* The dotted leader in a section header draws in from the title side. */
+      .anim .lead__dots {
+        transform: translateY(-4px) scaleX(0);
+        transform-origin: left center;
+      }
+      .anim .lead.in .lead__dots {
+        transform: translateY(-4px) scaleX(1);
+        transition: transform 0.7s ease 0.15s;
+      }
+
+      /* Feedback tiles flip in like the game's own board, one after another. */
+      @keyframes tile-flip {
+        from { transform: rotateX(-92deg); opacity: 0; }
+        to { transform: rotateX(0); opacity: 1; }
+      }
+      .anim .tiles--flip { perspective: 600px; }
+      .anim .tiles--flip .tile { opacity: 0; transform-origin: center; }
+      .anim .tiles--flip.in .tile { animation: tile-flip 0.5s ease-out both; }
+      .anim .tiles--flip.in .tile:nth-child(1) { animation-delay: 0.05s; }
+      .anim .tiles--flip.in .tile:nth-child(2) { animation-delay: 0.18s; }
+      .anim .tiles--flip.in .tile:nth-child(3) { animation-delay: 0.31s; }
+      .anim .tiles--flip.in .tile:nth-child(4) { animation-delay: 0.44s; }
+      .anim .tiles--flip.in .tile:nth-child(5) { animation-delay: 0.57s; }
+
+      /* The receipt prints line by line, like it's coming off the roll. */
+      .receipt__line { display: block; }
+      .anim .receipt--print .receipt__line { opacity: 0; transform: translateY(-6px); }
+      .anim .receipt--print.in .receipt__line {
+        opacity: 1;
+        transform: none;
+        transition: opacity 0.35s ease, transform 0.35s ease;
+      }
+      .anim .receipt--print.in .receipt__line:nth-child(1) { transition-delay: 0.1s; }
+      .anim .receipt--print.in .receipt__line:nth-child(2) { transition-delay: 0.4s; }
+      .anim .receipt--print.in .receipt__line:nth-child(3) { transition-delay: 0.7s; }
+      .anim .receipt--print.in .receipt__line:nth-child(4) { transition-delay: 1s; }
+
+      /* A slow directional pulse travels the flow arrows left to right. */
+      @keyframes arrow-pulse {
+        0%, 70%, 100% { opacity: 0.35; transform: scale(1); }
+        35% { opacity: 1; color: var(--accent); transform: scale(1.18); }
+      }
+      .anim .flow .arrow {
+        animation: arrow-pulse 2.8s ease-in-out infinite;
+      }
+      .anim .flow .arrow:nth-of-type(2) { animation-delay: 0.35s; }
+      .anim .flow .arrow:nth-of-type(3) { animation-delay: 0.7s; }
+      .anim .flow .arrow:nth-of-type(4) { animation-delay: 1.05s; }
     </style>
   </head>
   <body>
@@ -951,7 +1047,7 @@
                 different country in the same region is a near-miss. That one warm signal is what
                 makes geographic triangulation work.
               </p>
-              <div class="tiles" style="margin-top: 4px">
+              <div class="tiles tiles--flip" style="margin-top: 4px">
                 <span class="tile tile--hit">Country · hit</span>
                 <span class="tile tile--near">Country · same region</span>
                 <span class="tile tile--miss">Course · miss</span>
@@ -1007,10 +1103,7 @@
                 The emoji grid was specified before the feedback system, because it constrains what
                 the feedback can be. Four tiles per row, one pantry count, no dish names.
               </p>
-              <div class="receipt">Lunch Special #4 — 3/6
-⬜🟩🟩⬜ 1/6🥄
-🟨🟩🟩🟩 3/6🥄
-🟩🟩🟩🟩 🛎️</div>
+              <div class="receipt receipt--print"><span class="receipt__line">Lunch Special #4 — 3/6</span><span class="receipt__line">⬜🟩🟩⬜ 1/6🥄</span><span class="receipt__line">🟨🟩🟩🟩 3/6🥄</span><span class="receipt__line">🟩🟩🟩🟩 🛎️</span></div>
             </div>
 
             <div class="card stack stack--tight">
@@ -1460,9 +1553,10 @@
 
           <p class="col">
             A daily puzzle has one main tuning knob — difficulty — and no way to judge it from the
-            inside, so the game was instrumented before launch. Everything below is real production
-            data. It is also a small sample from a five-day-old game: 154 rounds from about 43
-            devices. Treat it as a method and an early read, not a result.
+            inside, so the game was instrumented before launch. The engagement charts here read
+            live from the production database — <span data-fill="rounds">154</span> rounds from
+            <span data-fill="devices">43</span> devices so far. It is still an early, self-selected
+            sample, so treat it as a method and a first read, not a result.
           </p>
 
           <div class="card stack">
@@ -1502,20 +1596,23 @@
           </div>
 
           <!-- ---------- guess distribution ---------- -->
-          <div class="card chart">
+          <div class="card chart" id="chart-guesses">
             <div>
               <div class="chart__title">Guesses needed to solve</div>
-              <div class="chart__sub">102 solved rounds · 10 more ran out of guesses</div>
+              <div class="chart__sub">
+                <span data-fill="solved">102</span> solved rounds ·
+                <span data-fill="fails">10</span> more ran out of guesses
+              </div>
             </div>
-            <svg viewBox="0 0 720 254" role="img" aria-label="Bar chart of guesses needed to solve. One guess: 8 rounds. Two: 33. Three: 39. Four: 17. Five: 5. Six: 0. Unsolved: 10.">
+            <svg viewBox="0 0 720 254" role="img" aria-label="Bar chart of guesses needed to solve, from one guess through six, plus rounds that ran out of guesses.">
               <line class="gridline" x1="46" y1="200" x2="700" y2="200" />
               <line class="gridline" x1="46" y1="156.4" x2="700" y2="156.4" />
               <line class="gridline" x1="46" y1="112.8" x2="700" y2="112.8" />
               <line class="gridline" x1="46" y1="69.2" x2="700" y2="69.2" />
-              <text class="ax" x="38" y="204" text-anchor="end">0</text>
-              <text class="ax" x="38" y="160" text-anchor="end">10</text>
-              <text class="ax" x="38" y="116" text-anchor="end">20</text>
-              <text class="ax" x="38" y="73" text-anchor="end">30</text>
+              <text class="ax y-tick" x="38" y="204" text-anchor="end">0</text>
+              <text class="ax y-tick" x="38" y="160" text-anchor="end">10</text>
+              <text class="ax y-tick" x="38" y="116" text-anchor="end">20</text>
+              <text class="ax y-tick" x="38" y="73" text-anchor="end">30</text>
 
               <rect class="bar" x="60" y="165.1" width="72" height="34.9" rx="4" fill="var(--cat-2)"><title>Solved in 1 guess — 8 rounds (8%)</title></rect>
               <text class="val" x="96" y="157" text-anchor="middle">8</text>
@@ -1558,9 +1655,10 @@
           <div class="finding col">
             <span class="finding__tag">What the distribution shows</span>
             <p>
-              Mean solve is 2.8 guesses, and nobody has used all six. 78% of solves land by guess
-              three, so most players see clue rungs 1 and 2, some see 3, and rungs 4 and 5 are rarely
-              reached — 566 clues that almost nobody reads.
+              Mean solve is <span data-fill="avgGuesses">2.8</span> guesses, and the sixth is almost
+              never needed. <span data-fill="byThree">78%</span> of solves land by guess three, so
+              most players see clue rungs 1 and 2, some see 3, and rungs 4 and 5 are rarely reached —
+              <span data-fill="unusedClues">566</span> clues that almost nobody reads.
             </p>
             <p>
               That's a difficulty problem showing up as a content-budget problem. The fix isn't more
@@ -1572,54 +1670,55 @@
 
           <!-- ---------- funnel + modes ---------- -->
           <div class="grid2">
-            <div class="card chart">
+            <div class="card chart" id="chart-funnel">
               <div>
                 <div class="chart__title">Round funnel</div>
                 <div class="chart__sub">All modes, since launch</div>
               </div>
-              <svg viewBox="0 0 480 230" role="img" aria-label="Funnel. Started 154 rounds. Completed 112, 73 percent of starts. Solved 102, 91 percent of completions. Shared 23, 21 percent of completions.">
-                <text class="ax" x="0" y="14">STARTED</text>
-                <rect class="bar" x="0" y="20" width="400" height="26" rx="4" fill="var(--cat-2)"><title>Started — 154 rounds</title></rect>
+              <svg viewBox="0 0 480 230" role="img" aria-label="Funnel of rounds started, completed, solved, and shared.">
+                <text class="ax fn-label" x="0" y="14">STARTED</text>
+                <rect class="bar" x="0" y="20" width="400" height="26" rx="4" fill="var(--cat-2)"><title>Started</title></rect>
                 <text class="val" x="408" y="38">154</text>
 
-                <text class="ax" x="0" y="68">COMPLETED · 73% of starts</text>
-                <rect class="bar" x="0" y="74" width="290.9" height="26" rx="4" fill="var(--cat-2)"><title>Completed — 112 rounds, 73% of starts</title></rect>
+                <text class="ax fn-label" x="0" y="68">COMPLETED · 73% of starts</text>
+                <rect class="bar" x="0" y="74" width="290.9" height="26" rx="4" fill="var(--cat-2)"><title>Completed</title></rect>
                 <text class="val" x="298.9" y="92">112</text>
 
-                <text class="ax" x="0" y="122">SOLVED · 91% of completions</text>
-                <rect class="bar" x="0" y="128" width="264.9" height="26" rx="4" fill="var(--cat-2)"><title>Solved — 102 rounds, 66% of starts, 91% of completions</title></rect>
+                <text class="ax fn-label" x="0" y="122">SOLVED · 91% of completions</text>
+                <rect class="bar" x="0" y="128" width="264.9" height="26" rx="4" fill="var(--cat-2)"><title>Solved</title></rect>
                 <text class="val" x="272.9" y="146">102</text>
 
-                <text class="ax" x="0" y="176">SHARED · 21% of completions</text>
-                <rect class="bar" x="0" y="182" width="59.7" height="26" rx="4" fill="var(--cat-2)"><title>Shared — 23 rounds, 15% of starts, 21% of completions</title></rect>
+                <text class="ax fn-label" x="0" y="176">SHARED · 21% of completions</text>
+                <rect class="bar" x="0" y="182" width="59.7" height="26" rx="4" fill="var(--cat-2)"><title>Shared</title></rect>
                 <text class="val" x="67.7" y="200">23</text>
               </svg>
               <p class="footnote">
-                91% of finished rounds are wins, consistent with the difficulty read above. The
-                interesting gap is the 27% who open a board and never finish.
+                <span data-fill="winRate">91%</span> of finished rounds are wins, consistent with the
+                difficulty read above. The interesting gap is the
+                <span data-fill="dropoff">27%</span> who open a board and never finish.
               </p>
             </div>
 
-            <div class="card chart">
+            <div class="card chart" id="chart-modes">
               <div>
                 <div class="chart__title">Rounds by mode</div>
                 <div class="chart__sub">Which entrance players actually use</div>
               </div>
-              <svg viewBox="0 0 480 230" role="img" aria-label="Rounds by mode. Today's Special 134 rounds, 69 percent completed. Leftovers 12 rounds, 100 percent. Chef's Choice 8 rounds, 100 percent.">
-                <text class="ax" x="0" y="14">TODAY'S SPECIAL · 69% completed</text>
-                <rect class="bar" x="0" y="20" width="400" height="26" rx="4" fill="var(--cat-1)"><title>Today's Special — 134 rounds started, 92 completed (69%)</title></rect>
+              <svg viewBox="0 0 480 230" role="img" aria-label="Rounds by mode: Today's Special, Leftovers, and Chef's Choice.">
+                <text class="ax md-label" x="0" y="14">TODAY'S SPECIAL · 69% completed</text>
+                <rect class="bar" x="0" y="20" width="400" height="26" rx="4" fill="var(--cat-1)"><title>Today's Special</title></rect>
                 <text class="val" x="408" y="38">134</text>
 
-                <text class="ax" x="0" y="68">LEFTOVERS · 100% completed</text>
-                <rect class="bar" x="0" y="74" width="35.8" height="26" rx="4" fill="var(--cat-2)"><title>Leftovers (archive replay) — 12 rounds, all completed and solved</title></rect>
+                <text class="ax md-label" x="0" y="68">LEFTOVERS · 100% completed</text>
+                <rect class="bar" x="0" y="74" width="35.8" height="26" rx="4" fill="var(--cat-2)"><title>Leftovers (archive replay)</title></rect>
                 <text class="val" x="43.8" y="92">12</text>
 
-                <text class="ax" x="0" y="122">CHEF'S CHOICE · 100% completed</text>
-                <rect class="bar" x="0" y="128" width="23.9" height="26" rx="4" fill="var(--cat-3)"><title>Chef's Choice (random dish) — 8 rounds, all completed</title></rect>
+                <text class="ax md-label" x="0" y="122">CHEF'S CHOICE · 100% completed</text>
+                <rect class="bar" x="0" y="128" width="23.9" height="26" rx="4" fill="var(--cat-3)"><title>Chef's Choice (random dish)</title></rect>
                 <text class="val" x="31.9" y="146">8</text>
 
-                <text class="ax" x="0" y="196">The two optional modes are 13% of all rounds,</text>
-                <text class="ax" x="0" y="212">and every one of them was played to the end.</text>
+                <text class="ax md-note" x="0" y="196">The two optional modes are 13% of all rounds,</text>
+                <text class="ax md-note" x="0" y="212">and nearly all are played to the end.</text>
               </svg>
               <div class="legend">
                 <span><i class="swatch" style="background: var(--cat-1)"></i> Today's Special</span>
@@ -1632,19 +1731,22 @@
           <div class="finding col">
             <span class="finding__tag">Second read</span>
             <p>
-              The optional modes are 13% of rounds and finish at 100%, against 69% for the daily.
-              Nobody opens an archive round by accident — you have to go looking for it, and everyone
-              who does plays it out. Small and self-selected, but it suggests the drop-off in the
-              daily is a discovery problem rather than a problem with the round itself.
+              The optional modes are <span data-fill="optShare">13%</span> of rounds and finish at
+              <span data-fill="optComplete">100%</span>, against
+              <span data-fill="dailyComplete">69%</span> for the daily. Nobody opens an archive round
+              by accident — you have to go looking for it, and almost everyone who does plays it out.
+              Small and self-selected, but it suggests the drop-off in the daily is a discovery
+              problem rather than a problem with the round itself.
             </p>
           </div>
 
-          <!-- ---------- per puzzle ---------- -->
-          <div class="card chart">
+          <!-- ---------- per puzzle (frozen launch-week snapshot — see note below) ---------- -->
+          <div class="card chart" id="chart-puzzles">
             <div>
               <div class="chart__title">Rounds per puzzle, launch week</div>
               <div class="chart__sub">
-                Grouped by the puzzle's date, not the day it was played · #5 was still in progress
+                A frozen launch-week snapshot — grouped by the puzzle's date, not the day it was
+                played · #5 was still in progress
               </div>
             </div>
             <svg viewBox="0 0 720 220" role="img" aria-label="Rounds per puzzle. Puzzle 1: 3 rounds, 3 devices. Puzzle 2: 24 rounds, 4 devices. Puzzle 3: 70 rounds, 4 devices. Puzzle 4: 56 rounds, 41 devices. Puzzle 5: 1 round, 1 device, in progress.">
@@ -1710,13 +1812,13 @@
                   <tbody>
                     <tr>
                       <td>Web</td>
-                      <td class="num">149</td>
-                      <td class="num">39</td>
+                      <td class="num" data-fill="webRounds">149</td>
+                      <td class="num" data-fill="webDevices">39</td>
                     </tr>
                     <tr>
                       <td>Discord Activity</td>
-                      <td class="num">5</td>
-                      <td class="num">4</td>
+                      <td class="num" data-fill="discordRounds">5</td>
+                      <td class="num" data-fill="discordDevices">4</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1879,74 +1981,375 @@
           · <a href="https://lunchspecial.app/press">press kit</a>
         </p>
         <p class="footnote" style="margin-top: 8px">
-          The four headline figures are read live from the production database each visit; the
-          analytics charts below are a snapshot from 21 July 2026, five days after launch. Artwork is
-          AI-generated placeholder pending commission. Typefaces are Alfa Slab One and Yellowtail,
-          both OFL.
+          The headline figures, the guess distribution, the round funnel, the mode split, and the
+          surface table are all read live from the production database each visit (served
+          edge-cached, so page traffic doesn't re-query on every load). Only the launch-week
+          "rounds per puzzle" chart is a frozen snapshot — its per-puzzle annotations are a fixed
+          record of launch week. Artwork is AI-generated placeholder pending commission. Typefaces
+          are Alfa Slab One and Yellowtail, both OFL.
         </p>
       </div>
     </footer>
 
     <script>
-      // Live headline numbers. The four strip cells above are read from the game's
-      // public aggregate endpoint (no accounts, no per-player data) and counted up
-      // from zero so they read as live. Everything degrades gracefully: a failed
-      // fetch just leaves the "—" placeholder, never a broken page.
+      // Live breakdown numbers + motion. One cross-origin fetch to the game's
+      // consolidated, edge-cached aggregate endpoint (no accounts, no per-player
+      // data) feeds the headline strip, the three engagement charts, the surface
+      // table, and the inline figures in the prose. Everything degrades: with the
+      // fetch failed, JS off, or reduced motion requested, the page is legible as
+      // static HTML — the charts keep their baked launch-week values as a fallback
+      // and nothing hides or moves.
       (function () {
-        var STATS_URL = "https://lunchspecial.app/api/stats";
-        var cells = Array.prototype.slice.call(
-          document.querySelectorAll("#numbers-strip [data-stat]"),
-        );
-        if (!cells.length) return;
+        "use strict";
+        var BREAKDOWN_URL = "https://lunchspecial.app/api/stats/breakdown";
 
         var reduceMotion =
-          window.matchMedia &&
-          window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        // Motion is opt-in: only when the viewer allows it AND the browser can
+        // observe scroll position. The `.anim` class gates every hiding rule in
+        // the stylesheet, so without it the page never hides content.
+        var canAnim =
+          !reduceMotion &&
+          "IntersectionObserver" in window &&
+          typeof window.requestAnimationFrame === "function";
+        if (canAnim) document.documentElement.classList.add("anim");
 
-        function fmt(value, decimals) {
-          if (decimals > 0) return value.toFixed(decimals);
-          return Math.round(value).toLocaleString("en-US");
-        }
-
-        // Ease-out so the number decelerates into its final value.
+        // ---- number helpers ----
         function easeOut(t) {
           return 1 - Math.pow(1 - t, 3);
         }
-
-        function countUp(el, target, decimals) {
-          if (reduceMotion || !target) {
-            el.textContent = fmt(target, decimals);
+        function commas(v) {
+          return Math.round(v).toLocaleString("en-US");
+        }
+        function pct(a, b) {
+          return b > 0 ? Math.round((a / b) * 100) + "%" : "—";
+        }
+        // Tween 0→target over `duration`, calling step(current) each frame. Snaps
+        // straight to target when motion is off, or when the tab is hidden at
+        // kickoff — requestAnimationFrame is paused in background tabs, so without
+        // this a page opened in the background would sit on its placeholder until
+        // first viewed.
+        function animateValue(target, duration, step, done) {
+          if (!canAnim || document.hidden) {
+            step(target);
+            if (done) done();
             return;
           }
-          var duration = 1400;
           var start = null;
           function frame(now) {
             if (start === null) start = now;
             var t = Math.min((now - start) / duration, 1);
-            el.textContent = fmt(target * easeOut(t), decimals);
-            if (t < 1) requestAnimationFrame(frame);
+            step(target * easeOut(t));
+            if (t < 1) window.requestAnimationFrame(frame);
+            else if (done) done();
           }
-          requestAnimationFrame(frame);
+          window.requestAnimationFrame(frame);
+        }
+        // Run cb the first time el scrolls into view (immediately if motion is off,
+        // so the live/final state still lands).
+        function onceInView(el, cb) {
+          if (!canAnim) {
+            cb();
+            return;
+          }
+          var io = new IntersectionObserver(
+            function (entries) {
+              for (var i = 0; i < entries.length; i++) {
+                if (entries[i].isIntersecting) {
+                  io.unobserve(entries[i].target);
+                  cb();
+                }
+              }
+            },
+            { threshold: 0.15, rootMargin: "0px 0px -6% 0px" },
+          );
+          io.observe(el);
+        }
+        // "Nice" axis maximum at or above n: 1/2/5 × a power of ten.
+        function niceCeil(n) {
+          if (n <= 0) return 1;
+          var pow = Math.pow(10, Math.floor(Math.log(n) / Math.LN10));
+          var f = n / pow;
+          var nf = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
+          return nf * pow;
+        }
+        function num(el) {
+          return el ? parseFloat((el.textContent || "").replace(/[^0-9.]/g, "")) : NaN;
         }
 
-        function render(stats) {
-          cells.forEach(function (el) {
-            var key = el.getAttribute("data-stat");
-            var decimals = parseInt(el.getAttribute("data-decimals"), 10) || 0;
-            var value = Number(stats && stats[key]);
-            if (!isFinite(value)) return;
-            countUp(el, value, decimals);
+        // ---- headline strip ----
+        function renderHeadline(headline) {
+          var cells = document.querySelectorAll("#numbers-strip [data-stat]");
+          for (var i = 0; i < cells.length; i++) {
+            (function (el) {
+              var key = el.getAttribute("data-stat");
+              var decimals = parseInt(el.getAttribute("data-decimals"), 10) || 0;
+              var value = Number(headline[key]);
+              if (!isFinite(value)) return;
+              animateValue(value, 1400, function (v) {
+                el.textContent = decimals > 0 ? v.toFixed(decimals) : commas(v);
+              });
+            })(cells[i]);
+          }
+        }
+
+        // ---- inline figures in the prose ----
+        function fillProse(fills) {
+          var els = document.querySelectorAll("[data-fill]");
+          for (var i = 0; i < els.length; i++) {
+            var key = els[i].getAttribute("data-fill");
+            if (fills[key] != null) els[i].textContent = fills[key];
+          }
+        }
+        function computeFills(bd) {
+          var h = bd.headline;
+          var d = bd.guessDistribution || [];
+          var byThree = (d[0] || 0) + (d[1] || 0) + (d[2] || 0);
+          var optStarted = bd.modes.leftover.started + bd.modes.random.started;
+          var optCompleted = bd.modes.leftover.completed + bd.modes.random.completed;
+          return {
+            rounds: commas(h.rounds),
+            devices: commas(bd.devices),
+            solved: commas(h.solved),
+            fails: commas(bd.fails),
+            avgGuesses: (Number(h.avgGuesses) || 0).toFixed(1),
+            byThree: pct(byThree, h.solved),
+            unusedClues: commas(h.dishes * 2),
+            winRate: pct(h.solved, h.completed),
+            dropoff: pct(h.rounds - h.completed, h.rounds),
+            optShare: pct(optStarted, h.rounds),
+            optComplete: pct(optCompleted, optStarted),
+            dailyComplete: pct(bd.modes.daily.completed, bd.modes.daily.started),
+            webRounds: commas(bd.surfaces.web.rounds),
+            webDevices: commas(bd.surfaces.web.devices),
+            discordRounds: commas(bd.surfaces.discord.rounds),
+            discordDevices: commas(bd.surfaces.discord.devices),
+          };
+        }
+
+        // ---- vertical bar charts (set live values, then grow on scroll-in) ----
+        function setGuessChart(dist, fails) {
+          var svg = document.querySelector("#chart-guesses svg");
+          if (!svg) return;
+          var bars = svg.querySelectorAll(".bar");
+          var vals = svg.querySelectorAll(".val");
+          var ticks = svg.querySelectorAll(".y-tick");
+          var values = dist.slice(0, 6).concat([fails]);
+          var maxVal = Math.max.apply(null, values.concat([1]));
+          var niceMax = niceCeil(maxVal);
+          var baseY = 200,
+            topY = 69.2; // y of value 0 and of the top gridline (= niceMax)
+          var scale = (baseY - topY) / niceMax;
+          for (var t = 0; t < ticks.length; t++) {
+            ticks[t].textContent = commas((niceMax * t) / (ticks.length - 1));
+          }
+          for (var i = 0; i < bars.length; i++) {
+            var v = values[i] || 0;
+            var h = Math.max(v * scale, v > 0 ? 3 : 2);
+            var y = baseY - h;
+            bars[i].setAttribute("y", y);
+            bars[i].setAttribute("height", h);
+            bars[i].setAttribute(
+              "fill",
+              v > 0 ? (i < 6 ? "var(--cat-2)" : "var(--cat-1)") : "var(--miss)",
+            );
+            var title = bars[i].querySelector("title");
+            if (title) {
+              title.textContent =
+                i < 6
+                  ? "Solved in " + (i + 1) + (i === 0 ? " guess" : " guesses") + " — " + v + " rounds"
+                  : "Ran out of guesses — " + v + " rounds";
+            }
+            if (vals[i]) {
+              vals[i].textContent = String(v);
+              vals[i].setAttribute("y", y - 8);
+            }
+          }
+        }
+        // Grows any vertical bar chart from its baseline to whatever y/height the
+        // bars currently hold (live or the baked snapshot), counting the labels up.
+        function growVerticalBars(svg) {
+          if (!canAnim || !svg) return;
+          var bars = svg.querySelectorAll(".bar");
+          var vals = svg.querySelectorAll(".val");
+          if (!bars.length) return;
+          var baseline =
+            parseFloat(bars[0].getAttribute("y")) + parseFloat(bars[0].getAttribute("height"));
+          for (var i = 0; i < bars.length; i++) {
+            (function (bar, valEl, idx) {
+              var th = parseFloat(bar.getAttribute("height"));
+              var target = num(valEl);
+              var offset = valEl ? parseFloat(valEl.getAttribute("y")) - parseFloat(bar.getAttribute("y")) : 0;
+              bar.setAttribute("y", baseline);
+              bar.setAttribute("height", 0);
+              if (valEl) valEl.setAttribute("y", baseline + offset);
+              animateValue(
+                1,
+                900 + idx * 40,
+                function (p) {
+                  var h = th * p;
+                  bar.setAttribute("y", baseline - h);
+                  bar.setAttribute("height", h);
+                  if (valEl) {
+                    valEl.setAttribute("y", baseline - h + offset);
+                    if (!isNaN(target)) valEl.textContent = String(Math.round(target * p));
+                  }
+                },
+                function () {
+                  if (valEl && !isNaN(target)) valEl.textContent = String(target);
+                },
+              );
+            })(bars[i], vals[i], i);
+          }
+        }
+
+        // ---- horizontal bar charts (funnel + modes) ----
+        function setFunnel(h) {
+          var svg = document.querySelector("#chart-funnel svg");
+          if (!svg) return;
+          var bars = svg.querySelectorAll(".bar");
+          var vals = svg.querySelectorAll(".val");
+          var labels = svg.querySelectorAll(".fn-label");
+          var vs = [h.rounds, h.completed, h.solved, h.shared];
+          for (var i = 0; i < bars.length; i++) {
+            var w = h.rounds > 0 ? 400 * (vs[i] / h.rounds) : 0;
+            w = Math.max(w, vs[i] > 0 ? 2 : 0);
+            bars[i].setAttribute("width", w);
+            if (vals[i]) {
+              vals[i].setAttribute("x", w + 8);
+              vals[i].textContent = String(vs[i]);
+            }
+          }
+          if (labels[0]) labels[0].textContent = "STARTED";
+          if (labels[1]) labels[1].textContent = "COMPLETED · " + pct(h.completed, h.rounds) + " of starts";
+          if (labels[2]) labels[2].textContent = "SOLVED · " + pct(h.solved, h.completed) + " of completions";
+          if (labels[3]) labels[3].textContent = "SHARED · " + pct(h.shared, h.completed) + " of completions";
+        }
+        function setModes(modes) {
+          var svg = document.querySelector("#chart-modes svg");
+          if (!svg) return;
+          var bars = svg.querySelectorAll(".bar");
+          var vals = svg.querySelectorAll(".val");
+          var labels = svg.querySelectorAll(".md-label");
+          var notes = svg.querySelectorAll(".md-note");
+          var order = ["daily", "leftover", "random"];
+          var starts = [modes.daily.started, modes.leftover.started, modes.random.started];
+          var maxStart = Math.max.apply(null, starts.concat([1]));
+          for (var i = 0; i < order.length; i++) {
+            var m = modes[order[i]];
+            var w = 400 * (m.started / maxStart);
+            w = Math.max(w, m.started > 0 ? 2 : 0);
+            if (bars[i]) bars[i].setAttribute("width", w);
+            if (vals[i]) {
+              vals[i].setAttribute("x", w + 8);
+              vals[i].textContent = String(m.started);
+            }
+          }
+          if (labels[0]) labels[0].textContent = "TODAY'S SPECIAL · " + pct(modes.daily.completed, modes.daily.started) + " completed";
+          if (labels[1]) labels[1].textContent = "LEFTOVERS · " + pct(modes.leftover.completed, modes.leftover.started) + " completed";
+          if (labels[2]) labels[2].textContent = "CHEF'S CHOICE · " + pct(modes.random.completed, modes.random.started) + " completed";
+          var optStarted = modes.leftover.started + modes.random.started;
+          var optCompleted = modes.leftover.completed + modes.random.completed;
+          var totalStarted = modes.daily.started + optStarted;
+          if (notes[0]) notes[0].textContent = "The two optional modes are " + pct(optStarted, totalStarted) + " of all rounds,";
+          if (notes[1]) notes[1].textContent = "and " + pct(optCompleted, optStarted) + " of them are played to the end.";
+        }
+        function growHorizontalBars(svg) {
+          if (!canAnim || !svg) return;
+          var bars = svg.querySelectorAll(".bar");
+          var vals = svg.querySelectorAll(".val");
+          for (var i = 0; i < bars.length; i++) {
+            (function (bar, valEl, idx) {
+              var tw = parseFloat(bar.getAttribute("width"));
+              var target = num(valEl);
+              bar.setAttribute("width", 0);
+              if (valEl) valEl.setAttribute("x", 8);
+              animateValue(
+                1,
+                900 + idx * 80,
+                function (p) {
+                  var w = tw * p;
+                  bar.setAttribute("width", w);
+                  if (valEl) {
+                    valEl.setAttribute("x", w + 8);
+                    if (!isNaN(target)) valEl.textContent = String(Math.round(target * p));
+                  }
+                },
+                function () {
+                  if (valEl && !isNaN(target)) valEl.textContent = String(target);
+                },
+              );
+            })(bars[i], vals[i], i);
+          }
+        }
+
+        // ---- scroll reveal for headers, cards, tiles, and the receipt ----
+        function setupReveal() {
+          if (!canAnim) return;
+          var leads = document.querySelectorAll(".lead");
+          for (var i = 0; i < leads.length; i++) {
+            (function (el) {
+              onceInView(el, function () {
+                el.classList.add("in");
+              });
+            })(leads[i]);
+          }
+          var cards = document.querySelectorAll(".card, .finding, .band");
+          for (var j = 0; j < cards.length; j++) {
+            (function (el) {
+              el.classList.add("reveal");
+              var p = el.parentElement;
+              if (p && (p.className.indexOf("grid2") > -1 || p.className.indexOf("grid3") > -1)) {
+                var idx = Array.prototype.indexOf.call(p.children, el);
+                if (idx > 0) el.classList.add("reveal--d" + Math.min(idx, 3));
+              }
+              onceInView(el, function () {
+                el.classList.add("in");
+              });
+            })(cards[j]);
+          }
+          var flips = document.querySelectorAll(".tiles--flip, .receipt--print");
+          for (var k = 0; k < flips.length; k++) {
+            (function (el) {
+              onceInView(el, function () {
+                el.classList.add("in");
+              });
+            })(flips[k]);
+          }
+        }
+
+        // ---- boot ----
+        setupReveal();
+        // The launch-week chart is a frozen snapshot: grow its baked bars purely as
+        // a visual, no data fetch.
+        var puzzleCard = document.getElementById("chart-puzzles");
+        if (puzzleCard) {
+          onceInView(puzzleCard, function () {
+            growVerticalBars(puzzleCard.querySelector("svg"));
           });
         }
 
-        fetch(STATS_URL, { headers: { accept: "application/json" } })
+        fetch(BREAKDOWN_URL, { headers: { accept: "application/json" } })
           .then(function (r) {
-            if (!r.ok) throw new Error("stats " + r.status);
+            if (!r.ok) throw new Error("breakdown " + r.status);
             return r.json();
           })
-          .then(render)
+          .then(function (bd) {
+            if (!bd || !bd.headline) return;
+            renderHeadline(bd.headline);
+            fillProse(computeFills(bd));
+            setGuessChart(bd.guessDistribution || [], bd.fails || 0);
+            setFunnel(bd.headline);
+            setModes(bd.modes);
+            var g = document.getElementById("chart-guesses");
+            var f = document.getElementById("chart-funnel");
+            var m = document.getElementById("chart-modes");
+            if (g) onceInView(g, function () { growVerticalBars(g.querySelector("svg")); });
+            if (f) onceInView(f, function () { growHorizontalBars(f.querySelector("svg")); });
+            if (m) onceInView(m, function () { growHorizontalBars(m.querySelector("svg")); });
+          })
           .catch(function () {
-            /* leave the placeholders in place */
+            /* leave baked snapshot values + placeholders in place */
           });
       })();
     </script>
