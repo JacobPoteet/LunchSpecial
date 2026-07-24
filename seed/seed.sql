@@ -1469,7 +1469,8 @@ INSERT INTO dishes (id, name, slug, country, region, course, temperature, protei
 (280,'Thai Green Curry','thai-green-curry','Thailand','southeast-asia','entree','hot','poultry','["chicken","coconut milk","green chili","basil","fish sauce","eggplant","lime leaves"]'),
 (281,'Éclair','eclair','France','europe','dessert','cold','vegetarian','["flour","egg","butter","milk","chocolate","cream"]'),
 (282,'Croissant','croissant','France','europe','breakfast','hot','vegetarian','["flour","butter","yeast","milk","sugar","egg"]'),
-(283,'Belgian Waffles','belgian-waffles','Belgium','europe','breakfast','hot','vegetarian','["flour","egg","milk","butter","sugar","yeast","powdered sugar"]');
+(283,'Belgian Waffles','belgian-waffles','Belgium','europe','breakfast','hot','vegetarian','["flour","egg","milk","butter","sugar","yeast","powdered sugar"]'),
+(284,'Soufflé','souffle','France','europe','dessert','hot','vegetarian','["egg","chocolate","butter","sugar","milk"]');
 
 INSERT INTO clues (dish_id, order_index, text) VALUES
 (234,1,'A hot sandwich beloved at American diners and lunch counters coast to coast.'),
@@ -1721,7 +1722,12 @@ INSERT INTO clues (dish_id, order_index, text) VALUES
 (283,2,'It was introduced to Americans at the 1964 New York World''s Fair.'),
 (283,3,'Its extra-deep squares are built to hold pools of syrup and cream.'),
 (283,4,'A yeasted batter is cooked in a griddle iron into thick squares, then dusted with sugar.'),
-(283,5,'Thick, deep-pocketed waffles dusted with powdered sugar.');
+(283,5,'Thick, deep-pocketed waffles dusted with powdered sugar.'),
+(284,1,'A delicate baked dish from a country in Western Europe famed for its cuisine.'),
+(284,2,'It rose to fame in early 19th-century French kitchens; its name comes from the French for "to puff up."'),
+(284,3,'Its habit of collapsing if the oven opens too soon makes it a nerve-wracking test for cooks and a classic sitcom disaster.'),
+(284,4,'Whipped egg whites are folded into a base and baked so it towers above the ramekin — here, flavored with chocolate.'),
+(284,5,'A light, airy baked dessert that puffs high in a ramekin and must be served the moment it leaves the oven.');
 
 
 
