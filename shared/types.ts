@@ -213,6 +213,28 @@ export interface PublicStats {
   avgGuesses: number;
 }
 
+/**
+ * One consolidated, aggregate-only payload for the public project-breakdown page
+ * (GitHub Pages). Everything the page's live charts need in a single response, so
+ * the page makes one cross-origin fetch. Served edge-cached from
+ * `GET /api/stats/breakdown` — no per-player or guess content, same trust model
+ * as {@link PublicStats}.
+ */
+export interface PublicBreakdown {
+  /** The four headline totals + catalogue size + mean guesses. */
+  headline: PublicStats;
+  /** Distinct anonymous devices all-time (rows predating the player id are excluded). */
+  devices: number;
+  /** dist[i] = rounds solved in i+1 guesses (length {@link MAX_GUESSES}). */
+  guessDistribution: number[];
+  /** Completed rounds that ran out of guesses (completed and not solved). */
+  fails: number;
+  /** Rounds started and completed, split by mode — drives the "rounds by mode" chart. */
+  modes: Record<RoundKind, { started: number; completed: number }>;
+  /** Rounds and distinct devices per surface — drives the surface table. */
+  surfaces: Record<Surface, { rounds: number; devices: number }>;
+}
+
 /** Totals + guess distribution for one slice of rounds (today, or all time). */
 export interface AnalyticsPeriod {
   totals: { started: number; completed: number; solved: number; shared: number };
