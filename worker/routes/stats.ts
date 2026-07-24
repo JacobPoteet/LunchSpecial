@@ -4,7 +4,13 @@
 
 import { Hono } from "hono";
 import { MAX_GUESSES, type PublicBreakdown, type PublicStats } from "../../shared/types";
-import { buildBadge, isBadgeMetric } from "../stats";
+import {
+  assembleBreakdown,
+  buildBadge,
+  isBadgeMetric,
+  type BreakdownDistRow,
+  type BreakdownSurfaceDeviceRow,
+} from "../stats";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -70,38 +76,11 @@ async function loadBreakdown(env: Env): Promise<PublicBreakdown> {
     ),
   ]);
 
-  const s = (scalarRes.results[0] ?? {}) as Record<string, number>;
-  const guessDistribution = Array.from({ length: MAX_GUESSES }, () => 0);
-  for (const r of distRes.results as { guesses: number; n: number }[]) {
-    guessDistribution[r.guesses - 1] = r.n;
-  }
-  const surfaceDevices: Record<string, number> = {};
-  for (const r of surfaceDevicesRes.results as { surface: string; devices: number }[]) {
-    surfaceDevices[r.surface] = r.devices;
-  }
-
-  return {
-    headline: {
-      dishes: s.dishes ?? 0,
-      rounds: s.rounds ?? 0,
-      completed: s.completed ?? 0,
-      solved: s.solved ?? 0,
-      shared: s.shared ?? 0,
-      avgGuesses: s.avgGuesses ?? 0,
-    },
-    devices: s.devices ?? 0,
-    guessDistribution,
-    fails: s.fails ?? 0,
-    modes: {
-      daily: { started: s.daily_started ?? 0, completed: s.daily_completed ?? 0 },
-      leftover: { started: s.leftover_started ?? 0, completed: s.leftover_completed ?? 0 },
-      random: { started: s.random_started ?? 0, completed: s.random_completed ?? 0 },
-    },
-    surfaces: {
-      web: { rounds: s.web_rounds ?? 0, devices: surfaceDevices.web ?? 0 },
-      discord: { rounds: s.discord_rounds ?? 0, devices: surfaceDevices.discord ?? 0 },
-    },
-  };
+  return assembleBreakdown(
+    scalarRes.results[0] as Record<string, number> | undefined,
+    distRes.results as BreakdownDistRow[],
+    surfaceDevicesRes.results as BreakdownSurfaceDeviceRow[],
+  );
 }
 
 // Raw public totals.

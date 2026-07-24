@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PublicStats } from "../shared/types";
-import { buildBadge, formatCount, isBadgeMetric, solveRate } from "./stats";
+import { assembleBreakdown, buildBadge, formatCount, isBadgeMetric, solveRate } from "./stats";
 
 const stats: PublicStats = { rounds: 12_450, completed: 9000, solved: 6300, shared: 1200, dishes: 283, avgGuesses: 2.8 };
 
@@ -48,5 +48,61 @@ describe("buildBadge", () => {
   });
   it("formats the solve-rate badge as a percent", () => {
     expect(buildBadge("solveRate", stats).message).toBe("70%");
+  });
+});
+
+describe("assembleBreakdown", () => {
+  it("zeroes everything for an empty table", () => {
+    const b = assembleBreakdown(undefined, [], []);
+    expect(b.headline).toEqual({ dishes: 0, rounds: 0, completed: 0, solved: 0, shared: 0, avgGuesses: 0 });
+    expect(b.devices).toBe(0);
+    expect(b.guessDistribution).toEqual([0, 0, 0, 0, 0, 0]);
+    expect(b.fails).toBe(0);
+    expect(b.modes).toEqual({
+      daily: { started: 0, completed: 0 },
+      leftover: { started: 0, completed: 0 },
+      random: { started: 0, completed: 0 },
+    });
+    expect(b.surfaces).toEqual({
+      web: { rounds: 0, devices: 0 },
+      discord: { rounds: 0, devices: 0 },
+    });
+  });
+
+  it("treats an empty scalar row the same as a missing one", () => {
+    const b = assembleBreakdown({}, [], []);
+    expect(b.headline.rounds).toBe(0);
+    expect(b.guessDistribution).toEqual([0, 0, 0, 0, 0, 0]);
+  });
+
+  it("buckets a sparse guess distribution into guesses-1 slots", () => {
+    const b = assembleBreakdown({}, [{ guesses: 2, n: 5 }, { guesses: 5, n: 1 }], []);
+    expect(b.guessDistribution).toEqual([0, 5, 0, 0, 1, 0]);
+  });
+
+  it("maps present surfaces and defaults absent ones to zero devices", () => {
+    const b = assembleBreakdown({ web_rounds: 40, discord_rounds: 3 }, [], [{ surface: "web", devices: 12 }]);
+    expect(b.surfaces.web).toEqual({ rounds: 40, devices: 12 });
+    expect(b.surfaces.discord).toEqual({ rounds: 3, devices: 0 });
+  });
+
+  it("pulls each mode's started/completed from its own scalar fields", () => {
+    const b = assembleBreakdown(
+      {
+        daily_started: 100,
+        daily_completed: 80,
+        leftover_started: 30,
+        leftover_completed: 25,
+        random_started: 10,
+        random_completed: 4,
+      },
+      [],
+      [],
+    );
+    expect(b.modes).toEqual({
+      daily: { started: 100, completed: 80 },
+      leftover: { started: 30, completed: 25 },
+      random: { started: 10, completed: 4 },
+    });
   });
 });
