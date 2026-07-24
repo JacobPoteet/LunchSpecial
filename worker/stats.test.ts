@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { PublicStats } from "../shared/types";
 import { buildBadge, formatCount, isBadgeMetric, solveRate } from "./stats";
 
-const stats: PublicStats = { rounds: 12_450, completed: 9000, solved: 6300, shared: 1200 };
+const stats: PublicStats = { rounds: 12_450, completed: 9000, solved: 6300, shared: 1200, dishes: 283, avgGuesses: 2.8 };
 
 describe("formatCount", () => {
   it("leaves counts under 1000 as-is", () => {
@@ -25,7 +25,7 @@ describe("solveRate", () => {
     expect(solveRate(stats)).toBe(70);
   });
   it("is 0 when nothing has completed", () => {
-    expect(solveRate({ rounds: 5, completed: 0, solved: 0, shared: 0 })).toBe(0);
+    expect(solveRate({ rounds: 5, completed: 0, solved: 0, shared: 0, dishes: 283, avgGuesses: 0 })).toBe(0);
   });
 });
 
