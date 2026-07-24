@@ -832,22 +832,22 @@
           <a class="btn btn--ghost" href="#numbers">The numbers</a>
         </div>
       </div>
-      <div class="strip">
+      <div class="strip" id="numbers-strip" aria-live="polite">
         <div class="strip__cell">
-          <div class="strip__n">283</div>
-          <div class="strip__l">dishes<br />1,415 clues</div>
+          <div class="strip__n" data-stat="dishes" data-decimals="0">—</div>
+          <div class="strip__l">total dishes<br />on the menu</div>
         </div>
         <div class="strip__cell">
-          <div class="strip__n">1</div>
-          <div class="strip__l">deployed process<br />site, API, database</div>
+          <div class="strip__n" data-stat="rounds" data-decimals="0">—</div>
+          <div class="strip__l">total games played<br />across every mode</div>
         </div>
         <div class="strip__cell">
-          <div class="strip__n">68</div>
-          <div class="strip__l">commits over 4 days<br />start to live domain</div>
+          <div class="strip__n" data-stat="avgGuesses" data-decimals="1">—</div>
+          <div class="strip__l">average guess<br />(budget is 6)</div>
         </div>
         <div class="strip__cell">
-          <div class="strip__n">2.8</div>
-          <div class="strip__l">mean guesses to solve<br />budget is 6</div>
+          <div class="strip__n" data-stat="shared" data-decimals="0">—</div>
+          <div class="strip__l">total shares<br />results posted</div>
         </div>
       </div>
     </header>
@@ -1879,11 +1879,76 @@
           · <a href="https://lunchspecial.app/press">press kit</a>
         </p>
         <p class="footnote" style="margin-top: 8px">
-          Figures read from the production database on 21 July 2026, five days after launch. Artwork
-          is AI-generated placeholder pending commission. Typefaces are Alfa Slab One and Yellowtail,
+          The four headline figures are read live from the production database each visit; the
+          analytics charts below are a snapshot from 21 July 2026, five days after launch. Artwork is
+          AI-generated placeholder pending commission. Typefaces are Alfa Slab One and Yellowtail,
           both OFL.
         </p>
       </div>
     </footer>
+
+    <script>
+      // Live headline numbers. The four strip cells above are read from the game's
+      // public aggregate endpoint (no accounts, no per-player data) and counted up
+      // from zero so they read as live. Everything degrades gracefully: a failed
+      // fetch just leaves the "—" placeholder, never a broken page.
+      (function () {
+        var STATS_URL = "https://lunchspecial.app/api/stats";
+        var cells = Array.prototype.slice.call(
+          document.querySelectorAll("#numbers-strip [data-stat]"),
+        );
+        if (!cells.length) return;
+
+        var reduceMotion =
+          window.matchMedia &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        function fmt(value, decimals) {
+          if (decimals > 0) return value.toFixed(decimals);
+          return Math.round(value).toLocaleString("en-US");
+        }
+
+        // Ease-out so the number decelerates into its final value.
+        function easeOut(t) {
+          return 1 - Math.pow(1 - t, 3);
+        }
+
+        function countUp(el, target, decimals) {
+          if (reduceMotion || !target) {
+            el.textContent = fmt(target, decimals);
+            return;
+          }
+          var duration = 1400;
+          var start = null;
+          function frame(now) {
+            if (start === null) start = now;
+            var t = Math.min((now - start) / duration, 1);
+            el.textContent = fmt(target * easeOut(t), decimals);
+            if (t < 1) requestAnimationFrame(frame);
+          }
+          requestAnimationFrame(frame);
+        }
+
+        function render(stats) {
+          cells.forEach(function (el) {
+            var key = el.getAttribute("data-stat");
+            var decimals = parseInt(el.getAttribute("data-decimals"), 10) || 0;
+            var value = Number(stats && stats[key]);
+            if (!isFinite(value)) return;
+            countUp(el, value, decimals);
+          });
+        }
+
+        fetch(STATS_URL, { headers: { accept: "application/json" } })
+          .then(function (r) {
+            if (!r.ok) throw new Error("stats " + r.status);
+            return r.json();
+          })
+          .then(render)
+          .catch(function () {
+            /* leave the placeholders in place */
+          });
+      })();
+    </script>
   </body>
 </html>

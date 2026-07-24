@@ -207,6 +207,10 @@ export interface PublicStats {
   solved: number;
   /** Rounds whose result was shared. */
   shared: number;
+  /** Dishes in the catalogue. */
+  dishes: number;
+  /** Mean guesses over solved rounds (0 when nothing has been solved yet). */
+  avgGuesses: number;
 }
 
 /** Totals + guess distribution for one slice of rounds (today, or all time). */
