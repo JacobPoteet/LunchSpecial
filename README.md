@@ -99,7 +99,7 @@ Setup is four clicks in the Discord Developer Portal (enable Activities, map `/`
 
 ## How the daily Special works
 
-- The daily Special **rolls over at midnight Eastern Time (`America/New_York`)** for every player, wherever they are — the same puzzle switches for everyone at the same moment. The server accepts dates within ±2 days of the current ET date for clock/rollover slack.
+- The daily Special **rolls over at midnight Eastern Time (`America/New_York`)** for every player, regardless of where they are, the same puzzle switches for everyone at the same moment.
 - The `schedule` table maps dates to dishes. If a date has no row, a **deterministic fallback** dish is picked from the active pool so the game never breaks.
 - Game state and stats live in `localStorage` — no accounts.
 - The reveal endpoint is client-initiated after game over (same honesty model as Wordle).
@@ -138,9 +138,6 @@ Ingredient names are canonical (lowercase, singular: `tomato`, not `tomatoes`) s
 
 The catalog ships two ways: `seed/seed.sql` is the canonical, idempotent snapshot used for local setup, and each batch of new dishes also gets an additive migration so releases can extend the live database without clobbering edits made in `/admin`. A data-integrity test guards both against bad enum values and dishes missing clues or ingredients.
 
-## Art & fonts
-
-**All current art is AI-generated placeholder work, tagged for replacement** — every asset is named `ai-*.svg` and carries an `AI-GENERATED PLACEHOLDER` comment. See [ASSETS.md](ASSETS.md) for the full manifest an artist can work from. Fonts (Alfa Slab One, Yellowtail) are SIL OFL, self-hosted in `src/assets/fonts/`.
 
 ## Also in this repo
 
