@@ -1,16 +1,44 @@
 name: CI
 
 # Runs the full gate — npm test (game + stats + catalog data-integrity) and
-# npm run check (tsc) — on every push/PR to main. Fires on all changes, not just
-# catalog data, so it's a meaningful required check for the branch ruleset: a
-# code-only PR (e.g. a Worker or React change) can't merge with red tests/types.
+# npm run check (tsc) — on every push/PR to main. Fires on all *code* changes,
+# not just catalog data, so a code-only PR (e.g. a Worker or React change) can't
+# land with red tests/types.
+#
+# paths-ignore skips the run when a push/PR touches ONLY inert files — prose and
+# standalone assets that no test or tsconfig project covers (docs/ is the GitHub
+# Pages landing page; discord-assets/ is a separate asset pipeline; both are
+# outside tsconfig.{app,worker,node}.json and vitest). A commit mixing a doc with
+# any other file still runs the full gate — GitHub skips only when *every*
+# changed path matches.
+#
+# NOTE: if CI ever becomes a *required* status check, paths-ignore will leave
+# doc-only PRs stuck on "Expected — waiting for status". The fix then is to keep
+# the trigger unfiltered and add a filter/gate job that reports success instead.
 on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "discord-assets/**"
   pull_request:
     branches:
       - main
+    # Keep in sync with the push filter above (Actions doesn't support YAML anchors).
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "discord-assets/**"
+
+# One CI run per branch/PR at a time. Pushing a follow-up commit (or force-pushing
+# a PR branch) cancels the in-flight run instead of leaving two full gates racing
+# to tell you about a tree you've already replaced. Only the newest commit's
+# result is one anyone acts on.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
