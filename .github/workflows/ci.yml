@@ -1,24 +1,16 @@
 name: CI
 
-# Runs on push/PR to main, but only when the catalog data (or the test that
-# validates it) actually changed — so bad data (e.g. a mistyped enum value in
-# a hand-written migration) is caught before merge, without firing on every
-# unrelated commit.
+# Runs the full gate — npm test (game + stats + catalog data-integrity) and
+# npm run check (tsc) — on every push/PR to main. Fires on all changes, not just
+# catalog data, so it's a meaningful required check for the branch ruleset: a
+# code-only PR (e.g. a Worker or React change) can't merge with red tests/types.
 on:
   push:
     branches:
       - main
-    paths:
-      - "migrations/**"
-      - "seed/seed.sql"
-      - "worker/data-integrity.test.ts"
   pull_request:
     branches:
       - main
-    paths:
-      - "migrations/**"
-      - "seed/seed.sql"
-      - "worker/data-integrity.test.ts"
 
 jobs:
   test:
