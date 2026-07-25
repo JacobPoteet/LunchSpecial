@@ -16,11 +16,6 @@
       "migrations_dir": "migrations"
     }
   ],
-  // Dev-only "free play" (random-dish testing). Off in production; the local
-  // .dev.vars overrides it to "true" so `npm run play` / `npm run dev` enable it.
-  "vars": {
-    "DEV_FREEPLAY": "false"
-  },
   "observability": {
     "enabled": true
   }

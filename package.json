@@ -15,6 +15,7 @@
     "check": "tsc -b",
     "cf-typegen": "wrangler types",
     "assets:discord": "node discord-assets/build.mjs",
+    "assets:press": "node scripts/build-press-kit.mjs",
     "db:migrate": "wrangler d1 migrations apply lunch-special-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply lunch-special-db --remote",
     "db:seed": "wrangler d1 execute lunch-special-db --local --file=seed/seed.sql",
@@ -34,15 +35,15 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
     "better-sqlite3": "^13.0.1",
+    "sharp": "^0.35.2",
     "typescript": "^7.0.2",
     "vite": "^8.1.5",
     "vitest": "^4.1.10",
     "wrangler": "^4.112.0"
   },
   "allowScripts": {
-    "better-sqlite3@12.11.1": true,
+    "better-sqlite3@13.0.1": true,
     "esbuild@0.28.1": true,
-    "sharp@0.34.5": true,
-    "workerd@1.20260714.1": true
+    "workerd@1.20260722.1": true
   }
 }
