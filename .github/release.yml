@@ -1,0 +1,31 @@
+# Categorized, auto-generated release notes. GitHub buckets each merged PR into
+# the FIRST category whose label it carries (order matters), so the more specific
+# buckets come before the catch-all "Features". Cut a release the usual way
+# (git tag vX.Y.Z && git push origin vX.Y.Z) and "Generate release notes" — or the
+# Releases UI — fills the body from the PRs merged since the previous tag.
+changelog:
+  exclude:
+    labels:
+      - duplicate
+      - invalid
+      - wontfix
+      - question
+  categories:
+    - title: 🐛 Bug Fixes
+      labels:
+        - bug
+    - title: 📊 Analytics
+      labels:
+        - analytics
+    - title: ✅ Testing
+      labels:
+        - testing
+    - title: 📖 Documentation
+      labels:
+        - documentation
+    - title: 🍽️ Features
+      labels:
+        - enhancement
+    - title: 🔧 Other Changes
+      labels:
+        - "*"

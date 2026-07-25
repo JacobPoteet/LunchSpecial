@@ -1,0 +1,40 @@
+name: CodeQL
+
+# Static security analysis for the JS/TS in the Worker, React app, and shared/.
+# Free on public repos; results land in the repo's Security → Code scanning tab.
+# Runs on pushes/PRs to main and a weekly cron so newly disclosed query packs
+# still catch code that hasn't changed.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: "27 4 * * 1" # Mondays 04:27 UTC
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          # security-and-quality adds maintainability/quality queries on top of
+          # the default security set.
+          queries: security-and-quality
+
+      # No build step: CodeQL analyzes JS/TS from source, and this repo's build
+      # needs generated Cloudflare types + a placeholder .dev.vars that add
+      # nothing to the analysis.
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3

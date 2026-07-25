@@ -1,0 +1,31 @@
+# Weekly dependency PRs. Runtime deps are intentionally tiny (hono, react,
+# react-dom); the churn is in tooling (vite, wrangler, vitest, better-sqlite3)
+# and the pinned action versions in the workflows. Updates are grouped so we get
+# a couple of tidy PRs a week instead of one per package — the path-scoped CI +
+# npm test / npm run check gate them on merge.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    groups:
+      # Non-breaking bumps in one PR; majors still come through individually.
+      dev-and-minor:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+    groups:
+      actions:
+        patterns:
+          - "*"
