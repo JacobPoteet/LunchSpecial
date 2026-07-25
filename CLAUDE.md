@@ -7,7 +7,7 @@ Daily Wordle-style game: guess the diner's "Special" (a world dish). 1950s diner
 ```bash
 npm run dev          # vite dev (Worker runs in workerd via @cloudflare/vite-plugin), http://localhost:5173
 npm run play         # vite dev + opens /play: a fresh round on a RANDOM dish, nothing saved (dev-only free play)
-npm test             # vitest — worker/game.test.ts only
+npm test             # vitest — worker/{game,stats,data-integrity}.test.ts
 npm run check        # tsc -b (3 project refs: app / worker / node)
 npm run build        # tsc -b && vite build → dist/
 npm run deploy       # build + wrangler deploy
@@ -40,7 +40,17 @@ Local admin password: `ADMIN_PASSWORD` in `.dev.vars` (gitignored; currently `lu
 
 ### Automated releases (CI)
 
-`.github/workflows/deploy.yml` deploys on any pushed tag matching `v*` (and via manual "Run workflow" / `gh workflow run deploy.yml`). Steps: `npm ci` → write a placeholder `.dev.vars` → `npm run cf-typegen` → `npm test` → `npm run check` → remote D1 migrate → `npm run deploy`. Uses `actions/checkout@v5` + `actions/setup-node@v5` (Node 24 — no deprecation warnings). Cut a release with:
+Three workflows, deliberately scoped so routine pushes don't pay for the full gate:
+
+| Workflow | Fires on | Does |
+|---|---|---|
+| `ci.yml` | push + PR to `main` | `npm test` → `npm run check` |
+| `codeql.yml` | push + PR to `main`, weekly cron (Mon 04:27 UTC) | security-and-quality scan |
+| `deploy.yml` | `v*` tag, or manual dispatch | test + check + remote D1 migrate + deploy |
+
+`ci.yml` and `codeql.yml` both **skip prose/asset-only changes** via an identical `paths-ignore` (`**.md`, `docs/**`, `discord-assets/**` — none are covered by vitest or any tsconfig project). Keep the two lists in sync; Actions doesn't support YAML anchors. Both also set `concurrency` with `cancel-in-progress: true`, so a follow-up push supersedes the in-flight run instead of racing it. **If CI ever becomes a required status check, `paths-ignore` will hang doc-only PRs on "Expected — waiting for status"** — switch to an always-running gate job at that point.
+
+`deploy.yml` deploys on any pushed tag matching `v*` (and via manual "Run workflow" / `gh workflow run deploy.yml`). Steps: `npm ci` → write a placeholder `.dev.vars` → `npm run cf-typegen` → `npm test` → `npm run check` → remote D1 migrate → `npm run deploy`. It re-runs test+check on purpose — the deploy gate shouldn't trust that CI already passed on some earlier commit. All three use `actions/checkout@v7` + `actions/setup-node@v7` on Node 22. Cut a release with:
 
 ```bash
 git tag v1.1.0 && git push origin v1.1.0

@@ -4,15 +4,36 @@ name: CodeQL
 # Free on public repos; results land in the repo's Security → Code scanning tab.
 # Runs on pushes/PRs to main and a weekly cron so newly disclosed query packs
 # still catch code that hasn't changed.
+#
+# paths-ignore skips prose/asset-only changes — there's no JS/TS to analyze in a
+# README edit. Same list as ci.yml. The weekly cron still re-scans everything, so
+# skipping here never leaves code unanalyzed.
 on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "discord-assets/**"
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "discord-assets/**"
   schedule:
     - cron: "27 4 * * 1" # Mondays 04:27 UTC
+
+# Same rule as ci.yml: supersede an in-flight scan when a newer commit lands on
+# the same ref. CodeQL is the slowest job here, so this is where stacked pushes
+# waste the most. Note the cron shares main's group (github.ref is the default
+# branch for a schedule event), so a push to main can cancel a running weekly
+# scan — harmless, since the push then scans the same code or newer.
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:
