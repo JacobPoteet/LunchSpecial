@@ -22,17 +22,17 @@
   },
   "dependencies": {
     "@discord/embedded-app-sdk": "^2.5.0",
-    "hono": "^4.12.30",
-    "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "hono": "^4.12.32",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.45.1",
+    "@cloudflare/vite-plugin": "^1.47.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^26.1.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.3",
+    "@vitejs/plugin-react": "^6.0.4",
     "better-sqlite3": "^12.11.1",
     "typescript": "^7.0.2",
     "vite": "^8.1.5",
