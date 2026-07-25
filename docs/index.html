@@ -1463,11 +1463,13 @@
                 <div class="pipe__body">
                   <span class="pipe__t">Gate locally</span>
                   <span class="pipe__d">
-                    Unit tests cover the pure game engine — feedback scoring, puzzle numbering, date
-                    validation, the deterministic fallback pick. Keeping that logic free of I/O is
-                    what makes it testable. Then a strict TypeScript build across three composite
-                    projects. Worker code compiles without DOM types, so a stray
-                    <code>window</code> in an API handler fails the build.
+                    Unit tests cover the pure logic — feedback scoring, puzzle numbering, date
+                    validation, the deterministic fallback pick, and the shaping of the public
+                    analytics breakdown. Keeping that logic free of I/O is what makes it testable:
+                    the aggregate queries can't run without a database, so the code that folds their
+                    rows into a response was split into a pure function that can. Then a strict
+                    TypeScript build across three composite projects. Worker code compiles without
+                    DOM types, so a stray <code>window</code> in an API handler fails the build.
                   </span>
                   <span class="pipe__cmd">npm test &amp;&amp; npm run check</span>
                 </div>
@@ -1487,7 +1489,9 @@
                   <span class="pipe__t">Tag the release</span>
                   <span class="pipe__d">
                     Any <code>v*</code> tag triggers the deploy workflow. A concurrency group makes
-                    two deploys unable to race.
+                    two deploys unable to race. The changelog is generated from the merged PRs'
+                    labels, so it's a by-product of the label each one already carries, not a
+                    document kept in sync by hand.
                   </span>
                   <span class="pipe__cmd">git tag v1.1.0 &amp;&amp; git push origin v1.1.0</span>
                 </div>
@@ -1534,6 +1538,29 @@
                 It never runs the seed. Seeding is destructive by design, and automating a destructive
                 step against production is how you lose a month of content edits. It stays a manual,
                 once-per-environment bootstrap step.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div class="card stack stack--tight">
+              <h3>Dependencies update on a schedule</h3>
+              <p style="color: var(--ink-soft); font-size: 0.97rem">
+                Four runtime dependencies means nearly all the churn is tooling — the bundler, the
+                Workers CLI, the test runner — plus the pinned action versions in the workflows.
+                Dependabot opens grouped weekly pull requests for those, so the same local gate and
+                typecheck decide whether a bump is safe and the ordinary tag-to-deploy flow ships it.
+                Grouping is the point: a couple of tidy PRs a week instead of one per package.
+              </p>
+            </div>
+            <div class="card stack stack--tight">
+              <h3>Security scanning on every pull request</h3>
+              <p style="color: var(--ink-soft); font-size: 0.97rem">
+                CodeQL runs its security-and-quality queries over the TypeScript on every PR — not
+                path-filtered like the data-integrity job, because a logic change anywhere is what it
+                looks at. It needs no build step: it reads the source directly, which sidesteps the
+                generated Cloudflare types the real build depends on. Free on a public repo, with
+                results in the repository's Security tab.
               </p>
             </div>
           </div>
