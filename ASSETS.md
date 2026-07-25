@@ -51,12 +51,42 @@ See [`discord-assets/README.md`](discord-assets/README.md) for Portal upload loc
 | `discord-assets/preview.mp4` | Slow zoom over the cover (optional hover preview) | 640×360, <1 MB, 9s |
 | `discord-assets/app-icon.svg` | Vector source for the icon | 1024 viewBox |
 
+## Press kit (`public/press/`)
+
+Served by the Worker at `/press` ([`public/press.html`](public/press.html)) — unlike the
+Discord assets, these ship on every deploy, so keep the folder lean. The loose files are
+the individual downloads the page links; `lunch-special-press-kit.zip` is the "grab
+everything" bundle, **generated** from them with `npm run assets:press`
+([`scripts/build-press-kit.mjs`](scripts/build-press-kit.mjs)) — don't hand-roll it.
+
+The zip deliberately ships **one copy per image**. `discord-assets/cover-art.png` and
+`embedded-background.png` are byte-identical to `key-art.png` and `backdrop.png`; the
+press page already labels the single copies with their Discord roles, so carrying both
+names just doubled 4.4 MB on every deploy. The builder also writes forward-slash paths —
+the previous PowerShell-built zip used backslashes, which macOS/Linux extractors turn
+into a literal `fonts\alfa-slab-one.ttf` file instead of a `fonts/` directory.
+
+| File | What | Spec |
+|---|---|---|
+| `public/press/app-icon.png` | Cloche mark on cherry ground | 1024×1024 |
+| `public/press/key-art.png` | Backdrop + neon wordmark (= Discord cover art) | 1280×720 |
+| `public/press/backdrop.png` | Diner backdrop (= Discord embedded background) | 1280×720 |
+| `public/press/favicon.svg` | Cloche mark | 64×64 viewBox |
+| `public/press/fonts/*.ttf` | Alfa Slab One + Yellowtail, for press use | OFL 1.1 |
+
 ## Fonts (licensed, not placeholders)
 
 | File | Family | License | Use |
 |---|---|---|---|
 | `src/assets/fonts/alfa-slab-one.ttf` | Alfa Slab One | SIL OFL 1.1 | Display headings, menu titles, buttons |
 | `src/assets/fonts/yellowtail.ttf` | Yellowtail | SIL OFL 1.1 | Neon script logo "Lunch Special" |
+
+The same two `.ttf` files exist in four places, and that is **intentional** — each copy
+serves a different host or consumer, so don't "dedupe" them: `src/assets/fonts/` is the
+game bundle (Vite content-hashes these), `public/press/fonts/` are stable-URL press
+downloads, `docs/fonts/` belongs to the GitHub Pages project-breakdown site (a separate
+host that can't reach Vite's hashed filenames), and the press-kit zip carries its own.
+Collapsing them would trade 152 KB for a cross-origin dependency between two deploys.
 
 The neon logo is **live text** styled with CSS glow (`.marquee__script`), not an image — a hand-lettered SVG logo would be a welcome replacement (target: ~4:1 aspect, works from 320px wide).
 
