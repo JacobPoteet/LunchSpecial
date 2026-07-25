@@ -80,6 +80,13 @@ into a literal `fonts\alfa-slab-one.ttf` file instead of a `fonts/` directory.
 |---|---|---|---|
 | `src/assets/fonts/alfa-slab-one.ttf` | Alfa Slab One | SIL OFL 1.1 | Display headings, menu titles, buttons |
 | `src/assets/fonts/yellowtail.ttf` | Yellowtail | SIL OFL 1.1 | Neon script logo "Lunch Special" |
+| `docs/fonts/bitter.woff2` | Bitter (variable 400–700, latin subset) | SIL OFL 1.1 | Headings on the GitHub Pages breakdown only |
+
+Bitter lives in **one** place and stays there — it is not part of the game bundle or the
+press kit. It exists because Alfa Slab One is unreadable in a run of words at heading
+size; Bitter is the same Clarendon genre drawn for screens, so the breakdown page keeps
+the diner register without the blockiness. The game itself still heads everything in Alfa
+Slab One, where the strings are short enough to carry it.
 
 The same two `.ttf` files exist in four places, and that is **intentional** — each copy
 serves a different host or consumer, so don't "dedupe" them: `src/assets/fonts/` is the
