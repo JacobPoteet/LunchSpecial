@@ -34,6 +34,14 @@
         font-weight: 400;
         font-display: swap;
       }
+      /* Variable, latin subset — one 34KB file covers the whole 400–700
+         range, so headings can sit at 600 without a second download. */
+      @font-face {
+        font-family: "Bitter";
+        src: url("fonts/bitter.woff2") format("woff2");
+        font-weight: 400 700;
+        font-display: swap;
+      }
 
       /* ============================================================
          Tokens. Colours derive from the game's own base.css palette.
@@ -73,10 +81,15 @@
 
         --shadow: 0 10px 26px rgba(18, 40, 36, 0.13);
 
-        /* Display face is reserved for the wordmark, the four headline
-           numbers, and section titles. Nothing else — it is too heavy to
-           read in runs. */
+        /* Two slabs, on purpose. Alfa Slab One is the sign: reserved for
+           the wordmark and the four headline numbers — short, decorative
+           strings you glance at. It is NOT used for headings, because at
+           heading sizes it closes its counters up and a full title reads
+           as a block rather than as words. Headings use Bitter instead:
+           same Clarendon lineage (the 1950s diner genre), but drawn for
+           screens, so it stays open and legible in a run of text. */
         --font-display: "Alfa Slab One", "Arial Black", sans-serif;
+        --font-slab: "Bitter", Georgia, "Times New Roman", serif;
         --font-script: "Yellowtail", "Brush Script MT", cursive;
         --font-body: Georgia, "Iowan Old Style", "Times New Roman", serif;
         --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
@@ -359,7 +372,9 @@
 
       /* ============================================================
          Section headings — menu line: title …… fact.
-         The only place the display face appears in the body.
+         Set in Bitter, not the display slab. The dotted leader + mono
+         kicker already carry the menu look; the title only has to be
+         readable and stay in the same Clarendon family.
          ============================================================ */
       .lead {
         display: flex;
@@ -368,9 +383,11 @@
         margin: 0;
       }
       .lead__t {
-        font-family: var(--font-display);
-        font-size: clamp(1.25rem, 3.2vw, 1.6rem);
-        line-height: 1.25;
+        font-family: var(--font-slab);
+        font-weight: 600;
+        font-size: clamp(1.5rem, 3.6vw, 1.95rem);
+        line-height: 1.22;
+        letter-spacing: 0.004em;
         color: var(--ink);
         text-wrap: balance;
       }
@@ -397,10 +414,11 @@
         }
       }
 
-      /* Sub-headings are body-serif bold — readable at small sizes. */
+      /* Sub-headings take the same slab a step down, so they read as a
+         heading level rather than as a bolded sentence of body copy. */
       h3 {
-        font-family: var(--font-body);
-        font-weight: 700;
+        font-family: var(--font-slab);
+        font-weight: 600;
         font-size: 1.04rem;
         line-height: 1.4;
         margin: 0;
