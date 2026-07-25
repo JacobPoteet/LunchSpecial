@@ -30,8 +30,8 @@ Built as a single Cloudflare Worker: React SPA served from Workers Static Assets
 | Database | Cloudflare D1 — dishes, clues, schedule, analytics, dish requests (`migrations/`, `seed/`) |
 | Dev/build | `@cloudflare/vite-plugin` (Worker runs in workerd during `vite dev`) |
 | Discord | `@discord/embedded-app-sdk`, dynamically imported only inside the Activity iframe (`src/discord/`) |
-| Tests | Vitest — pure game engine, badge/stats formatting, and a catalog data-integrity check (`worker/*.test.ts`) |
-| CI/CD | GitHub Actions — push a `v*` tag to test, migrate, and deploy the Worker automatically (`.github/workflows/deploy.yml`); a lighter `ci.yml` validates catalog data on PRs that touch it |
+| Tests | Vitest — pure game engine, badge/stats + analytics-breakdown assembly, and a catalog data-integrity check (`worker/*.test.ts`) |
+| CI/CD | GitHub Actions — a `v*` tag tests, migrates, and deploys the Worker (`deploy.yml`); `ci.yml` validates catalog data on PRs that touch it; `codeql.yml` scans every PR; Dependabot (`dependabot.yml`) keeps dependencies current |
 
 ## Local development
 
@@ -75,6 +75,8 @@ git tag v1.1.0 && git push origin v1.1.0
 ```
 
 You can also run it on demand from **Actions → Deploy to Cloudflare → Run workflow**. CI authenticates with two GitHub Actions secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`); the Worker secrets below live on the Worker and persist across deploys, so CI never touches them. The seed is **never** run in CI — it would overwrite dishes edited via `/admin`.
+
+The release's changelog is generated from the merged PRs' labels (`.github/release.yml`), so it falls out of the label each PR already carries rather than being written by hand. Dependency updates arrive as grouped weekly Dependabot PRs, and CodeQL runs security/quality analysis on every PR (`.github/workflows/codeql.yml`).
 
 ### First-time setup (one-off)
 
