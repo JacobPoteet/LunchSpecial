@@ -82,6 +82,67 @@
   background: var(--paper);
 }
 
+/* Dashboard sub-tabs — a menu board under the nav. Deliberately a different
+   shape from .admin-nav's pills: those pick an area of the app, these pick a
+   view of the dashboard. The surface filter rides along on the right so it
+   stays put while you move between tabs. */
+.admin-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--paper);
+  border-radius: 12px;
+  padding: 6px 10px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 16px;
+}
+
+.admin-tabs__list {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.admin-tabs__btn {
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
+  color: var(--teal);
+  padding: 9px 14px 6px;
+  cursor: pointer;
+}
+
+.admin-tabs__btn:hover { background: rgba(27, 79, 74, 0.09); }
+
+.admin-tabs__btn--active,
+.admin-tabs__btn--active:hover {
+  color: var(--cherry-dark);
+  border-bottom-color: var(--cherry);
+  background: transparent;
+}
+
+.admin-tabs__tools { padding: 2px 0; }
+
+@media (max-width: 640px) {
+  /* Five tabs won't fit at 375px — swipe them instead of stacking three rows. */
+  .admin-tabs { flex-direction: column; align-items: stretch; }
+  .admin-tabs__list {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .admin-tabs__list::-webkit-scrollbar { display: none; }
+  .admin-tabs__btn { padding-left: 11px; padding-right: 11px; }
+}
+
 .panel {
   background: var(--paper);
   border-radius: 12px;
