@@ -568,6 +568,139 @@
   vertical-align: middle;
 }
 
+/* menu mix — what has actually been on the menu (region / course / protein /
+   temperature ratios). Every bar is one hue on purpose: these are *nominal*
+   categories, so bar length already carries the value; spending nine hues on
+   nine regions would re-encode it and burn the identity channel for nothing. */
+
+.mix-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px 28px;
+}
+
+.mix { display: flex; flex-direction: column; gap: 5px; }
+
+.mix__row {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) 46px 52px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+/* Pantry bars have no pool baseline to compare against — no delta column. */
+.mix__row--plain { grid-template-columns: 92px minmax(0, 1fr) 26px; }
+
+.mix__label {
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A category the menu hasn't touched: still listed, just quieter. */
+.mix__label--zero { color: var(--ink-soft); }
+
+.mix__track {
+  position: relative;
+  height: 10px;
+  border-radius: 2px;
+  background: rgba(27, 79, 74, 0.08);
+}
+
+.mix__bar {
+  display: block;
+  height: 100%;
+  background: var(--teal);
+  /* Square where it leaves the baseline, rounded at the data end. */
+  border-radius: 2px 4px 4px 2px;
+}
+
+/* Where the category would sit if the slice matched the active pool. */
+.mix__ref {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--miss);
+  border-radius: 1px;
+}
+
+.mix__val {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.mix__pct {
+  display: block;
+  font-size: 0.66rem;
+  color: var(--ink-soft);
+  line-height: 1.2;
+}
+
+/* Gap to the pool's share, in percentage points. */
+.mix__delta {
+  font-size: 0.66rem;
+  color: var(--ink-soft);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mix__delta--over { color: var(--teal); }
+
+@media (max-width: 640px) {
+  .mix__row { grid-template-columns: 78px minmax(0, 1fr) 42px 46px; gap: 6px; }
+  .mix__row--plain { grid-template-columns: 78px minmax(0, 1fr) 26px; }
+}
+
+/* Region cadence: rows are regions, columns are consecutive Specials. Reads as
+   a dot path — clumps and empty rows are the whole point. */
+.cadence {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* Scrolls inside .day-table-wrap rather than squashing the cells to nothing. */
+  min-width: 440px;
+}
+
+.cadence__row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.cadence__label {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* 2px of surface between cells is what separates them — no borders. */
+.cadence__cells { display: flex; gap: 2px; }
+
+.cadence__cell {
+  flex: 1;
+  height: 12px;
+  border-radius: 2px;
+  background: rgba(27, 79, 74, 0.07);
+}
+
+.cadence__cell--on { background: var(--teal); }
+
+.cadence__row--axis { margin-top: 4px; }
+
+.cadence__tick {
+  font-size: 0.62rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.cadence__tick--end { margin-left: auto; }
+
 /* Sub-heading row inside a panel: title left, its own control right. */
 .analytics-head--sub { margin-bottom: 8px; }
 /* Right-hand cluster of that row (filter + Refresh); wraps together at 375px. */
