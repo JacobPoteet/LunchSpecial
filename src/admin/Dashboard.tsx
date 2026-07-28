@@ -16,6 +16,7 @@ import { gameTimestamp, hms, msUntilGameMidnight } from "../../shared/time";
 import * as api from "./api";
 import { peekPlayerId } from "../game/storage";
 import DayPicker from "./DayPicker";
+import MenuMixPanel from "./MenuMixPanel";
 import type { AdminView } from "./AdminApp";
 
 const pct = (n: number, of: number) => (of === 0 ? 0 : Math.round((n / of) * 100));
@@ -934,6 +935,8 @@ export default function Dashboard({
           </ul>
         )}
       </section>
+
+      <MenuMixPanel />
 
       <EngagementPanel />
     </>

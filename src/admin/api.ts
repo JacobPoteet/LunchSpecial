@@ -8,6 +8,7 @@ import type {
   AnalyticsEvent,
   AnalyticsSummary,
   DishRequest,
+  MenuMix,
   ScheduleEntry,
   Surface,
 } from "../../shared/types";
@@ -76,6 +77,8 @@ export const getAnalyticsEvents = (
     `/recent-rounds?limit=${limit}${surface ? `&surface=${surface}` : ""}` +
       (mine ? `&player=${encodeURIComponent(mine.playerId)}&playerMode=${mine.mode}` : ""),
   );
+/** Menu composition (region/course/protein/temperature ratios). No filters — catalogue data. */
+export const getMenuMix = () => request<MenuMix>("/menu-mix");
 export const getDishes = () => request<AdminDishRow[]>("/dishes");
 export const getDish = (id: number) => request<AdminDishDetail>(`/dishes/${id}`);
 export const createDish = (input: AdminDishInput) => request<{ id: number }>("/dishes", json(input));

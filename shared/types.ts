@@ -235,6 +235,81 @@ export interface PublicBreakdown {
   surfaces: Record<Surface, { rounds: number; devices: number }>;
 }
 
+// ---- Menu mix (what has actually been on the menu) ----
+
+/** The three menu slices the mix panel can chart, in display order. */
+export const MENU_SLICES = ["served", "upcoming", "pool"] as const;
+export type MenuSliceKey = (typeof MENU_SLICES)[number];
+
+/** The dish attributes the mix panel breaks down, in display order. */
+export const MENU_MIX_KEYS = ["region", "course", "protein", "temperature"] as const;
+export type MenuMixKey = (typeof MENU_MIX_KEYS)[number];
+
+/**
+ * One slice of the menu, counted by dish attribute. Every enum member is present
+ * (zeros included) so the charts keep a stable order and never grow a row when
+ * an obscure category finally shows up.
+ */
+export interface MenuMixSlice {
+  /**
+   * Servings counted: scheduled days for `served`/`upcoming`, dishes for `pool`.
+   * The per-attribute counts sum to this unless a dish carries a value outside
+   * the enum (only possible for `region`, which has no DB CHECK).
+   */
+  servings: number;
+  /** Distinct dishes behind those servings. */
+  dishes: number;
+  region: Record<Region, number>;
+  course: Record<Course, number>;
+  protein: Record<Protein, number>;
+  temperature: Record<Temperature, number>;
+}
+
+/** One Special that was (or will be) served, for the cadence strip. */
+export interface MenuServing {
+  date: string;
+  dishId: number;
+  name: string;
+  country: string;
+  region: Region;
+  course: Course;
+  protein: Protein;
+  temperature: Temperature;
+}
+
+/**
+ * What the kitchen has actually been serving — the admin dashboard's menu-mix
+ * panel. Pure catalogue/schedule data (no player analytics): the ratios of
+ * regions, courses, proteins and temperatures across past Specials, the booked
+ * days ahead, and the active pool they're drawn from as a baseline.
+ */
+export interface MenuMix {
+  /** Specials already served — schedule rows from EPOCH_DATE through today. */
+  served: MenuMixSlice;
+  /** Specials booked for future dates. */
+  upcoming: MenuMixSlice;
+  /** The active dish pool — everything that *could* be served. */
+  pool: MenuMixSlice;
+  /** Countries served, most-served first. */
+  countries: { country: string; region: Region; servings: number; lastServed: string }[];
+  /** Most common ingredients across served Specials, most-common first (capped). */
+  ingredients: { name: string; servings: number }[];
+  /** Dishes served more than once, most-served first. */
+  repeats: { dishId: number; name: string; servings: number; lastServed: string }[];
+  /** Active pool dishes that have never been the Special. */
+  neverServed: number;
+  /**
+   * Days since EPOCH_DATE with no schedule row. Those ran on the deterministic
+   * fallback pick, which isn't recoverable after the fact (the pool moves), so
+   * they're counted but not folded into `served`.
+   */
+  unscheduledDays: number;
+  /** The most recent Specials served, oldest first (capped) — the cadence strip. */
+  timeline: MenuServing[];
+  /** The ET day the served/upcoming split was made on. */
+  today: string;
+}
+
 /** Totals + guess distribution for one slice of rounds (today, or all time). */
 export interface AnalyticsPeriod {
   totals: { started: number; completed: number; solved: number; shared: number };

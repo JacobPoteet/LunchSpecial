@@ -37,6 +37,7 @@ import {
 } from "../auth";
 import { rowToDish, serverToday, type DishDbRow } from "../db";
 import { isValidDateString } from "../game";
+import { assembleMenuMix, type MenuDishRow, type MenuScheduleRow } from "../menu";
 import { gameHour, gameToday, msUntilGameMidnight } from "../../shared/time";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -462,6 +463,29 @@ app.get("/dashboard", async (c) => {
     warnings,
   };
   return c.json(dashboard);
+});
+
+// What the kitchen has actually been serving, by dish attribute (region /
+// course / protein / temperature ratios across past Specials, the days booked
+// ahead, and the active pool as a baseline). Catalogue data only — no player
+// analytics — so it takes no surface/date filters. The fold is pure: see
+// worker/menu.ts.
+app.get("/menu-mix", async (c) => {
+  const [scheduleRes, poolRes] = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `SELECT s.date, d.id, d.name, d.country, d.region, d.course, d.temperature, d.protein, d.ingredients
+         FROM schedule s JOIN dishes d ON d.id = s.dish_id ORDER BY s.date`,
+    ),
+    c.env.DB.prepare(
+      "SELECT id, name, country, region, course, temperature, protein, ingredients FROM dishes WHERE is_active = 1",
+    ),
+  ]);
+  const mix = assembleMenuMix(
+    scheduleRes.results as unknown as MenuScheduleRow[],
+    poolRes.results as unknown as MenuDishRow[],
+    serverToday(),
+  );
+  return c.json(mix);
 });
 
 const zeroByKind = (): StartedByKind => ({ daily: 0, leftover: 0, random: 0 });
