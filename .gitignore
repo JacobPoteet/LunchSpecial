@@ -7,3 +7,6 @@ dist/
 worker-configuration.d.ts
 node_modules/.tmp/
 discord-assets/fonts.conf
+# D1 dumps from `npm run db:export*` — full dumps carry analytics player_ids,
+# and a restore point is a local artifact, not repo content.
+backups/

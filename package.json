@@ -19,7 +19,10 @@
     "db:migrate": "wrangler d1 migrations apply lunch-special-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply lunch-special-db --remote",
     "db:seed": "wrangler d1 execute lunch-special-db --local --file=seed/seed.sql",
-    "db:seed:remote": "wrangler d1 execute lunch-special-db --remote --file=seed/seed.sql"
+    "db:seed:remote": "wrangler d1 execute lunch-special-db --remote --file=seed/seed.sql",
+    "db:export": "node scripts/db-export.mjs --local",
+    "db:export:remote": "node scripts/db-export.mjs",
+    "db:export:catalog": "node scripts/db-export.mjs --catalog"
   },
   "dependencies": {
     "@discord/embedded-app-sdk": "^2.5.0",

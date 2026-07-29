@@ -1,7 +1,21 @@
 -- Lunch Special — seed data
 -- 344 dishes with canonical ingredients + 5 clues each, and a 30-day schedule.
--- Safe to re-run: clears existing content first.
+-- Safe to re-run LOCALLY: clears existing content first.
 -- Clue order: 1 broad hint → 2 origin/history → 3 fame/pop culture → 4 key ingredients/technique → 5 near-giveaway.
+--
+-- ############################################################################
+-- ## NEVER RUN THIS AGAINST PROD (`npm run db:seed:remote`).                ##
+-- ## It is a bootstrap-only file. The DELETEs below are unconditional, and  ##
+-- ## `DELETE FROM schedule` deliberately steps around the schedule.dish_id  ##
+-- ## foreign key that would otherwise block the dish wipe — so a stray run  ##
+-- ## silently replaces every hand-booked Special with the stock 30-day      ##
+-- ## block below and reverts every dish edit made in /admin. That data      ##
+-- ## exists nowhere else in this repo.                                      ##
+-- ##                                                                        ##
+-- ## Ship dish changes to prod as an additive migration instead (see        ##
+-- ## CLAUDE.md → "Adding dishes"). Take a restore point first:              ##
+-- ##   npm run db:export:remote                                             ##
+-- ############################################################################
 
 DELETE FROM clues;
 DELETE FROM schedule;
