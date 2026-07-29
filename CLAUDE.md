@@ -12,7 +12,10 @@ npm run check        # tsc -b (3 project refs: app / worker / node)
 npm run build        # tsc -b && vite build → dist/
 npm run deploy       # build + wrangler deploy
 npm run db:migrate   # apply migrations to LOCAL D1   (db:migrate:remote for prod)
-npm run db:seed      # run seed/seed.sql on LOCAL D1  (db:seed:remote for prod)
+npm run db:seed      # run seed/seed.sql on LOCAL D1  (bootstrap only — see warning below)
+npm run db:export:remote    # dump PROD D1 → backups/prod-full-<stamp>.sql (gitignored). Take one before any prod DB work
+npm run db:export:catalog   # same, but dishes+clues+schedule only — no player data, safe to diff against seed.sql
+npm run db:export           # local DB, all tables
 npm run cf-typegen   # regenerate worker-configuration.d.ts after wrangler.jsonc changes
 ```
 
@@ -59,6 +62,12 @@ git tag v1.1.0 && git push origin v1.1.0
 CI gotcha: `worker-configuration.d.ts` and the `Env` secret members are generated from `.dev.vars` — both gitignored — so the workflow regenerates types (`cf-typegen`) and writes a dummy `.dev.vars` (placeholder values; the real secrets live on the Worker) before the typecheck/build, or `tsc` fails on missing runtime types / `Env` members.
 
 CI runs migrations (idempotent, additive) but **never** the seed — `seed/seed.sql` DELETEs and re-inserts every dish, which would wipe admin edits. Seed only by hand, once, during bootstrap.
+
+### Prod D1 is the only copy of half the data
+
+`seed.sql` + `migrations/` reconstruct the dish **pool** and nothing else. The `schedule` (booked in /admin, not in this repo — never add `INSERT INTO schedule` rows), every admin dish edit, `analytics_rounds`, and `dish_requests` live **only** in prod D1 and have no repo representation. Divergence between the dashboard and `seed.sql` is therefore expected and correct, not drift to reconcile.
+
+Two consequences: (1) `npm run db:seed:remote` is destructive — its `DELETE FROM schedule` deliberately steps around the `schedule.dish_id` FK that would otherwise block the dish wipe, so a stray run replaces every hand-booked Special with the stock 30-day block and reverts all admin edits; (2) there is no automatic backup. Run `npm run db:export:remote` before any prod DB work. Dumps land in gitignored `backups/` — full dumps carry anonymous `player_id` UUIDs, so keep them local; use `db:export:catalog` for anything you'd share.
 
 Note: the vite plugin writes a build-processed config into dist/; plain `wrangler deploy` from the repo root picks it up (the `deploy` script already chains build first).
 
