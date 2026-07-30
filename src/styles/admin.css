@@ -132,10 +132,16 @@
 .admin-tabs__tools { padding: 2px 0; }
 
 @media (max-width: 640px) {
-  /* Five tabs won't fit at 375px — swipe them instead of stacking three rows. */
-  .admin-tabs { flex-direction: column; align-items: stretch; }
+  /* Five tabs won't fit at 375px — swipe them instead of stacking three rows.
+     flex-wrap MUST go back to nowrap here: a wrapping column container is
+     multi-line, so the list would be sized to its own content instead of the
+     container, the overflow-x below would never engage, and the page itself
+     would scroll sideways. */
+  .admin-tabs { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
   .admin-tabs__list {
     flex-wrap: nowrap;
+    min-width: 0;
+    max-width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
   }
