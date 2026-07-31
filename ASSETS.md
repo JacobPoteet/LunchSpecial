@@ -36,6 +36,21 @@ Golden-age American diner, roughly 1950s: cream + chrome + cherry-red + deep tea
 - **What**: Simplified cloche on a cherry-red circle.
 - **Where**: Browser tab icon.
 - **Size**: 64×64 viewBox. Must read at 16×16.
+- **Derived from it**: the installable-app icons below. Re-run `npm run assets:icons` after
+  changing this file, or the home-screen icon and the tab icon drift apart.
+
+## App icons (`public/icon-*.png`, `public/apple-touch-icon.png`)
+
+Generated from `public/favicon.svg` by `npm run assets:icons`
+([`scripts/build-icons.mjs`](scripts/build-icons.mjs)) and committed. Referenced by
+`public/manifest.json` + `index.html`.
+
+| File | Purpose | Notes |
+|---|---|---|
+| `public/icon-192.png` | manifest `any` | Mark edge to edge, transparent corners |
+| `public/icon-512.png` | manifest `any` | Install prompt / task switcher |
+| `public/icon-maskable-512.png` | manifest `maskable` | Mark inset to 60% on a teal field — Android crops up to 20% per edge |
+| `public/apple-touch-icon.png` | iOS home screen | 180×180, same padded artwork; must stay opaque (iOS renders transparency black) |
 
 ## Discord Activity assets (`discord-assets/`)
 

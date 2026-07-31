@@ -8,6 +8,24 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Lunch Special: the daily dish guessing game</title>
 
+    <!-- Every game mode is this same shell on a query string (?date=, ?random,
+         ?preview=), and the SPA fallback serves it for unknown paths too, so
+         all of them canonicalise to the root rather than splitting ranking
+         across one URL per puzzle day. The static /privacy, /terms and /press
+         pages are real files with their own canonical tags. -->
+    <link rel="canonical" href="https://lunchspecial.app/" />
+
+    <!-- Installable web app. A daily game lives or dies on coming back, and an
+         icon on the home screen is the cheapest version of that. -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Lunch Special" />
+    <!-- black-translucent lets the diner backdrop run under the status bar;
+         viewport-fit=cover above is what keeps content out of the notch. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
     <!-- Open Graph (Facebook, LinkedIn, iMessage, etc.) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Lunch Special" />

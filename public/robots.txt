@@ -1,0 +1,17 @@
+# Lunch Special — https://lunchspecial.app
+
+User-agent: *
+Allow: /
+
+# The admin panel is password-gated anyway, but there's no reason to spend
+# crawl budget on it or to have its login page turn up in results.
+Disallow: /admin
+Disallow: /api/
+
+# Every mode is the same SPA shell on a query string, so these add nothing a
+# crawler doesn't already get from /, and ?date= would mint one indexable URL
+# per puzzle day forever. index.html's canonical says the same thing; this
+# saves the fetch.
+Disallow: /*?date=
+Disallow: /*?random
+Disallow: /*?preview=

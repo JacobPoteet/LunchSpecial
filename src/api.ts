@@ -12,7 +12,16 @@ import type {
 import { gameToday } from "../shared/time";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, init);
+  let res: Response;
+  try {
+    res = await fetch(path, init);
+  } catch {
+    // A rejected fetch never reaches the server: offline, DNS, or a content
+    // blocker cancelling the request in-browser. The raw TypeError reads as
+    // "Failed to fetch", which tells a player nothing — name the likely causes
+    // instead, the same way the admin client does.
+    throw new Error("Couldn't reach the kitchen — check your connection or any ad/content blocker.");
+  }
   const body = (await res.json().catch(() => null)) as (T & { error?: string }) | null;
   if (!res.ok || body === null) {
     throw new Error(body?.error ?? `Request failed (${res.status})`);
