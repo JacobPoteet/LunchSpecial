@@ -101,9 +101,26 @@ export function Modal({
   );
 }
 
-function AttrTile({ label, value, match }: { label: string; value: string; match: MatchLevel }) {
+// `index` only drives the reveal stagger (--i). The `--revealed` class is what
+// the flip animation hangs off: it marks a tile carrying real feedback, so the
+// placeholder tiles of the optimistic row can't cascade too.
+function AttrTile({
+  label,
+  value,
+  match,
+  index,
+}: {
+  label: string;
+  value: string;
+  match: MatchLevel;
+  index: number;
+}) {
   return (
-    <div className={`attr-tile attr-tile--${match}`} title={`${label}: ${value} (${match})`}>
+    <div
+      className={`attr-tile attr-tile--revealed attr-tile--${match}`}
+      style={{ "--i": index } as React.CSSProperties}
+      title={`${label}: ${value} (${match})`}
+    >
       <span className="attr-tile__label">{label}</span>
       <span className="attr-tile__value">{value}</span>
     </div>
@@ -159,19 +176,25 @@ export function GuessRow({
         </span>
       </p>
       <div className="attr-tiles">
-        <AttrTile label="Country" value={a.country.value} match={a.country.match} />
-        <AttrTile label="Course" value={a.course.value} match={a.course.match} />
-        <AttrTile label="Served" value={a.temperature.value} match={a.temperature.match} />
-        <AttrTile label="Protein" value={a.protein.value} match={a.protein.match} />
+        <AttrTile label="Country" value={a.country.value} match={a.country.match} index={0} />
+        <AttrTile label="Course" value={a.course.value} match={a.course.match} index={1} />
+        <AttrTile label="Served" value={a.temperature.value} match={a.temperature.match} index={2} />
+        <AttrTile label="Protein" value={a.protein.value} match={a.protein.match} index={3} />
       </div>
+      {/* Matched chips pop first, then the misses — one continuous stagger
+          across both lists, so `--i` counts through matched and keeps going. */}
       <div className="chips">
-        {guess.matchedIngredients.map((ing) => (
-          <span key={ing} className="chip chip--match">
+        {guess.matchedIngredients.map((ing, i) => (
+          <span key={ing} className="chip chip--match" style={{ "--i": i } as React.CSSProperties}>
             ✓ {ing}
           </span>
         ))}
-        {guess.unmatchedIngredients.map((ing) => (
-          <span key={ing} className="chip chip--matchless">
+        {guess.unmatchedIngredients.map((ing, i) => (
+          <span
+            key={ing}
+            className="chip chip--matchless"
+            style={{ "--i": guess.matchedIngredients.length + i } as React.CSSProperties}
+          >
             {ing}
           </span>
         ))}
@@ -314,6 +337,14 @@ export function Countdown({ compact }: { compact?: boolean }) {
     return () => clearInterval(t);
   }, []);
   const { h, m, s } = hms(ms);
+  // Keying the seconds on their own value remounts just that span every tick,
+  // which is what re-runs the CSS pulse — a clock that visibly moves reads as
+  // live rather than as a static string that happens to change.
+  const secs = (
+    <span className="countdown__sec" key={s}>
+      {s}
+    </span>
+  );
   // Compact stacks the label over the clock so it can sit beside the share
   // button in the check's action bar instead of eating its own full-width line.
   if (compact) {
@@ -321,7 +352,7 @@ export function Countdown({ compact }: { compact?: boolean }) {
       <div className="countdown countdown--compact">
         <span className="countdown__label">Next Special</span>
         <strong className="countdown__time">
-          {h}:{m}:{s}
+          {h}:{m}:{secs}
         </strong>
       </div>
     );
@@ -330,7 +361,7 @@ export function Countdown({ compact }: { compact?: boolean }) {
     <p className="countdown">
       Next Special in{" "}
       <strong>
-        {h}:{m}:{s}
+        {h}:{m}:{secs}
       </strong>
     </p>
   );

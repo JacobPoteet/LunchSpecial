@@ -92,8 +92,17 @@ function MonthGrid({
             .filter(Boolean)
             .join(" ");
           const label = `Special No. ${puzzleNumberFor(date)}${isToday ? " (today)" : ""}, ${status}`;
+          // Stagger by calendar ROW, not by cell: seven cells landing together
+          // reads as a sheet unrolling, where 30 individual pops read as noise.
           return (
-            <button key={i} className={cls} onClick={() => onPick(date)} title={label} aria-label={label}>
+            <button
+              key={i}
+              className={cls}
+              style={{ "--r": Math.floor(i / 7) } as React.CSSProperties}
+              onClick={() => onPick(date)}
+              title={label}
+              aria-label={label}
+            >
               <span className="archive-cal__num">{dayNum}</span>
               <span className="archive-cal__mark" aria-hidden="true">
                 {STATUS_GLYPH[status]}
