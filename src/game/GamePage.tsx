@@ -332,15 +332,19 @@ function ResultModal({
           {isDaily && <Countdown compact />}
           {canShare && (
             <button className="share-btn share-btn--primary" onClick={share}>
-              {shareState === "copied"
-                ? SURFACE === "discord"
-                  ? "Copied — paste it in chat!"
-                  : "Copied!"
-                : shareState === "failed"
-                  ? "Tap to retry"
-                  : SURFACE === "discord"
-                    ? "📋 Copy results"
-                    : "📋 Share"}
+              {/* Keyed on the state so the label remounts and cross-fades
+                  instead of hot-swapping text under the player's thumb. */}
+              <span className="share-btn__label" key={shareState}>
+                {shareState === "copied"
+                  ? SURFACE === "discord"
+                    ? "Copied — paste it in chat!"
+                    : "Copied!"
+                  : shareState === "failed"
+                    ? "Tap to retry"
+                    : SURFACE === "discord"
+                      ? "📋 Copy results"
+                      : "📋 Share"}
+              </span>
             </button>
           )}
         </div>
@@ -553,10 +557,12 @@ export default function GamePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [daily, isPreview]);
 
-  // Ticket animation is delayed until the guess row's drop finishes; its sound
-  // must wait the same amount so it lands with the print, not the drop. Keep in
-  // sync with the ticket `animation-delay` in game.css.
-  const TICKET_STAGGER_MS = 400;
+  // The ticket waits out the whole guess sequence — row drop, tile flips, chip
+  // pops — plus a beat of stillness, so the clue reads as a separate event
+  // rather than part of the guess landing. Its sound must wait exactly as long
+  // so it fires with the print. Mirrors --ticket-start in game.css; the timing
+  // dial there documents how to recompute both if the sequence is re-timed.
+  const TICKET_STAGGER_MS = 1140;
 
   const submitGuess = useCallback(
     async (dish: DishSummary) => {

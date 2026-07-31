@@ -244,8 +244,15 @@
 
 /* ---- guess input ---- */
 
+/* The autocomplete drops down over the guess list below it, so the input has
+   to outrank .guesses explicitly. Relying on the dropdown's own z-index isn't
+   enough: any animation that leaves a transform on .guess-input makes it a
+   stacking context, which traps that z-index inside and drops the whole
+   subtree back to DOM order — where .guesses, being later, wins. Ranking the
+   two containers here settles it once, whatever their descendants animate. */
 .guess-input {
   position: relative;
+  z-index: 40;
   margin-bottom: 6px;
 }
 
@@ -334,7 +341,10 @@
 
 /* ---- guess rows ---- */
 
+/* Deliberately below .guess-input (z-index 40) — see the note there. */
 .guesses {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -617,10 +627,27 @@
   max-width: calc(100vw - 32px);
 }
 
+/* The hit area is the box, not the glyph. With no padding this button was only
+   as big as the "x" itself — roughly 12x22px, under half the 24x24 WCAG 2.5.8
+   minimum — and because a backdrop click also closes the modal, a near miss
+   landing OUTSIDE the card worked while one landing on the card's own padding
+   did nothing. Same gesture, two outcomes, which is what made it feel erratic
+   rather than merely small. 40x40 centres the same glyph in a real target.
+
+   z-index because absolutely-positioned-but-z-auto loses to any sibling that a
+   filled animation left a transform on (.receipt__head is exactly that), and
+   those siblings come later in the DOM. Same failure that put the autocomplete
+   under the guess list — see the note on .guess-input. */
 .modal__close {
   position: absolute;
-  top: 10px;
-  right: 12px;
+  top: 2px;
+  right: 2px;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
   background: none;
   border: none;
   font-size: 1.4rem;
@@ -1369,6 +1396,52 @@ textarea.dish-request__input {
 /* ---- animations (issue #7) ----
    Sound hookups that pair with these live in src/game/sfx.ts. */
 
+/* Every tunable delay/duration for the guess-reveal sequence lives here, in the
+   order the player experiences it, so the whole beat can be re-timed from one
+   block instead of hunting through the rules below. The sequence after you
+   order a dish:
+
+     0.00s  guess row drops in            (guess-drop, 0.34s)
+     0.12s  attribute tiles flip, L->R    (4 x 90ms, last one ends 0.73s)
+     0.42s  ingredient chips pop, L->R    (35ms apart, capped; last ends 0.96s)
+     0.96s  --- the guess has fully landed ---
+     1.14s  clue ticket prints            (0.18s beat, so the clue reads as a
+                                           separate event, not the same one)
+
+   --ticket-start is that beat, and it is the one value here that is NOT
+   self-maintaining: it's a literal, because CSS can't hand a max() back to JS,
+   and the printer SFX has to fire on the same frame (TICKET_STAGGER_MS in
+   GamePage.tsx). If you re-time the tiles or chips, recompute it as
+
+     max(tile-flip-start + 3*step + dur, chip-pop-start + cap + dur) + 0.18s
+
+   and change TICKET_STAGGER_MS to match, or the sound drifts off the print.
+   Same deal for the modal exit and MODAL_EXIT_MS in components.tsx. */
+:root {
+  --tile-flip-start: 0.12s;
+  --tile-flip-step: 90ms;
+  --tile-flip-dur: 0.34s;
+
+  --chip-pop-start: 0.42s;
+  --chip-pop-step: 35ms;
+  /* Caps the stagger so a long ingredient list can't run past the chip tail. */
+  --chip-pop-cap: 0.28s;
+  --chip-pop-dur: 0.26s;
+
+  /* Guess sequence ends 0.96s; + 0.18s of silence = the impact beat. */
+  --ticket-start: 1.14s;
+
+  --enter-dur: 0.42s;
+  --enter-step: 60ms;
+
+  --menu-drop-dur: 0.13s;
+  --press-dur: 0.08s;
+
+  --cal-cell-start: 0.1s;
+  --cal-cell-step: 40ms;
+  --cal-cell-dur: 0.3s;
+}
+
 /* Modal: backdrop fades, card slides up from the bottom; reverse on close.
    The exit timing here must match MODAL_EXIT_MS in components.tsx. */
 @keyframes backdrop-in {
@@ -1494,22 +1567,35 @@ textarea.dish-request__input {
 }
 
 /* New guess row drops in from above and snaps into place, nudging the
-   previous rows down. Only the freshly prepended (top) row animates. */
+   previous rows down. Only the freshly prepended (top) row animates.
+
+   `backwards`, not `both`, and this is load-bearing rather than cosmetic: a
+   forwards fill holds the 100% keyframe, and `translateY(0) scale(1)` — even
+   though it's the identity — computes to a real matrix, not `none`. That makes
+   the row a permanent stacking context, which is exactly how the autocomplete
+   dropdown ended up painting UNDERNEATH the guess list. Landing on the base
+   style instead leaves transform genuinely `none`. Every delayed animation in
+   this file uses `backwards` for the same reason; the only ones that keep a
+   forwards fill are the ones whose end state differs from the base style
+   (dist-grow's width, the receipt's opacity ramps inside the modal). */
 @keyframes guess-drop {
   0% { opacity: 0; transform: translateY(-16px) scale(0.98); }
   60% { opacity: 1; transform: translateY(3px) scale(1.01); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 .guesses > .guess-row:first-child {
-  animation: guess-drop 0.34s cubic-bezier(0.2, 0.85, 0.3, 1) both;
+  animation: guess-drop 0.34s cubic-bezier(0.2, 0.85, 0.3, 1) backwards;
 }
 
 /* Clue ticket feeds out of the order-ticket printer: revealed top-down in
    mechanical steps, with a little paper chatter. Only the newest ticket runs.
-   It waits for the guess row's drop (0.34s) to finish first — the 0.4s delay
-   is mirrored by TICKET_STAGGER_MS in GamePage.tsx — so the two never move (or
-   sound) at the same time. `both` holds the ticket hidden (clipped) through
-   the delay. */
+
+   It waits for the ENTIRE guess sequence — drop, tile flips, chip pops — to
+   finish, then holds a beat of stillness before printing (--ticket-start,
+   mirrored by TICKET_STAGGER_MS in GamePage.tsx). Overlapping the two made the
+   clue read as part of the guess landing; the gap is what makes it read as the
+   kitchen answering back. `backwards` holds the ticket clipped through the
+   delay without leaving a transform behind afterwards. */
 @keyframes ticket-print {
   0% { clip-path: inset(0 0 100% 0); transform: translateY(-6px); }
   100% { clip-path: inset(0 0 0 0); transform: translateY(0); }
@@ -1521,8 +1607,181 @@ textarea.dish-request__input {
 }
 .tickets > .ticket:first-child {
   animation:
-    ticket-print 0.5s steps(10, end) 0.4s both,
-    ticket-chatter 0.1s steps(2) 0.4s 5;
+    ticket-print 0.5s steps(10, end) var(--ticket-start) backwards,
+    ticket-chatter 0.1s steps(2) var(--ticket-start) 5;
+}
+
+/* The four attribute tiles flip over one at a time, left to right, instead of
+   all resolving on the same frame — the guess's answer arrives as a sequence
+   you can read rather than a block that blinks.
+
+   What triggers it is a REMOUNT, not the row: the row element is keyed by dish
+   id and is reused when the optimistic row is replaced by real feedback (so
+   guess-drop deliberately doesn't replay), but the tiles inside it are swapped
+   out wholesale, so these mount exactly when the kitchen replies. Scoped to
+   :first-child so only the newest guess cascades, and to --revealed so the
+   pending row's placeholder tiles are left to their own wait-pulse. */
+.attr-tiles {
+  perspective: 420px;
+}
+@keyframes tile-flip {
+  0% { opacity: 0; transform: rotateX(-90deg) scale(0.96); }
+  55% { opacity: 1; transform: rotateX(11deg) scale(1.02); }
+  100% { opacity: 1; transform: rotateX(0) scale(1); }
+}
+.guesses > .guess-row:first-child .attr-tile--revealed {
+  animation: tile-flip var(--tile-flip-dur) cubic-bezier(0.2, 0.8, 0.25, 1) backwards;
+  animation-delay: calc(var(--tile-flip-start) + var(--i, 0) * var(--tile-flip-step));
+  backface-visibility: hidden;
+}
+
+/* Ingredient chips are the actual payload of a guess, so they land last and
+   arrive one by one — findings, not a paragraph. min() caps the run so a long
+   ingredient list can't keep popping after the clue ticket has printed. */
+@keyframes chip-pop {
+  0% { opacity: 0; transform: scale(0.86) translateY(4px); }
+  60% { opacity: 1; transform: scale(1.05) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.guesses > .guess-row:first-child .chip {
+  animation: chip-pop var(--chip-pop-dur) cubic-bezier(0.2, 0.8, 0.25, 1) backwards;
+  animation-delay: calc(
+    var(--chip-pop-start) + min(var(--i, 0) * var(--chip-pop-step), var(--chip-pop-cap))
+  );
+}
+
+/* Press feedback. .share-btn--primary already had its own (it's the one button
+   with a 3D lip to depress); this gives every other tappable a physical
+   response, which matters most on touch, where :hover never fires at all.
+
+   .share-btn--primary is excluded throughout: it declares its own transition
+   (including the box-shadow that makes its lip compress) and its own 3px
+   press, and these rules sit later in the file at equal specificity, so
+   matching it here would silently overwrite both.
+
+   The colour timings below are held at the 0.15s these buttons already used —
+   only the transform is fast. Folding them into one shorthand is what makes
+   the exclusion necessary, but it also means a press and a hover can't
+   disagree about how long a button takes to change colour. */
+.icon-btn,
+.share-btn:not(.share-btn--primary),
+.replay-btn,
+.guess-input__submit,
+.archive-bar__btn,
+.freeplay-bar__btn,
+.dish-request__toggle,
+.dish-request__cancel,
+.modal__close {
+  transition:
+    transform var(--press-dur) ease,
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+.icon-btn:active,
+.replay-btn:active,
+.archive-bar__btn:active,
+.freeplay-bar__btn:active,
+.dish-request__toggle:active,
+.dish-request__cancel:active,
+.modal__close:active {
+  transform: scale(0.96);
+}
+/* Full-width bars read better sinking than shrinking — a scale on something
+   this wide looks like a rendering glitch rather than a press. */
+.share-btn:not(.share-btn--primary):active,
+.guess-input__submit:not(:disabled):active {
+  transform: translateY(2px);
+}
+
+/* The autocomplete is the most-touched surface in the game and it used to hard
+   pop into place. Kept very short — anything slower than ~150ms starts to feel
+   like input lag while you're typing. */
+@keyframes menu-drop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.guess-input__list {
+  animation: menu-drop var(--menu-drop-dur) cubic-bezier(0.2, 0.8, 0.25, 1);
+  transform-origin: top center;
+}
+/* So arrow-key navigation slides down the list instead of jumping. */
+.guess-input__option {
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+/* First paint. Without this the whole card materialises the instant /daily
+   resolves, so a slow response reads as a hang and a fast one as a flash.
+
+   The staged pieces below are deliberately split by how load-bearing they are:
+   decorative rows fade AND rise, but .guess-input — the one thing the player
+   needs in order to act — is transform-only. Same reasoning as .modal__footer
+   above: a delayed `both`-filled opacity leaves an element invisible for as
+   long as the animation is stalled, and the input degrading to "sits 10px low"
+   is survivable where the input degrading to "isn't there" is not. */
+@keyframes enter-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes enter-rise-solid {
+  from { transform: translateY(10px); }
+  to { transform: none; }
+}
+.marquee {
+  animation: enter-rise var(--enter-dur) cubic-bezier(0.2, 0.8, 0.25, 1) backwards;
+}
+/* The card is the entire game, so it slides but never fades: a stalled
+   timeline leaves it 10px low rather than blank. Its children still fade, so
+   the entrance reads as layered anyway. */
+.menu-card {
+  animation: enter-rise-solid var(--enter-dur) cubic-bezier(0.2, 0.8, 0.25, 1) backwards;
+}
+.menu-card__header {
+  animation: enter-rise var(--enter-dur) cubic-bezier(0.2, 0.8, 0.25, 1)
+    calc(var(--enter-step) * 1) backwards;
+}
+.special-line {
+  animation: enter-rise var(--enter-dur) cubic-bezier(0.2, 0.8, 0.25, 1)
+    calc(var(--enter-step) * 2) backwards;
+}
+.guess-input {
+  animation: enter-rise-solid var(--enter-dur) cubic-bezier(0.2, 0.8, 0.25, 1)
+    calc(var(--enter-step) * 3) backwards;
+}
+
+/* One-frame nudge as the clock ticks over. fill-mode `none` on purpose: the
+   seconds must render normally when the animation isn't running, and this one
+   remounts every second, so a held `from` state would strobe. */
+@keyframes sec-tick {
+  0% { opacity: 0.45; transform: translateY(-1px); }
+  100% { opacity: 1; transform: none; }
+}
+.countdown__sec {
+  display: inline-block;
+  animation: sec-tick 0.3s ease;
+}
+
+/* Calendar cells unroll a row at a time behind the modal's own entrance. */
+@keyframes cal-cell-in {
+  from { opacity: 0; transform: translateY(-5px) scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+.archive-cal__day:not(.archive-cal__day--empty) {
+  animation: cal-cell-in var(--cal-cell-dur) ease backwards;
+  animation-delay: calc(var(--cal-cell-start) + var(--r, 0) * var(--cal-cell-step));
+}
+
+/* Share label swaps between "Share" / "Copied!" / "Tap to retry". fill-mode
+   `none` again, and for the sharpest possible reason: this is the label ON the
+   primary action, and a held `from` at opacity 0 would leave the button
+   looking blank. Unfilled, a stalled animation just means no fade. */
+@keyframes label-swap {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: none; }
+}
+.share-btn__label {
+  display: inline-block;
+  animation: label-swap 0.2s ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1545,13 +1804,43 @@ textarea.dish-request__input {
   .modal--receipt .dist__row--current .dist__bar,
   .story__panel--open .story__item,
   .win-toast,
-  .win-toast__bell {
+  .win-toast__bell,
+  .guesses > .guess-row:first-child .attr-tile--revealed,
+  .guesses > .guess-row:first-child .chip,
+  .guess-input__list,
+  .marquee,
+  .menu-card,
+  .menu-card__header,
+  .special-line,
+  .guess-input,
+  .countdown__sec,
+  .archive-cal__day:not(.archive-cal__day--empty),
+  .share-btn__label {
     animation: none !important;
   }
 
   /* The panel still opens, it just snaps rather than sliding. */
   .story__panel,
   .story__chevron {
+    transition: none;
+  }
+
+  /* Presses keep their state change — it's the only confirmation a tap
+     registered — but stop moving. Colour still shifts on :active. */
+  .icon-btn:active,
+  .replay-btn:active,
+  .archive-bar__btn:active,
+  .freeplay-bar__btn:active,
+  .dish-request__toggle:active,
+  .dish-request__cancel:active,
+  .modal__close:active,
+  .share-btn:not(.share-btn--primary):active,
+  .share-btn--primary:active,
+  .guess-input__submit:not(:disabled):active {
+    transform: none;
+  }
+
+  .guess-input__option {
     transition: none;
   }
 }
