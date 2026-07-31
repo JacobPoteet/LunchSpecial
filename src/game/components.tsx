@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DishSummary, GuessFeedback, MatchLevel } from "../../shared/types";
-import { hms, msUntilGameMidnight } from "../../shared/time";
+import { gameToday, hms, msUntilGameMidnight } from "../../shared/time";
 import { playSfx } from "./sfx";
 
 // Strip diacritics so accented dish names (Crème Brûlée) are searchable from an
@@ -328,6 +328,58 @@ export function GuessInput({
       )}
     </div>
   );
+}
+
+/**
+ * True once the game date has rolled past `mountedToday` — i.e. midnight ET
+ * arrived while this tab sat open.
+ *
+ * The page resolves "today" once at mount and keys the round, the board and
+ * localStorage off it, so a tab left open overnight keeps serving yesterday's
+ * Special while the countdown quietly restarts at 23:59:59. Nothing is broken,
+ * but the player has no way to tell — hence a banner rather than a silent swap
+ * (yanking the board out from under an unfinished round would be worse).
+ *
+ * Two triggers, because neither alone is enough: a timer aimed at the next ET
+ * midnight catches a tab that's genuinely sat open and visible, and a
+ * visibility/focus check catches the far more common case of a backgrounded tab
+ * whose timers the browser throttled or froze overnight.
+ */
+export function useNewDayAvailable(mountedToday: string): boolean {
+  const [stale, setStale] = useState(false);
+
+  useEffect(() => {
+    if (stale) return;
+    let timer = 0;
+
+    const rolledOver = () => gameToday() !== mountedToday;
+    const check = () => {
+      if (!rolledOver()) return false;
+      setStale(true);
+      window.clearTimeout(timer);
+      return true;
+    };
+    // +1s of slack so we land *after* the boundary, never a tick short of it;
+    // if we somehow wake early, re-arm rather than reporting a new day that
+    // hasn't started yet.
+    const arm = () => {
+      timer = window.setTimeout(() => {
+        if (!check()) arm();
+      }, msUntilGameMidnight() + 1000);
+    };
+    arm();
+
+    const onWake = () => check();
+    document.addEventListener("visibilitychange", onWake);
+    window.addEventListener("focus", onWake);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onWake);
+      window.removeEventListener("focus", onWake);
+    };
+  }, [mountedToday, stale]);
+
+  return stale;
 }
 
 export function Countdown({ compact }: { compact?: boolean }) {

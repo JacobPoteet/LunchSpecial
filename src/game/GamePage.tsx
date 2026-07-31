@@ -13,7 +13,7 @@ import {
 } from "../api";
 import type { DailyInfo, DishSummary, RevealInfo, RoundKind } from "../../shared/types";
 import { DISH_REQUEST_LIMITS, MAX_GUESSES } from "../../shared/types";
-import { ClueTicket, Countdown, GuessInput, GuessRow, Modal } from "./components";
+import { ClueTicket, Countdown, GuessInput, GuessRow, Modal, useNewDayAvailable } from "./components";
 import ArchiveModal from "./ArchiveModal";
 import { dateLabel, isPastPuzzleDate } from "./archive";
 import { currentSurface, surfaceUrl } from "../discord/bootstrap";
@@ -257,6 +257,29 @@ function RequestDishForm() {
   );
 }
 
+/**
+ * Shown in place of the board when the *initial* load fails — no dish list, no
+ * puzzle, nothing to play. Distinct from the inline `error-note`, which is for a
+ * single guess that didn't land while the game is otherwise fine: without this,
+ * an outage renders as a working-looking search box that matches nothing, which
+ * reads as "my dish isn't in the game" rather than "the site is down".
+ */
+function KitchenClosed({ detail, onRetry }: { detail: string | null; onRetry: () => void }) {
+  return (
+    <div className="closed" role="alert">
+      <p className="closed__sign">Sorry — we're closed</p>
+      <p className="closed__body">
+        The kitchen isn't answering, so today's Special is staying under the cloche. Check your connection and give the
+        bell another ring.
+      </p>
+      {detail && <p className="closed__detail">{detail}</p>}
+      <button className="replay-btn" onClick={onRetry}>
+        🛎️ Ring the bell again
+      </button>
+    </div>
+  );
+}
+
 function ResultModal({
   round,
   daily,
@@ -439,6 +462,11 @@ export default function GamePage() {
   const [reveal, setReveal] = useState<RevealInfo | null>(null);
   const [stats, setStats] = useState<Stats>(() => loadStats());
   const [error, setError] = useState<string | null>(null);
+  // Initial-load failure, kept apart from `error` (a single guess that didn't
+  // land): only this one replaces the board with the closed sign.
+  const [loadError, setLoadError] = useState<string | null>(null);
+  // Bumped by the retry button to re-run the load effect on unchanged inputs.
+  const [reloadKey, setReloadKey] = useState(0);
   const [busy, setBusy] = useState(false);
   // The dish just ordered, shown as an optimistic row while the kitchen replies.
   const [pending, setPending] = useState<DishSummary | null>(null);
@@ -474,6 +502,11 @@ export default function GamePage() {
   const dailyDone = dailyStatus !== "playing";
   const canArchive = !isPreview && (dailyDone || isArchive || isRandom);
 
+  // Midnight ET landed while this tab sat open, so everything below is keyed to
+  // yesterday. Suppressed in preview, which has no "today" to go stale.
+  const rolledOver = useNewDayAvailable(today);
+  const newDayAvailable = rolledOver && !isPreview;
+
   // Navigation between modes is URL-driven (the app has no router). Every hop
   // goes through surfaceUrl() so a Discord Activity keeps its iframe params —
   // otherwise the new URL loses `frame_id` and the round logs as a web play.
@@ -500,13 +533,21 @@ export default function GamePage() {
   }, [date]);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoadError(null);
     Promise.all([fetchDishes(), fetchDaily(date, preview, random)])
       .then(([dishList, dailyInfo]) => {
+        if (cancelled) return;
         setDishes(dishList);
         setDaily(dailyInfo);
       })
-      .catch((e: Error) => setError(e.message));
-  }, [date, preview, random]);
+      .catch((e: Error) => {
+        if (!cancelled) setLoadError(e.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [date, preview, random, reloadKey]);
 
   // A finished round (including one restored from localStorage) needs the reveal.
   // Fetched the moment the round ends, so it's already in hand by the time the
@@ -644,6 +685,16 @@ export default function GamePage() {
 
       <main className="menu-card">
         {isPreview && <p className="preview-banner">Admin test play — nothing is saved</p>}
+        {/* Sits above every other bar: if the day has turned, that reframes
+            whatever mode the player is in, so it needs to be read first. */}
+        {newDayAvailable && (
+          <div className="newday-bar" role="status" aria-live="polite">
+            <span className="newday-bar__tag">🛎️ A new Special is up</span>
+            <button className="newday-bar__btn" onClick={goToday}>
+              Serve it
+            </button>
+          </div>
+        )}
         {isArchive && (
           <div className="archive-bar">
             <span className="archive-bar__tag">📅 From the archive</span>
@@ -674,27 +725,36 @@ export default function GamePage() {
           </div>
         </div>
 
-        <div className="special-line">
-          <img src={clocheUrl} alt="" aria-hidden="true" />
-          <div className="special-line__body">
-            <p className="special-line__label">
-              <span>{isRandom ? "Chef's choice" : "Daily Special"}</span>
-              <span className="leader" aria-hidden="true" />
-              <span className="special-line__price">mp</span>
-            </p>
-            <p className="special-line__hint">
-              {daily ? <>A mystery dish with <strong>{daily.ingredientCount} ingredients</strong>. What'll it be?</> : "Firing up the grill…"}
-            </p>
-          </div>
-        </div>
-
-        {round.status === "playing" && (
+        {/* No dish list and no puzzle means there's nothing to order from, so
+            the closed sign takes the board's place rather than sitting above a
+            search box that can't match anything. */}
+        {loadError && !daily ? (
+          <KitchenClosed detail={loadError} onRetry={() => setReloadKey((k) => k + 1)} />
+        ) : (
           <>
-            <GuessInput dishes={dishes} excludeIds={guessedIds} disabled={!daily || busy} onGuess={submitGuess} />
-            <p className="tally">
-              {"•".repeat(remaining)}
-              {"◦".repeat(MAX_GUESSES - remaining)} {remaining} {remaining === 1 ? "guess" : "guesses"} left
-            </p>
+            <div className="special-line">
+              <img src={clocheUrl} alt="" aria-hidden="true" />
+              <div className="special-line__body">
+                <p className="special-line__label">
+                  <span>{isRandom ? "Chef's choice" : "Daily Special"}</span>
+                  <span className="leader" aria-hidden="true" />
+                  <span className="special-line__price">mp</span>
+                </p>
+                <p className="special-line__hint">
+                  {daily ? <>A mystery dish with <strong>{daily.ingredientCount} ingredients</strong>. What'll it be?</> : "Firing up the grill…"}
+                </p>
+              </div>
+            </div>
+
+            {round.status === "playing" && (
+              <>
+                <GuessInput dishes={dishes} excludeIds={guessedIds} disabled={!daily || busy} onGuess={submitGuess} />
+                <p className="tally">
+                  {"•".repeat(remaining)}
+                  {"◦".repeat(MAX_GUESSES - remaining)} {remaining} {remaining === 1 ? "guess" : "guesses"} left
+                </p>
+              </>
+            )}
           </>
         )}
 

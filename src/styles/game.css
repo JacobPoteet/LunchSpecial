@@ -1221,6 +1221,90 @@ textarea.dish-request__input {
   background: var(--teal-dark);
 }
 
+/* Midnight-ET rollover notice: the tab has been open across a day boundary, so
+   the board below is yesterday's. Cherry rather than the archive's teal or
+   free-play's mustard — it's the one bar that wants to be acted on, not just
+   read, and the glow keeps it findable if it appears while nobody's looking. */
+.newday-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  background: rgba(201, 53, 74, 0.14);
+  border: 1.5px solid var(--cherry);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  animation: newday-in 0.32s ease both;
+}
+
+@keyframes newday-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.newday-bar__tag {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.newday-bar__btn {
+  font-family: var(--font-display);
+  background: var(--cherry);
+  color: var(--cream);
+  border: none;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+}
+
+.newday-bar__btn:hover {
+  background: var(--cherry-dark);
+}
+
+/* ---- kitchen's closed (initial load failed) ---- */
+
+.closed {
+  text-align: center;
+  border: 2px dashed var(--paper-edge);
+  border-radius: var(--radius);
+  padding: 26px 20px 22px;
+  margin: 14px 0;
+}
+
+.closed__sign {
+  font-family: var(--font-display);
+  color: var(--cherry);
+  font-size: 1.35rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+
+.closed__body {
+  color: var(--ink-soft);
+  margin: 0 auto 12px;
+  max-width: 34ch;
+  line-height: 1.45;
+}
+
+/* The raw failure text. Deliberately quiet — the sign above already says what
+   happened in the player's terms; this is only here for the one person in a
+   hundred who'll paste it into a bug report. */
+.closed__detail {
+  font-size: 0.82rem;
+  color: var(--miss);
+  margin: 0 0 14px;
+}
+
 /* ---- archive calendar ---- */
 
 .archive-cal__title {
@@ -1669,6 +1753,7 @@ textarea.dish-request__input {
 .guess-input__submit,
 .archive-bar__btn,
 .freeplay-bar__btn,
+.newday-bar__btn,
 .dish-request__toggle,
 .dish-request__cancel,
 .modal__close {
@@ -1682,6 +1767,7 @@ textarea.dish-request__input {
 .replay-btn:active,
 .archive-bar__btn:active,
 .freeplay-bar__btn:active,
+.newday-bar__btn:active,
 .dish-request__toggle:active,
 .dish-request__cancel:active,
 .modal__close:active {
@@ -1815,6 +1901,7 @@ textarea.dish-request__input {
   .guess-input,
   .countdown__sec,
   .archive-cal__day:not(.archive-cal__day--empty),
+  .newday-bar,
   .share-btn__label {
     animation: none !important;
   }
@@ -1831,6 +1918,7 @@ textarea.dish-request__input {
   .replay-btn:active,
   .archive-bar__btn:active,
   .freeplay-bar__btn:active,
+  .newday-bar__btn:active,
   .dish-request__toggle:active,
   .dish-request__cancel:active,
   .modal__close:active,

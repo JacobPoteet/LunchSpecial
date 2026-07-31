@@ -1,0 +1,32 @@
+{
+  "id": "/",
+  "name": "Lunch Special",
+  "short_name": "Lunch Special",
+  "description": "Guess the diner's daily Special — a famous dish from somewhere in the world. A new one every day.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#1b4f4a",
+  "theme_color": "#1b4f4a",
+  "categories": ["games", "food", "entertainment"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
