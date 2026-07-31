@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   beaconComplete,
   beaconShare,
@@ -45,6 +45,35 @@ function newSeed(): string {
   return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+// The check doesn't slam into view the moment a round ends — Wordle's trick.
+// The board gets a beat to land first (the winning row's drop, the bell) with a
+// toast over it, then the receipt prints. Without the toast the pause just
+// reads as lag, so the two ship together. Keep WIN in sync with the
+// `win-toast` animation's total run time in game.css.
+const WIN_CHECK_DELAY_MS = 1700;
+const LOSS_CHECK_DELAY_MS = 800;
+
+/** Wordle's "Genius / Magnificent / …", in diner. Indexed by guess count. */
+const WIN_TOASTS = [
+  "Chef's kiss!",
+  "Order up!",
+  "Nailed it, hon!",
+  "Nice work!",
+  "Just in time!",
+  "Phew — saved it!",
+];
+
+function WinToast({ text }: { text: string }) {
+  return (
+    <div className="win-toast" role="status" aria-live="polite">
+      <span className="win-toast__bell" aria-hidden="true">
+        🛎️
+      </span>
+      {text}
+    </div>
+  );
+}
+
 function HowToModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal onClose={onClose}>
@@ -76,7 +105,12 @@ function HowToModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function StatsPanel({ stats }: { stats: Stats }) {
+/**
+ * `highlight` is the guess count that just won, so its row lights up the way
+ * Wordle marks the bar you landed on. Omitted outside a fresh win (the "My
+ * stats" modal, or a loss), where no single row is "yours".
+ */
+function StatsPanel({ stats, highlight }: { stats: Stats; highlight?: number }) {
   const winPct = stats.played === 0 ? 0 : Math.round((stats.wins / stats.played) * 100);
   const maxDist = Math.max(1, ...stats.dist);
   return (
@@ -89,13 +123,56 @@ function StatsPanel({ stats }: { stats: Stats }) {
       </div>
       <div className="dist">
         {stats.dist.map((n, i) => (
-          <div className="dist__row" key={i}>
+          <div
+            className={highlight === i + 1 ? "dist__row dist__row--current" : "dist__row"}
+            key={i}
+            // Drives both the bar's grown width and its stagger delay in CSS.
+            style={{ "--i": i, "--w": `${8 + (n / maxDist) * 80}%` } as React.CSSProperties}
+          >
             <span>{i + 1}</span>
-            <span className="dist__bar" style={{ width: `${8 + (n / maxDist) * 80}%` }}>{n}</span>
+            <span className="dist__bar">{n}</span>
           </div>
         ))}
       </div>
     </>
+  );
+}
+
+/**
+ * The clues, collapsed. The check opens compact, so the players who want the
+ * whole trail can open it without everyone else scrolling past it. Lists all
+ * five, including the one repeated above as the definition — the numbering has
+ * to run 1 -> 5 or a panel labelled "all 5 clues" looks like it dropped one.
+ */
+function StoryDetails({ clues }: { clues: string[] }) {
+  const [open, setOpen] = useState(false);
+  if (clues.length === 0) return null;
+  return (
+    <div className="story">
+      <button
+        className="story__toggle"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls="receipt-story"
+      >
+        <span>🔍 {open ? "Hide the clues" : `All ${clues.length} clues`}</span>
+        <span className={open ? "story__chevron story__chevron--open" : "story__chevron"} aria-hidden="true">
+          ▾
+        </span>
+      </button>
+      <div className={open ? "story__panel story__panel--open" : "story__panel"} id="receipt-story">
+        <div className="story__inner">
+          <ol className="story__list">
+            {clues.map((clue, i) => (
+              <li className="story__item" key={clue} style={{ "--i": i } as React.CSSProperties}>
+                <span className="story__num">{i + 1}</span>
+                <span className="story__text">{clue}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -241,40 +318,32 @@ function ResultModal({
     }
     setShareState((await copyShareText(`${text}\n${SHARE_URL}`)) ? "copied" : "failed");
   };
-  return (
-    <Modal onClose={onClose} receipt>
-      <div className="receipt__head">
-        <p className="receipt__title">Lunch Special - your check</p>
-        <p className="receipt__verdict">{won ? "On the house!" : "Better luck tomorrow"}</p>
-      </div>
-      {reveal && (
-        <>
-          <p className="receipt__dish">{reveal.name}</p>
-          <p className="receipt__facts">
-            {reveal.country} · {reveal.course} · served {reveal.temperature} · {reveal.protein}
-          </p>
-          {reveal.ingredients.length > 0 && (
-            <p className="receipt__ingredients">{reveal.ingredients.join(" · ")}</p>
+  // Clue 5 is the near-giveaway — everything about the dish but its name — so it
+  // doubles as a one-line definition under the answer. The collapsed story below
+  // still lists all five in order: a panel that stopped at 4 read as a bug, and
+  // seeing the trail run 1 -> 5 is the part players actually come back for.
+  const definition = reveal?.clues.at(-1);
+  // Actions live in the card's pinned footer so they stay on screen no matter
+  // how far the body scrolls. Countdown + share share one row (Wordle's shape).
+  const actions = (
+    <>
+      {(isDaily || canShare) && (
+        <div className="check-actions">
+          {isDaily && <Countdown compact />}
+          {canShare && (
+            <button className="share-btn share-btn--primary" onClick={share}>
+              {shareState === "copied"
+                ? SURFACE === "discord"
+                  ? "Copied — paste it in chat!"
+                  : "Copied!"
+                : shareState === "failed"
+                  ? "Tap to retry"
+                  : SURFACE === "discord"
+                    ? "📋 Copy results"
+                    : "📋 Share"}
+            </button>
           )}
-          <div className="receipt__story">
-            {reveal.clues.slice(1).map((clue) => (
-              <p key={clue}>{clue}</p>
-            ))}
-          </div>
-        </>
-      )}
-      {canShare && (
-        <button className="share-btn share-btn--primary" onClick={share}>
-          {shareState === "copied"
-            ? SURFACE === "discord"
-              ? "Copied — paste it in chat!"
-              : "Copied to clipboard!"
-            : shareState === "failed"
-              ? "Couldn't share — tap to retry"
-              : SURFACE === "discord"
-                ? "📋 Copy your results"
-                : "📋 Share your order"}
-        </button>
+        </div>
       )}
       {(isRandom || canArchive) && (
         <div className="replay-actions">
@@ -290,12 +359,35 @@ function ResultModal({
           )}
         </div>
       )}
-      {isDaily && (
+    </>
+  );
+  return (
+    <Modal onClose={onClose} receipt footer={actions}>
+      <div className="receipt__head">
+        <p className="receipt__title">Lunch Special - your check</p>
+        <p className="receipt__verdict">{won ? "On the house!" : "Better luck tomorrow"}</p>
+      </div>
+      {reveal && (
         <>
-          <StatsPanel stats={stats} />
-          <Countdown />
+          <p className="receipt__dish">{reveal.name}</p>
+          {/* On a win the guess row behind the modal already shows these as
+              green tiles and matched chips, so repeating them here is ~90px of
+              pure duplication. On a loss they're the payoff. */}
+          {!won && (
+            <>
+              <p className="receipt__facts">
+                {reveal.country} · {reveal.course} · served {reveal.temperature} · {reveal.protein}
+              </p>
+              {reveal.ingredients.length > 0 && (
+                <p className="receipt__ingredients">{reveal.ingredients.join(" · ")}</p>
+              )}
+            </>
+          )}
+          {definition && <p className="receipt__definition">{definition}</p>}
+          <StoryDetails clues={reveal.clues} />
         </>
       )}
+      {isDaily && <StatsPanel stats={stats} highlight={won ? round.guesses.length : undefined} />}
       <RequestDishForm />
     </Modal>
   );
@@ -350,6 +442,15 @@ export default function GamePage() {
   const [showStats, setShowStats] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
+  // Win banner shown during the beat before the check opens.
+  const [toast, setToast] = useState<string | null>(null);
+  // Whether the check has already been auto-opened for this round, so closing it
+  // doesn't make it spring back.
+  const [checkOpened, setCheckOpened] = useState(false);
+  // A round that was already finished when the page loaded (restored from
+  // localStorage, or an archive day you've played) was celebrated on the day it
+  // was played — reopening it should be instant, not a victory lap.
+  const restoredFinished = useRef(round.status !== "playing");
 
   // Persist a round to the right place: daily → today's slot; archive → its
   // dated slot; preview/random → nowhere.
@@ -386,6 +487,11 @@ export default function GamePage() {
     setReveal(null);
     setError(null);
     setShowResult(false);
+    // The next round is played fresh in this session, so it earns the full
+    // toast-then-check treatment again.
+    setCheckOpened(false);
+    setToast(null);
+    restoredFinished.current = false;
     setDaily(null); // triggers a reload below with the new seed
   }, [date]);
 
@@ -399,12 +505,36 @@ export default function GamePage() {
   }, [date, preview, random]);
 
   // A finished round (including one restored from localStorage) needs the reveal.
+  // Fetched the moment the round ends, so it's already in hand by the time the
+  // delayed check below actually opens.
   useEffect(() => {
     if (round.status !== "playing" && !reveal) {
       fetchReveal(date, preview, random).then(setReveal).catch(() => {});
-      setShowResult(true);
     }
   }, [round.status, reveal, date, preview, random]);
+
+  // Open the check once per round, after a beat so the finished board is the
+  // first thing you see. A win holds a toast through the pause; a loss just
+  // gets enough time for the last guess row to land.
+  useEffect(() => {
+    if (round.status === "playing" || checkOpened) return;
+    if (restoredFinished.current) {
+      setCheckOpened(true);
+      setShowResult(true);
+      return;
+    }
+    const won = round.status === "won";
+    if (won) setToast(WIN_TOASTS[round.guesses.length - 1] ?? WIN_TOASTS[0]);
+    const t = setTimeout(
+      () => {
+        setToast(null);
+        setCheckOpened(true);
+        setShowResult(true);
+      },
+      won ? WIN_CHECK_DELAY_MS : LOSS_CHECK_DELAY_MS,
+    );
+    return () => clearTimeout(t);
+  }, [round.status, round.guesses.length, checkOpened]);
 
   // Assign an anonymous analytics id once per round so start/complete/share
   // beacons can be linked. Every tracked kind gets one — daily, leftover, and
@@ -500,6 +630,7 @@ export default function GamePage() {
 
   return (
     <div className="scene">
+      {toast && <WinToast text={toast} />}
       <header className="marquee">
         <h1 className="marquee__script">Lunch Special</h1>
         <p className="marquee__sub">The daily dish guessing game</p>

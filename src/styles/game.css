@@ -560,10 +560,61 @@
   position: relative;
 }
 
+/* The check is a three-zone card: fixed head, scrolling body, pinned actions.
+   The body owns the scroll (not the card) so however long the reveal runs, the
+   share/replay buttons stay on screen — the whole point of the redesign. */
 .modal--receipt {
   background: #fffef9;
   border-radius: 4px;
   font-variant-numeric: tabular-nums;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal__scroll {
+  flex: 1 1 auto;
+  min-height: 0; /* without this the flex child refuses to shrink and scroll */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 22px 22px 12px;
+}
+
+/* The upward shadow is the scroll affordance: content visibly slides under the
+   bar, which the old dashed "end of paper" border actively hid. */
+.modal__footer {
+  flex: 0 0 auto;
+  padding: 12px 20px 16px;
+  background: #fffef9;
+  border-top: 2px dashed var(--paper-edge);
+  box-shadow: 0 -12px 20px -14px rgba(43, 35, 32, 0.5);
+}
+
+/* Win banner shown over the board for the beat before the check prints, so the
+   pause reads as a flourish instead of a hang. Pointer-events off — it must
+   never intercept a tap meant for the board underneath. */
+.win-toast {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  /* Base centering must live here, not only in the keyframes — with reduced
+     motion the animation is off and the toast would sit off-centre. */
+  transform: translateX(-50%);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 20px;
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: var(--cream);
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  letter-spacing: 0.03em;
+  box-shadow: 0 10px 30px rgba(10, 20, 18, 0.45);
+  pointer-events: none;
+  max-width: calc(100vw - 32px);
 }
 
 .modal__close {
@@ -623,21 +674,107 @@
   text-transform: capitalize;
 }
 
-.receipt__story {
+/* Clue 5 sits here as a one-line "definition" of the answer — the compact
+   payoff, borrowed from the dictionary line in Wordle's post-game. */
+.receipt__definition {
   border-top: 2px dashed var(--paper-edge);
   border-bottom: 2px dashed var(--paper-edge);
-  padding: 10px 2px;
-  margin-bottom: 14px;
-  font-size: 0.92rem;
+  padding: 12px 2px;
+  margin: 0 0 12px;
+  font-size: 0.95rem;
   line-height: 1.5;
+  text-align: center;
+  color: var(--ink);
 }
 
-.receipt__story p {
-  margin: 0 0 8px;
+/* ---- the rest of the clues, collapsed ---- */
+
+.story {
+  margin-bottom: 4px;
 }
 
-.receipt__story p:last-child {
-  margin-bottom: 0;
+.story__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 6px;
+  background: transparent;
+  border: 1.5px solid rgba(43, 35, 32, 0.22);
+  border-radius: var(--radius);
+  color: var(--ink-soft);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.story__toggle:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.story__chevron {
+  display: inline-block;
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+
+.story__chevron--open {
+  transform: rotate(180deg);
+}
+
+/* 0fr -> 1fr is the one height transition that works without hardcoding a
+   pixel max-height, so a long clue can't get clipped mid-expand. */
+.story__panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.34s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+
+.story__panel--open {
+  grid-template-rows: 1fr;
+}
+
+.story__inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.story__list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.story__item {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.story__num {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--paper-edge);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+}
+
+.story__text {
+  flex: 1 1 auto;
 }
 
 .share-btn {
@@ -680,6 +817,50 @@
   box-shadow: 0 1px 0 var(--cherry-dark);
 }
 
+/* Countdown and share sit side by side in one band, split by a dashed rule —
+   Wordle's footer shape. Stacking them cost a full extra line for no gain. */
+.check-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.check-actions .share-btn--primary {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  font-size: 1rem;
+  padding: 13px 10px;
+}
+
+.countdown--compact {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+  border-right: 2px dashed var(--paper-edge);
+  padding-right: 12px;
+}
+
+.countdown__label {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.countdown__time {
+  font-family: var(--font-display);
+  font-size: 1.16rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
 /* Replaying (random dish / another day) is secondary — a compact row of quiet
    ghost buttons that stays out of the way of the check and the share button. */
 .replay-actions {
@@ -687,6 +868,12 @@
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 14px;
+}
+
+/* Inside the check's pinned footer the replay row is the last thing in the
+   card, so it trades its bottom margin for a gap under the action band. */
+.modal__footer .replay-actions {
+  margin: 10px 0 0;
 }
 
 .replay-btn {
@@ -859,14 +1046,28 @@ textarea.dish-request__input {
   font-size: 0.85rem;
 }
 
+/* Width comes from --w on the row so the grow animation has a target to
+   animate toward (it can't read an inline width). */
 .dist__bar {
   background: var(--teal);
   color: var(--cream);
   border-radius: 4px;
   padding: 2px 8px;
   min-width: 22px;
+  width: var(--w, 8%);
+  box-sizing: border-box;
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+/* The row you just won on, marked the way Wordle marks yours. */
+.dist__row--current .dist__bar {
+  background: var(--cherry);
+}
+
+.dist__row--current > span:first-child {
+  font-weight: bold;
+  color: var(--cherry);
 }
 
 .howto p {
@@ -1193,11 +1394,103 @@ textarea.dish-request__input {
 .modal {
   animation: modal-in 0.26s cubic-bezier(0.2, 0.8, 0.25, 1) both;
 }
+/* The check doesn't slide — it prints, top-down, in mechanical steps, same
+   language as the clue tickets. Must stay ABOVE .modal--closing so the exit
+   animation still wins when the receipt is being dismissed. */
+@keyframes receipt-print {
+  from { clip-path: inset(0 0 100% 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+/* fill-mode `none`, deliberately: the delay is 0 so this looks identical while
+   running, but if the animation never runs (a frozen timeline in a backgrounded
+   tab, say) the card stays fully visible instead of being clipped to nothing by
+   a held `from` state. Never let the whole check hinge on an animation. */
+.modal--receipt {
+  animation: receipt-print 0.44s steps(13, end);
+}
 .modal-backdrop--closing {
   animation: backdrop-out 0.22s ease both;
 }
 .modal--closing {
   animation: modal-out 0.22s ease-in both;
+}
+
+/* Receipt contents rise in behind the printing paper, a beat apart, so the eye
+   lands on the dish name first and the stats last. */
+@keyframes receipt-line-in {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: none; }
+}
+.modal--receipt .receipt__head { animation: receipt-line-in 0.3s ease 0.16s both; }
+.modal--receipt .receipt__dish { animation: receipt-line-in 0.3s ease 0.24s both; }
+.modal--receipt .receipt__facts,
+.modal--receipt .receipt__ingredients { animation: receipt-line-in 0.3s ease 0.3s both; }
+.modal--receipt .receipt__definition { animation: receipt-line-in 0.3s ease 0.36s both; }
+.modal--receipt .story { animation: receipt-line-in 0.3s ease 0.42s both; }
+.modal--receipt .stats-grid { animation: receipt-line-in 0.3s ease 0.48s both; }
+
+/* The footer rises but never fades. It holds the primary action, and a delayed
+   `both`-filled opacity would leave the share button invisible for as long as
+   the animation is stalled. Transform-only degrades to "sits 8px low". */
+@keyframes footer-rise {
+  from { transform: translateY(8px); }
+  to { transform: none; }
+}
+.modal--receipt .modal__footer { animation: footer-rise 0.3s ease 0.5s both; }
+
+/* The histogram is the payoff, so the bars grow rather than just appearing —
+   staggered bottom-up, and the row you landed on gives one soft pulse. */
+@keyframes dist-grow {
+  from { width: 0; }
+  to { width: var(--w, 8%); }
+}
+@keyframes dist-pop {
+  0%, 100% { transform: none; }
+  50% { transform: scale(1.04); }
+}
+.modal--receipt .dist__bar {
+  animation: dist-grow 0.5s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+  animation-delay: calc(0.56s + var(--i, 0) * 60ms);
+  transform-origin: left center;
+}
+.modal--receipt .dist__row--current .dist__bar {
+  animation:
+    dist-grow 0.5s cubic-bezier(0.2, 0.8, 0.25, 1) calc(0.56s + var(--i, 0) * 60ms) both,
+    dist-pop 0.36s ease calc(1.06s + var(--i, 0) * 60ms) 1;
+}
+
+/* Clues stagger in as the story panel opens, so expanding feels like tickets
+   being dealt out rather than a block of text appearing. */
+@keyframes clue-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+.story__panel--open .story__item {
+  animation: clue-in 0.3s ease both;
+  animation-delay: calc(120ms + var(--i, 0) * 70ms);
+}
+
+/* Win banner over the board during the beat before the check prints: drops in,
+   holds, fades. Its total run time is WIN_CHECK_DELAY_MS in GamePage.tsx. */
+@keyframes win-toast-in {
+  0% { opacity: 0; transform: translate(-50%, -18px) scale(0.94); }
+  16% { opacity: 1; transform: translate(-50%, 3px) scale(1.02); }
+  24% { transform: translate(-50%, 0) scale(1); }
+  82% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -10px) scale(0.98); }
+}
+@keyframes toast-bell {
+  0%, 60%, 100% { transform: rotate(0); }
+  15% { transform: rotate(-16deg); }
+  30% { transform: rotate(13deg); }
+  45% { transform: rotate(-7deg); }
+}
+.win-toast {
+  animation: win-toast-in 1.7s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+.win-toast__bell {
+  display: inline-block;
+  animation: toast-bell 0.8s ease 0.15s 1;
 }
 
 /* New guess row drops in from above and snaps into place, nudging the
@@ -1235,11 +1528,31 @@ textarea.dish-request__input {
 @media (prefers-reduced-motion: reduce) {
   .modal-backdrop,
   .modal,
+  .modal--receipt,
   .modal-backdrop--closing,
   .modal--closing,
   .guesses > .guess-row:first-child,
-  .tickets > .ticket:first-child {
+  .tickets > .ticket:first-child,
+  .modal--receipt .receipt__head,
+  .modal--receipt .receipt__dish,
+  .modal--receipt .receipt__facts,
+  .modal--receipt .receipt__ingredients,
+  .modal--receipt .receipt__definition,
+  .modal--receipt .story,
+  .modal--receipt .stats-grid,
+  .modal--receipt .modal__footer,
+  .modal--receipt .dist__bar,
+  .modal--receipt .dist__row--current .dist__bar,
+  .story__panel--open .story__item,
+  .win-toast,
+  .win-toast__bell {
     animation: none !important;
+  }
+
+  /* The panel still opens, it just snaps rather than sliding. */
+  .story__panel,
+  .story__chevron {
+    transition: none;
   }
 }
 
@@ -1260,5 +1573,38 @@ textarea.dish-request__input {
 
   .attr-tile__value {
     font-size: 0.7rem;
+  }
+
+  /* Tighter gutters buy the check ~16px of width, which keeps the countdown
+     and share button on one line down to 320px. */
+  .modal__scroll {
+    padding: 20px 16px 10px;
+  }
+
+  .modal__footer {
+    padding: 10px 14px 14px;
+  }
+
+  .check-actions {
+    gap: 10px;
+  }
+
+  .check-actions .share-btn--primary {
+    font-size: 0.9rem;
+    padding: 12px 6px;
+    letter-spacing: 0.04em;
+  }
+
+  .countdown--compact {
+    padding-right: 10px;
+  }
+
+  .countdown__time {
+    font-size: 1.05rem;
+  }
+
+  .win-toast {
+    font-size: 0.94rem;
+    padding: 10px 16px;
   }
 }

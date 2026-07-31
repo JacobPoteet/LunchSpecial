@@ -27,10 +27,18 @@ const MODAL_EXIT_MS = 220;
 export function Modal({
   onClose,
   receipt,
+  footer,
   children,
 }: {
   onClose?: () => void;
   receipt?: boolean;
+  /**
+   * Actions pinned to the bottom edge of the card. When present the body
+   * becomes its own scroll container, so a long body can never push the
+   * buttons off a phone screen. Modals without a footer keep the old shape
+   * (the card itself scrolls).
+   */
+  footer?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const [closing, setClosing] = useState(false);
@@ -80,7 +88,14 @@ export function Modal({
             ×
           </button>
         )}
-        {children}
+        {footer ? (
+          <>
+            <div className="modal__scroll">{children}</div>
+            <div className="modal__footer">{footer}</div>
+          </>
+        ) : (
+          children
+        )}
       </div>
     </div>
   );
@@ -292,13 +307,25 @@ export function GuessInput({
   );
 }
 
-export function Countdown() {
+export function Countdown({ compact }: { compact?: boolean }) {
   const [ms, setMs] = useState(() => msUntilGameMidnight());
   useEffect(() => {
     const t = setInterval(() => setMs(msUntilGameMidnight()), 1000);
     return () => clearInterval(t);
   }, []);
   const { h, m, s } = hms(ms);
+  // Compact stacks the label over the clock so it can sit beside the share
+  // button in the check's action bar instead of eating its own full-width line.
+  if (compact) {
+    return (
+      <div className="countdown countdown--compact">
+        <span className="countdown__label">Next Special</span>
+        <strong className="countdown__time">
+          {h}:{m}:{s}
+        </strong>
+      </div>
+    );
+  }
   return (
     <p className="countdown">
       Next Special in{" "}
