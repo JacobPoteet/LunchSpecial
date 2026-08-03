@@ -2,27 +2,37 @@ import { Hono } from "hono";
 import type { DailyInfo, DishSummary, GuessFeedback, RevealInfo } from "../../shared/types";
 import { DISH_REQUEST_LIMITS, MAX_GUESSES, SURFACES } from "../../shared/types";
 import { verifyToken } from "../auth";
-import { getClues, getDishById, getSeededDish, getTargetDish } from "../db";
+import { getClues, getDishById, getDishBySlug, getSeededDish, getTargetDish } from "../db";
 import { computeFeedback, isPlayableDate, puzzleNumber } from "../game";
 
 const app = new Hono<{ Bindings: Env }>();
 
 /**
  * Resolve the Special being played. Precedence: a preview token (admin test
- * play), then a random-dish seed (free play / "random recipe"), then a
- * scheduled date — today's daily or any earlier puzzle from the archive.
+ * play), then a named dish slug (playtesting), then a random-dish seed (free
+ * play / "random recipe"), then a scheduled date — today's daily or any earlier
+ * puzzle from the archive.
  */
 async function resolveTarget(
   env: Env,
   date: string | undefined,
   preview: string | undefined,
   random: string | undefined,
+  special: string | undefined,
 ) {
   if (preview) {
     const payload = await verifyToken(preview, env.SESSION_SECRET);
     if (!payload || !payload.startsWith("preview:")) return { error: "Invalid or expired preview link" as const };
     const dish = await getDishById(env.DB, Number(payload.slice("preview:".length)));
     return dish ? { dish } : { error: "Preview dish not found" as const };
+  }
+  if (special) {
+    // A dish named outright (`?special=<slug>` — `npm run ramen` and friends).
+    // Spoiler-free for the same reason `random` is: it never reads the
+    // schedule, so it says nothing about which day serves what. The slugs it
+    // takes are already public in /api/dishes.
+    const dish = await getDishBySlug(env.DB, special);
+    return dish ? { dish } : { error: `No dish with slug "${special}"` as const };
   }
   if (random) {
     // A random dish (deterministic per seed). Spoiler-free — it never touches
@@ -46,12 +56,18 @@ app.get("/daily", async (c) => {
   const date = c.req.query("date");
   const preview = c.req.query("preview");
   const random = c.req.query("random");
-  const target = await resolveTarget(c.env, date, preview, random);
+  const special = c.req.query("special");
+  const target = await resolveTarget(c.env, date, preview, random, special);
   if ("error" in target) return c.json({ error: target.error }, 400);
-  const ephemeral = Boolean(preview) || Boolean(random);
+  // Preview and random rounds sit outside the numbering entirely. A playtest
+  // round is a dress rehearsal for the daily, so it keeps its date's real
+  // number — that's what the receipt and the share grid print. (On the daily
+  // path resolveTarget has already vetted the date; on the playtest one it
+  // never looked at it, hence the check.)
+  const numbered = !preview && !random && !!date && isPlayableDate(date);
   const info: DailyInfo = {
     date: date ?? "",
-    puzzleNumber: ephemeral ? 0 : puzzleNumber(date!),
+    puzzleNumber: numbered ? puzzleNumber(date) : 0,
     maxGuesses: MAX_GUESSES,
     ingredientCount: target.dish.ingredients.length,
   };
@@ -59,7 +75,16 @@ app.get("/daily", async (c) => {
 });
 
 app.post("/guess", async (c) => {
-  let body: { date?: string; dishId?: number; guessNumber?: number; preview?: string; random?: string };
+  // `dishId` is the dish being guessed; `special` (a slug) is the dish being
+  // played, when a playtest round pinned it.
+  let body: {
+    date?: string;
+    dishId?: number;
+    guessNumber?: number;
+    preview?: string;
+    random?: string;
+    special?: string;
+  };
   try {
     body = await c.req.json();
   } catch {
@@ -73,7 +98,7 @@ app.post("/guess", async (c) => {
   if (!Number.isInteger(dishId)) return c.json({ error: "Unknown dish" }, 400);
   // The target and the guessed dish are independent — resolve them in parallel.
   const [target, guess] = await Promise.all([
-    resolveTarget(c.env, body.date, body.preview, body.random),
+    resolveTarget(c.env, body.date, body.preview, body.random, body.special),
     getDishById(c.env.DB, dishId),
   ]);
   if ("error" in target) return c.json({ error: target.error }, 400);
@@ -136,7 +161,13 @@ app.post("/requests", async (c) => {
 
 // Full answer once the round is over. Client-initiated, same trust model as Wordle.
 app.get("/reveal", async (c) => {
-  const target = await resolveTarget(c.env, c.req.query("date"), c.req.query("preview"), c.req.query("random"));
+  const target = await resolveTarget(
+    c.env,
+    c.req.query("date"),
+    c.req.query("preview"),
+    c.req.query("random"),
+    c.req.query("special"),
+  );
   if ("error" in target) return c.json({ error: target.error }, 400);
   const d = target.dish;
   const reveal: RevealInfo = {

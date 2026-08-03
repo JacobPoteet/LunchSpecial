@@ -42,8 +42,8 @@ export function fetchDishes(): Promise<DishSummary[]> {
   return request("/api/dishes");
 }
 
-export function fetchDaily(date: string, preview?: string, random?: string): Promise<DailyInfo> {
-  return request(withParams("/api/daily", { date, preview, random }));
+export function fetchDaily(date: string, preview?: string, random?: string, special?: string): Promise<DailyInfo> {
+  return request(withParams("/api/daily", { date, preview, random, special }));
 }
 
 export function postGuess(body: {
@@ -52,6 +52,8 @@ export function postGuess(body: {
   guessNumber: number;
   preview?: string;
   random?: string;
+  /** Playtest only: the slug of the dish this round was pinned to. */
+  special?: string;
 }): Promise<GuessFeedback> {
   return request("/api/guess", {
     method: "POST",
@@ -60,8 +62,8 @@ export function postGuess(body: {
   });
 }
 
-export function fetchReveal(date: string, preview?: string, random?: string): Promise<RevealInfo> {
-  return request(withParams("/api/reveal", { date, preview, random }));
+export function fetchReveal(date: string, preview?: string, random?: string, special?: string): Promise<RevealInfo> {
+  return request(withParams("/api/reveal", { date, preview, random, special }));
 }
 
 /** Submit a player's dish suggestion for the menu (lands in the admin inbox). */
