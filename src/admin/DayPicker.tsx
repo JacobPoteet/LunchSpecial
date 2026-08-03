@@ -14,8 +14,10 @@ function daysInMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 }
 
+// Local midnight, not `Date.UTC` — formatting is local, so a UTC-midnight date
+// labels as the previous month anywhere west of Greenwich.
 function monthLabel(year: number, month: number): string {
-  return new Date(Date.UTC(year, month, 1)).toLocaleDateString(undefined, {
+  return new Date(year, month, 1).toLocaleDateString(undefined, {
     month: "long",
     year: "numeric",
   });

@@ -1,7 +1,7 @@
 // The "Leftovers": a calendar of every past Special, plus a random-recipe
 // shortcut. Unlocked once today's Special is done — replay any day you missed.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Modal } from "./components";
 import { archiveStatuses } from "./storage";
 import type { GameStatus } from "./storage";
@@ -20,6 +20,9 @@ const STATUS_GLYPH: Record<DayStatus, string> = {
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
+/** Fixed grid height, so paging between months doesn't resize the modal. */
+const CAL_ROWS = 6;
+
 function pad(n: number): string {
   return String(n).padStart(2, "0");
 }
@@ -28,26 +31,30 @@ function daysInMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
 }
 
+/** Local-midnight, NOT `Date.UTC` — formatting is local, so a UTC-midnight
+ *  date renders as the previous month anywhere west of Greenwich (July → June
+ *  in ET). Build the date in the same frame it gets formatted in. */
 function monthLabel(year: number, month: number): string {
-  return new Date(Date.UTC(year, month, 1)).toLocaleDateString(undefined, {
+  return new Date(year, month, 1).toLocaleDateString(undefined, {
     month: "long",
     year: "numeric",
   });
 }
 
-/** Every calendar month spanned by the archive, newest first. */
-function monthsInRange(today: string): { year: number; month: number }[] {
-  const [ey, em] = EPOCH_DATE.split("-").map(Number);
-  const [ty, tm] = today.split("-").map(Number);
-  const months: { year: number; month: number }[] = [];
-  for (let y = ey, m = em - 1; y < ty || (y === ty && m <= tm - 1); ) {
-    months.push({ year: y, month: m });
-    if (++m > 11) {
-      m = 0;
-      y++;
-    }
-  }
-  return months.reverse();
+/** A calendar month, as a single comparable integer. */
+type Month = { year: number; month: number };
+
+function monthOf(date: string): Month {
+  return { year: Number(date.slice(0, 4)), month: Number(date.slice(5, 7)) - 1 };
+}
+
+function monthIndex({ year, month }: Month): number {
+  return year * 12 + month;
+}
+
+function shiftMonth({ year, month }: Month, delta: number): Month {
+  const i = year * 12 + month + delta;
+  return { year: Math.floor(i / 12), month: ((i % 12) + 12) % 12 };
 }
 
 function MonthGrid({
@@ -67,10 +74,14 @@ function MonthGrid({
   const total = daysInMonth(year, month);
   const cells: (string | null)[] = Array.from({ length: firstWeekday }, () => null);
   for (let d = 1; d <= total; d++) cells.push(`${year}-${pad(month + 1)}-${pad(d)}`);
+  // Always CAL_ROWS rows, padded with blanks: a month that fits in five rows
+  // would otherwise render a shorter grid and the modal would jump height as
+  // you page. Six rows is the worst case (31 days starting Saturday), so the
+  // padding only ever adds — no month is ever clipped.
+  while (cells.length < CAL_ROWS * 7) cells.push(null);
 
   return (
     <div className="archive-cal__month">
-      <h3 className="archive-cal__month-name">{monthLabel(year, month)}</h3>
       <div className="archive-cal__grid">
         {WEEKDAYS.map((w, i) => (
           <span key={i} className="archive-cal__dow">
@@ -131,31 +142,65 @@ export default function ArchiveModal({
   const statuses = useMemo(() => archiveStatuses(), []);
   const statusFor = (date: string): DayStatus =>
     date === today ? todayStatus : statuses[date] ?? "unplayed";
-  const months = useMemo(() => monthsInRange(today), [today]);
+
+  // One month at a time, opening on the current one — the archive grows a page
+  // every 30 days, and stacking them all made the modal a scroll tunnel.
+  const first = useMemo(() => monthOf(EPOCH_DATE), []);
+  const last = useMemo(() => monthOf(today), [today]);
+  const [cursor, setCursor] = useState<Month>(last);
+  const canPrev = monthIndex(cursor) > monthIndex(first);
+  const canNext = monthIndex(cursor) < monthIndex(last);
 
   return (
     <Modal onClose={onClose}>
       <h2 className="archive-cal__title">Leftovers</h2>
       <p className="archive-cal__lede">Missed a day? Pull up an old Special and give it a shot.</p>
-      <button className="share-btn" onClick={onRandom}>
-        🎲 Chef's choice — random recipe
-      </button>
       <div className="archive-cal__legend">
         <span><span className="archive-cal__swatch archive-cal__swatch--won" /> solved</span>
         <span><span className="archive-cal__swatch archive-cal__swatch--lost" /> missed</span>
         <span><span className="archive-cal__swatch archive-cal__swatch--playing" /> in progress</span>
         <span><span className="archive-cal__swatch archive-cal__swatch--unplayed" /> not played</span>
       </div>
-      {months.map(({ year, month }) => (
-        <MonthGrid
-          key={`${year}-${month}`}
-          year={year}
-          month={month}
-          today={today}
-          statusFor={statusFor}
-          onPick={onPick}
-        />
-      ))}
+      <div className="archive-cal__nav">
+        <button
+          className="archive-cal__nav-btn"
+          onClick={() => setCursor((c) => shiftMonth(c, -1))}
+          disabled={!canPrev}
+          aria-label="Previous month"
+        >
+          ‹
+        </button>
+        <h3 className="archive-cal__month-name" aria-live="polite">
+          {monthLabel(cursor.year, cursor.month)}
+        </h3>
+        <button
+          className="archive-cal__nav-btn"
+          onClick={() => setCursor((c) => shiftMonth(c, 1))}
+          disabled={!canNext}
+          aria-label="Next month"
+        >
+          ›
+        </button>
+      </div>
+      {/* Keyed by month so the cells remount and the unroll animation replays. */}
+      <MonthGrid
+        key={`${cursor.year}-${cursor.month}`}
+        year={cursor.year}
+        month={cursor.month}
+        today={today}
+        statusFor={statusFor}
+        onPick={onPick}
+      />
+      <div className="chefs-choice">
+        <h3 className="chefs-choice__title">Chef's Choice</h3>
+        <p className="chefs-choice__note">
+          Nothing on the calendar? The kitchen will pick a dish at random. Doesn't touch your
+          streak or stats.
+        </p>
+        <button className="share-btn chefs-choice__btn" onClick={onRandom}>
+          🎲 Cook me something
+        </button>
+      </div>
     </Modal>
   );
 }
