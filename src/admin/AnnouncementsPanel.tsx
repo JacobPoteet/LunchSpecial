@@ -24,7 +24,8 @@ const STATUS_META: { key: AnnouncementStatus; label: string; blurb: string }[] =
   { key: "retired", label: "Pulled", blurb: "Switched off by hand, whatever the dates say." },
 ];
 
-const AUDIENCE_LABEL: Record<AnnouncementAudience, string> = {
+/** Also used by the dashboard's Overview tab to label a live notice. */
+export const AUDIENCE_LABEL: Record<AnnouncementAudience, string> = {
   all: "Everyone",
   returning: "Returning players",
 };

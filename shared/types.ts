@@ -245,10 +245,32 @@ export interface AnnouncementSeenInput {
   surface: Surface;
 }
 
+/** One day of the board: the date and whatever is booked on it (null = fallback pick). */
+export interface DashboardSpecial {
+  date: string;
+  dishId: number | null;
+  dishName: string | null;
+}
+
+/** A running notice, trimmed to what the Overview tab needs to say it's live. */
+export interface DashboardAnnouncement {
+  id: number;
+  header: string;
+  audience: AnnouncementAudience;
+  /** Last ET day it shows (inclusive). */
+  endDate: string;
+}
+
 export interface AdminDashboard {
-  today: { date: string; dishId: number | null; dishName: string | null };
+  today: DashboardSpecial;
+  /** Tomorrow's booking — a null dishName means players would get the fallback pick. */
+  tomorrow: DashboardSpecial;
   scheduledAhead: number;
   firstGap: string | null;
+  /** Notices players are seeing right now, in the order the game queues them. */
+  liveAnnouncements: DashboardAnnouncement[];
+  /** Switched-on notices whose window hasn't opened yet. */
+  upcomingAnnouncements: number;
   warnings: { kind: "missing-clues" | "few-ingredients"; dishId: number; dishName: string; detail: string }[];
 }
 
