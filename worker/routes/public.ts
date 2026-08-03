@@ -1,8 +1,16 @@
 import { Hono } from "hono";
-import type { DailyInfo, DishSummary, GuessFeedback, RevealInfo } from "../../shared/types";
+import type {
+  Announcement,
+  AnnouncementAudience,
+  DailyInfo,
+  DishSummary,
+  GuessFeedback,
+  RevealInfo,
+} from "../../shared/types";
 import { DISH_REQUEST_LIMITS, MAX_GUESSES, SURFACES } from "../../shared/types";
+import { isEligible } from "../announcements";
 import { verifyToken } from "../auth";
-import { getClues, getDishById, getDishBySlug, getSeededDish, getTargetDish } from "../db";
+import { getClues, getDishById, getDishBySlug, getSeededDish, getTargetDish, serverToday } from "../db";
 import { computeFeedback, isPlayableDate, puzzleNumber } from "../game";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -156,6 +164,92 @@ app.post("/requests", async (c) => {
     )
     .bind(name, country, note, surface, playerId)
     .run();
+  return c.json({ ok: true });
+});
+
+// ---- Announcements ----
+//
+// Paths are "/api/announcements" and "/api/announcements/seen". None of the
+// blocker-bait words apply here (no analytics/event/track/collect/beacon/
+// telemetry/pixel — see worker/index.ts), and the two failure modes are both
+// visible rather than silent: a blocked GET means no notice appears at all, and
+// a blocked "seen" POST shows up in the admin panel as reach far below the
+// day's player count. If reach ever looks impossibly low, suspect the path.
+
+interface AnnouncementRow {
+  id: number;
+  header: string;
+  body: string;
+  audience: AnnouncementAudience;
+  start_date: string;
+  end_date: string;
+  is_active: number;
+}
+
+/**
+ * The notices this player should see right now. `returning=1` is the client
+ * saying it has finished a game on this device before; unverifiable by design
+ * (there are no accounts), and the worst a lie buys you is a notice slightly
+ * early. The response carries content only — a notice you aren't eligible for
+ * never leaves the Worker, so the client can't learn it exists.
+ */
+app.get("/announcements", async (c) => {
+  const today = serverToday();
+  const returning = c.req.query("returning") === "1";
+  const res = await c.env.DB.prepare(
+    `SELECT id, header, body, audience, start_date, end_date, is_active
+       FROM announcements
+       WHERE is_active = 1 AND start_date <= ? AND end_date >= ?
+       ORDER BY start_date, id`,
+  )
+    .bind(today, today)
+    .all<AnnouncementRow>();
+
+  // The SQL has already narrowed by window; re-checking through isEligible keeps
+  // the audience rule in exactly one place (worker/announcements.ts) rather than
+  // half here and half in a WHERE clause.
+  const list: Announcement[] = res.results
+    .filter((r) =>
+      isEligible(
+        { startDate: r.start_date, endDate: r.end_date, isActive: r.is_active === 1, audience: r.audience },
+        { today, returning },
+      ),
+    )
+    .map((r) => ({ id: r.id, header: r.header, body: r.body }));
+  return c.json(list);
+});
+
+/**
+ * Record that a notice was actually put on screen. One row per (notice, device),
+ * so a player who clears storage and sees it again is still one player reached.
+ * Fire-and-forget from the client: it never blocks the modal, and a failure here
+ * must never surface to a player who just wanted to read a note from the diner.
+ */
+app.post("/announcements/seen", async (c) => {
+  const body = (await c.req.json().catch(() => null)) as
+    | { id?: unknown; playerId?: unknown; surface?: unknown }
+    | null;
+  const id = Number(body?.id);
+  if (!Number.isInteger(id) || id <= 0) return c.json({ error: "Unknown announcement" }, 400);
+  const playerId = body?.playerId;
+  if (typeof playerId !== "string" || playerId.length < 8 || playerId.length > 64) {
+    return c.json({ error: "Invalid player id" }, 400);
+  }
+  const surface = SURFACES.includes(body?.surface as never) ? (body!.surface as string) : "web";
+
+  try {
+    await c.env.DB.prepare(
+      `INSERT INTO announcement_views (announcement_id, player_id, surface, seen_at)
+       VALUES (?, ?, ?, datetime('now'))
+       ON CONFLICT(announcement_id, player_id) DO NOTHING`,
+    )
+      .bind(id, playerId, surface)
+      .run();
+  } catch (err) {
+    // Almost certainly the FK: the notice was deleted between being served and
+    // being read. Nothing to record, and nothing worth a 500 over.
+    console.error(JSON.stringify({ message: "announcement view not recorded", id, error: String(err) }));
+  }
   return c.json({ ok: true });
 });
 

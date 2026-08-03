@@ -3,17 +3,20 @@ import {
   beaconComplete,
   beaconShare,
   beaconStart,
+  fetchAnnouncements,
   fetchDaily,
   fetchDishes,
   fetchReveal,
   localToday,
+  markAnnouncementSeen,
   newAnalyticsId,
   postGuess,
   submitDishRequest,
 } from "../api";
-import type { DailyInfo, DishSummary, RevealInfo, RoundKind } from "../../shared/types";
+import type { Announcement, DailyInfo, DishSummary, RevealInfo, RoundKind } from "../../shared/types";
 import { DISH_REQUEST_LIMITS, MAX_GUESSES } from "../../shared/types";
 import { ClueTicket, Countdown, GuessInput, GuessRow, Modal, useNewDayAvailable } from "./components";
+import AnnouncementModal from "./AnnouncementModal";
 import ArchiveModal from "./ArchiveModal";
 import { dateLabel, isPastPuzzleDate } from "./archive";
 import { currentSurface, surfaceUrl } from "../discord/bootstrap";
@@ -23,13 +26,16 @@ import {
   emptyRound,
   getPlayerId,
   hasSeenHowTo,
+  isReturningPlayer,
   loadArchiveRound,
   loadRound,
   loadStats,
   markHowToSeen,
   recordResult,
+  rememberAnnouncementSeen,
   saveArchiveRound,
   saveRound,
+  seenAnnouncements,
   type GameStatus,
   type RoundState,
   type Stats,
@@ -499,6 +505,9 @@ export default function GamePage() {
   const [showStats, setShowStats] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
+  // Unseen notices from the kitchen, oldest first, shown one after another.
+  const [notices, setNotices] = useState<Announcement[]>([]);
+  const [noticeIndex, setNoticeIndex] = useState(0);
   // Win banner shown during the beat before the check opens.
   const [toast, setToast] = useState<string | null>(null);
   // Whether the check has already been auto-opened for this round, so closing it
@@ -528,6 +537,51 @@ export default function GamePage() {
   );
   const dailyDone = dailyStatus !== "playing";
   const canArchive = !isPreview && (dailyDone || isArchive || isRandom);
+
+  // ---- Notices from the kitchen ----
+  //
+  // Only Today's Special carries them. An archive replay, a Chef's Choice, a
+  // preview or a playtest are all side doors into the game, and a notice
+  // interrupting one of those is noise rather than news.
+  //
+  // Fetched the moment the page opens but held back until the how-to closes, so
+  // a brand-new player meets the game itself before the diner's announcements.
+  useEffect(() => {
+    if (!isDaily) return;
+    let cancelled = false;
+    fetchAnnouncements(isReturningPlayer()).then(
+      (list) => {
+        if (cancelled) return;
+        const seen = new Set(seenAnnouncements());
+        setNotices(list.filter((a) => !seen.has(a.id)));
+      },
+      () => {
+        // A note that won't load costs the player nothing — the board is the
+        // product, and it never waits on this.
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [isDaily]);
+
+  // One at a time, and never stacked on another modal: the check that auto-opens
+  // for an already-finished round gets to go first, then the notice.
+  const activeNotice =
+    !showHowTo && !showResult && !showStats && !showArchive ? (notices[noticeIndex] ?? null) : null;
+
+  // Counted the moment it's on screen, not when it's dismissed — someone who
+  // reads a note and closes the tab still read it. localStorage is what stops it
+  // coming back; the POST is what the admin panel's reach numbers count. Both
+  // are idempotent, so a notice re-shown after another modal closes is still one
+  // player reached.
+  useEffect(() => {
+    if (!activeNotice) return;
+    rememberAnnouncementSeen(activeNotice.id);
+    markAnnouncementSeen({ id: activeNotice.id, playerId: getPlayerId(), surface: SURFACE });
+  }, [activeNotice]);
+
+  const dismissNotice = useCallback(() => setNoticeIndex((i) => i + 1), []);
 
   // Midnight ET landed while this tab sat open, so everything below is keyed to
   // yesterday. Suppressed in preview, which has no "today" to go stale.
@@ -837,6 +891,15 @@ export default function GamePage() {
             setShowHowTo(false);
             markHowToSeen();
           }}
+        />
+      )}
+      {activeNotice && (
+        <AnnouncementModal
+          key={activeNotice.id}
+          announcement={activeNotice}
+          position={noticeIndex + 1}
+          total={notices.length}
+          onClose={dismissNotice}
         />
       )}
       {showStats && (

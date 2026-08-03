@@ -1169,7 +1169,235 @@
         <hr class="divider" />
 
         <!-- ==========================================================
-             3. STACK
+             3. ANNOUNCEMENTS
+             ========================================================== -->
+        <section class="stack" id="announcements">
+          <h2 class="lead">
+            <span class="lead__t">Talking to players</span>
+            <span class="lead__dots"></span>
+            <span class="lead__p">no accounts · one channel</span>
+          </h2>
+
+          <p class="col">
+            No sign-ups means no mailing list, no push token, no way to reach anybody who isn't
+            already looking at the game. So when sixty dishes land, or the Discord version goes live,
+            the only guaranteed moment of attention is the few seconds after someone opens the app.
+            Spending that badly is how a daily game teaches people to stop opening it.
+          </p>
+
+          <p class="col">
+            An announcement system is therefore not a content feature. It's a rationing system for
+            the one moment of attention the game reliably gets.
+          </p>
+
+          <div class="card stack stack--tight">
+            <p class="eyebrow">Rules set before any of it was built</p>
+            <div class="scroller">
+              <table>
+                <caption>Interruption is a budget — this is how it gets spent</caption>
+                <tbody>
+                  <tr>
+                    <td>Never before the game</td>
+                    <td>
+                      A first-timer meets the how-to, plays, and only then hears the news. Somebody
+                      who hasn't learned what the game is has no use for what changed about it.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Once per player, ever</td>
+                    <td>
+                      A notice that reappears is a notice that gets dismissed unread, and it teaches
+                      players to swat the next one before their eyes reach the words.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>One at a time</td>
+                    <td>
+                      Overlapping notices queue and open in the order they were posted. Nothing gets
+                      dropped for being second, and nothing stacks into a wall.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Today's Special only</td>
+                    <td>
+                      The archive and Chef's Choice are side doors, usually opened mid-session by
+                      someone already deep in the game. A notice there is noise, not news.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>The check goes first</td>
+                    <td>
+                      Someone returning to a round they already finished gets their receipt, then the
+                      notice. Never two cards on screen at once.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Say it in sixty characters</td>
+                    <td>
+                      The header is capped at 60 and the body at 600. A field long enough to hold a
+                      changelog will eventually hold one.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <p class="eyebrow" style="margin-bottom: 14px">Where it sits in the first ten seconds</p>
+            <div class="flow">
+              <div class="node">
+                <span class="node__t">Open the app</span>
+                <span class="node__d">notices fetched<br />immediately, held back</span>
+              </div>
+              <span class="arrow" aria-hidden="true">→</span>
+              <div class="node">
+                <span class="node__t">How to play</span>
+                <span class="node__d">first-timers only,<br />once</span>
+              </div>
+              <span class="arrow" aria-hidden="true">→</span>
+              <div class="node node--accent">
+                <span class="node__t">Note from the kitchen</span>
+                <span class="node__d">queued, oldest first,<br />one card at a time</span>
+              </div>
+              <span class="arrow" aria-hidden="true">→</span>
+              <div class="node">
+                <span class="node__t">The board</span>
+                <span class="node__d">uninterrupted<br />from here on</span>
+              </div>
+            </div>
+            <p class="footnote" style="margin-top: 14px">
+              Fetching on open but displaying after the how-to closes is the whole trick: the network
+              round-trip happens while the player is reading the rules, so the notice is already in
+              hand the instant the how-to slides away. No spinner, no gap, no second of dead screen.
+            </p>
+          </div>
+
+          <div class="grid2">
+            <div class="card stack stack--tight">
+              <h3>The motion is the label</h3>
+              <p style="color: var(--ink-soft); font-size: 0.97rem">
+                Every other modal in the game slides up from the bottom. An announcement swings down
+                from a spike at the top of the card and settles, like a ticket hung on the kitchen's
+                order wheel — and swings back up when dismissed. A player who has finished a hundred
+                rounds knows before reading a word that this isn't their check.
+              </p>
+              <p class="footnote">
+                The pivot is the punched hole drawn at the top centre. Without something visible to
+                rotate around, the overshoot reads as a rendering glitch rather than weight on a hook.
+                Both animations are dropped entirely under <code>prefers-reduced-motion</code>.
+              </p>
+            </div>
+
+            <div class="card stack stack--tight">
+              <h3>Who's a "returning player" with no accounts?</h3>
+              <p style="color: var(--ink-soft); font-size: 0.97rem">
+                Copy that says <em>welcome back</em> must never greet somebody in their first minute.
+                Without identity, the definition has to come from something the game already knows:
+                a player is returning once they've <em>finished</em> at least one round on this
+                device. Halfway through a first game still counts as new.
+              </p>
+              <div class="scroller">
+                <table>
+                  <thead>
+                    <tr>
+                      <th></th>
+                      <th>Marked "everyone"</th>
+                      <th>Marked "returning"</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>First-timer</td>
+                      <td>After the how-to</td>
+                      <td>Never delivered</td>
+                    </tr>
+                    <tr>
+                      <td>Finished ≥1 round</td>
+                      <td>On open</td>
+                      <td>On open</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <p class="col">
+            The delivery side is two ledgers that deliberately disagree about what they're for.
+          </p>
+
+          <div class="grid2">
+            <div class="card stack stack--tight">
+              <h3>The device decides what to show</h3>
+              <p style="color: var(--ink-soft); font-size: 0.97rem">
+                Which notices this browser has already seen lives in <code>localStorage</code>,
+                alongside the round and the streak. That's what makes the modal able to open the
+                frame after the how-to closes — no request to wait on, and it still works offline.
+                The server never gets asked "has this person seen it", because there is no person to
+                ask about.
+              </p>
+            </div>
+
+            <div class="card stack stack--tight">
+              <h3>The server counts who was reached</h3>
+              <p style="color: var(--ink-soft); font-size: 0.97rem">
+                The moment a notice hits the screen it fires one fire-and-forget POST carrying the
+                same anonymous device id the gameplay beacons use. The table's primary key is
+                <code>(announcement_id, player_id)</code>, so the insert is idempotent by
+                construction: a player who clears storage and sees a notice twice is still one player
+                reached, and the admin panel never has to de-duplicate anything at read time.
+              </p>
+              <p class="footnote">
+                Counted on display, not on dismissal — somebody who reads a note and closes the tab
+                still read it.
+              </p>
+            </div>
+
+            <div class="card stack stack--tight">
+              <h3>Markdown that parses to tokens, not HTML</h3>
+              <p style="color: var(--ink-soft); font-size: 0.97rem">
+                Bold, italic, and links — nothing else. The parser emits a token array and the client
+                turns those into React elements, so there is no
+                <code>innerHTML</code> anywhere along the path and nothing to sanitize. Link targets
+                are restricted to absolute http(s) or a same-site path; anything else degrades to its
+                own label as plain text.
+              </p>
+              <p class="footnote">
+                The parser is pure, lives in shared code, and is unit tested — including that a
+                <code>javascript:</code> URL can never produce a link node.
+              </p>
+            </div>
+
+            <div class="card stack stack--tight">
+              <h3>Windows on game time</h3>
+              <p style="color: var(--ink-soft); font-size: 0.97rem">
+                A notice runs between two calendar days, both ends inclusive, in the same
+                America/New_York day the Special itself rolls over on. One clock for the whole
+                product: a notice ending "today" ends when today's dish does, for every player in
+                every timezone. A manual kill switch outranks the dates, so pulling something early
+                doesn't mean deleting it and losing what it earned.
+              </p>
+            </div>
+          </div>
+
+          <div class="finding col">
+            <span class="finding__tag">Trade-off</span>
+            <p>
+              Reach counts devices, not people. Inside Discord the game runs on a different origin
+              with its own sandboxed storage, so the same human playing on the web and in the Activity
+              is two devices, sees the notice twice, and counts twice. Fixing it means identity, which
+              means accounts — the exact thing the whole game is built to avoid. The admin panel
+              splits reach by surface instead, which answers the question that actually matters:
+              did the announcement land where I thought it would?
+            </p>
+          </div>
+        </section>
+
+        <hr class="divider" />
+
+        <!-- ==========================================================
+             4. STACK
              ========================================================== -->
         <section class="stack" id="stack">
           <h2 class="lead">
@@ -1301,7 +1529,7 @@
         <hr class="divider" />
 
         <!-- ==========================================================
-             4. DATA
+             5. DATA
              ========================================================== -->
         <section class="stack" id="data">
           <h2 class="lead">
@@ -1449,7 +1677,7 @@
         <hr class="divider" />
 
         <!-- ==========================================================
-             5. PIPELINE
+             6. PIPELINE
              ========================================================== -->
         <section class="stack" id="pipeline">
           <h2 class="lead">
@@ -1587,7 +1815,7 @@
         <hr class="divider" />
 
         <!-- ==========================================================
-             6. ANALYTICS
+             7. ANALYTICS
              ========================================================== -->
         <section class="stack" id="numbers">
           <h2 class="lead">
@@ -1913,7 +2141,7 @@
         <hr class="divider" />
 
         <!-- ==========================================================
-             7. TRADE-OFFS
+             8. TRADE-OFFS
              ========================================================== -->
         <section class="stack" id="calls">
           <h2 class="lead">
@@ -1981,7 +2209,7 @@
         <hr class="divider" />
 
         <!-- ==========================================================
-             8. NEXT
+             9. NEXT
              ========================================================== -->
         <section class="stack" id="next">
           <h2 class="lead">
