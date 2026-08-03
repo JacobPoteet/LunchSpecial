@@ -13,6 +13,7 @@ import type {
   AnalyticsSummary,
   AnnouncementAudience,
   AnnouncementReach,
+  DashboardAnnouncement,
   DishRequest,
   PlayerSplit,
   RoundKind,
@@ -563,18 +564,32 @@ app.delete("/announcements/:id", async (c) => {
 
 app.get("/dashboard", async (c) => {
   const today = serverToday();
-  const [todayRes, upcomingRes, dishesRes] = await c.env.DB.batch([
+  const tomorrow = addDays(today, 1);
+  const [todayRes, tomorrowRes, upcomingRes, dishesRes, noticeRes] = await c.env.DB.batch([
     c.env.DB
       .prepare("SELECT s.dish_id, d.name FROM schedule s JOIN dishes d ON d.id = s.dish_id WHERE s.date = ?")
       .bind(today),
+    c.env.DB
+      .prepare("SELECT s.dish_id, d.name FROM schedule s JOIN dishes d ON d.id = s.dish_id WHERE s.date = ?")
+      .bind(tomorrow),
     c.env.DB.prepare("SELECT date FROM schedule WHERE date >= ? AND date <= ?").bind(today, addDays(today, 59)),
     c.env.DB.prepare(
       `SELECT d.id, d.name, d.ingredients,
          (SELECT COUNT(*) FROM clues c WHERE c.dish_id = d.id) AS clue_count
        FROM dishes d WHERE d.is_active = 1`,
     ),
+    // Notices that could still be showing: the kill switch is on and the window
+    // hasn't closed. That leaves `active` and `upcoming`, which announcementStatus
+    // separates below — the route never re-derives the rule itself.
+    c.env.DB
+      .prepare(
+        `SELECT id, header, audience, start_date, end_date FROM announcements
+           WHERE is_active = 1 AND end_date >= ? ORDER BY start_date, id`,
+      )
+      .bind(today),
   ]);
   const todayRow = todayRes.results[0] as { dish_id: number; name: string } | undefined;
+  const tomorrowRow = tomorrowRes.results[0] as { dish_id: number; name: string } | undefined;
 
   const scheduledSet = new Set((upcomingRes.results as { date: string }[]).map((r) => r.date));
   let scheduledAhead = 0;
@@ -598,10 +613,37 @@ app.get("/dashboard", async (c) => {
     }
   }
 
+  // Live notices in the same order the game queues them (oldest window first);
+  // the rest of this set is booked but not yet open.
+  const liveAnnouncements: DashboardAnnouncement[] = [];
+  let upcomingAnnouncements = 0;
+  for (const r of noticeRes.results as {
+    id: number;
+    header: string;
+    audience: string;
+    start_date: string;
+    end_date: string;
+  }[]) {
+    const status = announcementStatus({ startDate: r.start_date, endDate: r.end_date, isActive: true }, today);
+    if (status === "upcoming") {
+      upcomingAnnouncements++;
+      continue;
+    }
+    liveAnnouncements.push({
+      id: r.id,
+      header: r.header,
+      audience: (ANNOUNCEMENT_AUDIENCES.includes(r.audience as never) ? r.audience : "all") as AnnouncementAudience,
+      endDate: r.end_date,
+    });
+  }
+
   const dashboard: AdminDashboard = {
     today: { date: today, dishId: todayRow?.dish_id ?? null, dishName: todayRow?.name ?? null },
+    tomorrow: { date: tomorrow, dishId: tomorrowRow?.dish_id ?? null, dishName: tomorrowRow?.name ?? null },
     scheduledAhead,
     firstGap,
+    liveAnnouncements,
+    upcomingAnnouncements,
     warnings,
   };
   return c.json(dashboard);
