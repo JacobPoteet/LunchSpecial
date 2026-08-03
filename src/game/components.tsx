@@ -26,12 +26,13 @@ const MODAL_EXIT_MS = 220;
 
 export function Modal({
   onClose,
-  receipt,
+  variant,
   footer,
   children,
 }: {
   onClose?: () => void;
-  receipt?: boolean;
+  /** Cosmetic skin only — the three-zone layout comes from `footer`. */
+  variant?: "receipt" | "archive";
   /**
    * Actions pinned to the bottom edge of the card. When present the body
    * becomes its own scroll container, so a long body can never push the
@@ -76,7 +77,12 @@ export function Modal({
       }}
     >
       <div
-        className={`${receipt ? "modal modal--receipt" : "modal"}${closing ? " modal--closing" : ""}`}
+        className={
+          "modal" +
+          (footer ? " modal--paneled" : "") +
+          (variant ? ` modal--${variant}` : "") +
+          (closing ? " modal--closing" : "")
+        }
         role="dialog"
         aria-modal="true"
         onAnimationEnd={(e) => {
