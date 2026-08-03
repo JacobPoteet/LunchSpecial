@@ -31,8 +31,12 @@ export function Modal({
   children,
 }: {
   onClose?: () => void;
-  /** Cosmetic skin only — the three-zone layout comes from `footer`. */
-  variant?: "receipt" | "archive";
+  /**
+   * Cosmetic skin only — the three-zone layout comes from `footer`. `notice`
+   * also swaps the enter/exit animation (it swings down from the top instead of
+   * sliding up), so an announcement never reads as the check.
+   */
+  variant?: "receipt" | "archive" | "notice";
   /**
    * Actions pinned to the bottom edge of the card. When present the body
    * becomes its own scroll container, so a long body can never push the

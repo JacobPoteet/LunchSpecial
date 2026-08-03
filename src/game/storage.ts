@@ -29,6 +29,7 @@ const STATS_KEY = "lunch-special:stats";
 const HOWTO_KEY = "lunch-special:howto-seen";
 const ARCHIVE_KEY = "lunch-special:archive";
 const PLAYER_KEY = "lunch-special:player";
+const ANNOUNCEMENTS_KEY = "lunch-special:announcements";
 
 /**
  * Stable, anonymous per-device id (a random UUID) kept in localStorage. Sent with
@@ -173,4 +174,50 @@ export function hasSeenHowTo(): boolean {
 
 export function markHowToSeen(): void {
   localStorage.setItem(HOWTO_KEY, "1");
+}
+
+// ---- Announcements ----
+//
+// Which notices this device has already been shown. Kept here rather than asked
+// of the server so the modal can decide instantly, offline, with no round-trip
+// between the how-to closing and the notice opening. The server keeps its own
+// per-device row for the admin's reach numbers (announcement_views); this is
+// only about not showing the same note twice.
+
+/** Ids to remember. Notices are short-lived, so an old id can safely fall off. */
+const SEEN_ANNOUNCEMENTS_MAX = 100;
+
+export function seenAnnouncements(): number[] {
+  try {
+    const raw = localStorage.getItem(ANNOUNCEMENTS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as unknown;
+      if (Array.isArray(parsed)) return parsed.filter((n): n is number => typeof n === "number");
+    }
+  } catch {
+    // corrupted list — treat everything as unseen
+  }
+  return [];
+}
+
+/** Remember a notice as shown. Idempotent; keeps the most recent ids. */
+export function rememberAnnouncementSeen(id: number): void {
+  try {
+    const seen = seenAnnouncements();
+    if (seen.includes(id)) return;
+    const next = [...seen, id].slice(-SEEN_ANNOUNCEMENTS_MAX);
+    localStorage.setItem(ANNOUNCEMENTS_KEY, JSON.stringify(next));
+  } catch {
+    // Storage blocked — the player may see the notice again next visit. That's
+    // a better failure than crashing the board over a note.
+  }
+}
+
+/**
+ * Whether this device counts as a *returning* player for notice eligibility:
+ * it has finished at least one game here. Someone halfway through their first
+ * round is still new, which is the distinction the audience toggle is for.
+ */
+export function isReturningPlayer(): boolean {
+  return loadStats().played > 0;
 }

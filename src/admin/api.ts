@@ -1,12 +1,14 @@
 // Admin API client. Session cookie rides along automatically (same origin).
 
 import type {
+  AdminAnnouncement,
   AdminDashboard,
   AdminDishDetail,
   AdminDishInput,
   AdminDishRow,
   AnalyticsEvent,
   AnalyticsSummary,
+  AnnouncementInput,
   DishRequest,
   MenuMix,
   ScheduleEntry,
@@ -93,3 +95,11 @@ export const autofillSchedule = () => request<{ filled: number }>("/schedule/aut
 export const createPreview = (dishId: number) => request<{ token: string; url: string }>("/preview", json({ dishId }));
 export const getRequests = () => request<DishRequest[]>("/requests");
 export const deleteRequest = (id: number) => request<{ ok: true }>(`/requests/${id}`, { method: "DELETE" });
+/** Every notice ever posted, newest window first, each with its reach numbers. */
+export const getAnnouncements = () => request<AdminAnnouncement[]>("/announcements");
+export const createAnnouncement = (input: AnnouncementInput) => request<{ id: number }>("/announcements", json(input));
+export const updateAnnouncement = (id: number, input: AnnouncementInput) =>
+  request<{ id: number }>(`/announcements/${id}`, { ...json(input), method: "PUT" });
+/** Deletes the notice *and* its view rows — reach numbers go with it. */
+export const deleteAnnouncement = (id: number) =>
+  request<{ ok: true }>(`/announcements/${id}`, { method: "DELETE" });

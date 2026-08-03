@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import * as api from "./api";
+import AnnouncementsPanel from "./AnnouncementsPanel";
 import Dashboard from "./Dashboard";
 import DishEditor from "./DishEditor";
 import DishList from "./DishList";
 import RequestsView from "./RequestsView";
 import ScheduleView from "./ScheduleView";
 
-export type AdminView = "dashboard" | "dishes" | "schedule" | "requests";
+export type AdminView = "dashboard" | "dishes" | "schedule" | "announcements" | "requests";
 
 /** Prefill for a brand-new dish opened from a player request. */
 export interface DishDraft {
@@ -118,6 +119,12 @@ export default function AdminApp() {
               <button className={view === "schedule" ? "active" : ""} onClick={() => changeView("schedule")}>
                 Schedule
               </button>
+              <button
+                className={view === "announcements" ? "active" : ""}
+                onClick={() => changeView("announcements")}
+              >
+                Announcements
+              </button>
               <button className={view === "requests" ? "active" : ""} onClick={() => changeView("requests")}>
                 Requests
                 {requestCount ? <span className="nav-badge">{requestCount}</span> : null}
@@ -154,6 +161,7 @@ export default function AdminApp() {
                 />
               ))}
             {view === "schedule" && <ScheduleView onOpenDish={openDish} />}
+            {view === "announcements" && <AnnouncementsPanel />}
             {view === "requests" && (
               <RequestsView onAddAsDish={openDishFromRequest} onCountChange={setRequestCount} />
             )}

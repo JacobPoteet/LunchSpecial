@@ -1,6 +1,8 @@
 // Thin fetch wrappers around the public game API.
 
 import type {
+  Announcement,
+  AnnouncementSeenInput,
   DailyInfo,
   DishRequestInput,
   DishSummary,
@@ -73,6 +75,25 @@ export function submitDishRequest(body: DishRequestInput): Promise<{ ok: true }>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+}
+
+/**
+ * Notices the diner has posted for this player. `returning` is this device's own
+ * answer to "have I ever finished a game here" — the server uses it to withhold
+ * returning-only notices from first-timers.
+ */
+export function fetchAnnouncements(returning: boolean): Promise<Announcement[]> {
+  return request(withParams("/api/announcements", { returning: returning ? "1" : undefined }));
+}
+
+/**
+ * Record that a notice reached this device. Fire-and-forget (`beacon` below) for
+ * the same reason the round beacons are: a player reading a note from the
+ * kitchen should never wait on, or be shown, a failed write. Deduped
+ * server-side per device, so calling it twice costs nothing.
+ */
+export function markAnnouncementSeen(body: AnnouncementSeenInput): void {
+  beacon("/api/announcements/seen", body);
 }
 
 /**
