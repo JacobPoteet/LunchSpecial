@@ -393,7 +393,7 @@ function ResultModal({
     </>
   );
   return (
-    <Modal onClose={onClose} receipt footer={actions}>
+    <Modal onClose={onClose} variant="receipt" footer={actions}>
       <div className="receipt__head">
         <p className="receipt__title">Lunch Special - your check</p>
         <p className="receipt__verdict">{won ? "On the house!" : "Better luck tomorrow"}</p>

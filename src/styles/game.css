@@ -570,17 +570,21 @@
   position: relative;
 }
 
-/* The check is a three-zone card: fixed head, scrolling body, pinned actions.
-   The body owns the scroll (not the card) so however long the reveal runs, the
-   share/replay buttons stay on screen — the whole point of the redesign. */
-.modal--receipt {
-  background: #fffef9;
-  border-radius: 4px;
-  font-variant-numeric: tabular-nums;
+/* A three-zone card: fixed head, scrolling body, pinned actions. The body owns
+   the scroll (not the card) so however long the content runs, the buttons stay
+   on screen — the whole point of the shape. Applied to any modal given a
+   `footer`; the variants below are skins on top of it, not layouts. */
+.modal--paneled {
   padding: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.modal--receipt {
+  background: #fffef9;
+  border-radius: 4px;
+  font-variant-numeric: tabular-nums;
 }
 
 .modal__scroll {
@@ -1307,6 +1311,13 @@ textarea.dish-request__input {
 
 /* ---- archive calendar ---- */
 
+/* Same three-zone shape as the check, cream band instead of receipt paper.
+   Colour only — padding stays on .modal__footer so the narrow-screen override
+   in the 520px block still reaches it. */
+.modal--archive .modal__footer {
+  background: var(--cream);
+}
+
 .archive-cal__title {
   font-family: var(--font-display);
   color: var(--cherry);
@@ -1331,7 +1342,7 @@ textarea.dish-request__input {
   gap: 6px 14px;
   font-size: 0.74rem;
   color: var(--ink-soft);
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .archive-cal__legend span {
@@ -1366,8 +1377,10 @@ textarea.dish-request__input {
   background: #fffdf6;
 }
 
+/* The footer's rule and shadow do the separating now — a trailing margin here
+   just buys the scroll zone 16px it has no content for. */
 .archive-cal__month {
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .archive-cal__nav {
@@ -1427,9 +1440,15 @@ textarea.dish-request__input {
   padding-bottom: 2px;
 }
 
+/* Height is fixed, NOT `aspect-ratio: 1`. Square cells made the grid grow with
+   the card's width, so a 390px phone rendered a taller calendar than a 375px
+   one and hid MORE of the modal — the one place where a bigger screen was the
+   worse experience. The cell's content is ~22px (number + status glyph), so
+   34px leaves it comfortable, and the tap target ends up ~39x34: over the 24x24
+   WCAG 2.5.8 minimum, and the row gap isn't dead space either. */
 .archive-cal__day {
   position: relative;
-  aspect-ratio: 1;
+  height: 34px;
   border: 1.5px solid var(--paper-edge);
   border-radius: 7px;
   background: #fffdf6;
@@ -1500,20 +1519,21 @@ textarea.dish-request__input {
       moment it makes sense is the moment you've scanned the dates and found
       nothing you want — not before you've seen them.
    2. It's a bounded region, not a loose control. The dashed rule plus a tinted
-      band bled to the card's edges (negative margins cancel the modal's 22px
-      padding) makes it read as its own footer zone rather than one more row of
-      the calendar. Common region does the separating, so the button itself
-      doesn't need a louder colour to be found.
+      band makes it read as its own footer zone rather than one more row of the
+      calendar. Common region does the separating, so the button itself doesn't
+      need a louder colour to be found.
+
+   It is now literally the card's footer (Modal's `footer` slot), so the band,
+   the rule and the shadow all come from .modal__footer — this rules the inside
+   of the zone, nothing else. It got there because "after the grid" and "on
+   screen" stopped being the same place: at 320px the whole band sat below the
+   card's bottom edge, so the alternative you'd scanned the dates to find was
+   the one thing you couldn't see.
 
    Title + one line of copy, because the button alone had to carry the whole
-   idea. The "doesn't touch your streak" half matters as much as the what: an
+   idea. The "won't touch your streak" half matters as much as the what: an
    unexplained button next to a streak is one people won't risk pressing. */
 .chefs-choice {
-  margin: 22px -22px -24px;
-  padding: 16px 22px 18px;
-  background: var(--cream);
-  border-top: 2px dashed var(--paper-edge);
-  border-radius: 0 0 12px 12px;
   text-align: center;
 }
 
@@ -1523,14 +1543,16 @@ textarea.dish-request__input {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--cherry);
-  margin: 0 0 4px;
+  margin: 0 0 3px;
 }
 
+/* One line at 375px, two at 320. This copy used to run to three, and in a zone
+   that's now pinned every line it wraps costs the calendar a row. */
 .chefs-choice__note {
   font-size: 0.8rem;
   line-height: 1.4;
   color: var(--ink-soft);
-  margin: 0 0 12px;
+  margin: 0 0 10px;
 }
 
 /* Slightly heavier than a stock .share-btn to carry the band, but still the
@@ -1539,7 +1561,9 @@ textarea.dish-request__input {
    rules further down the file. */
 .chefs-choice__btn {
   font-size: 1.05rem;
-  padding: 14px;
+  /* Narrow side padding so the label holds one line at 320px — the footer's own
+     20px gutters already keep it off the card edge. */
+  padding: 14px 8px;
   margin-bottom: 0;
 }
 
@@ -2055,6 +2079,13 @@ textarea.dish-request__input {
   .check-actions .share-btn--primary {
     font-size: 0.9rem;
     padding: 12px 6px;
+    letter-spacing: 0.04em;
+  }
+
+  /* Alfa Slab One is wide enough that "Cook me something" needs 266px and a
+     320px card only offers ~254. Same trim the check's share button takes. */
+  .chefs-choice__btn {
+    font-size: 0.9rem;
     letter-spacing: 0.04em;
   }
 

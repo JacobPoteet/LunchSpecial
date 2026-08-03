@@ -20,8 +20,8 @@ const STATUS_GLYPH: Record<DayStatus, string> = {
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
-/** Fixed grid height, so paging between months doesn't resize the modal. */
-const CAL_ROWS = 6;
+/** Never render fewer rows than this — a two-row card reads as broken, not tidy. */
+const MIN_CAL_ROWS = 3;
 
 function pad(n: number): string {
   return String(n).padStart(2, "0");
@@ -57,28 +57,76 @@ function shiftMonth({ year, month }: Month, delta: number): Month {
   return { year: Math.floor(i / 12), month: ((i % 12) + 12) % 12 };
 }
 
+/**
+ * The slice of calendar rows a month actually needs: first through last row
+ * containing a playable date. Both ends matter and for different reasons — the
+ * epoch month is blank at the top (the archive starts on the 17th), the current
+ * month is blank at the bottom (the rest of the month hasn't happened). August
+ * 2026 on launch+17 renders two useful rows; a fixed six-row grid spent 171px
+ * on four rows of nothing, which is what pushed the Chef's Choice band off the
+ * bottom of a phone screen. Returns null for a month with no playable dates at
+ * all (unreachable via the nav, but the caller shouldn't have to assume that).
+ */
+function rowSpan(year: number, month: number, today: string): { start: number; end: number } | null {
+  const firstWeekday = new Date(Date.UTC(year, month, 1)).getUTCDay();
+  const total = daysInMonth(year, month);
+  let start = -1;
+  let end = -1;
+  for (let d = 1; d <= total; d++) {
+    if (!isPuzzleDate(`${year}-${pad(month + 1)}-${pad(d)}`, today)) continue;
+    const row = Math.floor((firstWeekday + d - 1) / 7);
+    if (start < 0) start = row;
+    end = row;
+  }
+  return start < 0 ? null : { start, end };
+}
+
+/**
+ * Rows to reserve in the grid: the tallest month in the reachable range. The
+ * modal must not resize as you page between months — that was the whole point
+ * of the old hardcoded six — so every month renders into the same box. The
+ * difference is that this height is earned: it's what the biggest real month
+ * needs, not the worst case a Gregorian month could theoretically hit. Grows
+ * on its own as the archive fills out, and by the time it reaches six, six
+ * rows of dates is honest space rather than padding.
+ */
+function reservedRows(first: Month, last: Month, today: string): number {
+  let max = MIN_CAL_ROWS;
+  for (let i = monthIndex(first); i <= monthIndex(last); i++) {
+    const span = rowSpan(Math.floor(i / 12), ((i % 12) + 12) % 12, today);
+    if (span) max = Math.max(max, span.end - span.start + 1);
+  }
+  return max;
+}
+
 function MonthGrid({
   year,
   month,
   today,
+  rows,
   statusFor,
   onPick,
 }: {
   year: number;
   month: number;
   today: string;
+  /** Rows to reserve, shared by every month so the card can't change height. */
+  rows: number;
   statusFor: (date: string) => DayStatus;
   onPick: (date: string) => void;
 }) {
   const firstWeekday = new Date(Date.UTC(year, month, 1)).getUTCDay();
   const total = daysInMonth(year, month);
-  const cells: (string | null)[] = Array.from({ length: firstWeekday }, () => null);
-  for (let d = 1; d <= total; d++) cells.push(`${year}-${pad(month + 1)}-${pad(d)}`);
-  // Always CAL_ROWS rows, padded with blanks: a month that fits in five rows
-  // would otherwise render a shorter grid and the modal would jump height as
-  // you page. Six rows is the worst case (31 days starting Saturday), so the
-  // padding only ever adds — no month is ever clipped.
-  while (cells.length < CAL_ROWS * 7) cells.push(null);
+  const all: (string | null)[] = Array.from({ length: firstWeekday }, () => null);
+  for (let d = 1; d <= total; d++) all.push(`${year}-${pad(month + 1)}-${pad(d)}`);
+
+  // Drop the leading/trailing rows that hold no playable date, then pad back up
+  // to the shared reserve. Trimming first is what makes the reserve small; the
+  // pad is what keeps it constant. A span can never exceed `rows` (the reserve
+  // is the max over every reachable month), so nothing is ever clipped.
+  const span = rowSpan(year, month, today);
+  const cells = span ? all.slice(span.start * 7, (span.end + 1) * 7) : [];
+  while (cells.length < rows * 7) cells.push(null);
 
   return (
     <div className="archive-cal__month">
@@ -150,11 +198,26 @@ export default function ArchiveModal({
   const [cursor, setCursor] = useState<Month>(last);
   const canPrev = monthIndex(cursor) > monthIndex(first);
   const canNext = monthIndex(cursor) < monthIndex(last);
+  const rows = useMemo(() => reservedRows(first, last, today), [first, last, today]);
+
+  // Pinned to the card's bottom edge rather than sitting at the end of the
+  // scroll: on a phone this band was below the fold at every size we render at
+  // (fully off-card at 320px), and an alternative you have to scroll to find
+  // isn't an alternative.
+  const chefsChoice = (
+    <div className="chefs-choice">
+      <h3 className="chefs-choice__title">Chef's Choice</h3>
+      <p className="chefs-choice__note">A dish at random — won't touch your streak.</p>
+      <button className="share-btn chefs-choice__btn" onClick={onRandom}>
+        🎲 Cook me something
+      </button>
+    </div>
+  );
 
   return (
-    <Modal onClose={onClose}>
+    <Modal onClose={onClose} variant="archive" footer={chefsChoice}>
       <h2 className="archive-cal__title">Leftovers</h2>
-      <p className="archive-cal__lede">Missed a day? Pull up an old Special and give it a shot.</p>
+      <p className="archive-cal__lede">Replay any Special you missed.</p>
       <div className="archive-cal__legend">
         <span><span className="archive-cal__swatch archive-cal__swatch--won" /> solved</span>
         <span><span className="archive-cal__swatch archive-cal__swatch--lost" /> missed</span>
@@ -188,19 +251,10 @@ export default function ArchiveModal({
         year={cursor.year}
         month={cursor.month}
         today={today}
+        rows={rows}
         statusFor={statusFor}
         onPick={onPick}
       />
-      <div className="chefs-choice">
-        <h3 className="chefs-choice__title">Chef's Choice</h3>
-        <p className="chefs-choice__note">
-          Nothing on the calendar? The kitchen will pick a dish at random. Doesn't touch your
-          streak or stats.
-        </p>
-        <button className="share-btn chefs-choice__btn" onClick={onRandom}>
-          🎲 Cook me something
-        </button>
-      </div>
     </Modal>
   );
 }
