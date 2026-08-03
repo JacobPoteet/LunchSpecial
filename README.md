@@ -58,9 +58,15 @@ Ways to poke at the game locally without editing the schedule or touching your s
 |---|---|
 | `npm run play` | Starts the dev server and opens **`/play`** — a fresh round on a **random dish**, nothing saved. Reload or hit **🎲 New random dish** to roll another. |
 | `/play` or `?freeplay` | The same free-play mode by URL (e.g. `http://localhost:5173/play`). |
+| `npm run ramen` | The same thing pinned to **one named dish** (Ramen) instead of a random one — for playtesting a specific board, and the finished-round screen, over and over. |
+| `?special=<slug>` | The pinned-dish mode by URL (e.g. `http://localhost:5173/play?special=pho`). Any active dish's slug works; add another `npm run <dish>` script for one you reach for often. |
 | Admin **Test play** | From `/admin`, a signed preview link that plays a *specific* dish (see [Admin panel](#admin-panel-admin)). |
 
 Under the hood a random seed is sent to the API and mapped to an active dish deterministically — one round stays on a single dish, while a new seed rolls a new one. This is the same **Chef's Choice** round players can launch from Leftovers in production; it's spoiler-free (it never touches the schedule) and saves no local stats. The `/play` and `?freeplay` entrances above are dev conveniences (client behind `import.meta.env.DEV`) that drop you straight into a random round on load.
+
+`?special=<slug>` is the same idea with the roll taken out: the slug names the dish outright. It's a testing tool, so it's the most throwaway mode of all — no localStorage, no lifetime stats, and (unlike a random round) no analytics either. The client honours it in dev only.
+
+Because it's mostly used to look at the **end of a round**, it's dressed as the daily on the way there: today's real Special number, and a finished-round check with the countdown, share button, stats panel and **📅 Play again** exactly where the daily puts them. The banner at the top is the only tell. Two seams are on purpose — the stats panel shows the numbers you started with (the round wasn't recorded), and sharing copies a real score card without logging a share.
 
 ## Deploying to Cloudflare
 

@@ -285,7 +285,7 @@ function ResultModal({
   daily,
   reveal,
   stats,
-  isDaily,
+  asDaily,
   isRandom,
   kind,
   canShare,
@@ -298,7 +298,11 @@ function ResultModal({
   daily: DailyInfo;
   reveal: RevealInfo | null;
   stats: Stats;
-  isDaily: boolean;
+  /**
+   * Wear the daily's finish: countdown, share button, stats panel. True for the
+   * real daily and for a playtest round, which exists to rehearse this screen.
+   */
+  asDaily: boolean;
   isRandom: boolean;
   kind: RoundKind;
   canShare: boolean;
@@ -312,8 +316,8 @@ function ResultModal({
   const share = async () => {
     setShareState("idle");
     const text = buildShareText(daily.puzzleNumber, round.guesses, won, daily.ingredientCount);
-    // The daily and leftover replays both carry an analytics id (only the share
-    // button's kinds reach here — random has no share button, preview no id).
+    // The daily and leftover replays both carry an analytics id; the test modes
+    // (preview, playtest) never get one, so their share stays untracked.
     if (round.analyticsId) {
       beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date, kind, surface: SURFACE });
     }
@@ -350,9 +354,9 @@ function ResultModal({
   // how far the body scrolls. Countdown + share share one row (Wordle's shape).
   const actions = (
     <>
-      {(isDaily || canShare) && (
+      {(asDaily || canShare) && (
         <div className="check-actions">
-          {isDaily && <Countdown compact />}
+          {asDaily && <Countdown compact />}
           {canShare && (
             <button className="share-btn share-btn--primary" onClick={share}>
               {/* Keyed on the state so the label remounts and cross-fades
@@ -414,7 +418,9 @@ function ResultModal({
           <StoryDetails clues={reveal.clues} />
         </>
       )}
-      {isDaily && <StatsPanel stats={stats} highlight={won ? round.guesses.length : undefined} />}
+      {/* A playtest round shows the panel but hasn't been folded into it — the
+          numbers are the ones you walked in with, since nothing was recorded. */}
+      {asDaily && <StatsPanel stats={stats} highlight={won ? round.guesses.length : undefined} />}
       <RequestDishForm />
     </Modal>
   );
@@ -429,19 +435,30 @@ export default function GamePage() {
   // Archive: ?date=<past puzzle> replays an earlier Special (saved on its own,
   // separate from the daily streak). Only genuine past puzzle dates qualify.
   const archiveDateParam = useMemo(() => search.get("date") ?? undefined, [search]);
-  const isArchive = !isPreview && !!archiveDateParam && isPastPuzzleDate(archiveDateParam, today);
+
+  // Playtest: ?special=<dish slug> pins the round to one named dish, so a
+  // specific board can be replayed on demand (`npm run ramen`). A dev-only
+  // entrance like /play, and the most throwaway mode there is — nothing saved,
+  // nothing tracked, no puzzle number.
+  const playtest = useMemo(() => {
+    if (isPreview || !import.meta.env.DEV) return undefined;
+    return search.get("special") ?? undefined;
+  }, [isPreview, search]);
+
+  const isArchive =
+    !isPreview && !playtest && !!archiveDateParam && isPastPuzzleDate(archiveDateParam, today);
 
   // Random recipe ("chef's choice"): ?random serves a random dish, nothing
   // saved. Available to everyone. Dev keeps the legacy /play and ?freeplay
   // entrances too.
   const isRandom = useMemo(() => {
-    if (isPreview || isArchive) return false;
+    if (isPreview || isArchive || playtest) return false;
     if (search.has("random")) return true;
     if (!import.meta.env.DEV) return false;
     return window.location.pathname.startsWith("/play") || search.has("freeplay");
-  }, [isPreview, isArchive, search]);
+  }, [isPreview, isArchive, playtest, search]);
 
-  const isDaily = !isPreview && !isArchive && !isRandom;
+  const isDaily = !isPreview && !isArchive && !isRandom && !playtest;
   const date = isArchive ? (archiveDateParam as string) : today;
 
   // The kind of round for analytics (preview is never tracked). Daily = Today's
@@ -451,8 +468,16 @@ export default function GamePage() {
   // A random round is keyed by a random seed; a new seed = a new random dish.
   const [seed, setSeed] = useState(() => newSeed());
   const random = isRandom ? seed : undefined;
-  // Preview and random are throwaway: no localStorage, stats, or analytics.
-  const ephemeral = isPreview || isRandom;
+  // Preview, random and playtest are throwaway: no localStorage or stats.
+  const ephemeral = isPreview || isRandom || !!playtest;
+  // Preview and playtest are test tools rather than games — they record no
+  // analytics at all (a random round still does, as a chef's special).
+  const tracked = !isPreview && !playtest;
+  // Playtest exists to rehearse the real finish, so it's *dressed* as the daily
+  // wherever that shows: puzzle number, countdown, share button, stats panel.
+  // Only the banner up top gives it away. Underneath it stays as throwaway as
+  // preview — nothing written, nothing counted.
+  const dressedAsDaily = isDaily || !!playtest;
 
   const [dishes, setDishes] = useState<DishSummary[]>([]);
   const [daily, setDaily] = useState<DailyInfo | null>(null);
@@ -495,9 +520,11 @@ export default function GamePage() {
   );
 
   // Whether today's daily is finished — the archive unlocks only after that.
+  // A playtest round stands in for it, so finishing one unlocks the archive the
+  // same way (its own status, since it was never written to localStorage).
   const dailyStatus: GameStatus = useMemo(
-    () => (isDaily ? round.status : loadRound(today).status),
-    [isDaily, round.status, today],
+    () => (dressedAsDaily ? round.status : loadRound(today).status),
+    [dressedAsDaily, round.status, today],
   );
   const dailyDone = dailyStatus !== "playing";
   const canArchive = !isPreview && (dailyDone || isArchive || isRandom);
@@ -535,7 +562,7 @@ export default function GamePage() {
   useEffect(() => {
     let cancelled = false;
     setLoadError(null);
-    Promise.all([fetchDishes(), fetchDaily(date, preview, random)])
+    Promise.all([fetchDishes(), fetchDaily(date, preview, random, playtest)])
       .then(([dishList, dailyInfo]) => {
         if (cancelled) return;
         setDishes(dishList);
@@ -547,16 +574,16 @@ export default function GamePage() {
     return () => {
       cancelled = true;
     };
-  }, [date, preview, random, reloadKey]);
+  }, [date, preview, random, playtest, reloadKey]);
 
   // A finished round (including one restored from localStorage) needs the reveal.
   // Fetched the moment the round ends, so it's already in hand by the time the
   // delayed check below actually opens.
   useEffect(() => {
     if (round.status !== "playing" && !reveal) {
-      fetchReveal(date, preview, random).then(setReveal).catch(() => {});
+      fetchReveal(date, preview, random, playtest).then(setReveal).catch(() => {});
     }
-  }, [round.status, reveal, date, preview, random]);
+  }, [round.status, reveal, date, preview, random, playtest]);
 
   // Open the check once per round, after a beat so the finished board is the
   // first thing you see. A win holds a toast through the pause; a loss just
@@ -583,12 +610,12 @@ export default function GamePage() {
 
   // Assign an anonymous analytics id once per round so start/complete/share
   // beacons can be linked. Every tracked kind gets one — daily, leftover, and
-  // chef's special — but preview (admin test play) never does. The "start"
-  // beacon itself doesn't fire here — merely opening the page (or closing the
-  // how-to modal) isn't a started game. It fires on the first guess (see
-  // submitGuess). A new random seed makes a fresh round, hence a fresh id.
+  // chef's special — but the test modes (admin preview, playtest) never do. The
+  // "start" beacon itself doesn't fire here — merely opening the page (or
+  // closing the how-to modal) isn't a started game. It fires on the first guess
+  // (see submitGuess). A new random seed makes a fresh round, hence a fresh id.
   useEffect(() => {
-    if (isPreview || !daily || round.analyticsId) return;
+    if (!tracked || !daily || round.analyticsId) return;
     const started = { ...round, analyticsId: newAnalyticsId() };
     setRound(started);
     // Persist the id where the round lives (daily/archive); random keeps it in
@@ -596,7 +623,7 @@ export default function GamePage() {
     persist(started);
     // Intentionally keyed on round load — reads the round as it stands when the puzzle resolves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [daily, isPreview]);
+  }, [daily, tracked]);
 
   // The ticket waits out the whole guess sequence — row drop, tile flips, chip
   // pops — plus a beat of stillness, so the clue reads as a separate event
@@ -616,7 +643,14 @@ export default function GamePage() {
       playSfx("guess-submit");
       try {
         const guessNumber = round.guesses.length + 1;
-        const feedback = await postGuess({ date, dishId: dish.id, guessNumber, preview, random });
+        const feedback = await postGuess({
+          date,
+          dishId: dish.id,
+          guessNumber,
+          preview,
+          random,
+          special: playtest,
+        });
         const next: RoundState = {
           ...round,
           guesses: [...round.guesses, feedback],
@@ -629,10 +663,11 @@ export default function GamePage() {
         // waits for the ticket's staggered print (see TICKET_STAGGER_MS).
         if (feedback.correct) playSfx("guess-correct");
         if (feedback.clue) setTimeout(() => playSfx("ticket-print"), TICKET_STAGGER_MS);
-        // Daily + leftover persist to localStorage; preview/random don't.
+        // Daily + leftover persist to localStorage; the throwaway modes don't.
         if (!ephemeral) persist(next);
-        // Every kind but preview counts toward analytics (daily, leftover, chef).
-        if (!isPreview) {
+        // Real play counts toward analytics (daily, leftover, chef) — the test
+        // modes don't.
+        if (tracked) {
           const roundId = next.analyticsId ?? newAnalyticsId();
           // A game counts as "started" on the first submitted guess — not on
           // page open. (GitHub #27.)
@@ -669,7 +704,7 @@ export default function GamePage() {
         setBusy(false);
       }
     },
-    [daily, busy, round, date, preview, random, ephemeral, isPreview, isDaily, analyticsKind, persist],
+    [daily, busy, round, date, preview, random, playtest, ephemeral, tracked, isDaily, analyticsKind, persist],
   );
 
   const guessedIds = useMemo(() => new Set(round.guesses.map((g) => g.dish.id)), [round.guesses]);
@@ -685,6 +720,7 @@ export default function GamePage() {
 
       <main className="menu-card">
         {isPreview && <p className="preview-banner">Admin test play — nothing is saved</p>}
+        {playtest && <p className="preview-banner">Playtest — pinned to “{playtest}”, nothing is saved</p>}
         {/* Sits above every other bar: if the day has turned, that reframes
             whatever mode the player is in, so it needs to be read first. */}
         {newDayAvailable && (
@@ -710,7 +746,7 @@ export default function GamePage() {
         <div className="menu-card__header">
           <h2 className="menu-card__title">{isArchive ? "From the Archive" : "Today's Menu"}</h2>
           <p className="menu-card__meta">
-            {daily && !ephemeral ? <>Special No. {daily.puzzleNumber} — </> : null}
+            {daily && (!ephemeral || playtest) ? <>Special No. {daily.puzzleNumber} — </> : null}
             {dateLabel(date)}
           </p>
           <div className="menu-card__toolbar">
@@ -824,10 +860,10 @@ export default function GamePage() {
           daily={daily}
           reveal={reveal}
           stats={stats}
-          isDaily={isDaily}
+          asDaily={dressedAsDaily}
           isRandom={isRandom}
           kind={analyticsKind}
-          canShare={isDaily || isArchive}
+          canShare={dressedAsDaily || isArchive}
           canArchive={canArchive}
           onNewGame={newGame}
           onArchive={() => {

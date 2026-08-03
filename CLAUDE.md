@@ -7,6 +7,7 @@ Daily Wordle-style game: guess the diner's "Special" (a world dish). 1950s diner
 ```bash
 npm run dev          # vite dev (Worker runs in workerd via @cloudflare/vite-plugin), http://localhost:5173
 npm run play         # vite dev + opens /play: a fresh round on a RANDOM dish, nothing saved (dev-only free play)
+npm run ramen        # same, but pinned to one named dish (/play?special=ramen) — playtest a specific board
 npm test             # vitest — worker/{game,stats,data-integrity}.test.ts
 npm run check        # tsc -b (3 project refs: app / worker / node)
 npm run build        # tsc -b && vite build → dist/
@@ -139,6 +140,8 @@ src/assets/art/       ai-*.svg = AI placeholder art (keep the AI-GENERATED heade
 - Unscheduled date → deterministic FNV-hash pick from active dishes (game never 404s)
 - `?preview=<token>` on /, /daily, /guess, /reveal = admin test play; skips schedule, localStorage, and stats
 - **Random recipe** ("cook's choice"): `?random=<seed>` picks a random active dish (deterministic per seed via the FNV hash, so daily/guess/reveal agree; a new seed = a new dish). Spoiler-free (never touches the schedule), so it's available to everyone in prod. Skips localStorage + lifetime stats, but **does** record anonymous analytics as the `random` kind (unlike preview, which records nothing). Reachable from the Menu Archive. Nothing gates it server-side (the old `DEV_FREEPLAY` var is gone); dev keeps the `/play` route + `?freeplay` (client behind `import.meta.env.DEV`) as convenience entrances — `npm run play`.
+- **Playtest a named dish**: `?special=<slug>` pins the round to one dish by slug (`getDishBySlug` in worker/db.ts; resolved in `resolveTarget` ahead of `random`). `npm run ramen` = `vite --open /play?special=ramen`; add a sibling script for any other dish. Spoiler-free for the same reason `random` is — it never reads the `schedule` — and the slugs are already public via `/api/dishes`, so the worker takes it unconditionally, but the **client only honours it behind `import.meta.env.DEV`**. It's the most throwaway mode: no localStorage, no lifetime stats, and **no analytics** (like preview, unlike random). An unknown slug 400s with `No dish with slug "…"`, which the client shows on the closed-kitchen sign
+  - It exists to rehearse the **end-of-round screen**, so it's *dressed* as the daily wherever that's visible: the date's real puzzle number (`/daily` numbers a `special` round, unlike preview/random), the "Daily Special" line, and a check with the countdown, share button, stats panel and 📅 Play again — `dressedAsDaily` in GamePage.tsx, which the check takes as `asDaily`. Finishing one also unlocks the archive the way finishing the daily does. Only the top banner marks it. Two seams are deliberate: the stats panel shows the numbers you walked in with (nothing was recorded), and the share button copies a real grid but fires no beacon
 - Reveal is client-initiated after game over (Wordle trust model — don't "fix" this)
 
 ## Adding dishes (when asked)

@@ -37,6 +37,15 @@ export async function getDishById(db: D1Database, id: number): Promise<Dish | nu
 }
 
 /**
+ * A dish by slug — how playtesting (`?special=<slug>`, e.g. `npm run ramen`)
+ * pins a round to one named dish instead of rolling for it.
+ */
+export async function getDishBySlug(db: D1Database, slug: string): Promise<Dish | null> {
+  const row = await db.prepare("SELECT * FROM dishes WHERE slug = ?").bind(slug).first<DishDbRow>();
+  return row ? rowToDish(row) : null;
+}
+
+/**
  * Deterministic pick from the active pool: fnv1a(seed) mod the pool size,
  * resolved in SQL so one row crosses the wire instead of the whole pool.
  * Must stay equivalent to indexing the id-ordered pool at fallbackDishIndex
