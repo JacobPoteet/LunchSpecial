@@ -1370,6 +1370,14 @@ textarea.dish-request__input {
   margin-bottom: 16px;
 }
 
+.archive-cal__nav {
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .archive-cal__month-name {
   font-family: var(--font-display);
   font-size: 0.9rem;
@@ -1377,7 +1385,31 @@ textarea.dish-request__input {
   text-transform: uppercase;
   color: var(--ink);
   text-align: center;
-  margin: 0 0 8px;
+  margin: 0;
+}
+
+.archive-cal__nav-btn {
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid var(--paper-edge);
+  border-radius: 7px;
+  background: #fffdf6;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.archive-cal__nav-btn:hover:not(:disabled) {
+  background: var(--mustard);
+  border-color: var(--ink);
+}
+
+.archive-cal__nav-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 
 .archive-cal__grid {
@@ -1455,6 +1487,60 @@ textarea.dish-request__input {
   background: var(--mustard);
   border-color: var(--ink);
   color: var(--ink);
+}
+
+/* ---- chef's choice band ---- */
+
+/* This used to be a bare button wedged between the lede and the legend, and it
+   got skipped: sitting inside the header block it read as chrome, and the
+   calendar grid right beneath it is a much stronger visual magnet. Two changes,
+   both about where attention actually goes:
+
+   1. It comes AFTER the grid. It's the alternative to picking a date, so the
+      moment it makes sense is the moment you've scanned the dates and found
+      nothing you want — not before you've seen them.
+   2. It's a bounded region, not a loose control. The dashed rule plus a tinted
+      band bled to the card's edges (negative margins cancel the modal's 22px
+      padding) makes it read as its own footer zone rather than one more row of
+      the calendar. Common region does the separating, so the button itself
+      doesn't need a louder colour to be found.
+
+   Title + one line of copy, because the button alone had to carry the whole
+   idea. The "doesn't touch your streak" half matters as much as the what: an
+   unexplained button next to a streak is one people won't risk pressing. */
+.chefs-choice {
+  margin: 22px -22px -24px;
+  padding: 16px 22px 18px;
+  background: var(--cream);
+  border-top: 2px dashed var(--paper-edge);
+  border-radius: 0 0 12px 12px;
+  text-align: center;
+}
+
+.chefs-choice__title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cherry);
+  margin: 0 0 4px;
+}
+
+.chefs-choice__note {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  margin: 0 0 12px;
+}
+
+/* Slightly heavier than a stock .share-btn to carry the band, but still the
+   plain teal treatment — the 3D lip belongs to .share-btn--primary, which owns
+   its own press transition, and forking it here would fight the shared press
+   rules further down the file. */
+.chefs-choice__btn {
+  font-size: 1.05rem;
+  padding: 14px;
+  margin-bottom: 0;
 }
 
 .footer-note {
