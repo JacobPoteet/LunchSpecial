@@ -1277,15 +1277,17 @@
             <div class="card stack stack--tight">
               <h3>The motion is the label</h3>
               <p style="color: var(--ink-soft); font-size: 0.97rem">
-                Every other modal in the game slides up from the bottom. An announcement swings down
-                from a spike at the top of the card and settles, like a ticket hung on the kitchen's
-                order wheel — and swings back up when dismissed. A player who has finished a hundred
-                rounds knows before reading a word that this isn't their check.
+                Every other modal in the game slides up from the bottom. An announcement drops in
+                from above and bounces to a stop, then lifts back out when dismissed. A player who
+                has finished a hundred rounds knows before reading a word that this isn't their
+                check — the opposition is doing the work, not the decoration.
               </p>
               <p class="footnote">
-                The pivot is the punched hole drawn at the top centre. Without something visible to
-                rotate around, the overshoot reads as a rendering glitch rather than weight on a hook.
-                Both animations are dropped entirely under <code>prefers-reduced-motion</code>.
+                The bounce lives in the keyframe stops — three diminishing overshoots against a plain
+                ease-out — rather than in a springy easing curve, which is the difference between a
+                card with weight and a card on a spring. The contents then rise into it a beat apart,
+                so the eye is walked eyebrow → headline → message. All of it is dropped under
+                <code>prefers-reduced-motion</code>.
               </p>
             </div>
 

@@ -1,10 +1,9 @@
 // A note from the kitchen: the modal an announcement is delivered in.
 //
-// Dressed as a card hung on the order wheel — it swings down from the top on
-// open and swings back up on close (the `notice` Modal variant in game.css),
-// which is deliberately NOT the slide-up every other modal uses. A player who
-// has finished a hundred rounds should be able to tell at a glance that this
-// one isn't the check.
+// It drops in from above and bounces to a stop, then lifts back out — the
+// `notice` Modal variant in game.css, and deliberately NOT the slide-up every
+// other modal uses. A player who has finished a hundred rounds should be able
+// to tell at a glance that this one isn't the check.
 
 import type { Announcement } from "../../shared/types";
 import { Modal } from "./components";
@@ -29,7 +28,7 @@ export default function AnnouncementModal({
       onClose={onClose}
       footer={
         <button className="btn btn--red notice__ok" onClick={onClose}>
-          {remaining > 0 ? "Next note" : "Thanks, hon"}
+          {remaining > 0 ? "Next note" : "Continue"}
         </button>
       }
     >

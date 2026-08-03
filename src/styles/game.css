@@ -587,9 +587,9 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* An announcement: a note spiked on the order wheel. The mustard band and the
-   punched hole at the top centre are what the swing animation pivots from —
-   without them the rotation reads as a glitch instead of a hanging card. */
+/* An announcement: a note posted on the board. The mustard band is the whole
+   ornament — it's also what the drop animation lands on, so the card reads as
+   arriving from above rather than fading in place. */
 .modal--notice {
   background: var(--paper);
   border-top: 7px solid var(--mustard);
@@ -598,31 +598,20 @@
   max-width: 420px;
 }
 
-.modal--notice::before {
-  content: "";
-  position: absolute;
-  top: -3px;
-  left: 50%;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--paper);
-  box-shadow: inset 0 1px 3px rgba(43, 35, 32, 0.5);
-  transform: translateX(-50%);
-}
-
 /* The footer defaults to receipt paper; the notice is on menu stock. */
 .modal--notice .modal__footer {
   background: var(--paper);
   border-top: 2px dashed var(--paper-edge);
 }
 
+/* Both parts sit together on the LEFT. The queue count used to be pushed to the
+   far edge by space-between, which parked it underneath the 40px close button. */
 .notice__eyebrow {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   margin: 0 0 6px;
+  padding-right: 40px; /* clears .modal__close */
   font-size: 0.7rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -635,11 +624,19 @@
   opacity: 0.75;
 }
 
+.notice__count::before {
+  content: "·";
+  margin-right: 8px;
+}
+
+/* Body serif, not the display face. Alfa Slab One is built for three words on a
+   sign; a real sentence in it is a wall of slab and stops being readable. */
 .notice__title {
   margin: 0 0 12px;
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  line-height: 1.2;
+  font-family: var(--font-body);
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.25;
   color: var(--teal);
 }
 
@@ -1750,23 +1747,50 @@ textarea.dish-request__input {
 .modal--receipt {
   animation: receipt-print 0.44s steps(13, end);
 }
-/* An announcement swings down from its spike and settles, rather than sliding
-   up like every other modal — the motion is the tell that this isn't the check.
-   Pivoting at top centre (set with the skin above) is what makes the overshoot
-   read as weight on a hook instead of a wobble. */
-@keyframes notice-swing-in {
-  0% { opacity: 0; transform: translateY(-38px) rotate(-3.2deg); }
-  55% { opacity: 1; transform: translateY(3px) rotate(1.5deg); }
-  78% { transform: translateY(0) rotate(-0.7deg); }
-  100% { opacity: 1; transform: translateY(0) rotate(0deg); }
+/* An announcement DROPS in from above and bounces to a stop, where every other
+   modal slides up from the bottom. That opposition is the whole point: a player
+   who has finished a hundred rounds should know it isn't the check before
+   reading a word.
+
+   The bounce is carried by the keyframe stops, not the easing — three
+   diminishing overshoots against a plain ease-out, which is what reads as a
+   card with weight instead of a card with a spring attached. Pivoting at top
+   centre (set with the skin above) keeps the scale anchored to the mustard band
+   so the whole thing hinges on the edge it arrived on. */
+@keyframes notice-drop-in {
+  0% { opacity: 0; transform: translateY(-70px) scale(0.9); }
+  45% { opacity: 1; transform: translateY(12px) scale(1.035); }
+  66% { transform: translateY(-6px) scale(0.99); }
+  82% { transform: translateY(3px) scale(1.005); }
+  93% { transform: translateY(-1px) scale(0.999); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
-@keyframes notice-swing-out {
-  from { opacity: 1; transform: translateY(0) rotate(0deg); }
-  to { opacity: 0; transform: translateY(-30px) rotate(2.4deg); }
+/* Leaves the way it came, but without the ceremony — a dismissal that lingers
+   is a dismissal that annoys. */
+@keyframes notice-lift-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-34px) scale(0.93); }
 }
 .modal--notice {
-  animation: notice-swing-in 0.44s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+  animation: notice-drop-in 0.54s cubic-bezier(0.25, 0.6, 0.3, 1) both;
 }
+
+/* The card lands first, then its contents rise into it a beat apart, so the eye
+   is walked eyebrow → headline → message instead of meeting all three at once.
+   Same device the receipt uses for its lines, and the reason either one feels
+   composed rather than merely animated. Delays start after the drop's first
+   overshoot, so the text arrives while the card is still settling. */
+@keyframes notice-line-in {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: none; }
+}
+.modal--notice .notice__eyebrow { animation: notice-line-in 0.32s ease 0.2s both; }
+.modal--notice .notice__title { animation: notice-line-in 0.34s ease 0.27s both; }
+.modal--notice .notice__body { animation: notice-line-in 0.34s ease 0.35s both; }
+/* Transform-only, like the receipt's footer and for the same reason: it holds
+   the only button on the card, and a delayed `both`-filled opacity would leave
+   it invisible for as long as the animation is stalled. */
+.modal--notice .modal__footer { animation: footer-rise 0.32s ease 0.42s both; }
 
 .modal-backdrop--closing {
   animation: backdrop-out 0.22s ease both;
@@ -1778,7 +1802,7 @@ textarea.dish-request__input {
    The duration must stay within MODAL_EXIT_MS in components.tsx — the fallback
    timer there unmounts the card, and a longer animation would just get cut. */
 .modal--notice.modal--closing {
-  animation: notice-swing-out 0.22s ease-in both;
+  animation: notice-lift-out 0.22s ease-in both;
 }
 
 /* Receipt contents rise in behind the printing paper, a beat apart, so the eye
@@ -2085,6 +2109,10 @@ textarea.dish-request__input {
   .modal--receipt,
   .modal--notice,
   .modal--notice.modal--closing,
+  .modal--notice .notice__eyebrow,
+  .modal--notice .notice__title,
+  .modal--notice .notice__body,
+  .modal--notice .modal__footer,
   .modal-backdrop--closing,
   .modal--closing,
   .guesses > .guess-row:first-child,
