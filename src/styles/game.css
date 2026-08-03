@@ -630,8 +630,13 @@
 }
 
 /* Body serif, not the display face. Alfa Slab One is built for three words on a
-   sign; a real sentence in it is a wall of slab and stops being readable. */
-.notice__title {
+   sign; a real sentence in it is a wall of slab and stops being readable.
+
+   Qualified by .modal--notice for specificity, not for scope: the admin renders
+   this same card inside a .panel, and admin.css's `.panel h2` (0,1,1) outranks a
+   bare `.notice__title` (0,1,0) — which silently put the preview's header in
+   uppercase Alfa Slab at 1.05rem while players saw serif at 1.4rem. */
+.modal--notice .notice__title {
   margin: 0 0 12px;
   font-family: var(--font-body);
   font-size: 1.4rem;

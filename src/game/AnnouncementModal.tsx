@@ -9,9 +9,44 @@ import type { Announcement } from "../../shared/types";
 import { Modal } from "./components";
 import Markdown from "./Markdown";
 
+/**
+ * The card itself, without the modal around it. Exported because the admin's
+ * "what the player sees" preview renders THIS — not a copy of it. Two hand-kept
+ * copies of the same markup is exactly how a preview stops matching.
+ */
+export function NoticeCard({
+  header,
+  body,
+  /** 1-based place in the queue, and how long the queue is. */
+  position = 1,
+  total = 1,
+}: {
+  header: string;
+  body: string;
+  position?: number;
+  total?: number;
+}) {
+  return (
+    <div className="notice">
+      <p className="notice__eyebrow">
+        A note from the kitchen
+        {/* Only worth saying when there's actually a stack. */}
+        {total > 1 && (
+          <span className="notice__count">
+            {position} of {total}
+          </span>
+        )}
+      </p>
+      <h2 className="notice__title">{header}</h2>
+      <div className="notice__body">
+        <Markdown source={body} />
+      </div>
+    </div>
+  );
+}
+
 export default function AnnouncementModal({
   announcement,
-  /** 1-based place in the queue, and how long the queue is. */
   position,
   total,
   onClose,
@@ -32,21 +67,12 @@ export default function AnnouncementModal({
         </button>
       }
     >
-      <div className="notice">
-        <p className="notice__eyebrow">
-          A note from the kitchen
-          {/* Only worth saying when there's actually a stack. */}
-          {total > 1 && (
-            <span className="notice__count">
-              {position} of {total}
-            </span>
-          )}
-        </p>
-        <h2 className="notice__title">{announcement.header}</h2>
-        <div className="notice__body">
-          <Markdown source={announcement.body} />
-        </div>
-      </div>
+      <NoticeCard
+        header={announcement.header}
+        body={announcement.body}
+        position={position}
+        total={total}
+      />
     </Modal>
   );
 }

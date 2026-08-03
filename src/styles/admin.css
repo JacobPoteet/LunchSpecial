@@ -1107,7 +1107,9 @@
 
 /* ---- day picker (engagement panel's calendar dialog) ---- */
 
-.daypick__title {
+/* Qualified for the same reason .modal--notice .notice__title is: this modal
+   opens from inside a .panel, and `.panel h2` would otherwise win. */
+.modal .daypick__title {
   font-family: var(--font-display);
   color: var(--teal);
   margin: 0 0 4px;
@@ -1230,7 +1232,9 @@
    on a narrow screen — the preview goes under the form, never beside it. */
 .announce-editor {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
+  /* 420px = .modal--notice's max-width, so the preview wraps its lines exactly
+     where the player's card does. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
   gap: 22px;
   align-items: start;
 }
@@ -1245,13 +1249,13 @@
   .announce-editor { grid-template-columns: 1fr; }
 }
 
-/* The preview borrows .modal--notice from game.css so it matches the player's
-   card exactly. Undo only the bits that belong to a real modal: it isn't
-   floating over anything here, and it shouldn't fill the column. */
+/* The preview borrows .modal/.modal--paneled/.modal--notice from game.css so it
+   matches the player's card exactly. Undo only what belongs to a real modal:
+   it isn't floating over a backdrop, so it needs no viewport height cap and a
+   lighter shadow. Everything else — max-width, padding, the dashed footer rule,
+   overflow — must stay inherited, or the preview drifts. */
 .announce-preview {
-  max-width: 100%;
   max-height: none;
-  overflow: visible;
   box-shadow: 0 6px 18px rgba(10, 20, 18, 0.18);
 }
 
