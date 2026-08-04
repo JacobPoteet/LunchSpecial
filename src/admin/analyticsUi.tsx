@@ -56,7 +56,11 @@ export function StartedByKindRow({ startedByKind }: { startedByKind: StartedByKi
   );
 }
 
-/** Completion / win / share rates for a slice of rounds. */
+/**
+ * Completion / win rates for a slice of rounds, plus the raw share count —
+ * shares are rare enough that a percentage of completions rounded to noise, so
+ * the tile reports how many results actually went out.
+ */
 export function RatesRow({ totals }: { totals: AnalyticsPeriod["totals"] }) {
   return (
     <div className="metric-row">
@@ -69,8 +73,8 @@ export function RatesRow({ totals }: { totals: AnalyticsPeriod["totals"] }) {
         <span className="metric__label">Win rate</span>
       </div>
       <div className="metric">
-        <span className="metric__num">{pct(totals.shared, totals.completed)}%</span>
-        <span className="metric__label">Share rate</span>
+        <span className="metric__num">{totals.shared}</span>
+        <span className="metric__label">Share count</span>
       </div>
     </div>
   );
