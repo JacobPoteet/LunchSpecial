@@ -526,6 +526,17 @@
 .pchart__swatch--new { background: var(--cherry); }
 .pchart__swatch--returning { background: var(--teal); }
 
+/* The "not tracked" key: a hatch, so it reads as absence rather than a third series. */
+.pchart__swatch--untracked {
+  height: 10px;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(27, 79, 74, 0.28) 0 1px,
+    transparent 1px 4px
+  );
+  border: 1px solid rgba(27, 79, 74, 0.22);
+}
+
 .pchart__svg {
   width: 100%;
   height: auto;
@@ -546,6 +557,23 @@
 
 .pchart__dot--new { fill: var(--cherry); }
 .pchart__dot--returning { fill: var(--teal); }
+
+/* Span before player tracking shipped: hatched, with no line drawn over it. The
+   metric didn't exist those days, and a flat line at 0 would claim it did. */
+.pchart__hatch { stroke: rgba(27, 79, 74, 0.3); stroke-width: 1; }
+
+.pchart__boundary {
+  stroke: rgba(27, 79, 74, 0.5);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.pchart__untracked-label {
+  fill: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
 
 .analytics-block { margin-top: 20px; }
 

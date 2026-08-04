@@ -79,20 +79,40 @@ export function RatesRow({ totals }: { totals: AnalyticsPeriod["totals"] }) {
 /**
  * New vs returning player tiles. A "player" is an anonymous device; new = first
  * play ever, returning = played on an earlier day too.
+ *
+ * `players` is null for a slice that predates player tracking, which is not the
+ * same thing as a slice where nobody played — the tiles show "—" rather than 0,
+ * because 0 would be a measurement this slice never made.
  */
-export function PlayersRow({ players }: { players: PlayerSplit }) {
+export function PlayersRow({
+  players,
+  trackingStart,
+}: {
+  players: PlayerSplit | null;
+  trackingStart?: string | null;
+}) {
   return (
-    <div className="metric-row">
-      <div className="metric metric--player metric--player-new">
-        <span className="metric__num">{players.new}</span>
-        <span className="metric__label">New players</span>
+    <>
+      <div className="metric-row">
+        <div className="metric metric--player metric--player-new">
+          <span className="metric__num">{players?.new ?? "—"}</span>
+          <span className="metric__label">New players</span>
+        </div>
+        <div className="metric metric--player metric--player-returning">
+          <span className="metric__num">{players?.returning ?? "—"}</span>
+          <span className="metric__label">Returning players</span>
+        </div>
       </div>
-      <div className="metric metric--player metric--player-returning">
-        <span className="metric__num">{players.returning}</span>
-        <span className="metric__label">Returning players</span>
-      </div>
-    </div>
+      {players === null && <p className="dash-note">{untrackedNote(trackingStart)}</p>}
+    </>
   );
+}
+
+/** The one wording for "we weren't counting players yet", used wherever a slice is null. */
+export function untrackedNote(trackingStart?: string | null): string {
+  return trackingStart
+    ? `Player tracking didn't start until ${trackingStart} — not measured before that, which isn't the same as zero.`
+    : "Player tracking hasn't recorded anything yet.";
 }
 
 /** The colour key shared by the started-by-kind tiles and the daily bar graph. */

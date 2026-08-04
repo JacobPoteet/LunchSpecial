@@ -1,5 +1,13 @@
 import type { AnalyticsDay, AnalyticsSummary } from "../../shared/types";
-import { KIND_META, KindLegend, noRoundsNote, pct, shortDate, type SurfaceFilter } from "./analyticsUi";
+import {
+  KIND_META,
+  KindLegend,
+  noRoundsNote,
+  pct,
+  shortDate,
+  untrackedNote,
+  type SurfaceFilter,
+} from "./analyticsUi";
 
 /** The two lines' colours for the new-vs-returning chart, matching admin.css. */
 const PLAYER_SERIES: { key: "newPlayers" | "returningPlayers"; cls: string; label: string }[] = [
@@ -7,8 +15,19 @@ const PLAYER_SERIES: { key: "newPlayers" | "returningPlayers"; cls: string; labe
   { key: "returningPlayers", cls: "returning", label: "Returning players" },
 ];
 
-/** Two-line SVG chart of new vs returning players per ET day (all time). */
-function PlayerLineChart({ days }: { days: AnalyticsDay[] }) {
+/**
+ * Two-line SVG chart of new vs returning players per ET day.
+ *
+ * `player_id` shipped after launch (migrations/0008), so the earliest days here
+ * recorded rounds but no players. Those days are **not** drawn as zeros — that
+ * would assert "nobody new played" when the truth is "nobody was counting". They
+ * get a hatched "not tracked" band instead, and the lines start at the boundary.
+ *
+ * The band rather than a shorter x-axis is deliberate: the Games-started spark
+ * directly above spans the full range at the same width, so a series that quietly
+ * began later would line up with it and read as the same days.
+ */
+function PlayerLineChart({ days, trackingStart }: { days: AnalyticsDay[]; trackingStart: string | null }) {
   const W = 660;
   const H = 190;
   const padL = 26;
@@ -16,14 +35,29 @@ function PlayerLineChart({ days }: { days: AnalyticsDay[] }) {
   const padT = 12;
   const padB = 24;
   const n = days.length;
-  const max = Math.max(1, ...days.map((d) => Math.max(d.newPlayers, d.returningPlayers)));
+  // Days carry null player counts until tracking started; everything from the
+  // first non-null onward is measured (a measured day can legitimately be 0).
+  const firstIdx = days.findIndex((d) => d.newPlayers !== null);
   const x = (i: number) =>
     n <= 1 ? padL + (W - padL - padR) / 2 : padL + (i / (n - 1)) * (W - padL - padR);
+
+  if (firstIdx === -1) {
+    return <p className="dash-note">{untrackedNote(trackingStart)}</p>;
+  }
+
+  const tracked = days.slice(firstIdx);
+  const max = Math.max(1, ...tracked.map((d) => Math.max(d.newPlayers ?? 0, d.returningPlayers ?? 0)));
   const y = (v: number) => padT + (1 - v / max) * (H - padT - padB);
   const path = (key: "newPlayers" | "returningPlayers") =>
-    days.map((d, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(d[key]).toFixed(1)}`).join(" ");
+    tracked
+      .map((d, j) => `${j === 0 ? "M" : "L"}${x(j + firstIdx).toFixed(1)},${y(d[key] ?? 0).toFixed(1)}`)
+      .join(" ");
   const xTickStep = Math.max(1, Math.ceil(n / 6));
   const yTicks = [...new Set([0, Math.round(max / 2), max])];
+  // Where measurement begins. firstIdx 0 means the whole window is tracked.
+  const boundaryX = x(firstIdx);
+  const bandW = boundaryX - padL;
+  const hasBand = firstIdx > 0 && bandW > 0;
 
   return (
     <div className="pchart">
@@ -34,14 +68,29 @@ function PlayerLineChart({ days }: { days: AnalyticsDay[] }) {
             {s.label}
           </span>
         ))}
+        {hasBand && (
+          <span className="pchart__legend-item">
+            <span className="pchart__swatch pchart__swatch--untracked" />
+            Not tracked
+          </span>
+        )}
       </div>
       <svg
         className="pchart__svg"
         viewBox={`0 0 ${W} ${H}`}
         role="img"
-        aria-label="New vs returning players per day"
+        aria-label={
+          hasBand
+            ? `New vs returning players per day. Not tracked before ${days[firstIdx].date}.`
+            : "New vs returning players per day"
+        }
         preserveAspectRatio="none"
       >
+        <defs>
+          <pattern id="pchart-hatch" width="6" height="6" patternUnits="userSpaceOnUse">
+            <path className="pchart__hatch" d="M0,6 l6,-6" />
+          </pattern>
+        </defs>
         {yTicks.map((v) => (
           <g key={v}>
             <line className="pchart__grid" x1={padL} y1={y(v)} x2={W - padR} y2={y(v)} />
@@ -50,17 +99,38 @@ function PlayerLineChart({ days }: { days: AnalyticsDay[] }) {
             </text>
           </g>
         ))}
+        {hasBand && (
+          <>
+            {/* No line is drawn over this span — the metric didn't exist yet. */}
+            <rect
+              className="pchart__untracked"
+              x={padL}
+              y={padT}
+              width={bandW}
+              height={H - padT - padB}
+              fill="url(#pchart-hatch)"
+            >
+              <title>{untrackedNote(trackingStart)}</title>
+            </rect>
+            <line className="pchart__boundary" x1={boundaryX} y1={padT} x2={boundaryX} y2={H - padB} />
+            {bandW >= 70 && (
+              <text className="pchart__untracked-label" x={padL + bandW / 2} y={padT + 14} textAnchor="middle">
+                not tracked
+              </text>
+            )}
+          </>
+        )}
         {PLAYER_SERIES.map((s) => (
           <path key={s.key} className={`pchart__line pchart__line--${s.cls}`} d={path(s.key)} fill="none" />
         ))}
         {n <= 45 &&
           PLAYER_SERIES.map((s) =>
-            days.map((d, i) => (
+            tracked.map((d, j) => (
               <circle
                 key={`${s.key}-${d.date}`}
                 className={`pchart__dot pchart__dot--${s.cls}`}
-                cx={x(i)}
-                cy={y(d[s.key])}
+                cx={x(j + firstIdx)}
+                cy={y(d[s.key] ?? 0)}
                 r={2.6}
               >
                 <title>{`${d.date} · ${d[s.key]} ${s.label.toLowerCase()}`}</title>
@@ -110,7 +180,7 @@ export default function TrendsPanel({
     );
   }
 
-  const { totals, players, daily, hourly } = data;
+  const { totals, players, daily, hourly, playerTrackingStart } = data;
   if (totals.started === 0) {
     return (
       <section className="panel">
@@ -176,12 +246,29 @@ export default function TrendsPanel({
           <p className="dash-note">No dated activity yet.</p>
         ) : (
           <>
-            <PlayerLineChart days={daily} />
+            <PlayerLineChart days={daily} trackingStart={playerTrackingStart} />
             <p className="dash-note" style={{ marginTop: 8 }}>
-              {players.new} player{players.new === 1 ? "" : "s"} all time · {players.returning} ha
-              {players.returning === 1 ? "s" : "ve"} come back on a later day. A “player” is an anonymous
-              device (localStorage), counted once regardless of game kind.
+              {players === null ? (
+                untrackedNote(playerTrackingStart)
+              ) : (
+                <>
+                  {players.new} player{players.new === 1 ? "" : "s"} all time · {players.returning} ha
+                  {players.returning === 1 ? "s" : "ve"} come back on a later day. A “player” is an anonymous
+                  device (localStorage), counted once regardless of game kind.
+                </>
+              )}
             </p>
+            {/* The instrument switched on mid-life, so the first tracked days are
+                biased as well as the untracked ones are missing: anyone who had
+                already played reappears as "new". Say so rather than let the
+                boundary spike read as a launch. */}
+            {playerTrackingStart && daily.length > 0 && daily[0].newPlayers === null && (
+              <p className="dash-note">
+                Player tracking started {playerTrackingStart}; the shaded span ran before it and wasn't
+                measured. Devices that had already played count as “new” on their first tracked day, so
+                “new” is overstated and “returning” understated around {playerTrackingStart}.
+              </p>
+            )}
           </>
         )}
       </section>
@@ -229,8 +316,13 @@ export default function TrendsPanel({
                     <td>{d.startedByKind.daily}</td>
                     <td>{d.startedByKind.leftover}</td>
                     <td>{d.startedByKind.random}</td>
-                    <td>{d.newPlayers}</td>
-                    <td>{d.returningPlayers}</td>
+                    {/* "—" = before tracking shipped. Not a zero. */}
+                    <td title={d.newPlayers === null ? untrackedNote(playerTrackingStart) : undefined}>
+                      {d.newPlayers ?? "—"}
+                    </td>
+                    <td title={d.returningPlayers === null ? untrackedNote(playerTrackingStart) : undefined}>
+                      {d.returningPlayers ?? "—"}
+                    </td>
                     <td>{d.completed}</td>
                     <td>{d.solved}</td>
                     <td>{pct(d.solved, d.completed)}%</td>
