@@ -43,6 +43,13 @@ import {
 } from "../auth";
 import { rowToDish, serverToday, type DishDbRow } from "../db";
 import { isValidDateString } from "../game";
+import {
+  etDayOfUtcStamp,
+  foldPlayerActivity,
+  playersAllTime,
+  playersOn,
+  type PlayerBucketRow,
+} from "../players";
 import { assembleMenuMix, type MenuDishRow, type MenuScheduleRow } from "../menu";
 import { gameHour, gameToday, msUntilGameMidnight } from "../../shared/time";
 
@@ -743,6 +750,7 @@ app.get("/analytics", async (c) => {
     dailyRes,
     hourlyRes,
     playerRes,
+    trackingStartRes,
   ] = await c.env.DB.batch([
       c.env.DB.prepare(allTimeTotalsSql),
       c.env.DB.prepare(distSql("")).bind(MAX_GUESSES),
@@ -796,6 +804,14 @@ app.get("/analytics", async (c) => {
            WHERE player_id IS NOT NULL AND started_at IS NOT NULL${surfAnd}
            GROUP BY player_id, bucket`,
       ),
+      // When player tracking switched on, derived from the data rather than
+      // hardcoded to the release date. Deliberately NOT surface-filtered: this
+      // marks the instrument, not the audience, so the Discord filter mustn't
+      // move it (see playersOn() in worker/players.ts).
+      c.env.DB.prepare(
+        `SELECT MIN(started_at) AS first_tracked FROM analytics_rounds
+           WHERE player_id IS NOT NULL AND started_at IS NOT NULL`,
+      ),
     ]);
 
   const emptyTotals = { started: 0, completed: 0, solved: 0, shared: 0, fails: 0 };
@@ -803,7 +819,7 @@ app.get("/analytics", async (c) => {
     totalsResult: D1Result,
     distResult: D1Result,
     startedByKind: StartedByKind,
-    players: PlayerSplit,
+    players: PlayerSplit | null,
   ): AnalyticsPeriod => {
     const { fails, ...totals } =
       (totalsResult.results[0] as AnalyticsPeriod["totals"] & { fails: number }) ?? emptyTotals;
@@ -814,43 +830,14 @@ app.get("/analytics", async (c) => {
     return { totals, startedByKind, guessDistribution, fails, players };
   };
 
-  // New vs returning players. Fold each player's active UTC-hour buckets into ET
-  // days; their earliest ET day is a "new" tally that day, every later active ET
-  // day is a "returning" tally. All-time `new` is the total distinct players and
-  // `returning` is those who came back on at least one later day.
-  const activeDaysByPlayer = new Map<string, Set<string>>();
-  for (const r of playerRes.results as { player_id: string; bucket: string }[]) {
-    const instant = new Date(`${r.bucket.replace(" ", "T")}:30:00Z`);
-    if (Number.isNaN(instant.getTime())) continue;
-    const et = gameToday(instant);
-    let set = activeDaysByPlayer.get(r.player_id);
-    if (!set) {
-      set = new Set();
-      activeDaysByPlayer.set(r.player_id, set);
-    }
-    set.add(et);
-  }
-  const newByDay = new Map<string, number>();
-  const returningByDay = new Map<string, number>();
-  let allTimeNew = 0;
-  let allTimeReturning = 0;
-  for (const days of activeDaysByPlayer.values()) {
-    const sorted = [...days].sort();
-    const firstDay = sorted[0];
-    newByDay.set(firstDay, (newByDay.get(firstDay) ?? 0) + 1);
-    allTimeNew += 1;
-    let returned = false;
-    for (const d of sorted) {
-      if (d === firstDay) continue;
-      returningByDay.set(d, (returningByDay.get(d) ?? 0) + 1);
-      returned = true;
-    }
-    if (returned) allTimeReturning += 1;
-  }
-  const playersOn = (date: string): PlayerSplit => ({
-    new: newByDay.get(date) ?? 0,
-    returning: returningByDay.get(date) ?? 0,
-  });
+  // New vs returning players — see worker/players.ts for the fold. `playersFor`
+  // returns null for any ET day before tracking started, so the dashboard can
+  // draw a gap there instead of a line pinned to zero.
+  const playerActivity = foldPlayerActivity(playerRes.results as PlayerBucketRow[]);
+  const firstTracked = (trackingStartRes.results[0] as { first_tracked: string | null } | undefined)
+    ?.first_tracked;
+  const playerTrackingStart = firstTracked ? etDayOfUtcStamp(firstTracked) : null;
+  const playersFor = (date: string) => playersOn(playerActivity, date, playerTrackingStart);
 
   const at = (allTimeTotalsRes.results[0] ?? {}) as Record<string, number>;
   const allTimeByKind: StartedByKind = {
@@ -893,8 +880,13 @@ app.get("/analytics", async (c) => {
     .sort()
     .slice(-30)
     .map((date) => {
-      const p = playersOn(date);
-      return { date, ...dayMap.get(date)!, newPlayers: p.new, returningPlayers: p.returning };
+      const p = playersFor(date);
+      return {
+        date,
+        ...dayMap.get(date)!,
+        newPlayers: p?.new ?? null,
+        returningPlayers: p?.returning ?? null,
+      };
     });
 
   // Selected day's games-started split, from its own ±1-day window.
@@ -906,11 +898,13 @@ app.get("/analytics", async (c) => {
     if (r.kind in dayByKind) dayByKind[r.kind] += r.started;
   }
 
-  const allTime = toPeriod(allTimeTotalsRes, allTimeDistRes, allTimeByKind, {
-    new: allTimeNew,
-    returning: allTimeReturning,
-  });
-  const dayPeriod = toPeriod(dayTotalsRes, dayDistRes, dayByKind, playersOn(day));
+  const allTime = toPeriod(
+    allTimeTotalsRes,
+    allTimeDistRes,
+    allTimeByKind,
+    playersAllTime(playerActivity, playerTrackingStart),
+  );
+  const dayPeriod = toPeriod(dayTotalsRes, dayDistRes, dayByKind, playersFor(day));
   const dayDish = dayDishRes.results[0] as { name: string } | undefined;
 
   // Fold each UTC hour-bucket ("YYYY-MM-DD HH", UTC) into its ET hour of day.
@@ -935,6 +929,7 @@ app.get("/analytics", async (c) => {
     today,
     activeDates: [...active].sort(),
     daily,
+    playerTrackingStart,
     hourly,
   };
   return c.json(summary);

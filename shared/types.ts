@@ -283,10 +283,14 @@ export interface AnalyticsDay {
   completed: number;
   solved: number;
   shared: number;
-  /** Distinct players whose first-ever play landed on this ET day. */
-  newPlayers: number;
-  /** Distinct players active this ET day who had first played on an earlier day. */
-  returningPlayers: number;
+  /**
+   * Distinct players whose first-ever play landed on this ET day, or **null when
+   * the day predates player tracking** (see AnalyticsSummary.playerTrackingStart).
+   * Null is "not measured", which is not the same claim as 0 — render it as a gap.
+   */
+  newPlayers: number | null;
+  /** Distinct players active this ET day who had first played earlier; null as above. */
+  returningPlayers: number | null;
 }
 
 /**
@@ -427,8 +431,12 @@ export interface AnalyticsPeriod {
   guessDistribution: number[];
   /** Completed rounds that ran out of guesses. */
   fails: number;
-  /** New vs returning player counts for this slice (see PlayerSplit). */
-  players: PlayerSplit;
+  /**
+   * New vs returning player counts for this slice (see PlayerSplit), or null when
+   * the slice predates player tracking — a day before instrumentation has no
+   * player split, and reporting it as zeros would be a measurement it never made.
+   */
+  players: PlayerSplit | null;
 }
 
 /** The three things a round can report, in the order they happen. */
@@ -486,6 +494,14 @@ export interface AnalyticsSummary extends AnalyticsPeriod {
   activeDates: string[];
   /** Last 30 days with activity, oldest first. */
   daily: AnalyticsDay[];
+  /**
+   * The earliest ET day any round carried a `player_id` — i.e. when new-vs-returning
+   * tracking actually started (migrations/0008, shipped after launch). Derived from
+   * the data, not hardcoded, and deliberately **not** surface-filtered: it marks when
+   * the instrument was switched on, not when a given surface first had players.
+   * Null when nothing has ever been tracked. Days before it have null player counts.
+   */
+  playerTrackingStart: string | null;
   /** Games started per hour of day (ET, the daily-rollover zone), index 0..23. */
   hourly: number[];
 }

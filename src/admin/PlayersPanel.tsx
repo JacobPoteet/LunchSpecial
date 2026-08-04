@@ -52,7 +52,8 @@ export default function PlayersPanel({
     );
   }
 
-  const { totals, startedByKind, guessDistribution, fails, day, today, activeDates } = data;
+  const { totals, startedByKind, guessDistribution, fails, day, today, activeDates, playerTrackingStart } =
+    data;
   // The server settles what day we're actually looking at, so trust `day.date`
   // over the requested one (a future/garbage date falls back to today).
   const isToday = day.date === today;
@@ -135,8 +136,9 @@ export default function PlayersPanel({
             ) : (
               <RatesRow totals={day.totals} />
             )}
-            {/* New vs returning players that day (all kinds, one count per device). */}
-            <PlayersRow players={day.players} />
+            {/* New vs returning players that day (all kinds, one count per device).
+                Null — a day before tracking shipped — shows as "—", not 0. */}
+            <PlayersRow players={day.players} trackingStart={playerTrackingStart} />
             <div className="analytics-split">
               <div>
                 <h3 className="analytics-sub">
@@ -178,7 +180,7 @@ export default function PlayersPanel({
         {/* Games started across the game's life, Today's Special first. */}
         <StartedByKindRow startedByKind={startedByKind} />
         <RatesRow totals={totals} />
-        <PlayersRow players={data.players} />
+        <PlayersRow players={data.players} trackingStart={playerTrackingStart} />
 
         <div className="analytics-block">
           <h3 className="analytics-sub">Guess distribution</h3>
@@ -188,6 +190,14 @@ export default function PlayersPanel({
         <p className="dash-note" style={{ marginTop: 10 }}>
           Anonymous counts only — {MAX_GUESSES} guesses max, no record of which dishes players ordered. A
           “player” is an anonymous device (localStorage), counted once regardless of game kind.
+          {playerTrackingStart && (
+            <>
+              {" "}
+              Player counts start {playerTrackingStart}, when tracking shipped — earlier games are in the
+              totals above but their devices aren't, so “new” is really “first seen since {playerTrackingStart}
+              ”.
+            </>
+          )}
         </p>
       </section>
     </>

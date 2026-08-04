@@ -4,7 +4,7 @@ import { hms, msUntilGameMidnight } from "../../shared/time";
 import type { AdminView } from "./AdminApp";
 import { AUDIENCE_LABEL } from "./AnnouncementsPanel";
 import type { DashboardTab } from "./Dashboard";
-import { noRoundsNote, pct, shortDate, sumKinds, type SurfaceFilter } from "./analyticsUi";
+import { noRoundsNote, pct, shortDate, sumKinds, untrackedNote, type SurfaceFilter } from "./analyticsUi";
 
 /** Live countdown to the next midnight-ET rollover, when today's Special switches. */
 function SwitchCountdown() {
@@ -65,7 +65,7 @@ function AtAGlance({
     );
   }
 
-  const { day, today, totals, startedByKind, players } = analytics;
+  const { day, today, totals, startedByKind, players, playerTrackingStart } = analytics;
   // The Players tab can point the shared fetch at an earlier service; say so
   // rather than mislabeling someone else's day as "today".
   const isToday = day.date === today;
@@ -102,8 +102,9 @@ function AtAGlance({
                 <span className="metric__num">{pct(day.totals.solved, day.totals.completed)}%</span>
                 <span className="metric__label">Win rate</span>
               </div>
-              <div className="metric">
-                <span className="metric__num">{day.players.new}</span>
+              {/* "—" when the day predates player tracking: unmeasured, not zero. */}
+              <div className="metric" title={day.players === null ? untrackedNote(playerTrackingStart) : undefined}>
+                <span className="metric__num">{day.players?.new ?? "—"}</span>
                 <span className="metric__label">New players</span>
               </div>
             </div>
@@ -125,8 +126,17 @@ function AtAGlance({
               <span className="metric__num">{pct(totals.solved, totals.completed)}%</span>
               <span className="metric__label">Win rate</span>
             </div>
-            <div className="metric">
-              <span className="metric__num">{players.new}</span>
+            <div
+              className="metric"
+              title={
+                players === null
+                  ? untrackedNote(playerTrackingStart)
+                  : playerTrackingStart
+                    ? `Distinct devices since ${playerTrackingStart}, when player tracking shipped.`
+                    : undefined
+              }
+            >
+              <span className="metric__num">{players?.new ?? "—"}</span>
               <span className="metric__label">Players</span>
             </div>
           </div>
