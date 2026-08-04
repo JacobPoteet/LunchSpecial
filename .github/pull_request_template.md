@@ -1,38 +1,33 @@
 <!-- Closes #N -->
 
+<!-- Keep it short — a reviewer should get the picture in under a minute.
+     Budget: ~200 words for a normal PR, three lines for a one-file fix.
+     Scale down, never up. The diff shows the code; don't narrate it. -->
+
 ## Why
 
-<!-- The problem being solved. For a bug, the root cause, not just the symptom. -->
+<!-- One or two sentences. For a bug, the root cause. -->
 
 ## What changed
 
-<!-- What's different for a player or an admin, and which layer it landed in. -->
+<!-- Bullets, one per file or area, one line each. What's different for a
+     player or an admin. -->
 
 ## Reviewer notes
 
-<!-- Only what the diff can't say for itself: decisions taken on purpose, seams
-     left in, anything worth preserving if this gets revisited. Delete if none. -->
+<!-- Optional. Only decisions the diff can't explain, as bullets. If it's
+     visible in the diff it doesn't go here. Delete the section if empty. -->
 
 ## Verification
 
-<!-- What you ran and what it showed: `npm test`, `npm run check`, and the round
-     or screen you actually exercised. Name anything you did NOT verify. -->
+<!-- `npm test` / `npm run check`, the screen or round you exercised, and
+     anything you did NOT verify. Two or three lines. -->
 
-<!-- Then point the reviewer at what would convince them — the specific screen,
-     route or state, and anything only reachable in a particular mode: a
-     Leftovers replay, Chef's Choice, the Discord Activity, a fresh
-     localStorage, the midnight-ET rollover, 375px. -->
-
-<!-- Call it out here if this PR touches any of these, since none of them fail
-     loudly:
-     - spoilers — the target dish reaching the client anywhere but `/reveal`,
-       or a free-play path reading the `schedule`
-     - a D1 migration — additive only, dishes keyed by slug, no `DELETE` and no
-       `INSERT INTO schedule`; prod holds the only copy of the schedule and of
-       every admin edit
-     - new dishes — exactly 5 clues and >=3 ingredients each, in both
-       `seed/seed.sql` and a migration
-     - a client-called URL — nothing matching analytics/event/track/collect/
-       beacon/telemetry/pixel, or ad blockers silently drop it
-     - the Discord surface, or a new animation needing `prefers-reduced-motion`
+<!-- If this PR touches any of these, move that line out of this comment and tick
+     it. Otherwise leave the whole block commented — none of them fail loudly:
+- [ ] spoilers — target dish reaching the client outside `/reveal`, or a free-play path reading `schedule`
+- [ ] D1 migration — additive only, dish keyed by slug, no `DELETE`, no `INSERT INTO schedule`
+- [ ] new dishes — exactly 5 clues and >=3 ingredients, in both `seed/seed.sql` and a migration
+- [ ] client-called URL — nothing matching analytics/event/track/collect/beacon/telemetry/pixel
+- [ ] Discord surface, or a new animation needing `prefers-reduced-motion`
 -->
