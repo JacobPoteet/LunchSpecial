@@ -11,6 +11,7 @@ import type {
 } from "../../shared/types";
 import { ANNOUNCEMENT_LIMITS } from "../../shared/types";
 import { gameToday } from "../../shared/time";
+import { NoticeCard } from "../game/AnnouncementModal";
 import Markdown from "../game/Markdown";
 import { Modal } from "../game/components";
 import { shortDate } from "./analyticsUi";
@@ -237,15 +238,30 @@ function Editor({
           </div>
         </div>
 
+        {/* The card is the game's own <NoticeCard>, and the wrapper repeats the
+            shape Modal gives it when it has a footer: modal--paneled, the
+            scrolling body, the pinned button, the close ×. Drop any of those and
+            the preview's padding, dashed footer rule and card height all stop
+            matching what the player gets. The button and × are inert on purpose
+            — nothing here to close. */}
         <div className="announce-editor__preview">
           <p className="dash-note" style={{ marginTop: 0 }}>What the player sees</p>
-          <div className="modal modal--notice announce-preview">
-            <div className="notice">
-              <p className="notice__eyebrow">A note from the kitchen</p>
-              <h2 className="notice__title">{form.header || "Your header"}</h2>
-              <div className="notice__body">
-                <Markdown source={form.body || "_Your message will show up here._"} />
-              </div>
+          <div className="modal modal--paneled modal--notice announce-preview">
+            <span className="modal__close" aria-hidden="true">
+              ×
+            </span>
+            <div className="modal__scroll">
+              <NoticeCard
+                header={form.header || "Your header"}
+                body={form.body || "_Your message will show up here._"}
+              />
+            </div>
+            <div className="modal__footer">
+              {/* A real <button>: .btn sets no display, so a <span> would lay
+                  out inline and .notice__ok's full width would do nothing. */}
+              <button className="btn btn--red notice__ok" type="button" tabIndex={-1} aria-hidden="true">
+                Continue
+              </button>
             </div>
           </div>
         </div>
