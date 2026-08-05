@@ -8,6 +8,7 @@ import {
   RatesRow,
   StartedByKindRow,
   avgGuesses,
+  difficultyNote,
   noRoundsNote,
   shortDate,
   sumKinds,
@@ -79,8 +80,9 @@ export default function PlayersPanel({
 
   const allTimeAvg = avgGuesses(guessDistribution);
   const dayAvg = avgGuesses(day.guessDistribution);
-  // Positive delta = this day needed more guesses than usual (harder than average).
-  const avgDelta = dayAvg !== null && allTimeAvg !== null ? dayAvg - allTimeAvg : null;
+  // How this day's Special played against the average, worded once in
+  // analyticsUi so the Overview's copy of this read can't drift from it.
+  const difficulty = difficultyNote(day.guessDistribution, guessDistribution, isToday);
 
   // Any game started that day (across all three kinds), vs. its Special alone.
   const dayStartedAny = sumKinds(day.startedByKind);
@@ -158,15 +160,9 @@ export default function PlayersPanel({
                     <span className="metric__label">All time</span>
                   </div>
                 </div>
-                {avgDelta !== null && (
+                {difficulty && (
                   <p className="dash-note" style={{ marginTop: 8 }}>
-                    {Math.abs(avgDelta) < 0.005
-                      ? "Right on the all-time average."
-                      : `${avgDelta > 0 ? "▲" : "▼"} ${Math.abs(avgDelta).toFixed(2)} ${
-                          avgDelta > 0 ? "more" : "fewer"
-                        } guesses than average — ${isToday ? "today's" : "that day's"} Special played ${
-                          avgDelta > 0 ? "harder" : "easier"
-                        }.`}
+                    {difficulty}
                   </p>
                 )}
               </div>

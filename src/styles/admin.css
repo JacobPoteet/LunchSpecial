@@ -625,6 +625,112 @@
   color: var(--ink-soft);
 }
 
+/* Stacked variant (Overview's hour-by-mode chart). The flat teal bar above is
+   the all-kinds Trends chart; this one splits each hour into the same
+   bottom-up Special / Leftovers / Chef's Choice order as the daily spark. */
+.hourly__bar--stacked {
+  background: transparent;
+  display: flex;
+  flex-direction: column-reverse;
+  overflow: hidden;
+}
+
+.hourly__seg { width: 100%; display: block; }
+.hourly__seg--daily { background: var(--mustard); }
+.hourly__seg--leftover { background: var(--teal); }
+.hourly__seg--random { background: var(--cherry); }
+
+/* Hours today hasn't reached yet. Empty because they haven't happened, not
+   because nobody played — the tick fades so the eye stops reading them as data. */
+.hourly__col--future { opacity: 0.32; }
+.hourly__col--future .hourly__tick { opacity: 0.6; }
+
+.hourly__caption { margin-top: 18px; font-size: 0.78rem; }
+
+/* The three sentences under the day tiles: pace, difficulty, liveness. Each is
+   a full read on its own, so they're a list rather than a run-on paragraph. */
+.dash-reads {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
+/* Finish + share rates. Each track IS its denominator (games started, then games
+   finished) and the fill is the answer — so neither row is the always-full first
+   bar of a funnel. Fills use the Activity feed's EVENT colours (complete =
+   cherry, share = mustard), never the kind palette, which means game mode. */
+.finish { display: flex; flex-direction: column; gap: 12px; }
+
+.finish__track {
+  height: 14px;
+  border-radius: 3px;
+  background: rgba(27, 79, 74, 0.12);
+  overflow: hidden;
+}
+
+.finish__fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+}
+
+.finish__fill--done { background: var(--cherry); }
+.finish__fill--shared { background: var(--mustard); }
+
+.finish__legend {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 5px 0 0;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+/* Carries the series colour as a swatch rather than tinting the number —
+   mustard text on the panel ground is too low-contrast to read. */
+.finish__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  align-self: center;
+}
+
+.finish__dot--done { background: var(--cherry); }
+.finish__dot--shared { background: var(--mustard); }
+
+.finish__num {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--teal);
+  font-variant-numeric: tabular-nums;
+}
+
+.finish__of { color: var(--ink-soft); font-size: 0.78rem; }
+
+/* The drop-offs, trailing the finishers on purpose. */
+.finish__rest {
+  margin-left: auto;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+
+/* The all-time strip trails a full day's worth of charts now — give it air. */
+.analytics-block + .dash-subhead { margin-top: 22px; }
+
+@media (max-width: 520px) {
+  /* Let the DNF figure wrap onto its own line rather than being pushed off the
+     row by `margin-left: auto` on a width that can't hold both. */
+  .finish__rest { margin-left: 0; }
+}
+
 .day-table-wrap { overflow-x: auto; }
 
 .day-table {

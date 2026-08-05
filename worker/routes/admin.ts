@@ -29,10 +29,12 @@ import {
   MAX_GUESSES,
   PROTEINS,
   REGIONS,
+  ROUND_KINDS,
   SURFACES,
   TEMPERATURES,
 } from "../../shared/types";
 import { announcementStatus, parseAnnouncementInput } from "../announcements";
+import { foldDayService, foldPace, type DayHourRow, type PaceRow } from "../service";
 import {
   createToken,
   passwordMatches,
@@ -759,13 +761,22 @@ app.get("/analytics", async (c) => {
       c.env.DB
         .prepare("SELECT d.name FROM schedule s JOIN dishes d ON d.id = s.dish_id WHERE s.date = ?")
         .bind(day),
-      // Games *started* on the selected ET day, split by kind. The daily series
-      // below only reaches back ~5 weeks, so a day picked from further back
-      // wouldn't be in it — this asks directly. Widen to a ±1-day UTC window and
-      // fold to ET in JS, since SQLite can't do named timezones.
+      // The selected ET day's whole service, bucketed by UTC hour AND kind: the
+      // daily series below only reaches back ~5 weeks, so a day picked from
+      // further back wouldn't be in it — this asks directly. Widen to a ±1-day
+      // UTC window and fold to ET days/hours in JS, since SQLite can't do named
+      // timezones. Keeping the hour (rather than collapsing to a day total) is
+      // what feeds the overview's hourly-by-mode chart; the completed/solved/
+      // shared sums are the started-that-day cohort, so they cover every kind
+      // where `dayTotalsSql` above narrows to the Special alone.
       c.env.DB
         .prepare(
-          `SELECT strftime('%Y-%m-%d %H', started_at) AS bucket, kind, COUNT(*) AS started
+          `SELECT strftime('%Y-%m-%d %H', started_at) AS bucket, kind,
+             COUNT(*) AS started,
+             COALESCE(SUM(completed), 0) AS completed,
+             COALESCE(SUM(solved), 0) AS solved,
+             COALESCE(SUM(shared), 0) AS shared,
+             MAX(started_at) AS last_started
              FROM analytics_rounds
              WHERE started_at IS NOT NULL
                AND started_at >= datetime(?, '-1 day') AND started_at < datetime(?, '+2 days')
@@ -889,14 +900,16 @@ app.get("/analytics", async (c) => {
       };
     });
 
-  // Selected day's games-started split, from its own ±1-day window.
+  // The selected day's service, folded out of its own ±1-day window: the hourly
+  // profile, the all-kinds totals, and when the last round started.
+  const service = foldDayService(dayKindRes.results as DayHourRow[], day);
   const dayByKind = zeroByKind();
-  for (const r of dayKindRes.results as { bucket: string; kind: RoundKind; started: number }[]) {
-    const instant = new Date(`${r.bucket.replace(" ", "T")}:30:00Z`);
-    if (Number.isNaN(instant.getTime())) continue;
-    if (gameToday(instant) !== day) continue;
-    if (r.kind in dayByKind) dayByKind[r.kind] += r.started;
+  for (const h of service.hourly) {
+    for (const k of ROUND_KINDS) dayByKind[k] += h.startedByKind[k];
   }
+  // Pace baseline: the same multi-day series the charts use, re-folded into a
+  // mean cumulative curve over the days *before* this one.
+  const pace = foldPace(dailyRes.results as PaceRow[], day);
 
   const allTime = toPeriod(
     allTimeTotalsRes,
@@ -925,7 +938,15 @@ app.get("/analytics", async (c) => {
     guessDistribution: allTime.guessDistribution,
     fails: allTime.fails,
     players: allTime.players,
-    day: { date: day, dishName: dayDish?.name ?? null, ...dayPeriod },
+    day: {
+      date: day,
+      dishName: dayDish?.name ?? null,
+      ...dayPeriod,
+      allKinds: service.allKinds,
+      hourly: service.hourly,
+      lastStartedAt: service.lastStartedAt,
+      pace,
+    },
     today,
     activeDates: [...active].sort(),
     daily,
