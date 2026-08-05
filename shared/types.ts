@@ -439,6 +439,52 @@ export interface AnalyticsPeriod {
   players: PlayerSplit | null;
 }
 
+/**
+ * One ET hour of a day's service — games started in it, split by kind. The
+ * overview's hourly chart is an array of 24 of these, index === `hour`.
+ */
+export interface AnalyticsHour {
+  /** Hour of day in ET (the daily-rollover zone), 0..23. */
+  hour: number;
+  startedByKind: StartedByKind;
+}
+
+/**
+ * A day's whole service across every kind, not just its Special. {@link
+ * AnalyticsPeriod.totals} for a day slice deliberately narrows to `kind='daily'`
+ * so replays can't dilute the puzzle's win rate — but "how busy was the diner"
+ * and "how many rounds are still open" need every kind, so they come from here.
+ *
+ * All four count the rounds *started* that ET day, so a round begun at 11:58pm
+ * and finished after midnight still lands on the day it started (the same cohort
+ * rule the daily-breakdown table uses).
+ */
+export interface DayServiceTotals {
+  started: number;
+  completed: number;
+  solved: number;
+  shared: number;
+}
+
+/**
+ * How a day's pace compares to the days before it, so a raw count part-way
+ * through a service means something. Null when there aren't enough earlier days
+ * to average.
+ */
+export interface AnalyticsPace {
+  /** How many earlier active ET days were averaged (at most {@link PACE_LOOKBACK_DAYS}). */
+  days: number;
+  /**
+   * `typical[h]` = mean games started from midnight ET *through the end of* hour
+   * `h`, across those days. Cumulative, so comparing today's running total at
+   * the current hour to `typical[currentHour]` is apples to apples.
+   */
+  typical: number[];
+}
+
+/** How many earlier active days the pace baseline averages over. */
+export const PACE_LOOKBACK_DAYS = 7;
+
 /** The three things a round can report, in the order they happen. */
 export const ANALYTICS_EVENT_TYPES = ["start", "complete", "share"] as const;
 export type AnalyticsEventType = (typeof ANALYTICS_EVENT_TYPES)[number];
@@ -483,7 +529,23 @@ export interface AnalyticsSummary extends AnalyticsPeriod {
    * *started* that ET day split by kind, so the dashboard can headline "Today's
    * Special started" alongside leftovers + chef's specials.
    */
-  day: AnalyticsPeriod & { date: string; dishName: string | null };
+  day: AnalyticsPeriod & {
+    date: string;
+    dishName: string | null;
+    /** The day's whole service, every kind — see {@link DayServiceTotals}. */
+    allKinds: DayServiceTotals;
+    /** Games started per ET hour, split by kind. Always length 24, index === hour. */
+    hourly: AnalyticsHour[];
+    /**
+     * The most recent round start on this day, as an ISO-8601 UTC instant, or
+     * null if nothing was started. Drives the "last order N minutes ago"
+     * liveness read — a quiet dashboard and a broken beacon look identical
+     * without it.
+     */
+    lastStartedAt: string | null;
+    /** This day's pace against the days before it, or null with too little history. */
+    pace: AnalyticsPace | null;
+  };
   /** The server's current ET day. `day.date` equals it unless a past day was asked for. */
   today: string;
   /**

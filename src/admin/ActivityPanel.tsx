@@ -4,7 +4,7 @@ import { ANALYTICS_EVENTS_MAX, ANALYTICS_EVENTS_PAGE } from "../../shared/types"
 import { gameTimestamp } from "../../shared/time";
 import * as api from "./api";
 import { peekPlayerId } from "../game/storage";
-import { kindCls, kindLabel, type SurfaceFilter } from "./analyticsUi";
+import { ago, kindCls, kindLabel, type SurfaceFilter } from "./analyticsUi";
 
 /** Label + bar colour for each event type in the recent-activity feed. */
 const EVENT_META: Record<AnalyticsEventType, { label: string; cls: string }> = {
@@ -12,17 +12,6 @@ const EVENT_META: Record<AnalyticsEventType, { label: string; cls: string }> = {
   complete: { label: "Finished", cls: "complete" },
   share: { label: "Shared", cls: "share" },
 };
-
-/** How long ago an instant was, in the roughest unit that still reads right. */
-function ago(atMs: number, nowMs: number): string {
-  const s = Math.max(0, Math.round((nowMs - atMs) / 1000));
-  if (s < 45) return "just now";
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${Math.max(1, m)}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}
 
 /** What a finished round ended up doing. Blank for start/share events. */
 function eventDetail(e: AnalyticsEvent): string {
