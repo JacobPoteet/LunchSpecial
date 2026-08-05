@@ -1805,7 +1805,11 @@ INSERT INTO dishes (id, name, slug, country, region, course, temperature, protei
 (341,'Pico de Gallo','pico-de-gallo','Mexico','latin-america','appetizer','cold','vegetarian','["tomato","onion","cilantro","jalapeno","lime","salt"]'),
 (342,'Pupusas','pupusas','El Salvador','latin-america','breakfast','hot','vegetarian','["cornmeal","cheese","beans","cabbage","tomato","vinegar"]'),
 (343,'Avocado Toast','avocado-toast','Australia','oceania','breakfast','cold','vegetarian','["bread","avocado","lemon","olive oil","chili","salt"]'),
-(344,'Vegemite Toast','vegemite-toast','Australia','oceania','breakfast','hot','vegetarian','["bread","butter","yeast extract","salt"]');
+(344,'Vegemite Toast','vegemite-toast','Australia','oceania','breakfast','hot','vegetarian','["bread","butter","yeast extract","salt"]'),
+(345,'Fairy Bread','fairy-bread','Australia','oceania','dessert','cold','vegetarian','["bread","butter","sprinkles"]'),
+(346,'German Chocolate Cake','german-chocolate-cake','United States','north-america','dessert','cold','vegetarian','["chocolate","flour","sugar","egg","buttermilk","coconut","pecan","evaporated milk"]'),
+(347,'Funnel Cake','funnel-cake','United States','north-america','dessert','hot','vegetarian','["flour","egg","milk","sugar","baking powder","vanilla","powdered sugar"]'),
+(348,'Scrambled Eggs','scrambled-eggs','United States','north-america','breakfast','hot','vegetarian','["egg","butter","milk","salt","black pepper"]');
 
 INSERT INTO clues (dish_id, order_index, text) VALUES
 (285,1,'A staple of North Africa, from the kingdom at the continent''s northwest corner.'),
@@ -2107,7 +2111,34 @@ INSERT INTO clues (dish_id, order_index, text) VALUES
 (344,2,'A Melbourne chemist created the dark spread in 1922 out of leftover brewer''s yeast, after wartime shipping cut off the British equivalent.'),
 (344,3,'Men at Work sang about a sandwich made with it in "Down Under", and watching a foreigner spread it far too thick is a national spectator sport.'),
 (344,4,'Hot toast is buttered first so the butter melts in, then the near-black salty paste is scraped on in the thinnest possible layer.'),
-(344,5,'Buttered hot toast smeared thinly with a dark, intensely salty yeast-extract spread that Australians adore and almost nobody else does.');
+(344,5,'Buttered hot toast smeared thinly with a dark, intensely salty yeast-extract spread that Australians adore and almost nobody else does.'),
+(345,1,'A children''s party staple from the southern-hemisphere country that is also a continent.'),
+(345,2,'The name is thought to come from a Robert Louis Stevenson poem printed in 1885; the food itself turns up in Australian newspapers by the 1920s.'),
+(345,3,'No Australian kid''s birthday party is considered properly catered without a platter of it, and there is a national day for it in late November.'),
+(345,4,'Soft white sandwich bread is buttered right to the crusts, showered with tiny round sugar beads known locally as hundreds and thousands, then cut into triangles.'),
+(345,5,'Buttered white bread covered edge to edge in hundreds and thousands and cut into triangles — the birthday-party plate of Australia.'),
+(346,1,'A rich layer cake from North America, despite a name that has sent people looking to Europe for a century.'),
+(346,2,'It is named for Samuel German, an English-American who developed a dark baking bar for Baker''s in 1852; a Texas homemaker''s 1957 recipe ran in a Dallas newspaper and the possessive apostrophe quietly fell off.'),
+(346,3,'That newspaper printing sent the recipe nationwide and sales of the chocolate bar jumped several hundred percent — and it has been fuelling "it is not actually from over there" trivia ever since.'),
+(346,4,'The cake layers are mild sweet chocolate, but what defines it is the frosting: egg yolks and evaporated milk cooked into a custard, then stirred full of toasted pecans and shredded coconut and spread between the layers rather than over the sides.'),
+(346,5,'A mild chocolate layer cake finished with a cooked custard frosting of coconut and pecan — named after a man, not a country.'),
+(347,1,'A fried sweet you buy from a stand at an American state fair.'),
+(347,2,'Pennsylvania Dutch settlers brought the poured-batter method over from German-speaking Europe, though medieval Persian and Arab cooks were frying similar drizzled batters far earlier.'),
+(347,3,'It is the smell of a summer carnival midway or a boardwalk in July, sold from a trailer window alongside the corn dogs.'),
+(347,4,'Thin batter is drizzled in overlapping loops straight into hot oil — traditionally poured through a narrow spout — then fried crisp and buried in powdered sugar.'),
+(347,5,'A crisp lacy tangle of batter poured in loops through a cone-shaped spout into hot oil and snowed under with powdered sugar at the fair.'),
+(348,1,'The most-cooked breakfast in the United States, and in a great many other countries besides.'),
+(348,2,'The Romans beat and cooked eggs much this way; the French later codified the slow version, with Escoffier insisting on gentle heat and a great deal of butter.'),
+(348,3,'It is the classic test a chef gives a line cook at a job trial, and Gordon Ramsay''s soft, creamy take is one of the most-watched cooking clips on the internet.'),
+(348,4,'Eggs are beaten with a splash of milk, poured into melted butter over low heat, and pushed slowly around the pan so they set in soft folds — then pulled off before they look done.'),
+(348,5,'Beaten eggs stirred gently in butter over low heat until they set into soft curds, seasoned with salt and pepper.');
+
+
+-- Dishes that came in through the player suggestion form. Flagged here rather
+-- than in the INSERT above so the column list stays as it was; the rest of the
+-- catalogue keeps the 0 default. See migrations/0017.
+UPDATE dishes SET is_fan_submission = 1
+ WHERE slug IN ('fairy-bread', 'german-chocolate-cake', 'funnel-cake', 'scrambled-eggs');
 
 
 INSERT INTO schedule (date, dish_id) VALUES

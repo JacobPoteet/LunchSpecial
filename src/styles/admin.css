@@ -1025,6 +1025,9 @@
 
 .badge--warn { background: var(--near-soft); color: #9a6516; border-color: var(--near); }
 .badge--off { background: var(--miss-soft); color: var(--ink-soft); border-color: var(--miss); }
+/* Sits beside the dish name, not in the Status column — a dish's origin is not
+   a state it can fail, and the ready/incomplete read must stay unambiguous. */
+.badge--fan { margin-left: 8px; background: var(--near-soft); color: #9a6516; border-color: var(--near); }
 
 .filter-row {
   display: flex;

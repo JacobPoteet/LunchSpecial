@@ -274,6 +274,7 @@ app.get("/reveal", async (c) => {
     protein: d.protein,
     ingredients: d.ingredients,
     clues: await getClues(c.env.DB, d.id),
+    isFanSubmission: d.isFanSubmission,
   };
   return c.json(reveal);
 });

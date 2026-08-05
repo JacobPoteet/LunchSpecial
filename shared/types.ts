@@ -63,6 +63,12 @@ export interface Dish {
   protein: Protein;
   ingredients: string[];
   isActive: boolean;
+  /**
+   * Came from a player's "Suggest a dish" request rather than the kitchen's own
+   * list. A credit only — it never affects scheduling, the fallback pick or
+   * feedback. The check modal stamps it when the dish is the Special.
+   */
+  isFanSubmission: boolean;
 }
 
 export interface AttributeFeedback {
@@ -103,6 +109,8 @@ export interface RevealInfo {
   protein: Protein;
   ingredients: string[];
   clues: string[];
+  /** Credited on the check as a player suggestion — see {@link Dish.isFanSubmission}. */
+  isFanSubmission: boolean;
 }
 
 // ---- Admin API shapes ----
@@ -127,6 +135,7 @@ export interface AdminDishInput {
   protein: Protein;
   ingredients: string[];
   isActive: boolean;
+  isFanSubmission: boolean;
   clues: string[];
 }
 

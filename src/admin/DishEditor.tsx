@@ -21,6 +21,7 @@ const emptyForm: AdminDishInput = {
   protein: "vegetarian",
   ingredients: [],
   isActive: true,
+  isFanSubmission: false,
   clues: ["", "", "", "", ""],
 };
 
@@ -126,7 +127,11 @@ export default function DishEditor({
   onDone: () => void;
 }) {
   const [form, setForm] = useState<AdminDishInput>(() =>
-    dishId === null && prefill ? { ...emptyForm, name: prefill.name, country: prefill.country } : emptyForm,
+    // A prefilled new dish came from the request inbox, so it *is* a fan
+    // submission — pre-tick it rather than making the reviewer remember.
+    dishId === null && prefill
+      ? { ...emptyForm, name: prefill.name, country: prefill.country, isFanSubmission: true }
+      : emptyForm,
   );
   const [vocabulary, setVocabulary] = useState<string[]>([]);
   const [loading, setLoading] = useState(dishId !== null);
@@ -150,6 +155,7 @@ export default function DishEditor({
             protein: d.protein,
             ingredients: d.ingredients,
             isActive: d.isActive,
+            isFanSubmission: d.isFanSubmission,
             clues: [...d.clues, "", "", "", "", ""].slice(0, 5),
           });
           setLoading(false);
@@ -334,6 +340,22 @@ export default function DishEditor({
               />
               On the menu (guessable by players)
             </label>
+          </div>
+
+          <div className="field">
+            <label>
+              <input
+                type="checkbox"
+                checked={form.isFanSubmission}
+                onChange={(e) => set("isFanSubmission", e.target.checked)}
+                style={{ width: "auto", marginRight: 8 }}
+              />
+              Fan submission (a player asked for this one)
+            </label>
+            <p className="field-hint">
+              Stamps the check with a credit whenever this dish is the Special, and promotes the "Suggest a dish"
+              button underneath it. Changes nothing about scheduling or the game itself.
+            </p>
           </div>
 
           {!schedulable && (

@@ -14,6 +14,7 @@ export interface DishDbRow {
   protein: string;
   ingredients: string;
   is_active: number;
+  is_fan_submission: number;
 }
 
 export function rowToDish(row: DishDbRow): Dish {
@@ -28,6 +29,7 @@ export function rowToDish(row: DishDbRow): Dish {
     protein: row.protein as Protein,
     ingredients: JSON.parse(row.ingredients) as string[],
     isActive: row.is_active === 1,
+    isFanSubmission: row.is_fan_submission === 1,
   };
 }
 

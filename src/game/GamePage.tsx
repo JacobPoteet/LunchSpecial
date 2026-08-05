@@ -183,11 +183,41 @@ function StoryDetails({ clues }: { clues: string[] }) {
 }
 
 /**
+ * The credit a fan-submitted Special carries on the check. It sits directly on
+ * top of the suggest form — not up by the dish name — because the two are one
+ * argument (somebody typed this dish into that form, and here it is), and
+ * because the check has to stay short enough to read on a phone: down here the
+ * stamp doubles as the form's header instead of costing a separate band of
+ * height above the fold.
+ *
+ * Unrotated on purpose. The tilt read as a sticker but forced extra vertical
+ * padding to keep its corners off the neighbouring text, which is exactly the
+ * height this modal can't spare.
+ */
+function FanStamp({ dishName }: { dishName: string }) {
+  return (
+    <div className="fan-stamp">
+      <span className="fan-stamp__seal" aria-hidden="true">
+        ★
+      </span>
+      <div>
+        <p className="fan-stamp__title">Off a customer's ticket</p>
+        <p className="fan-stamp__body">A regular asked for {dishName}. Yours could be next.</p>
+      </div>
+    </div>
+  );
+}
+
+/**
  * "Suggest a dish for the menu" — shown on the receipt after a round. Collapsed
  * to a single line until the player opens it; on submit it POSTs an anonymous
  * request to the admin inbox (surface + device id, same model as analytics).
+ *
+ * `promoted` is set when the Special itself came from a request: the same
+ * control, styled loud instead of quiet, because that's the one round where the
+ * ask has just proved itself.
  */
-function RequestDishForm() {
+function RequestDishForm({ promoted = false }: { promoted?: boolean }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [country, setCountry] = useState("");
@@ -200,7 +230,10 @@ function RequestDishForm() {
 
   if (!open) {
     return (
-      <button className="dish-request__toggle" onClick={() => setOpen(true)}>
+      <button
+        className={`dish-request__toggle${promoted ? " dish-request__toggle--promoted" : ""}`}
+        onClick={() => setOpen(true)}
+      >
         🍽️ Suggest a dish for the menu
       </button>
     );
@@ -427,7 +460,8 @@ function ResultModal({
       {/* A playtest round shows the panel but hasn't been folded into it — the
           numbers are the ones you walked in with, since nothing was recorded. */}
       {asDaily && <StatsPanel stats={stats} highlight={won ? round.guesses.length : undefined} />}
-      <RequestDishForm />
+      {reveal?.isFanSubmission && <FanStamp dishName={reveal.name} />}
+      <RequestDishForm promoted={reveal?.isFanSubmission === true} />
     </Modal>
   );
 }
