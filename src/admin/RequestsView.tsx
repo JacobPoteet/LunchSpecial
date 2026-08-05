@@ -8,12 +8,18 @@ import * as api from "./api";
  * Build the exact "add dishes:" line the CLAUDE.md workflow understands, so the
  * whole inbox can be pasted into a chat with Claude to generate them at once.
  * Each entry is `Name (Country)`, country dropped when unknown.
+ *
+ * The fan-submission note rides along because everything in this inbox came from
+ * a player: pasting the line without it produces dishes that are silently
+ * untagged, and the credit then has to be added by hand, dish by dish. The
+ * "add dishes:" prefix stays at the front — that's the phrase the workflow keys
+ * on — so the note goes after the list.
  */
 function buildCopyText(requests: DishRequest[]): string {
   const list = requests
     .map((r) => (r.country ? `${r.name} (${r.country})` : r.name))
     .join(", ");
-  return `add dishes: ${list}`;
+  return `add dishes: ${list}\n\nThese are all fan submissions — tag them (is_fan_submission = 1).`;
 }
 
 export default function RequestsView({

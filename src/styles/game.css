@@ -795,6 +795,63 @@
   color: var(--ink);
 }
 
+/* ---- fan-submission stamp (receipt) ----
+   A Special that arrived through the suggestion form gets credited on the check,
+   directly above the suggest button it argues for. Double-ruled in mustard so it
+   still reads as stamped rather than printed — mustard, not cherry, because
+   cherry is the verdict's colour further up and the credit must not outrank the
+   result.
+
+   Square, not tilted, and it carries the section break itself: it replaces the
+   dashed rule the collapsed suggest form would otherwise draw above it (see
+   .dish-request__toggle--promoted), so crediting a dish costs the modal one
+   short band of height rather than a separator plus a stamp. This card is the
+   tallest thing in the game on a 375px screen; every rule here is paying for
+   itself in millimetres. */
+.fan-stamp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px auto 0;
+  padding: 7px 11px;
+  max-width: 22rem;
+  border: 2px solid var(--mustard);
+  border-radius: var(--radius);
+  background: var(--near-soft);
+  /* Two rings out of one shadow: paper gap, then the outer rule. */
+  box-shadow: 0 0 0 2px var(--near-soft), 0 0 0 3.5px var(--mustard);
+}
+
+.fan-stamp__seal {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--mustard);
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1;
+  box-shadow: inset 0 0 0 2px var(--paper);
+}
+
+.fan-stamp__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.fan-stamp__body {
+  margin: 1px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
 /* ---- the rest of the clues, collapsed ---- */
 
 .story {
@@ -1048,6 +1105,34 @@
 
 .dish-request__toggle:hover {
   color: var(--ink);
+}
+
+/* Shown when the Special itself came from a request. Same control, promoted from
+   a quiet footer line to a filled button, and tucked straight under the stamp:
+   the dashed rule and its 14px of padding go, because the stamp immediately
+   above has already made the separation and paying for it twice is height this
+   modal doesn't have. */
+.dish-request__toggle--promoted {
+  margin-top: 8px;
+  padding: 9px 12px;
+  border: 2px solid var(--mustard);
+  border-radius: var(--radius);
+  background: var(--mustard);
+  color: var(--ink);
+}
+
+.dish-request__toggle--promoted:hover {
+  background: var(--near-soft);
+}
+
+/* Same reasoning for the opened form and the thank-you that replaces it: the
+   stamp is already the separator, so drop the dashed rule they draw for
+   themselves rather than stacking two breaks a few pixels apart. */
+.fan-stamp + .dish-request,
+.fan-stamp + .dish-request__thanks {
+  margin-top: 8px;
+  padding-top: 0;
+  border-top: none;
 }
 
 .dish-request__title {
@@ -1823,6 +1908,15 @@ textarea.dish-request__input {
 .modal--receipt .receipt__definition { animation: receipt-line-in 0.3s ease 0.36s both; }
 .modal--receipt .story { animation: receipt-line-in 0.3s ease 0.42s both; }
 .modal--receipt .stats-grid { animation: receipt-line-in 0.3s ease 0.48s both; }
+/* The credit is stamped, not printed: it lands oversized and settles, arriving
+   last so the eye is already at the bottom of the check when the ask appears.
+   Its own keyframe rather than receipt-line-in — the press is a scale, not a
+   rise. */
+@keyframes fan-stamp-press {
+  from { opacity: 0; transform: scale(1.24); }
+  to { opacity: 1; transform: none; }
+}
+.modal--receipt .fan-stamp { animation: fan-stamp-press 0.24s ease-out 0.5s both; }
 
 /* The footer rises but never fades. It holds the primary action, and a delayed
    `both`-filled opacity would leave the share button invisible for as long as
@@ -2129,6 +2223,7 @@ textarea.dish-request__input {
   .modal--receipt .receipt__definition,
   .modal--receipt .story,
   .modal--receipt .stats-grid,
+  .modal--receipt .fan-stamp,
   .modal--receipt .modal__footer,
   .modal--receipt .dist__bar,
   .modal--receipt .dist__row--current .dist__bar,

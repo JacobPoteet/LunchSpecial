@@ -9,6 +9,9 @@ export default function DishList({ onOpenDish }: { onOpenDish: (id: number | nul
   const [query, setQuery] = useState("");
   const [course, setCourse] = useState("");
   const [country, setCountry] = useState("");
+  // "" = any. Backfilling the fan tag across an existing catalogue is much
+  // easier when you can see what's already been marked.
+  const [source, setSource] = useState<"" | "fan" | "kitchen">("");
 
   useEffect(() => {
     api.getDishes().then(setRows, (e: Error) => setError(e.message));
@@ -22,9 +25,10 @@ export default function DishList({ onOpenDish }: { onOpenDish: (id: number | nul
       (r) =>
         (!q || r.name.toLowerCase().includes(q)) &&
         (!course || r.course === course) &&
-        (!country || r.country === country),
+        (!country || r.country === country) &&
+        (!source || (source === "fan") === r.isFanSubmission),
     );
-  }, [rows, query, course, country]);
+  }, [rows, query, course, country, source]);
 
   if (error) return <p className="form-error">{error}</p>;
   if (!rows) return <p style={{ color: "var(--cream)" }}>Reading the recipe box…</p>;
@@ -55,6 +59,11 @@ export default function DishList({ onOpenDish }: { onOpenDish: (id: number | nul
             </option>
           ))}
         </select>
+        <select value={source} onChange={(e) => setSource(e.target.value as "" | "fan" | "kitchen")}>
+          <option value="">Any source</option>
+          <option value="fan">Fan submissions</option>
+          <option value="kitchen">Kitchen picks</option>
+        </select>
       </div>
       <table className="admin-table">
         <thead>
@@ -73,6 +82,11 @@ export default function DishList({ onOpenDish }: { onOpenDish: (id: number | nul
             <tr key={r.id} onClick={() => onOpenDish(r.id)}>
               <td data-label="Dish">
                 <strong>{r.name}</strong>
+                {r.isFanSubmission && (
+                  <span className="badge badge--fan" title="Came in through a player request">
+                    ★ fan
+                  </span>
+                )}
               </td>
               <td data-label="Country">{r.country}</td>
               <td data-label="Course">{r.course}</td>

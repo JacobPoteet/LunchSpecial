@@ -93,6 +93,24 @@ describe("catalog data integrity", () => {
     expect(rows, `dishes without exactly 5 clues: ${JSON.stringify(rows)}`).toEqual([]);
   });
 
+  // The fan tag is set by an UPDATE ... WHERE slug IN (...) in both the seed and
+  // migrations/0017, so a renamed or re-slugged dish silently drops its credit
+  // rather than failing — the whole point of the flag is that it survives.
+  it("keeps the fan-submission flag as 0/1 and tags the known submissions", () => {
+    const bad = db.prepare("SELECT slug FROM dishes WHERE is_fan_submission NOT IN (0, 1)").all();
+    expect(bad, `dishes with a non-boolean fan flag: ${JSON.stringify(bad)}`).toEqual([]);
+
+    const tagged = (
+      db.prepare("SELECT slug FROM dishes WHERE is_fan_submission = 1 ORDER BY slug").all() as {
+        slug: string;
+      }[]
+    ).map((r) => r.slug);
+    expect(tagged).toContain("fairy-bread");
+    expect(tagged).toContain("german-chocolate-cake");
+    expect(tagged).toContain("funnel-cake");
+    expect(tagged).toContain("scrambled-eggs");
+  });
+
   it("keeps every schedule row pointing at a real, active-or-not dish", () => {
     const rows = db
       .prepare(

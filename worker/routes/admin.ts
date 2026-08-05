@@ -177,6 +177,7 @@ function validateDishInput(body: unknown): { dish: AdminDishInput } | { error: s
       protein: b.protein!,
       ingredients,
       isActive: b.isActive !== false,
+      isFanSubmission: b.isFanSubmission === true,
       clues,
     },
   };
@@ -199,8 +200,9 @@ app.post("/dishes", async (c) => {
   try {
     const res = await c.env.DB
       .prepare(
-        `INSERT INTO dishes (name, slug, country, region, course, temperature, protein, ingredients, is_active)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+        `INSERT INTO dishes (name, slug, country, region, course, temperature, protein, ingredients, is_active,
+           is_fan_submission)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
       )
       .bind(
         d.name,
@@ -212,6 +214,7 @@ app.post("/dishes", async (c) => {
         d.protein,
         JSON.stringify(d.ingredients),
         d.isActive ? 1 : 0,
+        d.isFanSubmission ? 1 : 0,
       )
       .first<{ id: number }>();
     await replaceClues(c.env.DB, res!.id, d.clues);
@@ -231,7 +234,8 @@ app.put("/dishes/:id", async (c) => {
     const res = await c.env.DB
       .prepare(
         `UPDATE dishes SET name = ?, slug = ?, country = ?, region = ?, course = ?, temperature = ?,
-           protein = ?, ingredients = ?, is_active = ?, updated_at = datetime('now') WHERE id = ?`,
+           protein = ?, ingredients = ?, is_active = ?, is_fan_submission = ?, updated_at = datetime('now')
+         WHERE id = ?`,
       )
       .bind(
         d.name,
@@ -243,6 +247,7 @@ app.put("/dishes/:id", async (c) => {
         d.protein,
         JSON.stringify(d.ingredients),
         d.isActive ? 1 : 0,
+        d.isFanSubmission ? 1 : 0,
         id,
       )
       .run();
