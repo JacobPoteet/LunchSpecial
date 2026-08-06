@@ -389,20 +389,13 @@ export default function TrendsPanel({
           deeper: that chart counts how many came back, this one asks how likely
           it was — and unlike the chart, it's all-time, not the last 30 days. */}
       <section className="panel">
-        <h2>Repeat visits · will they come back?</h2>
+        <h2>Repeat visits</h2>
         {retention === null || retention.steps.length === 0 ? (
           <p className="dash-note">{untrackedNote(playerTrackingStart)}</p>
         ) : (
           <>
             {headline && <p className="retention__headline">{headline}</p>}
             <RetentionCurve retention={retention} />
-            {playerTrackingStart && (
-              <p className="dash-note">
-                Visit counts only go back to {playerTrackingStart}, when player tracking shipped — a device
-                that played before then re-enters here as a first-timer, so the earliest players understate
-                how many visits they've really made.
-              </p>
-            )}
           </>
         )}
       </section>
