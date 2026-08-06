@@ -722,6 +722,88 @@
   cursor: help;
 }
 
+/* Repeat-visit curve. Tracks, not a funnel, for the same reason `.finish` is:
+   each rung's track IS its own cohort and the fill is the answer. The fill is
+   teal because teal already means "returning player" on the line chart and the
+   player tiles — the kind palette means game mode and the event palette means
+   start/finish/share, and a third meaning on either would break both. */
+.retention { display: flex; flex-direction: column; gap: 12px; }
+
+.retention__headline {
+  margin: 0 0 14px;
+  font-size: 0.92rem;
+  color: var(--ink);
+  border-left: 3px solid var(--teal);
+  padding-left: 10px;
+}
+
+.retention__row {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  align-items: start;
+  gap: 10px;
+}
+
+.retention__key {
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
+  padding-top: 1px;
+}
+
+.retention__body { min-width: 0; }
+
+.retention__track {
+  height: 14px;
+  border-radius: 3px;
+  background: rgba(27, 79, 74, 0.12);
+  overflow: hidden;
+}
+
+.retention__fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--teal);
+}
+
+.retention__legend {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 5px 0 0;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.retention__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  align-self: center;
+  background: var(--teal);
+}
+
+.retention__num {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--teal);
+  font-variant-numeric: tabular-nums;
+}
+
+.retention__of { color: var(--ink-soft); font-size: 0.78rem; }
+
+/* The caveats — late returns, open windows, thin cohorts — trailing the rate,
+   the same placement `.finish__rest` gives the drop-offs. */
+.retention__rest {
+  margin-left: auto;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
 /* The all-time strip trails a full day's worth of charts now — give it air. */
 .analytics-block + .dash-subhead { margin-top: 22px; }
 
@@ -729,6 +811,9 @@
   /* Let the DNF figure wrap onto its own line rather than being pushed off the
      row by `margin-left: auto` on a width that can't hold both. */
   .finish__rest { margin-left: 0; }
+  .retention__rest { margin-left: 0; }
+  /* 108px of label plus a track is too narrow to read at 375px — stack instead. */
+  .retention__row { grid-template-columns: 1fr; gap: 3px; }
 }
 
 .day-table-wrap { overflow-x: auto; }

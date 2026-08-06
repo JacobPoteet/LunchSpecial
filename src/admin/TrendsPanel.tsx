@@ -1,4 +1,4 @@
-import type { AnalyticsDay, AnalyticsSummary } from "../../shared/types";
+import type { AnalyticsDay, AnalyticsSummary, PlayerRetention, RetentionStep } from "../../shared/types";
 import {
   KIND_META,
   KindLegend,
@@ -8,6 +8,117 @@ import {
   untrackedNote,
   type SurfaceFilter,
 } from "./analyticsUi";
+
+/**
+ * Below this many players a rung's percentage is one person's mood, so it's
+ * flagged rather than quoted flat. Not hidden: "how many of my three-timers came
+ * back" is the whole question, and a blank row answers it worse than a caveat.
+ */
+const RETENTION_MIN_COHORT = 10;
+
+const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "6th"];
+const ordinal = (n: number) => ORDINALS[n - 1] ?? `${n}th`;
+
+/**
+ * The headline read, in the one sentence a restaurant owner would want: how
+ * often does a first-timer come back, and how much better does that get once
+ * they already have?
+ *
+ * Null until **both** rungs clear {@link RETENTION_MIN_COHORT}, following the
+ * same rule `paceNote` uses for a baseline under one game. The rungs themselves
+ * can quote a thin cohort because each one prints its own "1 of 1" denominator
+ * beside the percentage; a prose sentence can't carry that, and "once they've
+ * come twice, 100%" off a single player is a claim the data hasn't earned.
+ */
+function retentionNote(steps: RetentionStep[], windowDays: number): string | null {
+  const first = steps.find((s) => s.visits === 1);
+  const second = steps.find((s) => s.visits === 2);
+  if (!first || !second) return null;
+  if (first.atRisk < RETENTION_MIN_COHORT || second.atRisk < RETENTION_MIN_COHORT) return null;
+  const a = pct(first.returned, first.atRisk);
+  const b = pct(second.returned, second.atRisk);
+  const lead = `A first-timer comes back within ${windowDays} days ${a}% of the time; once they've come twice, ${b}%.`;
+  if (b > a + 5) return `${lead} The second visit is where regulars are made — the earlier you can earn it, the better every later number gets.`;
+  if (a > b + 5) return `${lead} Repeat visits are getting less likely rather than more — worth checking whether the later days are landing.`;
+  return `${lead} The odds barely move with familiarity, so what wins a second visit is winning a first.`;
+}
+
+/**
+ * The repeat-visit curve: of the players who have visited N times, how many came
+ * back for an N+1th? A visit is a *day* the device played on, which is the unit
+ * that means "came back" in a game that resets at midnight.
+ *
+ * Built as tracks rather than a funnel, for the same reason `FinishRate` is: each
+ * rung has its **own** denominator (the players who reached that many visits), so
+ * the track is the cohort and the fill is the answer, and no row is the
+ * always-full first bar a funnel wastes. Cohorts do shrink down the ladder, but
+ * that's what the "17 of 50" reads say — encoding it as bar width too would
+ * spend the axis on a number already written twice.
+ *
+ * The fill is **teal**, which already means "returning player" on the line chart
+ * above and the player tiles. Not the kind palette (game mode) and not the event
+ * palette (start/finish/share) — a third meaning on borrowed colours is how a
+ * dashboard stops being readable.
+ */
+function RetentionCurve({ retention }: { retention: PlayerRetention }) {
+  const { steps, windowDays } = retention;
+  const lateTotal = steps.reduce((n, s) => n + s.lateReturned, 0);
+
+  return (
+    <div className="retention">
+      {steps.map((s) => {
+        // Everyone at this rung is still inside their window: there is no rate to
+        // draw yet, and 0% would be an answer we haven't earned.
+        const unanswered = s.atRisk === 0;
+        const rest = [
+          s.lateReturned > 0 ? `+${s.lateReturned} came back later` : null,
+          s.pending > 0 ? `${s.pending} still in window` : null,
+          !unanswered && s.atRisk < RETENTION_MIN_COHORT ? "small sample" : null,
+        ].filter(Boolean) as string[];
+
+        return (
+          <div className="retention__row" key={s.visits}>
+            <span className="retention__key">
+              after {ordinal(s.visits)} visit
+            </span>
+            <div className="retention__body">
+              <div className="retention__track">
+                <span
+                  className="retention__fill"
+                  style={{ width: `${unanswered ? 0 : pct(s.returned, s.atRisk)}%` }}
+                />
+              </div>
+              <p className="retention__legend">
+                {unanswered ? (
+                  <span className="retention__of">
+                    Nobody's {windowDays} days are up yet — no rate to report.
+                  </span>
+                ) : (
+                  <>
+                    <span className="retention__dot" />
+                    <strong className="retention__num">{pct(s.returned, s.atRisk)}%</strong> came back
+                    <span className="retention__of">
+                      {s.returned} of {s.atRisk} player{s.atRisk === 1 ? "" : "s"}
+                    </span>
+                  </>
+                )}
+                {rest.length > 0 && <span className="retention__rest">{rest.join(" · ")}</span>}
+              </p>
+            </div>
+          </div>
+        );
+      })}
+      <p className="dash-note">
+        A “visit” is an ET day this device played on — any game kind, so four leftovers in one sitting is
+        one visit, the way a diner counts covers and not courses. Each rung counts only players whose{" "}
+        {windowDays} days are already up, so today's arrivals sit out rather than counting as no-shows
+        {lateTotal > 0 &&
+          `, and the ${lateTotal} who came back after their window closed are listed beside the rung they lapsed on`}
+        .
+      </p>
+    </div>
+  );
+}
 
 /** The two lines' colours for the new-vs-returning chart, matching admin.css. */
 const PLAYER_SERIES: { key: "newPlayers" | "returningPlayers"; cls: string; label: string }[] = [
@@ -180,7 +291,7 @@ export default function TrendsPanel({
     );
   }
 
-  const { totals, players, daily, hourly, playerTrackingStart } = data;
+  const { totals, players, daily, hourly, playerTrackingStart, retention } = data;
   if (totals.started === 0) {
     return (
       <section className="panel">
@@ -198,6 +309,7 @@ export default function TrendsPanel({
   // Most recent days first for the breakdown table.
   const recentDays = [...daily].reverse();
   const span = `last ${daily.length} day${daily.length === 1 ? "" : "s"}`;
+  const headline = retention && retentionNote(retention.steps, retention.windowDays);
 
   return (
     <>
@@ -267,6 +379,28 @@ export default function TrendsPanel({
                 Player tracking started {playerTrackingStart}; the shaded span ran before it and wasn't
                 measured. Devices that had already played count as “new” on their first tracked day, so
                 “new” is overstated and “returning” understated around {playerTrackingStart}.
+              </p>
+            )}
+          </>
+        )}
+      </section>
+
+      {/* Sits under new-vs-returning because it's the same question asked
+          deeper: that chart counts how many came back, this one asks how likely
+          it was — and unlike the chart, it's all-time, not the last 30 days. */}
+      <section className="panel">
+        <h2>Repeat visits · will they come back?</h2>
+        {retention === null || retention.steps.length === 0 ? (
+          <p className="dash-note">{untrackedNote(playerTrackingStart)}</p>
+        ) : (
+          <>
+            {headline && <p className="retention__headline">{headline}</p>}
+            <RetentionCurve retention={retention} />
+            {playerTrackingStart && (
+              <p className="dash-note">
+                Visit counts only go back to {playerTrackingStart}, when player tracking shipped — a device
+                that played before then re-enters here as a first-timer, so the earliest players understate
+                how many visits they've really made.
               </p>
             )}
           </>

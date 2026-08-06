@@ -314,6 +314,42 @@ export interface PlayerSplit {
   returning: number;
 }
 
+/**
+ * One rung of the repeat-visit ladder: of the players who have made `visits`
+ * visits, how many made another? A "visit" is an ET day the device played on,
+ * not a round — see worker/players.ts, where all of this is folded.
+ *
+ * The four counts do not all sum to the same thing on purpose. `atRisk` is the
+ * denominator (players whose `visits`-th visit is old enough to have been
+ * answered); `returned` + `lateReturned` ≤ `atRisk`, and the remainder is the
+ * players who haven't come back at all. `pending` sits **outside** `atRisk`
+ * entirely — those players are still inside the return window, so counting them
+ * either way would be a guess.
+ */
+export interface RetentionStep {
+  /** Visits already made. This step asks who went on to make visit `visits + 1`. */
+  visits: number;
+  /** Players with at least `visits` visits whose window has closed — the denominator. */
+  atRisk: number;
+  /** Of `atRisk`, those who came back within the window. */
+  returned: number;
+  /** Of `atRisk`, those who came back but only after the window had closed. */
+  lateReturned: number;
+  /** Players at this many visits still inside their window — not yet counted either way. */
+  pending: number;
+}
+
+/**
+ * The repeat-visit curve, oldest rung first (`visits: 1` = first-timers). Null
+ * when player tracking has never recorded anything, the same "unmeasured, not
+ * zero" rule {@link PlayerSplit} follows.
+ */
+export interface PlayerRetention {
+  /** Days a player gets to come back before the visit counts as their last. */
+  windowDays: number;
+  steps: RetentionStep[];
+}
+
 /** Public engagement totals for the README badges. Aggregate-only, no guess content. */
 export interface PublicStats {
   /** Rounds started. */
@@ -573,6 +609,12 @@ export interface AnalyticsSummary extends AnalyticsPeriod {
    * Null when nothing has ever been tracked. Days before it have null player counts.
    */
   playerTrackingStart: string | null;
+  /**
+   * The repeat-visit curve — how often a player who has visited N times comes
+   * back for an N+1th. All-time and surface-filtered like `players`; null before
+   * player tracking existed. See {@link PlayerRetention}.
+   */
+  retention: PlayerRetention | null;
   /** Games started per hour of day (ET, the daily-rollover zone), index 0..23. */
   hourly: number[];
 }
