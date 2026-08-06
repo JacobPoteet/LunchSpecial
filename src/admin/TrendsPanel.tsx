@@ -1,4 +1,11 @@
-import type { AnalyticsDay, AnalyticsSummary, PlayerRetention, RetentionStep } from "../../shared/types";
+import type {
+  AnalyticsDay,
+  AnalyticsSummary,
+  GameGrowth,
+  GrowthTrend,
+  PlayerRetention,
+  RetentionStep,
+} from "../../shared/types";
 import {
   KIND_META,
   KindLegend,
@@ -15,6 +22,153 @@ import {
  * back" is the whole question, and a blank row answers it worse than a caveat.
  */
 const RETENTION_MIN_COHORT = 10;
+
+/**
+ * Under one game a week either way, the fit is describing noise, not a
+ * direction — the growth chart says "holding steady" rather than dressing a
+ * rounding error up with an arrow.
+ */
+const GROWTH_FLAT_PER_WEEK = 1;
+
+/** Small numbers keep a decimal; past ~10 games a day the fraction is false precision. */
+const games = (n: number) => (Math.abs(n) < 10 ? n.toFixed(1) : Math.round(n).toString());
+
+/**
+ * The growth chart's headline: which way the trend line points, and by how much.
+ *
+ * Quoted **per week** rather than per day, because the slope of a game this size
+ * is a fraction of a game per day — "+0.4" reads as nothing when it's actually
+ * three more games a week. The fitted endpoints follow as the concrete version
+ * of the same claim, but only when both are positive: a least-squares fit can
+ * dip below zero, and "falls to −3 games a day" is arithmetic, not a reading.
+ */
+function growthNote(trend: GrowthTrend): string {
+  const perWeek = trend.slope * 7;
+  const span = `${trend.days} days`;
+  if (Math.abs(perWeek) < GROWTH_FLAT_PER_WEEK) {
+    const mid = (trend.first + trend.last) / 2;
+    return `Holding steady over ${span} — the trend moves less than a game a week, at about ${games(
+      Math.max(0, mid),
+    )} games a day.`;
+  }
+  const up = perWeek > 0;
+  const ends =
+    trend.first >= 0 && trend.last >= 0
+      ? ` The fit runs from about ${games(trend.first)} to ${games(trend.last)} games a day.`
+      : "";
+  return `${up ? "▲" : "▼"} Trending ${up ? "up" : "down"} about ${games(
+    Math.abs(perWeek),
+  )} games a week over ${span}.${ends}`;
+}
+
+/**
+ * Games played per day since the first round ever recorded, with the
+ * least-squares line through it (GitHub #90).
+ *
+ * All-time and every kind together, which is what makes it a growth chart rather
+ * than a second copy of the 30-day spark below: growth is the thing a moving
+ * window is least able to show, and splitting by mode would answer "what are
+ * they playing" instead of "are more people playing".
+ *
+ * Two choices worth keeping:
+ *
+ * - **Quiet days are drawn as zero**, not skipped. The series is zero-filled
+ *   server-side (worker/growth.ts) so the x-axis is calendar time; a day off
+ *   that silently closed the gap would make a dead week look like play.
+ * - **The fit is clipped, never clamped.** A downward line can leave the plot
+ *   below zero; pinning it to the axis would flatten the very slope it is drawn
+ *   to show. It's also the only dashed, uncoloured line on the dashboard —
+ *   ink rather than a series hue, because it isn't a measurement.
+ */
+function GrowthChart({ growth }: { growth: GameGrowth }) {
+  const { days, trend } = growth;
+  const W = 660;
+  const H = 200;
+  const padL = 30;
+  const padR = 12;
+  const padT = 12;
+  const padB = 24;
+  const n = days.length;
+  const x = (i: number) =>
+    n <= 1 ? padL + (W - padL - padR) / 2 : padL + (i / (n - 1)) * (W - padL - padR);
+  const max = Math.max(1, ...days.map((d) => d.started));
+  const y = (v: number) => padT + (1 - v / max) * (H - padT - padB);
+
+  const line = days
+    .map((d, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(d.started).toFixed(1)}`)
+    .join(" ");
+  // Closed back along the baseline so the day-to-day volume reads as mass, not
+  // just a wiggle — same hue as the line, so it adds no second meaning.
+  const area = `${line} L${x(n - 1).toFixed(1)},${y(0).toFixed(1)} L${x(0).toFixed(1)},${y(0).toFixed(1)} Z`;
+  const xTickStep = Math.max(1, Math.ceil(n / 6));
+  const yTicks = [...new Set([0, Math.round(max / 2), max])];
+  const total = days.reduce((sum, d) => sum + d.started, 0);
+
+  return (
+    <div className="gchart">
+      <div className="gchart__legend">
+        <span className="gchart__legend-item">
+          <span className="gchart__swatch gchart__swatch--played" />
+          Games played
+        </span>
+        {trend && (
+          <span className="gchart__legend-item">
+            <span className="gchart__swatch gchart__swatch--trend" />
+            Trend
+          </span>
+        )}
+      </div>
+      <svg
+        className="gchart__svg"
+        viewBox={`0 0 ${W} ${H}`}
+        role="img"
+        aria-label={`Games played per day from ${days[0].date} to ${days[n - 1].date}: ${total} in total${
+          trend ? `, trending ${trend.slope >= 0 ? "up" : "down"}` : ""
+        }.`}
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <clipPath id="gchart-plot">
+            <rect x={padL} y={padT} width={W - padL - padR} height={H - padT - padB} />
+          </clipPath>
+        </defs>
+        {yTicks.map((v) => (
+          <g key={v}>
+            <line className="gchart__grid" x1={padL} y1={y(v)} x2={W - padR} y2={y(v)} />
+            <text className="gchart__axis" x={padL - 6} y={y(v)} textAnchor="end" dominantBaseline="middle">
+              {v}
+            </text>
+          </g>
+        ))}
+        <path className="gchart__area" d={area} />
+        <path className="gchart__line" d={line} fill="none" />
+        {trend && (
+          <line
+            className="gchart__trend"
+            clipPath="url(#gchart-plot)"
+            x1={x(0)}
+            y1={y(trend.first)}
+            x2={x(n - 1)}
+            y2={y(trend.last)}
+          />
+        )}
+        {n <= 45 &&
+          days.map((d, i) => (
+            <circle className="gchart__dot" key={d.date} cx={x(i)} cy={y(d.started)} r={2.6}>
+              <title>{`${d.date} · ${d.started} game${d.started === 1 ? "" : "s"}`}</title>
+            </circle>
+          ))}
+        {days.map((d, i) =>
+          i % xTickStep === 0 || i === n - 1 ? (
+            <text key={d.date} className="gchart__axis" x={x(i)} y={H - 6} textAnchor="middle">
+              {shortDate(d.date)}
+            </text>
+          ) : null,
+        )}
+      </svg>
+    </div>
+  );
+}
 
 const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "6th"];
 const ordinal = (n: number) => ORDINALS[n - 1] ?? `${n}th`;
@@ -291,7 +445,7 @@ export default function TrendsPanel({
     );
   }
 
-  const { totals, players, daily, hourly, playerTrackingStart, retention } = data;
+  const { totals, players, daily, growth, hourly, playerTrackingStart, retention } = data;
   if (totals.started === 0) {
     return (
       <section className="panel">
@@ -313,6 +467,29 @@ export default function TrendsPanel({
 
   return (
     <>
+      {/* First, because it's the widest question on the tab: everything below it
+          asks what happened lately, this asks whether the game is growing. */}
+      <section className="panel">
+        <h2>Games played · all time</h2>
+        {growth.days.length === 0 ? (
+          <p className="dash-note">No dated activity yet.</p>
+        ) : (
+          <>
+            {growth.trend && <p className="gchart__headline">{growthNote(growth.trend)}</p>}
+            <GrowthChart growth={growth} />
+            <p className="dash-note">
+              Every game started, all three kinds together, by the ET day it was started on — back to the
+              first round ever recorded, so days with nobody playing count as the zeros they were.{" "}
+              {growth.trend
+                ? "The dashed line is a least-squares fit through those days, not a forecast."
+                : `A trend line needs a longer run than ${growth.days.length} day${
+                    growth.days.length === 1 ? "" : "s"
+                  } — it'll appear once there's enough history to mean something.`}
+            </p>
+          </>
+        )}
+      </section>
+
       <section className="panel">
         <h2>Games started · {span}</h2>
         {daily.length === 0 ? (

@@ -35,6 +35,7 @@ import {
 } from "../../shared/types";
 import { announcementStatus, parseAnnouncementInput } from "../announcements";
 import { foldDayService, foldPace, type DayHourRow, type PaceRow } from "../service";
+import { foldGrowth, type GrowthRow } from "../growth";
 import {
   createToken,
   passwordMatches,
@@ -956,6 +957,10 @@ app.get("/analytics", async (c) => {
     today,
     activeDates: [...active].sort(),
     daily,
+    // All-time growth, folded from the same hour buckets as `hourly`/`activeDates`
+    // above — no extra query. It has to come from the all-time rows: `daily`
+    // stops ~5 weeks back, which is a window, and growth isn't visible inside one.
+    growth: foldGrowth(hourlyRes.results as GrowthRow[], today),
     playerTrackingStart,
     // Repeat visits. Always measured against the *real* today, never the picked
     // day: the return window is "has enough time passed by now", and answering

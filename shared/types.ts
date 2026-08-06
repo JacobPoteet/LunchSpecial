@@ -303,6 +303,55 @@ export interface AnalyticsDay {
 }
 
 /**
+ * One ET day on the all-time growth series: how many games were started that
+ * day, every kind counted together.
+ *
+ * Unlike {@link AnalyticsDay}, days with no rounds are **present with 0**. The
+ * beacon has existed for every day this series covers, so a quiet day is a
+ * measured zero, not a gap — and dropping it would let a dead week masquerade as
+ * continuous play and bend the trend line upward.
+ */
+export interface GrowthDay {
+  date: string;
+  started: number;
+}
+
+/**
+ * The least-squares fit over {@link GameGrowth.days} — the "is this thing
+ * growing" line, drawn through a series far too noisy to eyeball (weekends,
+ * a single Discord post, one quiet Tuesday).
+ *
+ * `first`/`last` are the *fitted* values at the ends of the window, not real
+ * days, which is the whole point: they're what the trend says the game was doing
+ * then, and their difference over `days` is the growth being claimed. Either can
+ * be negative — a fit isn't a count — so anything drawing it must clip rather
+ * than clamp, or it will quietly flatten the slope it exists to show.
+ */
+export interface GrowthTrend {
+  /** Change in games per day, per day. Positive = growing. */
+  slope: number;
+  /** Fitted games/day on the first day of the window. */
+  first: number;
+  /** Fitted games/day on the last day. */
+  last: number;
+  /** Days the fit covers — the same length as the series it was fitted to. */
+  days: number;
+}
+
+/**
+ * Games played per ET day since the first round ever recorded, plus the trend
+ * through it (GitHub #90). All-time on purpose: the 30-day `daily` series
+ * answers "what happened lately", this one answers "is the game growing", and
+ * that question can't be asked inside a window that keeps moving.
+ */
+export interface GameGrowth {
+  /** Every ET day from the first recorded round through today, oldest first, zero-filled. */
+  days: GrowthDay[];
+  /** Null until the window is long enough for a fit to mean anything. */
+  trend: GrowthTrend | null;
+}
+
+/**
  * New vs returning player counts. A "player" is an anonymous device (a random id
  * kept in localStorage). For a day slice: `new` = devices whose first-ever play
  * was that day, `returning` = devices active that day that first played earlier.
@@ -601,6 +650,8 @@ export interface AnalyticsSummary extends AnalyticsPeriod {
   activeDates: string[];
   /** Last 30 days with activity, oldest first. */
   daily: AnalyticsDay[];
+  /** Games played per day since the first round ever, with a trend line. See {@link GameGrowth}. */
+  growth: GameGrowth;
   /**
    * The earliest ET day any round carried a `player_id` — i.e. when new-vs-returning
    * tracking actually started (migrations/0008, shipped after launch). Derived from
