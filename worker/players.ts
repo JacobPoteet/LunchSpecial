@@ -15,7 +15,20 @@
 // than hardcoded, so it survives a backfill and can't rot.
 
 import { gameToday } from "../shared/time";
-import type { PlayerSplit } from "../shared/types";
+import type { PlayerRetention, PlayerSplit, RetentionStep } from "../shared/types";
+
+/**
+ * How long a player gets to come back before we call the visit their last.
+ *
+ * Seven days is a judgement call, but the *shape* of the rule isn't: every
+ * player in a retention denominator must have had the **same** amount of time to
+ * return, or the number drifts with the age of the audience rather than with the
+ * game. See {@link foldRetention}.
+ */
+export const RETENTION_WINDOW_DAYS = 7;
+
+/** How many visit→visit steps to compute. Beyond ~5 the cohorts are a handful of regulars. */
+export const MAX_RETENTION_STEPS = 5;
 
 /** One (player, active UTC hour) pair — the grouped shape the query returns. */
 export interface PlayerBucketRow {
@@ -27,6 +40,13 @@ export interface PlayerBucketRow {
 export interface PlayerActivity {
   /** Per-ET-day new/returning tallies. Days with no tracked activity are absent. */
   byDay: Map<string, PlayerSplit>;
+  /**
+   * Every player's active ET days, oldest first — their "visits". One entry per
+   * day no matter how many rounds they played in it, because in a daily game the
+   * unit that means "came back" is the day, not the round: four leftovers in one
+   * sitting is one visit, the same way a diner counts covers and not courses.
+   */
+  visitDays: Map<string, string[]>;
   /**
    * Across every folded row: `new` = distinct players ever seen, `returning` =
    * those active on at least one day after their first.
@@ -85,8 +105,10 @@ export function foldPlayerActivity(rows: Iterable<PlayerBucketRow>): PlayerActiv
   let allTimeNew = 0;
   let allTimeReturning = 0;
   let firstDay: string | null = null;
-  for (const days of activeDaysByPlayer.values()) {
+  const visitDays = new Map<string, string[]>();
+  for (const [player, days] of activeDaysByPlayer) {
     const sorted = [...days].sort();
+    visitDays.set(player, sorted);
     const [first, ...later] = sorted;
     bump(first, "new");
     allTimeNew += 1;
@@ -95,7 +117,74 @@ export function foldPlayerActivity(rows: Iterable<PlayerBucketRow>): PlayerActiv
     if (firstDay === null || first < firstDay) firstDay = first;
   }
 
-  return { byDay, allTime: { new: allTimeNew, returning: allTimeReturning }, firstDay };
+  return { byDay, visitDays, allTime: { new: allTimeNew, returning: allTimeReturning }, firstDay };
+}
+
+/** Whole days from ET day `a` to ET day `b`. Both are plain calendar days, so no zone is involved. */
+export function daysBetween(a: string, b: string): number {
+  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+}
+
+/**
+ * The repeat-visit curve: after a player's 1st visit, how often is there a 2nd?
+ * After the 2nd, a 3rd? This is the restaurant read — a first-timer is a coin
+ * flip, but a guest who has come three times is a regular — and it separates
+ * "people try it" from "people keep it".
+ *
+ * Step k's cohort is players with **at least k visits**, and it asks how many
+ * made visit k+1. Two things keep that from lying:
+ *
+ * 1. **Censoring.** A player whose k-th visit was yesterday hasn't had a chance
+ *    to come back, and counting them as a no-show would drag every rate down —
+ *    worse, it would drag them down *more* the better the week was, because a
+ *    busy week adds fresh players who can't have returned yet. So a player only
+ *    enters step k's denominator once {@link RETENTION_WINDOW_DAYS} have passed
+ *    since their k-th visit. The ones still inside their window are reported as
+ *    `pending` rather than silently dropped.
+ * 2. **A fixed window, not "ever".** `returned` counts a next visit within the
+ *    window. If it counted any later visit, a player from launch week would have
+ *    had months to come back while one who matured yesterday had seven days, and
+ *    the pooled rate would measure the age of the audience. Genuine slow returns
+ *    aren't thrown away — they land in `lateReturned`, which is the interesting
+ *    "they came back, just not that week" number.
+ *
+ * Returns null before player tracking existed (migrations/0008): with no
+ * `player_id` there are no visits to chain, and zeros would be a claim we never
+ * measured. Note the cohorts are only as old as the instrument — a device that
+ * played for weeks before tracking shipped enters here as a first-timer, so the
+ * earliest players understate their own visit counts.
+ */
+export function foldRetention(
+  activity: PlayerActivity,
+  today: string,
+  trackingStart: string | null,
+): PlayerRetention | null {
+  if (trackingStart === null) return null;
+
+  const steps: RetentionStep[] = [];
+  for (let k = 1; k <= MAX_RETENTION_STEPS; k++) {
+    const step: RetentionStep = { visits: k, atRisk: 0, returned: 0, lateReturned: 0, pending: 0 };
+    for (const visits of activity.visitDays.values()) {
+      if (visits.length < k) continue;
+      const kth = visits[k - 1];
+      // Still inside their window: the question hasn't been answered yet, so
+      // they're neither a return nor a no-show.
+      if (daysBetween(kth, today) < RETENTION_WINDOW_DAYS) {
+        step.pending += 1;
+        continue;
+      }
+      step.atRisk += 1;
+      const next = visits[k];
+      if (next === undefined) continue;
+      if (daysBetween(kth, next) <= RETENTION_WINDOW_DAYS) step.returned += 1;
+      else step.lateReturned += 1;
+    }
+    // Nobody has reached this many visits yet; no later step can either.
+    if (step.atRisk === 0 && step.pending === 0) break;
+    steps.push(step);
+  }
+
+  return { windowDays: RETENTION_WINDOW_DAYS, steps };
 }
 
 /**

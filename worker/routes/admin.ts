@@ -48,6 +48,7 @@ import { isValidDateString } from "../game";
 import {
   etDayOfUtcStamp,
   foldPlayerActivity,
+  foldRetention,
   playersAllTime,
   playersOn,
   type PlayerBucketRow,
@@ -956,6 +957,10 @@ app.get("/analytics", async (c) => {
     activeDates: [...active].sort(),
     daily,
     playerTrackingStart,
+    // Repeat visits. Always measured against the *real* today, never the picked
+    // day: the return window is "has enough time passed by now", and answering
+    // it from a day in the past would call every visit since then a no-show.
+    retention: foldRetention(playerActivity, today, playerTrackingStart),
     hourly,
   };
   return c.json(summary);
