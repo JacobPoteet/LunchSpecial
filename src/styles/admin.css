@@ -575,13 +575,21 @@
   letter-spacing: 0.04em;
 }
 
-/* All-time games-played growth chart, with its least-squares trend line. */
+/* All-time cumulative games-played chart, with its constant-pace reference line. */
 .gchart { width: 100%; }
 
 .gchart__headline {
   margin: 0 0 10px;
   font-size: 0.9rem;
   color: var(--ink);
+}
+
+/* The all-time total leads the sentence — it's the number the chart is about. */
+.gchart__total {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--teal);
+  margin-right: 2px;
 }
 
 .gchart__legend {

@@ -303,49 +303,67 @@ export interface AnalyticsDay {
 }
 
 /**
- * One ET day on the all-time growth series: how many games were started that
- * day, every kind counted together.
+ * One ET day on the all-time growth series: the running total of games played
+ * through the end of that day, every kind counted together, plus what that day
+ * itself added.
  *
- * Unlike {@link AnalyticsDay}, days with no rounds are **present with 0**. The
- * beacon has existed for every day this series covers, so a quiet day is a
- * measured zero, not a gap — and dropping it would let a dead week masquerade as
- * continuous play and bend the trend line upward.
+ * `cumulative` is the series that's plotted — it only ever goes up, so its
+ * *shape* is the reading: steepening means the game is gaining, flattening means
+ * it's stalling. `started` rides along because a point on a curve that only
+ * rises can't tell you whether today was busy or dead.
+ *
+ * Unlike {@link AnalyticsDay}, days with no rounds are **present**. The beacon
+ * has existed for every day this series covers, so a quiet day is a measured
+ * flat step, not a gap — and dropping it would close up a dead week and let the
+ * curve claim a steepness it never had.
  */
 export interface GrowthDay {
   date: string;
+  /** Games played on this ET day alone. */
   started: number;
+  /** Games played from the first recorded round through the end of this day. */
+  cumulative: number;
 }
 
 /**
- * The least-squares fit over {@link GameGrowth.days} — the "is this thing
- * growing" line, drawn through a series far too noisy to eyeball (weekends,
- * a single Discord post, one quiet Tuesday).
+ * The straight least-squares line through the **cumulative** curve — the
+ * constant-pace reference the curve is read against (GitHub #90).
  *
- * `first`/`last` are the *fitted* values at the ends of the window, not real
- * days, which is the whole point: they're what the trend says the game was doing
- * then, and their difference over `days` is the growth being claimed. Either can
- * be negative — a fit isn't a count — so anything drawing it must clip rather
- * than clamp, or it will quietly flatten the slope it exists to show.
+ * A cumulative series always rises, so "is it going up" isn't the question;
+ * whether it is *bending* is. Against a straight line at the average pace, a
+ * curve pulling above it at the right is a game gaining, one sagging below is a
+ * game stalling. That comparison is what `recentPerDay` states in numbers.
+ *
+ * `first`/`last` are *fitted* totals at the ends of the window, not real ones —
+ * `first` in particular is routinely **negative** (a run that starts slow and
+ * accelerates has its best-fit line crossing zero before day one). Anything
+ * drawing it must clip rather than clamp, or it flattens the very slope it
+ * exists to show.
  */
 export interface GrowthTrend {
-  /** Change in games per day, per day. Positive = growing. */
+  /** Average games/day across the whole window — the fitted line's slope. */
   slope: number;
-  /** Fitted games/day on the first day of the window. */
+  /** Fitted running total on the first day of the window. Often negative; see above. */
   first: number;
-  /** Fitted games/day on the last day. */
+  /** Fitted running total on the last day. */
   last: number;
   /** Days the fit covers — the same length as the series it was fitted to. */
   days: number;
+  /** Games/day over the last {@link recentDays} — the pace "lately", against `slope`'s average. */
+  recentPerDay: number;
+  /** How many days `recentPerDay` averages over. */
+  recentDays: number;
 }
 
 /**
- * Games played per ET day since the first round ever recorded, plus the trend
- * through it (GitHub #90). All-time on purpose: the 30-day `daily` series
- * answers "what happened lately", this one answers "is the game growing", and
- * that question can't be asked inside a window that keeps moving.
+ * The running total of games played per ET day since the first round ever
+ * recorded, plus the constant-pace line through it (GitHub #90). All-time on
+ * purpose: the 30-day `daily` series answers "what happened lately", this one
+ * answers "is the game gaining or stagnating", and that question can't be asked
+ * inside a window that keeps moving.
  */
 export interface GameGrowth {
-  /** Every ET day from the first recorded round through today, oldest first, zero-filled. */
+  /** Every ET day from the first recorded round through today, oldest first, no gaps. */
   days: GrowthDay[];
   /** Null until the window is long enough for a fit to mean anything. */
   trend: GrowthTrend | null;
