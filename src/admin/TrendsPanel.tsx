@@ -1,4 +1,11 @@
-import type { AnalyticsDay, AnalyticsSummary, PlayerRetention, RetentionStep } from "../../shared/types";
+import type {
+  AnalyticsDay,
+  AnalyticsSummary,
+  GameGrowth,
+  GrowthTrend,
+  PlayerRetention,
+  RetentionStep,
+} from "../../shared/types";
 import {
   KIND_META,
   KindLegend,
@@ -15,6 +22,184 @@ import {
  * back" is the whole question, and a blank row answers it worse than a caveat.
  */
 const RETENTION_MIN_COHORT = 10;
+
+/**
+ * Inside ±15% of the all-time average pace, "gaining" and "stalling" are both
+ * overclaims — a couple of good afternoons move a week's rate by more than that.
+ */
+const GROWTH_STEADY_BAND = 0.15;
+
+/** Small numbers keep a decimal; past ~10 games a day the fraction is false precision. */
+const games = (n: number) => (Math.abs(n) < 10 ? n.toFixed(1) : Math.round(n).toString());
+
+/**
+ * The growth chart's headline: gaining, steady, or stalling.
+ *
+ * A cumulative curve always rises, so "is it going up" is never the question —
+ * whether it's *bending* is. This states that as two paces rather than as a
+ * shape: what the last week actually ran at, against the average pace over the
+ * whole run (the slope of the straight reference line). Ahead of it the curve is
+ * pulling above the line; behind it, flattening off.
+ *
+ * Both are real measured rates — the recent one straight off the running total —
+ * so neither is a forecast, and the sentence never claims where the curve goes
+ * next.
+ */
+function growthNote(trend: GrowthTrend, since: string): string {
+  const lately = `the last ${trend.recentDays} days`;
+  const average = `${games(trend.slope)} a day average since ${shortDate(since)}`;
+
+  // A flat tail is the one case where a ratio would be silly: nothing happened.
+  if (trend.recentPerDay === 0) {
+    return `■ Stalled — no games at all in ${lately}. The curve has gone flat against a ${average}.`;
+  }
+  // Cumulative series only rise, so a non-positive slope means the whole run is
+  // one burst and there's no average worth dividing by.
+  if (trend.slope <= 0) {
+    return `${lately} ran about ${games(trend.recentPerDay)} games a day.`;
+  }
+
+  const ratio = trend.recentPerDay / trend.slope;
+  const recent = `${lately} ran about ${games(trend.recentPerDay)} games a day`;
+  if (ratio > 1 + GROWTH_STEADY_BAND) {
+    return `▲ Gaining — ${recent}, ahead of the ${average}. The curve is pulling above its steady-pace line.`;
+  }
+  if (ratio < 1 - GROWTH_STEADY_BAND) {
+    return `▼ Losing steam — ${recent}, behind the ${average}. The curve is flattening off.`;
+  }
+  return `Holding steady — ${recent}, in line with the ${average}. Growth is straight-line, not compounding.`;
+}
+
+/**
+ * The running total of games played since the first round ever recorded, with
+ * the constant-pace line through it (GitHub #90).
+ *
+ * All-time and every kind together, which is what makes it a growth chart rather
+ * than a second copy of the 30-day spark below: growth is the thing a moving
+ * window is least able to show, and splitting by mode would answer "what are
+ * they playing" instead of "are more people playing".
+ *
+ * **Cumulative on purpose.** A per-day series is dominated by which day of the
+ * week you're looking at; the running total absorbs that, so the shape is the
+ * answer — steepening means the game is gaining, flattening means it's stalling.
+ * The trade is that a cumulative curve can never fall, so "it's going up" stops
+ * carrying information: everything here is built to make the *bend* legible.
+ *
+ * Three choices worth keeping:
+ *
+ * - **The straight dashed line is the reference the bend is read against.** It's
+ *   the least-squares fit through the curve, i.e. what the run would look like at
+ *   one constant pace; the curve above it at the right = gaining, below =
+ *   stalling. Without it a cumulative chart is unreadable, because every such
+ *   chart looks like success.
+ * - **The fit is clipped, never clamped.** An accelerating run has its best-fit
+ *   line crossing zero *before* day one, so the line legitimately leaves the plot
+ *   at the bottom-left; pinning it to the axis would flatten the pace it exists
+ *   to state. It's also the only dashed, uncoloured line on the dashboard — ink
+ *   rather than a series hue, because it isn't a measurement.
+ * - **Quiet days are flat steps, not skipped days.** The series is filled
+ *   server-side (worker/growth.ts) so the x-axis is calendar time; closing the
+ *   gap over a dead week would sell it as continuous play.
+ */
+function GrowthChart({ growth }: { growth: GameGrowth }) {
+  const { days, trend } = growth;
+  const W = 660;
+  const H = 200;
+  const padL = 34;
+  const padR = 12;
+  const padT = 12;
+  const padB = 24;
+  const n = days.length;
+  const x = (i: number) =>
+    n <= 1 ? padL + (W - padL - padR) / 2 : padL + (i / (n - 1)) * (W - padL - padR);
+  // The series only rises, so the last day is the maximum — and the top of the
+  // axis is the all-time total, which is the number the chart is about.
+  const total = days[n - 1].cumulative;
+  const max = Math.max(1, total);
+  const y = (v: number) => padT + (1 - v / max) * (H - padT - padB);
+
+  const line = days
+    .map((d, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(d.cumulative).toFixed(1)}`)
+    .join(" ");
+  // Closed back along the baseline so the run reads as accumulated mass — same
+  // hue as the line, so it adds no second meaning.
+  const area = `${line} L${x(n - 1).toFixed(1)},${y(0).toFixed(1)} L${x(0).toFixed(1)},${y(0).toFixed(1)} Z`;
+  const xTickStep = Math.max(1, Math.ceil(n / 6));
+  const yTicks = [...new Set([0, Math.round(max / 2), max])];
+
+  return (
+    <div className="gchart">
+      <div className="gchart__legend">
+        <span className="gchart__legend-item">
+          <span className="gchart__swatch gchart__swatch--played" />
+          Games played (running total)
+        </span>
+        {trend && (
+          <span className="gchart__legend-item">
+            <span className="gchart__swatch gchart__swatch--trend" />
+            Steady pace
+          </span>
+        )}
+      </div>
+      <svg
+        className="gchart__svg"
+        viewBox={`0 0 ${W} ${H}`}
+        role="img"
+        aria-label={`Running total of games played from ${days[0].date} to ${
+          days[n - 1].date
+        }, reaching ${total}${
+          trend
+            ? `. The last ${trend.recentDays} days ran at ${games(
+                trend.recentPerDay,
+              )} games a day against an all-time average of ${games(trend.slope)}`
+            : ""
+        }.`}
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <clipPath id="gchart-plot">
+            <rect x={padL} y={padT} width={W - padL - padR} height={H - padT - padB} />
+          </clipPath>
+        </defs>
+        {yTicks.map((v) => (
+          <g key={v}>
+            <line className="gchart__grid" x1={padL} y1={y(v)} x2={W - padR} y2={y(v)} />
+            <text className="gchart__axis" x={padL - 6} y={y(v)} textAnchor="end" dominantBaseline="middle">
+              {v}
+            </text>
+          </g>
+        ))}
+        <path className="gchart__area" d={area} />
+        <path className="gchart__line" d={line} fill="none" />
+        {trend && (
+          <line
+            className="gchart__trend"
+            clipPath="url(#gchart-plot)"
+            x1={x(0)}
+            y1={y(trend.first)}
+            x2={x(n - 1)}
+            y2={y(trend.last)}
+          />
+        )}
+        {n <= 45 &&
+          days.map((d, i) => (
+            <circle className="gchart__dot" key={d.date} cx={x(i)} cy={y(d.cumulative)} r={2.6}>
+              {/* The day's own count is only visible here: on the curve itself a
+                  busy day and a dead one are both just "higher than yesterday". */}
+              <title>{`${d.date} · ${d.cumulative} total (+${d.started} that day)`}</title>
+            </circle>
+          ))}
+        {days.map((d, i) =>
+          i % xTickStep === 0 || i === n - 1 ? (
+            <text key={d.date} className="gchart__axis" x={x(i)} y={H - 6} textAnchor="middle">
+              {shortDate(d.date)}
+            </text>
+          ) : null,
+        )}
+      </svg>
+    </div>
+  );
+}
 
 const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "6th"];
 const ordinal = (n: number) => ORDINALS[n - 1] ?? `${n}th`;
@@ -291,7 +476,7 @@ export default function TrendsPanel({
     );
   }
 
-  const { totals, players, daily, hourly, playerTrackingStart, retention } = data;
+  const { totals, players, daily, growth, hourly, playerTrackingStart, retention } = data;
   if (totals.started === 0) {
     return (
       <section className="panel">
@@ -313,6 +498,34 @@ export default function TrendsPanel({
 
   return (
     <>
+      {/* First, because it's the widest question on the tab: everything below it
+          asks what happened lately, this asks whether the game is gaining. */}
+      <section className="panel">
+        <h2>Total games played · all time</h2>
+        {growth.days.length === 0 ? (
+          <p className="dash-note">No dated activity yet.</p>
+        ) : (
+          <>
+            <p className="gchart__headline">
+              <strong className="gchart__total">{growth.days.at(-1)!.cumulative.toLocaleString()}</strong> games
+              played since {shortDate(growth.days[0].date)}.
+              {growth.trend && ` ${growthNote(growth.trend, growth.days[0].date)}`}
+            </p>
+            <GrowthChart growth={growth} />
+            <p className="dash-note">
+              A running total of every game started, all three kinds together, by the ET day it was started
+              on — so it can only go up, and the reading is the <em>shape</em>: steepening means the game is
+              gaining, flattening means it's stalling.{" "}
+              {growth.trend
+                ? "The dashed line is the same run at one constant pace (a least-squares fit through the curve), there to make that bend visible. It's a reference, not a forecast."
+                : `The steady-pace line needs a longer run than ${growth.days.length} day${
+                    growth.days.length === 1 ? "" : "s"
+                  } — it'll appear once there's enough history to mean something.`}
+            </p>
+          </>
+        )}
+      </section>
+
       <section className="panel">
         <h2>Games started · {span}</h2>
         {daily.length === 0 ? (

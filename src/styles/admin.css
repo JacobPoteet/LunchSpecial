@@ -575,6 +575,86 @@
   letter-spacing: 0.04em;
 }
 
+/* All-time cumulative games-played chart, with its constant-pace reference line. */
+.gchart { width: 100%; }
+
+.gchart__headline {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+/* The all-time total leads the sentence — it's the number the chart is about. */
+.gchart__total {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--teal);
+  margin-right: 2px;
+}
+
+.gchart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-bottom: 8px;
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+}
+
+.gchart__legend-item { display: inline-flex; align-items: center; gap: 6px; }
+
+.gchart__swatch {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.gchart__swatch--played { background: var(--teal); }
+
+/* Dashed and uncoloured, matching the line itself: the fit is an annotation over
+   the data, not another series measured alongside it. */
+.gchart__swatch--trend {
+  height: 0;
+  border-top: 2px dashed var(--ink-soft);
+  border-radius: 0;
+}
+
+.gchart__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.gchart__grid { stroke: rgba(27, 79, 74, 0.18); stroke-width: 1; }
+
+.gchart__axis {
+  fill: var(--ink-soft);
+  font-family: var(--font-body);
+  font-size: 11px;
+}
+
+.gchart__line {
+  stroke: var(--teal);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* Same hue as the line — mass under the curve, not a second value. */
+.gchart__area {
+  fill: rgba(27, 79, 74, 0.12);
+  stroke: none;
+}
+
+.gchart__dot { fill: var(--teal); }
+
+.gchart__trend {
+  stroke: var(--ink-soft);
+  stroke-width: 2;
+  stroke-dasharray: 7 5;
+  opacity: 0.85;
+}
+
 .analytics-block { margin-top: 20px; }
 
 .analytics-rule {
