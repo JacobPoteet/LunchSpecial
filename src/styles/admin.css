@@ -884,6 +884,101 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Country pie: what share of the audience is where (GitHub #92). The one pie on
+   the dashboard — it's a whole cut into parts, asked once of an all-time total. */
+.cpie {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px 26px;
+}
+
+.cpie__headline {
+  margin: 0 0 14px;
+  font-size: 0.92rem;
+  color: var(--ink);
+  border-left: 3px solid var(--teal);
+  padding-left: 10px;
+}
+
+.cpie__svg {
+  width: 180px;
+  height: 180px;
+  flex: none;
+}
+
+/* A single-hue ramp ordered by share, NOT a categorical palette: mustard/teal/
+   cherry already mean game kind everywhere else, and the event palette means
+   start/finish/share. The slices are sorted by size, so lightness re-states rank
+   rather than inventing a fourth colour meaning. Paper-coloured borders keep
+   neighbouring steps apart where the ramp alone is too close to read. */
+.cpie__slice { stroke: var(--paper); stroke-width: 1.5; }
+.cpie__slice--0 { fill: #1b4f4a; }
+.cpie__slice--1 { fill: #2f6a63; }
+.cpie__slice--2 { fill: #45857c; }
+.cpie__slice--3 { fill: #5d9f95; }
+.cpie__slice--4 { fill: #79b7ad; }
+.cpie__slice--5 { fill: #98cec5; }
+.cpie__slice--6 { fill: #b7e0d9; }
+.cpie__slice--7 { fill: #d5efea; }
+/* "Everyone else" is a pool, not a rank — off the ramp entirely. */
+.cpie__slice--rest { fill: var(--miss); }
+
+.cpie__legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1 1 260px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cpie__row {
+  display: grid;
+  grid-template-columns: 11px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 8px;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.cpie__dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  align-self: center;
+}
+.cpie__dot--0 { background: #1b4f4a; }
+.cpie__dot--1 { background: #2f6a63; }
+.cpie__dot--2 { background: #45857c; }
+.cpie__dot--3 { background: #5d9f95; }
+.cpie__dot--4 { background: #79b7ad; }
+.cpie__dot--5 { background: #98cec5; }
+.cpie__dot--6 { background: #b7e0d9; }
+.cpie__dot--7 { background: #d5efea; }
+.cpie__dot--rest { background: var(--miss); }
+
+.cpie__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.cpie__share {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--teal);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Rounds beside devices: a country with far more rounds than players is one
+   device replaying, which is the bot tell the panel exists for. */
+.cpie__detail {
+  grid-column: 2 / -1;
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  font-variant-numeric: tabular-nums;
+}
+
 /* The all-time strip trails a full day's worth of charts now — give it air. */
 .analytics-block + .dash-subhead { margin-top: 22px; }
 

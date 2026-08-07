@@ -36,6 +36,7 @@ import {
 import { announcementStatus, parseAnnouncementInput } from "../announcements";
 import { foldDayService, foldPace, type DayHourRow, type PaceRow } from "../service";
 import { foldGrowth, type GrowthRow } from "../growth";
+import { foldCountries, type CountryRow } from "../countries";
 import {
   createToken,
   passwordMatches,
@@ -760,6 +761,7 @@ app.get("/analytics", async (c) => {
     hourlyRes,
     playerRes,
     trackingStartRes,
+    countryRes,
   ] = await c.env.DB.batch([
       c.env.DB.prepare(allTimeTotalsSql),
       c.env.DB.prepare(distSql("")).bind(MAX_GUESSES),
@@ -829,6 +831,16 @@ app.get("/analytics", async (c) => {
       c.env.DB.prepare(
         `SELECT MIN(started_at) AS first_tracked FROM analytics_rounds
            WHERE player_id IS NOT NULL AND started_at IS NOT NULL`,
+      ),
+      // Country mix (migrations/0018). Grouped by (country, player) rather than
+      // by country alone: a device that played from two countries must land in
+      // exactly one of them or the slices sum to more than the audience, and
+      // that choice can't be made in SQL. NULL countries come back too — they're
+      // the pre-0018 rows, reported as untracked instead of as a place.
+      c.env.DB.prepare(
+        `SELECT country, player_id, COUNT(*) AS n
+           FROM analytics_rounds WHERE started_at IS NOT NULL${surfAnd}
+           GROUP BY country, player_id`,
       ),
     ]);
 
@@ -966,6 +978,9 @@ app.get("/analytics", async (c) => {
     // day: the return window is "has enough time passed by now", and answering
     // it from a day in the past would call every visit since then a no-show.
     retention: foldRetention(playerActivity, today, playerTrackingStart),
+    // Where the rounds came from (GitHub #92) — see worker/countries.ts for why
+    // the device-per-country attribution has to happen outside SQL.
+    countries: foldCountries(countryRes.results as CountryRow[]),
     hourly,
   };
   return c.json(summary);

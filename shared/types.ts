@@ -417,6 +417,47 @@ export interface PlayerRetention {
   steps: RetentionStep[];
 }
 
+/**
+ * One country in the all-time player mix (GitHub #92). `code` is ISO 3166-1
+ * alpha-2 as Cloudflare's edge resolved it, plus the two non-country answers it
+ * can give: `T1` (Tor exit node) and `XX` (couldn't be determined).
+ */
+export interface CountryUsage {
+  code: string;
+  /**
+   * Anonymous devices attributed here. A device that played from more than one
+   * country lands in exactly one — the one it played most from — so the counts
+   * partition the audience and can be drawn as slices of a whole.
+   */
+  players: number;
+  /** Rounds started from here. Exact, unlike `players`: a round has one country. */
+  rounds: number;
+}
+
+/**
+ * Where the game is actually being played, all time — the Trends tab's country
+ * pie.
+ *
+ * It measures **rounds started**, not requests: the beacon only fires from a
+ * browser that ran the game's JS, so a country busy in Cloudflare's request
+ * analytics but quiet here is traffic that never played. That gap is the point
+ * of the metric, not a shortfall in it.
+ */
+export interface CountryMix {
+  /** Every country that started a round, most players first. */
+  entries: CountryUsage[];
+  /** Rounds counted across `entries` — the denominator for round shares. */
+  rounds: number;
+  /** Devices counted across `entries`. Each lands in exactly one country. */
+  players: number;
+  /**
+   * Rounds carrying no country: everything recorded before migrations/0018, plus
+   * any the edge couldn't resolve. Reported beside the pie rather than folded
+   * into a slice — "not measured" is not a place.
+   */
+  untracked: number;
+}
+
 /** Public engagement totals for the README badges. Aggregate-only, no guess content. */
 export interface PublicStats {
   /** Rounds started. */
@@ -684,6 +725,12 @@ export interface AnalyticsSummary extends AnalyticsPeriod {
    * player tracking existed. See {@link PlayerRetention}.
    */
   retention: PlayerRetention | null;
+  /**
+   * Where rounds were started from, all time and surface-filtered like `players`.
+   * Empty entries with a non-zero `untracked` is the expected state right after
+   * country tracking ships. See {@link CountryMix}.
+   */
+  countries: CountryMix;
   /** Games started per hour of day (ET, the daily-rollover zone), index 0..23. */
   hourly: number[];
 }

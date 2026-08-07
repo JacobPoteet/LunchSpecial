@@ -1,12 +1,15 @@
 import type {
   AnalyticsDay,
   AnalyticsSummary,
+  CountryMix,
+  CountryUsage,
   GameGrowth,
   GrowthTrend,
   PlayerRetention,
   RetentionStep,
 } from "../../shared/types";
 import {
+  countryName,
   KIND_META,
   KindLegend,
   noRoundsNote,
@@ -305,6 +308,190 @@ function RetentionCurve({ retention }: { retention: PlayerRetention }) {
   );
 }
 
+/**
+ * How many countries get their own slice before the tail is pooled into
+ * "Elsewhere". Past about this many the slices are thinner than their own border
+ * and the legend is doing all the work anyway.
+ */
+const MAX_COUNTRY_SLICES = 8;
+
+/** A point on the pie's rim. `t` is turns clockwise from 12 o'clock, 0..1. */
+function rim(cx: number, cy: number, r: number, t: number): string {
+  const a = t * Math.PI * 2;
+  return `${(cx + r * Math.sin(a)).toFixed(2)},${(cy - r * Math.cos(a)).toFixed(2)}`;
+}
+
+/** One wedge, from `t0` to `t1` turns clockwise from 12 o'clock. */
+function wedge(cx: number, cy: number, r: number, t0: number, t1: number): string {
+  const large = t1 - t0 > 0.5 ? 1 : 0;
+  return `M${cx},${cy} L${rim(cx, cy, r, t0)} A${r},${r} 0 ${large} 1 ${rim(cx, cy, r, t1)} Z`;
+}
+
+/** A slice as drawn: the pooled tail carries no code, only how many it stands for. */
+interface Slice {
+  key: string;
+  label: string;
+  players: number;
+  rounds: number;
+  /** Countries pooled into this slice — 1 for a real country, more for "Elsewhere". */
+  places: number;
+  /** Ramp step, or -1 for the pooled tail (which is grey, not a rank). */
+  rank: number;
+}
+
+/**
+ * Cut the mix into at most {@link MAX_COUNTRY_SLICES} slices plus a pooled tail.
+ *
+ * A country with rounds but no attributed device (a client too old to send one)
+ * can't take a slice of a device pie, but its rounds are real — it pools into the
+ * tail rather than vanishing, so the round counts still add up.
+ */
+function toSlices(entries: CountryUsage[]): Slice[] {
+  const ranked = entries.filter((e) => e.players > 0);
+  const head = ranked.slice(0, MAX_COUNTRY_SLICES);
+  const tail = [...ranked.slice(MAX_COUNTRY_SLICES), ...entries.filter((e) => e.players === 0)];
+  const slices: Slice[] = head.map((e, i) => ({
+    key: e.code,
+    label: countryName(e.code),
+    players: e.players,
+    rounds: e.rounds,
+    places: 1,
+    rank: i,
+  }));
+  if (tail.length > 0) {
+    slices.push({
+      key: "__rest",
+      label: `Elsewhere (${tail.length} countr${tail.length === 1 ? "y" : "ies"})`,
+      players: tail.reduce((n, e) => n + e.players, 0),
+      rounds: tail.reduce((n, e) => n + e.rounds, 0),
+      places: tail.length,
+      rank: -1,
+    });
+  }
+  return slices;
+}
+
+/**
+ * The one sentence the pie is there to support: how concentrated the audience is.
+ *
+ * Deliberately about *shape*, not a ranking — "92% in one country" and "spread
+ * across 14" are different situations, and the number that separates them is the
+ * top slice's share, not its name.
+ */
+function countryNote(mix: CountryMix, slices: Slice[]): string {
+  const top = slices[0];
+  const share = pct(top.players, mix.players);
+  const places = `${mix.entries.length} countr${mix.entries.length === 1 ? "y" : "ies"}`;
+  if (mix.entries.length === 1) return `Every player so far is in ${top.label}.`;
+  if (share >= 80) return `${share}% of players are in ${top.label}; the rest are scattered across ${places}.`;
+  if (share >= 50) return `${top.label} is the home crowd at ${share}% of players, but ${places} are represented.`;
+  return `No single home crowd — the biggest, ${top.label}, is only ${share}% of players across ${places}.`;
+}
+
+/**
+ * The one wording for rounds that carry no country — the rows recorded before
+ * country tracking shipped. Said out loud on the panel, because "not measured"
+ * and "nobody was there" are different claims and the pie can only draw one of
+ * them.
+ */
+function countryUntrackedNote(mix: CountryMix): string {
+  if (mix.untracked === 0) return "No country recorded on any round yet.";
+  const rounds = `${mix.untracked.toLocaleString()} round${mix.untracked === 1 ? "" : "s"}`;
+  return mix.players === 0
+    ? `Country tracking only starts with rounds recorded after this release — the ${rounds} so far predate it, so there's nothing to plot yet.`
+    : `${rounds} predate country tracking and carry none; they're left out of the shares rather than counted as an unknown country.`;
+}
+
+/**
+ * Where the audience is, all time (GitHub #92).
+ *
+ * **A pie, not bars**, which is the exception rather than the rule on this
+ * dashboard: the question is what share of the audience sits where — a whole cut
+ * into parts — and it's asked once, of one all-time total, with a handful of
+ * slices. Bars would answer "how many played from each country", which is the
+ * quantity the metric is least able to speak to (see below).
+ *
+ * Three things are load-bearing:
+ *
+ * 1. **Slices are devices, not rounds.** Rounds are the exact number, but one
+ *    enthusiast abroad would then read as a foreign audience. Every device lands
+ *    in exactly one country (worker/countries.ts), so the slices genuinely
+ *    partition the whole — a pie whose parts don't add to the total is a lie the
+ *    shape itself tells. Rounds are still printed beside each slice, because
+ *    rounds-per-device is the tell that separates a real player from a bot.
+ * 2. **A single-hue ramp, ordered by share — not a categorical palette.**
+ *    mustard/teal/cherry already mean game *kind* dashboard-wide and the event
+ *    palette means start/finish/share; a third categorical set on a fourth
+ *    meaning is how a dashboard stops being readable. A pie can't be one hue the
+ *    way the menu-mix bars are (there's no length to carry the value), so the
+ *    ramp encodes rank — which the slices are already sorted by — and adds no new
+ *    meaning. The pooled tail is grey, because "everyone else" isn't a rank.
+ * 3. **Untracked rounds are stated, never drawn.** Rounds recorded before the
+ *    country column carry no country; folding them in would invent a place, and
+ *    dropping them silently would overstate every real slice.
+ */
+function CountryPie({ mix }: { mix: CountryMix }) {
+  const slices = toSlices(mix.entries);
+  const total = slices.reduce((n, s) => n + s.players, 0);
+  const size = 180;
+  const c = size / 2;
+  const r = c - 2;
+
+  let t = 0;
+  const drawn = slices.map((s) => {
+    const from = t;
+    t += s.players / total;
+    return { ...s, from, to: t };
+  });
+
+  return (
+    <div className="cpie">
+      <svg
+        className="cpie__svg"
+        viewBox={`0 0 ${size} ${size}`}
+        role="img"
+        aria-label={`Players by country: ${drawn
+          .map((s) => `${s.label} ${pct(s.players, total)}%`)
+          .join(", ")}.`}
+      >
+        {drawn.length === 1 ? (
+          // A lone slice is a full turn, which an arc path can't express (its
+          // endpoints coincide and the wedge collapses to nothing).
+          <circle className="cpie__slice cpie__slice--0" cx={c} cy={c} r={r}>
+            <title>{`${drawn[0].label} — every player`}</title>
+          </circle>
+        ) : (
+          drawn.map((s) => (
+            <path
+              key={s.key}
+              className={`cpie__slice cpie__slice--${s.rank < 0 ? "rest" : s.rank}`}
+              d={wedge(c, c, r, s.from, s.to)}
+            >
+              <title>{`${s.label} — ${s.players} player${s.players === 1 ? "" : "s"} (${pct(
+                s.players,
+                total,
+              )}%), ${s.rounds} round${s.rounds === 1 ? "" : "s"}`}</title>
+            </path>
+          ))
+        )}
+      </svg>
+      <ul className="cpie__legend">
+        {drawn.map((s) => (
+          <li className="cpie__row" key={s.key}>
+            <span className={`cpie__dot cpie__dot--${s.rank < 0 ? "rest" : s.rank}`} />
+            <span className="cpie__name">{s.label}</span>
+            <span className="cpie__share">{pct(s.players, total)}%</span>
+            <span className="cpie__detail">
+              {s.players} player{s.players === 1 ? "" : "s"} · {s.rounds} round
+              {s.rounds === 1 ? "" : "s"}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /** The two lines' colours for the new-vs-returning chart, matching admin.css. */
 const PLAYER_SERIES: { key: "newPlayers" | "returningPlayers"; cls: string; label: string }[] = [
   { key: "newPlayers", cls: "new", label: "New players" },
@@ -476,7 +663,7 @@ export default function TrendsPanel({
     );
   }
 
-  const { totals, players, daily, growth, hourly, playerTrackingStart, retention } = data;
+  const { totals, players, daily, growth, hourly, playerTrackingStart, retention, countries } = data;
   if (totals.started === 0) {
     return (
       <section className="panel">
@@ -495,6 +682,7 @@ export default function TrendsPanel({
   const recentDays = [...daily].reverse();
   const span = `last ${daily.length} day${daily.length === 1 ? "" : "s"}`;
   const headline = retention && retentionNote(retention.steps, retention.windowDays);
+  const countrySlices = toSlices(countries.entries);
 
   return (
     <>
@@ -609,6 +797,29 @@ export default function TrendsPanel({
           <>
             {headline && <p className="retention__headline">{headline}</p>}
             <RetentionCurve retention={retention} />
+          </>
+        )}
+      </section>
+
+      {/* "Where" sits between "who comes back" and "when they play" — the three
+          all-time cuts of the same audience. */}
+      <section className="panel">
+        <h2>Where players are · all time</h2>
+        {countries.players === 0 ? (
+          <p className="dash-note">{countryUntrackedNote(countries)}</p>
+        ) : (
+          <>
+            <p className="cpie__headline">{countryNote(countries, countrySlices)}</p>
+            <CountryPie mix={countries} />
+            <p className="dash-note">
+              The country comes from Cloudflare's edge when a game <em>starts</em> — so this counts people
+              who actually loaded and played, not requests. A country that's busy in Cloudflare's own
+              analytics but missing here never ran the game: that's scrapers and bots, and the gap between
+              the two is the read. Slices are anonymous devices (each counted in the one country it plays
+              from most); rounds are exact, and a country with far more rounds than players is one device
+              replaying, not a crowd.
+              {countries.untracked > 0 && ` ${countryUntrackedNote(countries)}`}
+            </p>
           </>
         )}
       </section>
