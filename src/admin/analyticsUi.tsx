@@ -45,6 +45,31 @@ export const kindCls = (k: RoundKind) => KIND_META.find((m) => m.key === k)?.cls
 
 export const sumKinds = (s: StartedByKind) => s.daily + s.leftover + s.random;
 
+/**
+ * Country codes come out of the DB as ISO 3166-1 alpha-2 (see migrations/0018);
+ * `Intl.DisplayNames` turns them into English names, so no country table has to
+ * be shipped or kept current. It throws on structurally invalid input and simply
+ * echoes an unassigned-but-valid code, so both fall back to the code itself.
+ */
+const REGION_NAMES = (() => {
+  try {
+    return new Intl.DisplayNames(["en"], { type: "region" });
+  } catch {
+    return null;
+  }
+})();
+
+/** An alpha-2 code as a readable place, including Cloudflare's two non-countries. */
+export function countryName(code: string): string {
+  if (code === "T1") return "Tor network";
+  if (code === "XX") return "Unknown";
+  try {
+    return REGION_NAMES?.of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
+
 /** "2026-07-19" → "7/19" for compact axis labels (parsed as plain digits, no timezone). */
 export const shortDate = (iso: string) => {
   const [, m, d] = iso.split("-");
