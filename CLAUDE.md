@@ -8,6 +8,7 @@ Daily Wordle-style game: guess the diner's "Special" (a world dish). 1950s diner
 npm run dev          # vite dev (Worker runs in workerd via @cloudflare/vite-plugin), http://localhost:5173
 npm run play         # vite dev + opens /play: a fresh round on a RANDOM dish, nothing saved (dev-only free play)
 npm run ramen        # same, but pinned to one named dish (/play?special=ramen) — playtest a specific board
+npm run admin        # vite dev + opens /admin: straight to the login, skipping the game (password below)
 npm test             # vitest — worker/**/*.test.ts + shared/**/*.test.ts (every pure fold has one)
 npm run check        # tsc -b (3 project refs: app / worker / node)
 npm run build        # tsc -b && vite build → dist/
