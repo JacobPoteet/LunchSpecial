@@ -15,6 +15,10 @@ import type {
   AnnouncementReach,
   DashboardAnnouncement,
   DishRequest,
+  Experiment,
+  ExperimentInput,
+  ExperimentMetric,
+  ExperimentReport,
   PlayerSplit,
   RoundKind,
   ScheduleEntry,
@@ -26,6 +30,8 @@ import {
   ANALYTICS_EVENTS_PAGE,
   ANNOUNCEMENT_AUDIENCES,
   COURSES,
+  EXPERIMENT_LIMITS,
+  EXPERIMENT_METRICS,
   MAX_GUESSES,
   PROTEINS,
   REGIONS,
@@ -34,9 +40,12 @@ import {
   TEMPERATURES,
 } from "../../shared/types";
 import { announcementStatus, parseAnnouncementInput } from "../announcements";
-import { foldDayService, foldPace, type DayHourRow, type PaceRow } from "../service";
+import { foldDayService, foldPace, foldSolveTimes, type DayHourRow, type PaceRow, type SolveTimeRow } from "../service";
 import { foldGrowth, type GrowthRow } from "../growth";
 import { foldCountries, type CountryRow } from "../countries";
+import { foldDishStats, type DishMetaRow, type DishStatRow } from "../dishstats";
+import { foldExperimentSeries, type ExperimentHourRow } from "../experiments";
+import { foldRhythm, type RhythmRow } from "../rhythm";
 import {
   createToken,
   passwordMatches,
@@ -56,7 +65,7 @@ import {
   type PlayerBucketRow,
 } from "../players";
 import { assembleMenuMix, type MenuDishRow, type MenuScheduleRow } from "../menu";
-import { gameHour, gameToday, msUntilGameMidnight } from "../../shared/time";
+import { gameToday, msUntilGameMidnight } from "../../shared/time";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -762,6 +771,8 @@ app.get("/analytics", async (c) => {
     playerRes,
     trackingStartRes,
     countryRes,
+    solveTimeRes,
+    visitRes,
   ] = await c.env.DB.batch([
       c.env.DB.prepare(allTimeTotalsSql),
       c.env.DB.prepare(distSql("")).bind(MAX_GUESSES),
@@ -842,6 +853,25 @@ app.get("/analytics", async (c) => {
            FROM analytics_rounds WHERE started_at IS NOT NULL${surfAnd}
            GROUP BY country, player_id`,
       ),
+      // How long a solved round took, in whole minutes (migrations/0011 gave
+      // completions their own timestamp; nothing has read it until now). Grouped
+      // rather than returned per row, and folded to a median/p90 in JS — SQLite
+      // has no percentile function, and a mean here would follow the one round
+      // somebody left open in a background tab all morning.
+      c.env.DB.prepare(
+        `SELECT CAST((julianday(completed_at) - julianday(started_at)) * 1440 AS INTEGER) AS minutes,
+           COUNT(*) AS n
+           FROM analytics_rounds
+           WHERE solved = 1 AND completed_at IS NOT NULL AND started_at IS NOT NULL${surfAnd}
+           GROUP BY minutes`,
+      ),
+      // The funnel's top (migrations/0020). visit_day is already an ET day —
+      // the beacon handler stamps it — so unlike everything else here it needs
+      // no UTC-to-ET fold. One row per device per day, so a plain COUNT is the
+      // visitor count.
+      c.env.DB.prepare(
+        `SELECT visit_day, COUNT(*) AS n FROM analytics_visits${surfWhere} GROUP BY visit_day`,
+      ),
     ]);
 
   const emptyTotals = { started: 0, completed: 0, solved: 0, shared: 0, fails: 0 };
@@ -851,13 +881,22 @@ app.get("/analytics", async (c) => {
     startedByKind: StartedByKind,
     players: PlayerSplit | null,
   ): AnalyticsPeriod => {
-    const { fails, ...totals } =
-      (totalsResult.results[0] as AnalyticsPeriod["totals"] & { fails: number }) ?? emptyTotals;
+    const row = (totalsResult.results[0] as Record<string, number> | undefined) ?? emptyTotals;
+    // Named explicitly rather than rest-spread off the row: the all-time query
+    // also selects the per-kind `started_*` columns that `startedByKind` is built
+    // from, and a spread quietly shipped those inside `totals` — fields the type
+    // never declared and nothing read.
+    const totals: AnalyticsPeriod["totals"] = {
+      started: row.started ?? 0,
+      completed: row.completed ?? 0,
+      solved: row.solved ?? 0,
+      shared: row.shared ?? 0,
+    };
     const guessDistribution = Array.from({ length: MAX_GUESSES }, () => 0);
     for (const r of distResult.results as { guesses: number; n: number }[]) {
       guessDistribution[r.guesses - 1] = r.n;
     }
-    return { totals, startedByKind, guessDistribution, fails, players };
+    return { totals, startedByKind, guessDistribution, fails: row.fails ?? 0, players };
   };
 
   // New vs returning players — see worker/players.ts for the fold. `playersFor`
@@ -939,17 +978,29 @@ app.get("/analytics", async (c) => {
   const dayPeriod = toPeriod(dayTotalsRes, dayDistRes, dayByKind, playersFor(day));
   const dayDish = dayDishRes.results[0] as { name: string } | undefined;
 
-  // Fold each UTC hour-bucket ("YYYY-MM-DD HH", UTC) into its ET hour of day.
-  // The same all-time buckets also give the set of ET days that saw any play —
-  // the only days the admin's day picker offers.
-  const hourly = Array.from({ length: 24 }, () => 0);
+  // The all-time UTC hour buckets are the busiest row set here, and three
+  // separate reads come out of them without a second query: the weekly rhythm
+  // (weekday × ET hour, which subsumes the old flat 24-hour array), the growth
+  // curve below, and the set of ET days that saw any play — the only days the
+  // admin's day picker offers.
   const active = new Set<string>();
   for (const r of hourlyRes.results as { bucket: string; n: number }[]) {
     const instant = new Date(`${r.bucket.replace(" ", "T")}:30:00Z`);
     if (Number.isNaN(instant.getTime())) continue;
-    hourly[gameHour(instant)] += r.n;
     active.add(gameToday(instant));
   }
+
+  // Visits by ET day. The first day with a row marks when the beacon switched
+  // on; every day before it is *unmeasured*, and reporting those as 0 visitors
+  // would claim a 100% bounce rate for the whole of the game's history.
+  const visitsByDay = new Map<string, number>();
+  for (const r of visitRes.results as { visit_day: string; n: number }[]) {
+    visitsByDay.set(r.visit_day, r.n);
+  }
+  const visitsSince = [...visitsByDay.keys()].sort()[0] ?? null;
+  const visitedOn = (date: string): number | null =>
+    visitsSince !== null && date >= visitsSince ? (visitsByDay.get(date) ?? 0) : null;
+  const visitsAllTime = [...visitsByDay.values()].reduce((a, b) => a + b, 0);
 
   const summary: AnalyticsSummary = {
     totals: allTime.totals,
@@ -965,6 +1016,8 @@ app.get("/analytics", async (c) => {
       hourly: service.hourly,
       lastStartedAt: service.lastStartedAt,
       pace,
+      open: service.open,
+      visited: visitedOn(day),
     },
     today,
     activeDates: [...active].sort(),
@@ -981,9 +1034,200 @@ app.get("/analytics", async (c) => {
     // Where the rounds came from (GitHub #92) — see worker/countries.ts for why
     // the device-per-country attribution has to happen outside SQL.
     countries: foldCountries(countryRes.results as CountryRow[]),
-    hourly,
+    // Weekday × hour, off the same all-time buckets as `growth` and `activeDates`
+    // — no extra query. Its `byHour` marginal is what used to be the bare
+    // `hourly` array; the weekday axis is the cycle that array couldn't show.
+    rhythm: foldRhythm(hourlyRes.results as RhythmRow[], today),
+    solveTimes: foldSolveTimes(solveTimeRes.results as SolveTimeRow[]),
+    visits: { visited: visitsSince === null ? null : visitsAllTime, since: visitsSince },
   };
   return c.json(summary);
+});
+
+// How each dish actually played, as opposed to how often the kitchen served it
+// (that's /menu-mix). `analytics_rounds.dish_id` has been stamped on every round
+// since migrations/0012 and nothing aggregated it until now, so the catalogue and
+// the outcomes had no way to meet. Surface-filtered like the rest of the player
+// reads; the fold is pure — see worker/dishstats.ts.
+//
+// Named "/dish-report" rather than anything containing "analytics" or "stats" for
+// the same reason as "/recent-rounds": ad blockers match those paths by shape and
+// cancel the request in-browser, which surfaces as a bare NetworkError with
+// nothing in the Worker logs.
+app.get("/dish-report", async (c) => {
+  const { and: surfAnd } = surfaceClause(c);
+  const today = serverToday();
+  const [roundsRes, metaRes] = await c.env.DB.batch([
+    // Grouped by outcome as well as dish so one query covers win rate, the guess
+    // histogram, DNF and shares. Cardinality is bounded by dishes × kinds ×
+    // outcomes, which stays in the hundreds at any volume this game will see.
+    c.env.DB.prepare(
+      `SELECT dish_id, kind, completed, solved, shared, guesses, COUNT(*) AS n
+         FROM analytics_rounds WHERE started_at IS NOT NULL${surfAnd}
+         GROUP BY dish_id, kind, completed, solved, shared, guesses`,
+    ),
+    // Catalogue detail for naming the rows, plus how often each dish has actually
+    // been the Special — a dish's record reads differently when it's one outing
+    // than when it's three.
+    c.env.DB
+      .prepare(
+        `SELECT d.id, d.name, d.country, d.region, d.course, d.protein,
+           (SELECT COUNT(*) FROM schedule s WHERE s.dish_id = d.id AND s.date <= ?) AS times_served,
+           (SELECT MAX(s.date) FROM schedule s WHERE s.dish_id = d.id AND s.date <= ?) AS last_served
+           FROM dishes d`,
+      )
+      .bind(today, today),
+  ]);
+  return c.json(
+    foldDishStats(roundsRes.results as unknown as DishStatRow[], metaRes.results as unknown as DishMetaRow[]),
+  );
+});
+
+// ---- Experiments: did the thing I shipped do anything? ----
+//
+// Every other endpoint here answers "what is happening". This one exists to
+// answer "did my change work", which needs two things nothing else provided: a
+// record of when changes went live (the `experiments` table, migrations/0019),
+// and a daily series long enough to look at both sides of one.
+//
+// The series is **all-time and raw**, and both halves of that are deliberate.
+// All-time because `daily` stops ~5 weeks back and an experiment from two months
+// ago is exactly the one worth re-reading; raw counts because a rate has to be
+// pooled over a whole period, and a pre-divided daily percentage can't be
+// re-pooled over a different window. Shipping the whole series once lets the tab
+// re-window and re-metric every experiment with no further requests.
+//
+// Path note: "/experiments" is not on the blocker-bait list (analytics, event,
+// track, collect, beacon, telemetry, pixel) that forced /recent-rounds and
+// /dish-report to be renamed, and an admin fetch fails loudly anyway — src/admin/
+// api.ts turns a cancelled request into an explicit ad-blocker message.
+
+function parseExperiment(body: unknown): { input: ExperimentInput } | { error: string } {
+  const b = body as Partial<ExperimentInput> | null;
+  if (!b || typeof b !== "object") return { error: "Invalid body" };
+  const label = typeof b.label === "string" ? b.label.trim() : "";
+  if (!label) return { error: "Give the change a name" };
+  if (label.length > EXPERIMENT_LIMITS.label) {
+    return { error: `Name must be ${EXPERIMENT_LIMITS.label} characters or fewer` };
+  }
+  const hypothesis = typeof b.hypothesis === "string" ? b.hypothesis.trim() : "";
+  if (hypothesis.length > EXPERIMENT_LIMITS.hypothesis) {
+    return { error: `Hypothesis must be ${EXPERIMENT_LIMITS.hypothesis} characters or fewer` };
+  }
+  if (!EXPERIMENT_METRICS.includes(b.metric as never)) return { error: "Pick a metric to watch" };
+  if (typeof b.shippedOn !== "string" || !isValidDateString(b.shippedOn)) {
+    return { error: "Ship date must be a real YYYY-MM-DD day" };
+  }
+  return { input: { label, hypothesis, metric: b.metric as ExperimentMetric, shippedOn: b.shippedOn } };
+}
+
+app.get("/experiments", async (c) => {
+  const { and: surfAnd, where: surfWhere } = surfaceClause(c);
+  const today = serverToday();
+  const [rowsRes, hourRes, playerRes, trackingRes, visitRes] = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `SELECT id, label, hypothesis, metric, shipped_on, created_at
+         FROM experiments ORDER BY shipped_on DESC, id DESC`,
+    ),
+    // Same all-time UTC hour buckets the growth curve and rhythm grid read, but
+    // carrying the outcome sums too — a rate metric needs its denominator.
+    c.env.DB.prepare(
+      `SELECT strftime('%Y-%m-%d %H', started_at) AS bucket,
+         COUNT(*) AS started,
+         COALESCE(SUM(completed), 0) AS completed,
+         COALESCE(SUM(solved), 0) AS solved,
+         COALESCE(SUM(shared), 0) AS shared
+         FROM analytics_rounds WHERE started_at IS NOT NULL${surfAnd}
+         GROUP BY bucket`,
+    ),
+    c.env.DB.prepare(
+      `SELECT player_id, strftime('%Y-%m-%d %H', started_at) AS bucket
+         FROM analytics_rounds
+         WHERE player_id IS NOT NULL AND started_at IS NOT NULL${surfAnd}
+         GROUP BY player_id, bucket`,
+    ),
+    c.env.DB.prepare(
+      `SELECT MIN(started_at) AS first_tracked FROM analytics_rounds
+         WHERE player_id IS NOT NULL AND started_at IS NOT NULL`,
+    ),
+    // visit_day is already an ET day, stamped by the beacon handler.
+    c.env.DB.prepare(`SELECT visit_day, COUNT(*) AS n FROM analytics_visits${surfWhere} GROUP BY visit_day`),
+  ]);
+
+  const activity = foldPlayerActivity(playerRes.results as PlayerBucketRow[]);
+  const firstTracked = (trackingRes.results[0] as { first_tracked: string | null } | undefined)?.first_tracked;
+  const trackingStart = firstTracked ? etDayOfUtcStamp(firstTracked) : null;
+  const visitsByDay = new Map<string, number>();
+  for (const r of visitRes.results as { visit_day: string; n: number }[]) visitsByDay.set(r.visit_day, r.n);
+  const visitsSince = [...visitsByDay.keys()].sort()[0] ?? null;
+
+  const experiments: Experiment[] = (
+    rowsRes.results as {
+      id: number;
+      label: string;
+      hypothesis: string;
+      metric: string;
+      shipped_on: string;
+      created_at: string;
+    }[]
+  ).map((r) => ({
+    id: r.id,
+    label: r.label,
+    hypothesis: r.hypothesis,
+    metric: r.metric as ExperimentMetric,
+    shippedOn: r.shipped_on,
+    createdAt: r.created_at,
+  }));
+
+  const report: ExperimentReport = {
+    experiments,
+    series: foldExperimentSeries(
+      hourRes.results as ExperimentHourRow[],
+      today,
+      activity,
+      trackingStart,
+      visitsByDay,
+      visitsSince,
+    ),
+  };
+  return c.json(report);
+});
+
+app.post("/experiments", async (c) => {
+  const parsed = parseExperiment(await c.req.json().catch(() => null));
+  if ("error" in parsed) return c.json({ error: parsed.error }, 400);
+  const e = parsed.input;
+  const res = await c.env.DB.prepare(
+    `INSERT INTO experiments (label, hypothesis, metric, shipped_on, created_at, updated_at)
+     VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))`,
+  )
+    .bind(e.label, e.hypothesis, e.metric, e.shippedOn)
+    .run();
+  return c.json({ id: res.meta.last_row_id });
+});
+
+app.put("/experiments/:id", async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id)) return c.json({ error: "Change not found" }, 404);
+  const parsed = parseExperiment(await c.req.json().catch(() => null));
+  if ("error" in parsed) return c.json({ error: parsed.error }, 400);
+  const e = parsed.input;
+  const res = await c.env.DB.prepare(
+    `UPDATE experiments SET label = ?, hypothesis = ?, metric = ?, shipped_on = ?, updated_at = datetime('now')
+      WHERE id = ?`,
+  )
+    .bind(e.label, e.hypothesis, e.metric, e.shippedOn, id)
+    .run();
+  if (res.meta.changes === 0) return c.json({ error: "Change not found" }, 404);
+  return c.json({ id });
+});
+
+app.delete("/experiments/:id", async (c) => {
+  const id = Number(c.req.param("id"));
+  if (!Number.isInteger(id)) return c.json({ error: "Change not found" }, 404);
+  const res = await c.env.DB.prepare("DELETE FROM experiments WHERE id = ?").bind(id).run();
+  if (res.meta.changes === 0) return c.json({ error: "Change not found" }, 404);
+  return c.json({ ok: true });
 });
 
 // Recent activity feed (GitHub #47): the aggregates above tell you *how much*

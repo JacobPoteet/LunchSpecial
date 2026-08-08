@@ -65,6 +65,33 @@ export function peekPlayerId(): string | null {
   }
 }
 
+/** sessionStorage key for the ET day this tab has already reported a visit for. */
+const SEATED_KEY = "lunch-special:seated";
+
+/**
+ * Whether the visit beacon still needs to fire for `day` on this device.
+ *
+ * Two ledgers, the same shape the announcement modal uses: this one decides
+ * whether to *send*, the server's composite primary key decides what to *count*.
+ * Neither is sufficient alone — sessionStorage is per-tab and cleared often, so
+ * it can't be the source of truth for a visitor count; and without it every mode
+ * switch (which navigates by assigning a URL) would fire a redundant beacon.
+ *
+ * sessionStorage rather than localStorage on purpose: a new browser session is a
+ * new arrival worth re-reporting, and the server deduplicates by day anyway, so
+ * the failure mode is one wasted request rather than a missed visitor.
+ */
+export function markSeated(day: string): boolean {
+  try {
+    if (sessionStorage.getItem(SEATED_KEY) === day) return false;
+    sessionStorage.setItem(SEATED_KEY, day);
+    return true;
+  } catch {
+    // Storage blocked — send it and let the server's primary key dedupe.
+    return true;
+  }
+}
+
 export function emptyRound(date: string): RoundState {
   return { date, status: "playing", guesses: [], clues: [] };
 }

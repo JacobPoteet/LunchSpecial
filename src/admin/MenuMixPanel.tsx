@@ -235,6 +235,13 @@ export default function MenuMixPanel() {
         {mix.unscheduledDays > 0 &&
           ` · ${mix.unscheduledDays} past day${mix.unscheduledDays === 1 ? "" : "s"} ran on the fallback pick (no schedule row, so not counted above)`}
       </p>
+      {/* The tab's Web/Discord toggle governs the dish report above, which is
+          player data. This half is the schedule × dishes catalogue — the same
+          menu was served to everyone, so a surface filter would be a lie here. */}
+      <p className="dash-note">
+        Catalogue data — what the kitchen put out, not what players did with it. The Web/Discord filter
+        doesn't apply to this half; it's the same menu either way.
+      </p>
 
       <hr className="analytics-rule" />
 

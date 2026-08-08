@@ -7,13 +7,17 @@
 // midnight-ET boundary the game rolls over on. A UTC hour maps cleanly onto one
 // ET hour because the offset is whole hours in both DST phases.
 
+import { medianOf, percentileOf } from "../shared/sample";
 import { gameHour, gameToday } from "../shared/time";
 import {
+  DNF_GRACE_MINUTES,
   PACE_LOOKBACK_DAYS,
   type AnalyticsHour,
   type AnalyticsPace,
   type DayServiceTotals,
+  type OpenRounds,
   type RoundKind,
+  type SolveTimes,
   type StartedByKind,
 } from "../shared/types";
 
@@ -46,6 +50,8 @@ export interface DayService {
   hourly: AnalyticsHour[];
   allKinds: DayServiceTotals;
   lastStartedAt: string | null;
+  /** The started-but-never-finished gap, split by whether it still could finish. */
+  open: OpenRounds;
 }
 
 /** "2026-07-24 13" (UTC hour) → the instant mid-hour, or null if it doesn't parse. */
@@ -66,11 +72,20 @@ function emptyHours(): AnalyticsHour[] {
  * The query hands us a ±1-day UTC window because a single ET day straddles two
  * UTC ones; rows landing outside the target ET day are dropped here rather than
  * in SQL, which can't do the conversion.
+ *
+ * `now` is what splits the started-but-unfinished gap into people still playing
+ * and people who left. Each row is a cohort of rounds that *started* in one hour,
+ * so the whole cohort is at least as old as the end of its hour; once that is
+ * more than {@link DNF_GRACE_MINUTES} ago, a round still open isn't coming back.
+ * The dashboard used to report the entire gap as DNF and clamp it at zero, which
+ * on a live afternoon reads a full diner as a walkout.
  */
-export function foldDayService(rows: Iterable<DayHourRow>, day: string): DayService {
+export function foldDayService(rows: Iterable<DayHourRow>, day: string, now: Date = new Date()): DayService {
   const hourly = emptyHours();
   const allKinds: DayServiceTotals = { started: 0, completed: 0, solved: 0, shared: 0 };
+  const open: OpenRounds = { inProgress: 0, abandoned: 0 };
   let lastStartedAt: string | null = null;
+  const graceMs = DNF_GRACE_MINUTES * 60_000;
 
   for (const r of rows) {
     const instant = instantOf(r.bucket);
@@ -84,6 +99,17 @@ export function foldDayService(rows: Iterable<DayHourRow>, day: string): DayServ
     allKinds.solved += r.solved;
     allKinds.shared += r.shared;
 
+    // Within a start cohort `completed` can't exceed `started` — a completion
+    // whose /start never landed still writes started_at into this same bucket —
+    // but the floor costs nothing and a negative would poison the split.
+    const still = Math.max(0, r.started - r.completed);
+    if (still > 0) {
+      // instantOf() puts us mid-hour, so the hour ends 30 minutes later.
+      const cohortEndedMs = instant.getTime() + 30 * 60_000;
+      if (now.getTime() - cohortEndedMs > graceMs) open.abandoned += still;
+      else open.inProgress += still;
+    }
+
     // Lexicographic max is chronological max: "YYYY-MM-DD HH:MM:SS", fixed width, UTC.
     if (r.last_started && (lastStartedAt === null || r.last_started > lastStartedAt)) {
       lastStartedAt = r.last_started;
@@ -95,6 +121,41 @@ export function foldDayService(rows: Iterable<DayHourRow>, day: string): DayServ
     allKinds,
     // Hand the client a real instant so it can render the time in any zone.
     lastStartedAt: lastStartedAt === null ? null : `${lastStartedAt.replace(" ", "T")}Z`,
+    open,
+  };
+}
+
+/** One grouped row of solve durations: how many rounds took `minutes`. */
+export interface SolveTimeRow {
+  minutes: number | null;
+  n: number;
+}
+
+/**
+ * Fold solve durations into a median and a p90.
+ *
+ * Never a mean. A round is a browser tab: most are finished in a couple of
+ * minutes, and a handful are opened at breakfast and finished at lunch. Those are
+ * real rows — the game genuinely was open — but one of them moves an average by
+ * more than a hundred normal rounds do, so the typical figure has to be a
+ * position in the distribution rather than its centre of mass.
+ *
+ * Negative durations are dropped rather than clamped: they can only come from a
+ * completion whose `/start` beacon arrived late enough to overwrite nothing, and
+ * a "-3 minute" solve is a broken measurement, not a fast one.
+ */
+export function foldSolveTimes(rows: Iterable<SolveTimeRow>): SolveTimes {
+  const pairs: [number, number][] = [];
+  let count = 0;
+  for (const r of rows) {
+    if (r.minutes === null || !Number.isFinite(r.minutes) || r.minutes < 0 || r.n <= 0) continue;
+    pairs.push([r.minutes, r.n]);
+    count += r.n;
+  }
+  return {
+    count,
+    medianMinutes: medianOf(pairs),
+    p90Minutes: percentileOf(pairs, 0.9),
   };
 }
 

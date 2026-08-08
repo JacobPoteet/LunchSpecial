@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { foldDayService, foldPace, type DayHourRow, type PaceRow } from "./service";
-import type { RoundKind } from "../shared/types";
+import { foldDayService, foldPace, foldSolveTimes, type DayHourRow, type PaceRow } from "./service";
+import { DNF_GRACE_MINUTES, type RoundKind } from "../shared/types";
 
 /**
  * A (UTC hour, kind) group. `hour` is UTC — in July that's EDT (UTC-4), so 16:00
@@ -115,6 +115,101 @@ describe("foldDayService", () => {
   it("skips unparseable buckets rather than throwing", () => {
     const s = foldDayService([row("nonsense", 16, "daily", 5)], "2026-07-24");
     expect(s.allKinds.started).toBe(0);
+  });
+
+  describe("open rounds", () => {
+    // The 16:00 UTC cohort ends at 17:00 UTC; `now` is set relative to that.
+    const cohortEnd = new Date("2026-07-24T17:00:00Z").getTime();
+    const after = (minutes: number) => new Date(cohortEnd + minutes * 60_000);
+
+    it("counts nothing open when every round finished", () => {
+      const s = foldDayService(
+        [row("2026-07-24", 16, "daily", 6, { completed: 6 })],
+        "2026-07-24",
+        after(600),
+      );
+      expect(s.open).toEqual({ inProgress: 0, abandoned: 0 });
+    });
+
+    // The bug this fixes: mid-afternoon, most of the gap is people still eating.
+    it("calls a fresh cohort still playing, not a walkout", () => {
+      const s = foldDayService(
+        [row("2026-07-24", 16, "daily", 10, { completed: 4 })],
+        "2026-07-24",
+        after(DNF_GRACE_MINUTES - 10),
+      );
+      expect(s.open).toEqual({ inProgress: 6, abandoned: 0 });
+    });
+
+    it("calls a cohort past the grace window abandoned", () => {
+      const s = foldDayService(
+        [row("2026-07-24", 16, "daily", 10, { completed: 4 })],
+        "2026-07-24",
+        after(DNF_GRACE_MINUTES + 10),
+      );
+      expect(s.open).toEqual({ inProgress: 0, abandoned: 6 });
+    });
+
+    it("splits a day whose earlier hours have aged out and whose latest hasn't", () => {
+      const s = foldDayService(
+        [
+          row("2026-07-24", 16, "daily", 5, { completed: 1 }), // long done
+          row("2026-07-24", 20, "daily", 7, { completed: 2 }), // just now
+        ],
+        "2026-07-24",
+        new Date("2026-07-24T21:10:00Z"),
+      );
+      expect(s.open).toEqual({ inProgress: 5, abandoned: 4 });
+    });
+
+    it("floors the gap rather than going negative when completions outrun starts", () => {
+      // /start and /complete are independent beacons, so a completion whose start
+      // never landed can briefly leave the row ahead of itself.
+      const s = foldDayService(
+        [row("2026-07-24", 16, "daily", 3, { completed: 5 })],
+        "2026-07-24",
+        after(600),
+      );
+      expect(s.open).toEqual({ inProgress: 0, abandoned: 0 });
+    });
+  });
+});
+
+describe("foldSolveTimes", () => {
+  it("reports nothing when no round has been timed", () => {
+    expect(foldSolveTimes([])).toEqual({ count: 0, medianMinutes: null, p90Minutes: null });
+  });
+
+  it("takes the median and p90 off the distribution", () => {
+    const s = foldSolveTimes([
+      { minutes: 1, n: 2 },
+      { minutes: 3, n: 5 },
+      { minutes: 9, n: 3 },
+    ]);
+    expect(s.count).toBe(10);
+    expect(s.medianMinutes).toBe(3);
+    expect(s.p90Minutes).toBe(9);
+  });
+
+  // A tab left open at breakfast and finished at lunch is a real row, and the
+  // reason none of this is a mean.
+  it("is not moved by a round left open for hours", () => {
+    const s = foldSolveTimes([
+      { minutes: 2, n: 40 },
+      { minutes: 400, n: 1 },
+    ]);
+    expect(s.medianMinutes).toBe(2);
+    expect(s.count).toBe(41);
+  });
+
+  it("drops rows that aren't a measurement", () => {
+    const s = foldSolveTimes([
+      { minutes: null, n: 4 },
+      { minutes: -3, n: 2 },
+      { minutes: 5, n: 1 },
+    ]);
+    expect(s.count).toBe(1);
+    expect(s.medianMinutes).toBe(5);
   });
 });
 

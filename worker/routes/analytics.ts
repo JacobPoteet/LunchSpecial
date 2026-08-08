@@ -4,7 +4,7 @@
 
 import { Hono, type Context } from "hono";
 import { MAX_GUESSES, ROUND_KINDS, SURFACES, type RoundKind, type Surface } from "../../shared/types";
-import { getSeededDish, getTargetDish } from "../db";
+import { getSeededDish, getTargetDish, serverToday } from "../db";
 import { isValidDateString } from "../game";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -75,6 +75,44 @@ function base(body: unknown): Base | null {
   if (!SURFACES.includes(surface)) return null;
   return { roundId: b.roundId, puzzleNumber, date: b.date, kind, surface };
 }
+
+/**
+ * A device opened a real, playable round today — the top of the funnel
+ * (migrations/0020).
+ *
+ * "Started" means the first submitted guess, so without this everyone who loads
+ * the game and never guesses is invisible, and "did more visitors actually play"
+ * is unanswerable. This fires on the board being ready instead.
+ *
+ * Deliberately thin: the client sends only its anonymous device id and surface.
+ * The **day is stamped here**, not sent — a visit belongs to the ET day it
+ * happened on, which the client has no authority over — and the country comes
+ * from the edge like every other beacon. One row per device per day, so the
+ * INSERT is idempotent and the client can fire whenever it likes.
+ *
+ * Path is "/seated" (a guest is seated before they order) for the same reason as
+ * every other path here: "visit", "view", "pageview" and "track" are the shapes
+ * ad blockers match, and a blocked fire-and-forget beacon is indistinguishable
+ * from a delivered one — those players would simply never appear.
+ */
+app.post("/seated", async (c) => {
+  const raw = (await c.req.json().catch(() => null)) as { playerId?: unknown; surface?: unknown } | null;
+  const playerId = raw?.playerId;
+  // No usable device id means nothing to dedupe on, and a row per page load
+  // would overcount visitors rather than undercount them. Drop it.
+  if (typeof playerId !== "string" || playerId.length < 8 || playerId.length > 64) {
+    return c.json({ error: "Invalid payload" }, 400);
+  }
+  const surface = SURFACES.includes(raw?.surface as never) ? (raw!.surface as Surface) : "web";
+  await c.env.DB.prepare(
+    `INSERT INTO analytics_visits (visit_day, player_id, surface, country, first_seen_at)
+     VALUES (?, ?, ?, ?, datetime('now'))
+     ON CONFLICT(visit_day, player_id) DO NOTHING`,
+  )
+    .bind(serverToday(), playerId, surface, countryOf(c))
+    .run();
+  return c.json({ ok: true });
+});
 
 app.post("/start", async (c) => {
   const raw = (await c.req.json().catch(() => null)) as (Partial<Base> & { playerId?: unknown }) | null;
