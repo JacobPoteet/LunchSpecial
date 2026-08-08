@@ -2019,3 +2019,197 @@
 }
 
 .heat__caption { margin-top: 10px; }
+
+/* ---- Experiments --------------------------------------------------------- */
+
+/* The panel's forms wrap their control in the <label> itself, so the caption is
+   a <span> rather than a nested <label>. Same look either way. */
+.field > span {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 4px;
+}
+
+.xp__hypothesis {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  color: var(--ink);
+  border-left: 4px solid var(--teal);
+  padding-left: 10px;
+  font-style: italic;
+}
+
+.xp__controls { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+.xp__control { flex: 0 1 auto; }
+
+.xp__control > span {
+  display: block;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 3px;
+}
+
+.xp__control select {
+  border: 1.5px solid var(--ink-soft);
+  border-radius: 8px;
+  padding: 5px 9px;
+  background: #fffdf6;
+  font-family: inherit;
+}
+
+/* Reading a metric you didn't predict is a different kind of evidence, and the
+   panel says so rather than presenting both at the same weight. */
+.xp__offplan {
+  margin: 0 0 12px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: rgba(232, 165, 58, 0.16);
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.xp__verdict {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border-left: 5px solid var(--miss);
+  background: rgba(27, 79, 74, 0.06);
+  margin-bottom: 12px;
+}
+
+.xp__verdict strong { font-family: var(--font-display); font-size: 0.98rem; }
+
+/* Four states, and two of them are "we can't say yet". The undecided pair take
+   muted ink rather than a warning colour — not knowing is the normal state at
+   this volume, not a fault. */
+.xp__verdict--up { border-left-color: var(--hit); }
+.xp__verdict--up strong { color: var(--hit); }
+.xp__verdict--down { border-left-color: var(--cherry); }
+.xp__verdict--down strong { color: var(--cherry); }
+.xp__verdict--flat strong,
+.xp__verdict--wait strong { color: var(--ink-soft); }
+
+.xp__delta {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--teal);
+  font-variant-numeric: tabular-nums;
+}
+
+.xp__metric {
+  margin-left: auto;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.xp__sides {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.xp__side {
+  min-width: 84px;
+  text-align: center;
+  background: rgba(27, 79, 74, 0.06);
+  border-radius: 10px;
+  padding: 9px 12px;
+}
+
+.xp__side-num {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--teal);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.xp__side-label {
+  display: block;
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-top: 3px;
+}
+
+.xp__arrow { font-size: 1.2rem; color: var(--ink-soft); }
+
+.xp__advice {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--ink);
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: rgba(27, 79, 74, 0.06);
+}
+
+/* The daily bars either side of the ship date. Deliberately shown next to the
+   two aggregates: two numbers can't reveal that the "after" is one enormous day
+   and six dead ones, which is what a shared link looks like. */
+.ba {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 46px;
+  flex: 1 1 220px;
+  min-width: 180px;
+  border-bottom: 1px solid var(--paper-edge);
+}
+
+.ba__col { flex: 1 1 0; height: 100%; display: flex; align-items: flex-end; min-width: 2px; }
+
+.ba__bar {
+  display: block;
+  width: 100%;
+  border-radius: 1px 1px 0 0;
+  /* Before the change: muted. It's the baseline, not the subject. */
+  background: var(--miss);
+}
+
+.ba__col--after .ba__bar { background: var(--teal); }
+
+/* A day the metric wasn't measured on — no bar at all, not a zero-height one
+   that reads as "nobody played". */
+.ba__bar--none { background: transparent; }
+
+/* The ship date itself, which belongs to the after period. */
+.ba__col--ship { border-left: 2px solid var(--cherry); }
+
+/* ---- Experiment markers on the time series -------------------------------- */
+
+/* A dashed vertical rule at each shipped change. Ink, not a series hue: like the
+   steady-pace line it's an annotation over the data, not a measurement in it. */
+.gchart__mark {
+  stroke: var(--cherry);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+  opacity: 0.55;
+}
+
+.gchart__swatch--mark {
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--cherry) 0 3px,
+    transparent 3px 6px
+  );
+  width: 2px;
+  border-radius: 0;
+}
+
+/* On the spark there's no room for a rule, so the column marks its own base. */
+.spark__col--ship { border-bottom: 3px solid var(--cherry); }

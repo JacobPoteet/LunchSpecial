@@ -1,5 +1,12 @@
 import { Fragment } from "react";
-import type { AnalyticsSummary, GameGrowth, GrowthTrend, PlayRhythm, WeekdayPlay } from "../../shared/types";
+import type {
+  AnalyticsSummary,
+  Experiment,
+  GameGrowth,
+  GrowthTrend,
+  PlayRhythm,
+  WeekdayPlay,
+} from "../../shared/types";
 import { KIND_META, KindLegend, hourLabel, noRoundsNote, pct, shortDate, type SurfaceFilter } from "./analyticsUi";
 
 /**
@@ -93,7 +100,7 @@ function growthNote(trend: GrowthTrend, since: string): string {
  *   server-side (worker/growth.ts) so the x-axis is calendar time; closing the
  *   gap over a dead week would sell it as continuous play.
  */
-function GrowthChart({ growth }: { growth: GameGrowth }) {
+function GrowthChart({ growth, experiments }: { growth: GameGrowth; experiments: Experiment[] }) {
   const { days, trend } = growth;
   const W = 660;
   const H = 200;
@@ -119,6 +126,13 @@ function GrowthChart({ growth }: { growth: GameGrowth }) {
   const xTickStep = Math.max(1, Math.ceil(n / 6));
   const yTicks = [...new Set([0, Math.round(max / 2), max])];
 
+  // Where each logged change lands on this axis. A curve that bends is only
+  // interesting once you know whether anything happened at the bend — before the
+  // change log existed, every inflection here was an unanswerable question.
+  const marks = experiments
+    .map((x) => ({ x: x, i: days.findIndex((d) => d.date === x.shippedOn) }))
+    .filter((m) => m.i >= 0);
+
   return (
     <div className="gchart">
       <div className="gchart__legend">
@@ -130,6 +144,12 @@ function GrowthChart({ growth }: { growth: GameGrowth }) {
           <span className="gchart__legend-item">
             <span className="gchart__swatch gchart__swatch--trend" />
             Steady pace
+          </span>
+        )}
+        {marks.length > 0 && (
+          <span className="gchart__legend-item">
+            <span className="gchart__swatch gchart__swatch--mark" />
+            Change shipped
           </span>
         )}
       </div>
@@ -160,6 +180,20 @@ function GrowthChart({ growth }: { growth: GameGrowth }) {
               {v}
             </text>
           </g>
+        ))}
+        {/* Under the curve, not over it: the data is the subject and these are
+            annotations on it. Ink rather than a series hue, like the trend line. */}
+        {marks.map((m) => (
+          <line
+            key={m.x.id}
+            className="gchart__mark"
+            x1={x(m.i)}
+            y1={padT}
+            x2={x(m.i)}
+            y2={H - padB}
+          >
+            <title>{`${m.x.shippedOn} — ${m.x.label}`}</title>
+          </line>
         ))}
         <path className="gchart__area" d={area} />
         <path className="gchart__line" d={line} fill="none" />
@@ -345,10 +379,13 @@ export default function TrendsPanel({
   data,
   error,
   surface,
+  experiments,
 }: {
   data: AnalyticsSummary | null;
   error: string | null;
   surface: SurfaceFilter;
+  /** The change log, drawn as markers over the time series. Empty until one is logged. */
+  experiments: Experiment[];
 }) {
   if (error) {
     return (
@@ -384,6 +421,14 @@ export default function TrendsPanel({
   const recentDays = [...daily].reverse();
   const span = `last ${daily.length} day${daily.length === 1 ? "" : "s"}`;
   const weekday = weekdayNote(rhythm.byWeekday);
+  // Changes that fall inside the spark's window, keyed by day so a column can
+  // flag itself. The growth chart takes the whole log; this only sees a month.
+  const shippedOn = new Map<string, Experiment[]>();
+  for (const x of experiments) {
+    const list = shippedOn.get(x.shippedOn);
+    if (list) list.push(x);
+    else shippedOn.set(x.shippedOn, [x]);
+  }
 
   return (
     <>
@@ -400,7 +445,7 @@ export default function TrendsPanel({
               played since {shortDate(growth.days[0].date)}.
               {growth.trend && ` ${growthNote(growth.trend, growth.days[0].date)}`}
             </p>
-            <GrowthChart growth={growth} />
+            <GrowthChart growth={growth} experiments={experiments} />
             <details className="dash-details">
               <summary>How to read it</summary>
               <p className="dash-note">
@@ -430,8 +475,15 @@ export default function TrendsPanel({
                 // Tag every Nth day plus the final one so the newest date is always labeled.
                 const showTick = i % dayTickStep === 0 || i === daily.length - 1;
                 const tip = KIND_META.map((k) => `${k.label}: ${d.startedByKind[k.key]}`).join(", ");
+                const shipped = shippedOn.get(d.date);
                 return (
-                  <div className="spark__col" key={d.date} title={`${d.date} · ${d.started} started (${tip})`}>
+                  <div
+                    className={`spark__col${shipped ? " spark__col--ship" : ""}`}
+                    key={d.date}
+                    title={`${d.date} · ${d.started} started (${tip})${
+                      shipped ? `\nShipped: ${shipped.map((x) => x.label).join(", ")}` : ""
+                    }`}
+                  >
                     <span className="spark__num">{d.started}</span>
                     {/* Stacked: each column's total height is the day's games
                         started; the three segments split it by kind. */}
@@ -453,6 +505,12 @@ export default function TrendsPanel({
                 );
               })}
             </div>
+            {shippedOn.size > 0 && (
+              <p className="dash-note" style={{ marginTop: 8 }}>
+                Columns with a marked base are days something shipped — hover for what. The before/after read
+                is on the Experiments tab.
+              </p>
+            )}
           </>
         )}
       </section>

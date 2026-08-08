@@ -11,6 +11,8 @@ import type {
   AnnouncementInput,
   DishReport,
   DishRequest,
+  ExperimentInput,
+  ExperimentReport,
   MenuMix,
   ScheduleEntry,
   Surface,
@@ -90,6 +92,18 @@ export const getMenuMix = () => request<MenuMix>("/menu-mix");
  */
 export const getDishReport = (surface?: Surface) =>
   request<DishReport>(`/dish-report${surface ? `?surface=${surface}` : ""}`);
+/**
+ * The change log plus the all-time daily series it's measured against. One call:
+ * the tab re-windows and re-metrics every experiment client-side, so switching
+ * "last 7 days" to "last 28" costs nothing.
+ */
+export const getExperiments = (surface?: Surface) =>
+  request<ExperimentReport>(`/experiments${surface ? `?surface=${surface}` : ""}`);
+export const createExperiment = (input: ExperimentInput) => request<{ id: number }>("/experiments", json(input));
+export const updateExperiment = (id: number, input: ExperimentInput) =>
+  request<{ id: number }>(`/experiments/${id}`, { ...json(input), method: "PUT" });
+export const deleteExperiment = (id: number) =>
+  request<{ ok: true }>(`/experiments/${id}`, { method: "DELETE" });
 export const getDishes = () => request<AdminDishRow[]>("/dishes");
 export const getDish = (id: number) => request<AdminDishDetail>(`/dishes/${id}`);
 export const createDish = (input: AdminDishInput) => request<{ id: number }>("/dishes", json(input));

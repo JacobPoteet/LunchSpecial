@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import type { AdminDashboard, AnalyticsSummary } from "../../shared/types";
+import type { AdminDashboard, AnalyticsSummary, ExperimentReport } from "../../shared/types";
 import * as api from "./api";
 import type { AdminView } from "./AdminApp";
 import ActivityPanel from "./ActivityPanel";
 import DishReportPanel from "./DishReportPanel";
+import ExperimentsPanel from "./ExperimentsPanel";
 import MenuMixPanel from "./MenuMixPanel";
 import OverviewPanel from "./OverviewPanel";
 import PlayersPanel from "./PlayersPanel";
@@ -18,15 +19,21 @@ import { SurfaceToggle, type SurfaceFilter } from "./analyticsUi";
  * nothing to do with time.
  *
  * Read left to right: what's happening right now, what we're serving and how it
- * lands, who's playing, where it's all going, and the raw feed underneath.
+ * lands, who's playing, where it's all going, whether anything we did caused it,
+ * and the raw feed underneath.
+ *
+ * Experiments sits at the end deliberately — it's the only tab that asks a
+ * question about *your* actions rather than about the game, and it's the one you
+ * arrive at having already seen a number move.
  */
-export type DashboardTab = "today" | "menu" | "players" | "trends" | "activity";
+export type DashboardTab = "today" | "menu" | "players" | "trends" | "experiments" | "activity";
 
 const TABS: { key: DashboardTab; label: string }[] = [
   { key: "today", label: "Today" },
   { key: "menu", label: "Menu" },
   { key: "players", label: "Players" },
   { key: "trends", label: "Trends" },
+  { key: "experiments", label: "Experiments" },
   { key: "activity", label: "Activity" },
 ];
 
@@ -38,7 +45,7 @@ const DEFAULT_TAB: DashboardTab = "today";
  * doesn't — which the panel says out loud rather than letting the toggle imply it
  * applies to both.
  */
-const SURFACE_AWARE: DashboardTab[] = ["today", "menu", "players", "trends", "activity"];
+const SURFACE_AWARE: DashboardTab[] = ["today", "menu", "players", "trends", "experiments", "activity"];
 
 const QUERY_KEY = "tab";
 
@@ -87,6 +94,10 @@ export default function Dashboard({
   const [surface, setSurface] = useState<SurfaceFilter>("all");
   const [date, setDate] = useState<string | null>(null);
 
+  const [report, setReport] = useState<ExperimentReport | null>(null);
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [reportReloads, setReportReloads] = useState(0);
+
   useEffect(() => {
     writeTabToUrl(tab);
   }, [tab]);
@@ -109,6 +120,23 @@ export default function Dashboard({
       live = false;
     };
   }, [surface, date]);
+
+  // The change log, shared by two tabs: Experiments reads all of it, Trends
+  // needs only the labels and dates for its chart markers. Fetched here so the
+  // all-time series behind it is queried once rather than per tab, and only
+  // once one of those tabs is actually open.
+  useEffect(() => {
+    if (tab !== "trends" && tab !== "experiments") return;
+    let live = true;
+    setReportError(null);
+    api.getExperiments(surface === "all" ? undefined : surface).then(
+      (r) => live && setReport(r),
+      (e: Error) => live && setReportError(e.message),
+    );
+    return () => {
+      live = false;
+    };
+  }, [tab, surface, reportReloads]);
 
   return (
     <>
@@ -164,7 +192,21 @@ export default function Dashboard({
           onPickDate={setDate}
         />
       )}
-      {tab === "trends" && <TrendsPanel data={analytics} error={analyticsError} surface={surface} />}
+      {tab === "trends" && (
+        <TrendsPanel
+          data={analytics}
+          error={analyticsError}
+          surface={surface}
+          experiments={report?.experiments ?? []}
+        />
+      )}
+      {tab === "experiments" && (
+        <ExperimentsPanel
+          report={report}
+          error={reportError}
+          onChanged={() => setReportReloads((n) => n + 1)}
+        />
+      )}
       {tab === "activity" && <ActivityPanel surface={surface} />}
     </>
   );
