@@ -772,6 +772,7 @@ app.get("/analytics", async (c) => {
     trackingStartRes,
     countryRes,
     solveTimeRes,
+    visitRes,
   ] = await c.env.DB.batch([
       c.env.DB.prepare(allTimeTotalsSql),
       c.env.DB.prepare(distSql("")).bind(MAX_GUESSES),
@@ -863,6 +864,13 @@ app.get("/analytics", async (c) => {
            FROM analytics_rounds
            WHERE solved = 1 AND completed_at IS NOT NULL AND started_at IS NOT NULL${surfAnd}
            GROUP BY minutes`,
+      ),
+      // The funnel's top (migrations/0020). visit_day is already an ET day —
+      // the beacon handler stamps it — so unlike everything else here it needs
+      // no UTC-to-ET fold. One row per device per day, so a plain COUNT is the
+      // visitor count.
+      c.env.DB.prepare(
+        `SELECT visit_day, COUNT(*) AS n FROM analytics_visits${surfWhere} GROUP BY visit_day`,
       ),
     ]);
 
@@ -982,6 +990,18 @@ app.get("/analytics", async (c) => {
     active.add(gameToday(instant));
   }
 
+  // Visits by ET day. The first day with a row marks when the beacon switched
+  // on; every day before it is *unmeasured*, and reporting those as 0 visitors
+  // would claim a 100% bounce rate for the whole of the game's history.
+  const visitsByDay = new Map<string, number>();
+  for (const r of visitRes.results as { visit_day: string; n: number }[]) {
+    visitsByDay.set(r.visit_day, r.n);
+  }
+  const visitsSince = [...visitsByDay.keys()].sort()[0] ?? null;
+  const visitedOn = (date: string): number | null =>
+    visitsSince !== null && date >= visitsSince ? (visitsByDay.get(date) ?? 0) : null;
+  const visitsAllTime = [...visitsByDay.values()].reduce((a, b) => a + b, 0);
+
   const summary: AnalyticsSummary = {
     totals: allTime.totals,
     startedByKind: allTime.startedByKind,
@@ -997,6 +1017,7 @@ app.get("/analytics", async (c) => {
       lastStartedAt: service.lastStartedAt,
       pace,
       open: service.open,
+      visited: visitedOn(day),
     },
     today,
     activeDates: [...active].sort(),
@@ -1018,6 +1039,7 @@ app.get("/analytics", async (c) => {
     // `hourly` array; the weekday axis is the cycle that array couldn't show.
     rhythm: foldRhythm(hourlyRes.results as RhythmRow[], today),
     solveTimes: foldSolveTimes(solveTimeRes.results as SolveTimeRow[]),
+    visits: { visited: visitsSince === null ? null : visitsAllTime, since: visitsSince },
   };
   return c.json(summary);
 });
@@ -1100,9 +1122,9 @@ function parseExperiment(body: unknown): { input: ExperimentInput } | { error: s
 }
 
 app.get("/experiments", async (c) => {
-  const { and: surfAnd } = surfaceClause(c);
+  const { and: surfAnd, where: surfWhere } = surfaceClause(c);
   const today = serverToday();
-  const [rowsRes, hourRes, playerRes, trackingRes] = await c.env.DB.batch([
+  const [rowsRes, hourRes, playerRes, trackingRes, visitRes] = await c.env.DB.batch([
     c.env.DB.prepare(
       `SELECT id, label, hypothesis, metric, shipped_on, created_at
          FROM experiments ORDER BY shipped_on DESC, id DESC`,
@@ -1128,11 +1150,16 @@ app.get("/experiments", async (c) => {
       `SELECT MIN(started_at) AS first_tracked FROM analytics_rounds
          WHERE player_id IS NOT NULL AND started_at IS NOT NULL`,
     ),
+    // visit_day is already an ET day, stamped by the beacon handler.
+    c.env.DB.prepare(`SELECT visit_day, COUNT(*) AS n FROM analytics_visits${surfWhere} GROUP BY visit_day`),
   ]);
 
   const activity = foldPlayerActivity(playerRes.results as PlayerBucketRow[]);
   const firstTracked = (trackingRes.results[0] as { first_tracked: string | null } | undefined)?.first_tracked;
   const trackingStart = firstTracked ? etDayOfUtcStamp(firstTracked) : null;
+  const visitsByDay = new Map<string, number>();
+  for (const r of visitRes.results as { visit_day: string; n: number }[]) visitsByDay.set(r.visit_day, r.n);
+  const visitsSince = [...visitsByDay.keys()].sort()[0] ?? null;
 
   const experiments: Experiment[] = (
     rowsRes.results as {
@@ -1154,7 +1181,14 @@ app.get("/experiments", async (c) => {
 
   const report: ExperimentReport = {
     experiments,
-    series: foldExperimentSeries(hourRes.results as ExperimentHourRow[], today, activity, trackingStart),
+    series: foldExperimentSeries(
+      hourRes.results as ExperimentHourRow[],
+      today,
+      activity,
+      trackingStart,
+      visitsByDay,
+      visitsSince,
+    ),
   };
   return c.json(report);
 });

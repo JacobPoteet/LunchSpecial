@@ -11,6 +11,7 @@ const day = (date: string, over: Partial<ExperimentDay> = {}): ExperimentDay => 
   shared: 0,
   players: 0,
   newPlayers: 0,
+  visitors: 0,
   ...over,
 });
 
@@ -156,6 +157,72 @@ describe("compare", () => {
       const c = compare("winRate", series, "2026-08-08", 7, today);
       expect(c.before.value).toBeNull();
       expect(c.verdict).toBe("inconclusive");
+    });
+
+    it("pools play rate over visitors", () => {
+      const before = run("2026-08-01", 7, () => ({ visitors: 10, players: 4 }));
+      const after = run("2026-08-08", 7, () => ({ visitors: 10, players: 9 }));
+      const c = compare("playRate", [...before, ...after], "2026-08-08", 7, today);
+      expect(c.before.value).toBe(40);
+      expect(c.after.value).toBe(90);
+      expect(c.verdict).toBe("moved-up");
+    });
+
+    // A visit is one device per day; `started` counts rounds. One player doing
+    // the Special and three Leftovers is one arrival and four starts, so
+    // measuring this against rounds would report a 400% play rate.
+    it("counts devices on both sides, never rounds against devices", () => {
+      const series = run("2026-08-01", 14, () => ({ visitors: 5, players: 5, started: 20 }));
+      const c = compare("playRate", series, "2026-08-08", 7, today);
+      expect(c.before.value).toBe(100);
+      expect(c.after.value).toBe(100);
+    });
+
+    it("skips a day that counted arrivals but not players", () => {
+      const before = [
+        ...run("2026-08-01", 3, () => ({ visitors: 8, players: null })),
+        ...run("2026-08-04", 4, () => ({ visitors: 10, players: 5 })),
+      ];
+      const after = run("2026-08-08", 7, () => ({ visitors: 10, players: 5 }));
+      const c = compare("playRate", [...before, ...after], "2026-08-08", 7, today);
+      expect(c.before.n).toBe(40);
+      expect(c.before.value).toBe(50);
+    });
+
+    // The beacon shipped mid-life, so an experiment can straddle its start.
+    // Those days have a numerator but no denominator, and folding them in would
+    // divide real starts by arrivals that were never counted.
+    it("skips days whose visitors were never counted rather than dividing by them", () => {
+      const before = [
+        ...run("2026-08-01", 4, () => ({ visitors: null, players: 8 })),
+        ...run("2026-08-05", 3, () => ({ visitors: 10, players: 5 })),
+      ];
+      const after = run("2026-08-08", 7, () => ({ visitors: 10, players: 5 }));
+      const c = compare("playRate", [...before, ...after], "2026-08-08", 7, today);
+      // 15 of 30 from the three measured days only — not 39 of 30.
+      expect(c.before.n).toBe(30);
+      expect(c.before.value).toBe(50);
+    });
+
+    it("is inconclusive when no day either side counted visitors", () => {
+      const series = run("2026-08-01", 14, () => ({ visitors: null, players: 5 }));
+      const c = compare("playRate", series, "2026-08-08", 7, today);
+      expect(c.before.value).toBeNull();
+      expect(c.verdict).toBe("inconclusive");
+    });
+  });
+
+  describe("visitor counts", () => {
+    it("drops unmeasured days instead of averaging them as zero", () => {
+      const series = [
+        ...run("2026-08-01", 4, () => ({ visitors: null })),
+        ...run("2026-08-05", 3, () => ({ visitors: 30 })),
+        ...run("2026-08-08", 7, () => ({ visitors: 30 })),
+      ];
+      const c = compare("visitors", series, "2026-08-08", 7, today);
+      expect(c.before.days).toBe(3);
+      expect(c.before.value).toBe(30);
+      expect(c.verdict).toBe("no-change");
     });
   });
 

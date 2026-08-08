@@ -410,17 +410,52 @@ export const DNF_NOTE =
  * / Chef's Choice on every other chart, and borrowing them here — even permuted
  * — makes a completion rate look like a game mode.
  */
-export function FinishRate({ totals, open }: { totals: DayServiceTotals; open: OpenRounds }) {
+export function FinishRate({
+  totals,
+  open,
+  visited,
+  playedBy,
+}: {
+  totals: DayServiceTotals;
+  open: OpenRounds;
+  /** Devices that opened a board. Null before the visit beacon shipped — the row is omitted. */
+  visited?: number | null;
+  /**
+   * Devices that went on to make a guess. **Devices, not rounds** — see below.
+   * Null when player tracking has nothing for the day.
+   */
+  playedBy?: number | null;
+}) {
   const rest = [
     open.inProgress > 0 ? `${open.inProgress} still playing` : null,
     open.abandoned > 0 ? `${open.abandoned} walked out` : null,
   ].filter(Boolean) as string[];
+  // The top row counts **people**, the rows under it count **games**, and that
+  // switch is not sloppiness — it's the only way the arithmetic is true. A visit
+  // is one device per day, while `started` counts rounds, so a player who does
+  // the Special and three Leftovers is one arrival and four starts: dividing
+  // those would report a 400% play rate. So the funnel's first question is "of
+  // the people who showed up, how many played", and only then does it switch to
+  // games. Both rows name their own unit so the change is legible.
+  const showTop = visited !== null && visited !== undefined && playedBy !== null && playedBy !== undefined;
   const rows = [
+    ...(showTop
+      ? [
+          {
+            key: "played",
+            n: playedBy,
+            of: visited,
+            label: "people played",
+            ofLabel: "opened the game",
+            rest: visited > playedBy ? `${visited - playedBy} looked and left` : null,
+          },
+        ]
+      : []),
     {
       key: "done",
       n: totals.completed,
       of: totals.started,
-      label: "finished",
+      label: "games finished",
       ofLabel: "started",
       rest: rest.length > 0 ? rest.join(" · ") : null,
     },
@@ -431,9 +466,16 @@ export function FinishRate({ totals, open }: { totals: DayServiceTotals; open: O
       {rows.map((r) => (
         <div className="finish__row" key={r.key}>
           <div className="finish__track">
+            {/* The *bar* is clamped, the reported percentage beside it is not.
+                A ratio here can legitimately exceed 100%: the beacons are
+                independent, so a round begun at 11:58pm files its start on the
+                next ET day from the arrival that preceded it, and a blocked
+                visit beacon leaves a player who plainly played. Clamping the
+                number would hide that; clamping only the fill keeps the row
+                readable while the figure stays honest. */}
             <span
               className={`finish__fill finish__fill--${r.key}`}
-              style={{ width: `${pct(r.n, r.of)}%` }}
+              style={{ width: `${Math.min(100, pct(r.n, r.of))}%` }}
             />
           </div>
           <p className="finish__legend">

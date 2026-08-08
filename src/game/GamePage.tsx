@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   beaconComplete,
+  beaconSeated,
   beaconShare,
   beaconStart,
   fetchAnnouncements,
@@ -31,6 +32,7 @@ import {
   loadRound,
   loadStats,
   markHowToSeen,
+  markSeated,
   recordResult,
   rememberAnnouncementSeen,
   saveArchiveRound,
@@ -711,6 +713,20 @@ export default function GamePage() {
     persist(started);
     // Intentionally keyed on round load — reads the round as it stands when the puzzle resolves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [daily, tracked]);
+
+  // The funnel's top: this device opened a real, playable board. Unlike the
+  // "start" beacon above, merely arriving *is* the event here — that's the whole
+  // point, since everyone who loads and never guesses was otherwise invisible.
+  //
+  // Fires once per browser session per ET day (markSeated), and the server
+  // deduplicates by (day, device) on top of that, so mode switches — which
+  // navigate by assigning a URL and remount this whole page — cost nothing. The
+  // test modes are excluded by the same `tracked` flag as every other beacon.
+  useEffect(() => {
+    if (!tracked || !daily) return;
+    if (!markSeated(localToday())) return;
+    beaconSeated({ playerId: getPlayerId(), surface: SURFACE });
   }, [daily, tracked]);
 
   // The ticket waits out the whole guess sequence — row drop, tile flips, chip

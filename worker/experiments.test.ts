@@ -104,6 +104,39 @@ describe("foldExperimentSeries", () => {
       expect(series[1]).toMatchObject({ players: 2, newPlayers: 1 });
     });
 
+    it("are null before the visit beacon's own start, which is later than tracking's", () => {
+      // The two instruments switched on at different times, so a day can have a
+      // real player count and still have no arrival count.
+      const activity = activityOf([["p1", "2026-08-01 16"]]);
+      const series = foldExperimentSeries(
+        [hour("2026-08-01 16"), hour("2026-08-03 16")],
+        "2026-08-03",
+        activity,
+        "2026-08-01",
+        new Map([["2026-08-03", 12]]),
+        "2026-08-03",
+      );
+      expect(series[0]).toMatchObject({ date: "2026-08-01", players: 1, visitors: null });
+      expect(series[2]).toMatchObject({ date: "2026-08-03", visitors: 12 });
+    });
+
+    it("count a measured day with no arrivals as a real zero", () => {
+      const series = foldExperimentSeries(
+        [hour("2026-08-01 16"), hour("2026-08-03 16")],
+        "2026-08-03",
+        noPlayers,
+        null,
+        new Map([["2026-08-01", 4]]),
+        "2026-08-01",
+      );
+      expect(series.map((d) => d.visitors)).toEqual([4, 0, 0]);
+    });
+
+    it("are null everywhere when the visit beacon has recorded nothing", () => {
+      const series = foldExperimentSeries([hour("2026-08-01 16")], "2026-08-01", noPlayers, null);
+      expect(series[0].visitors).toBeNull();
+    });
+
     it("are null before the tracking start and real zeros after it", () => {
       const activity = activityOf([["p1", "2026-08-03 16"]]);
       const series = foldExperimentSeries(

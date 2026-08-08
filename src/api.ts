@@ -130,6 +130,18 @@ function beacon(path: string, body: unknown): void {
   }
 }
 
+/**
+ * The device opened a real, playable round — the top of the funnel.
+ *
+ * Fired on the board being ready rather than on the first guess, because "games
+ * started" means the first guess and everyone who loads and never plays was
+ * otherwise invisible. Deliberately carries no date: a visit belongs to the ET
+ * day it happened on, which the server stamps.
+ */
+export function beaconSeated(b: { playerId: string; surface: Surface }): void {
+  beacon("/api/rounds/seated", b);
+}
+
 export function beaconStart(b: {
   roundId: string;
   puzzleNumber: number;

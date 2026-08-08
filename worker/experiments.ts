@@ -54,6 +54,10 @@ export function foldExperimentSeries(
   today: string,
   activity: PlayerActivity,
   trackingStart: string | null,
+  /** Devices that opened a board, per ET day — already ET, so no folding needed. */
+  visitsByDay: Map<string, number> = new Map(),
+  /** The ET day the visit beacon switched on; days before it are unmeasured. */
+  visitsSince: string | null = null,
 ): ExperimentDay[] {
   type Totals = Pick<ExperimentDay, "started" | "completed" | "solved" | "shared">;
   const byDay = new Map<string, Totals>();
@@ -86,11 +90,16 @@ export function foldExperimentSeries(
     // existed is not a measurement at all.
     const tracked = trackingStart !== null && d >= trackingStart;
     const split = activity.byDay.get(d);
+    // Same rule again for arrivals, against their own start date: the visit
+    // beacon shipped later than player tracking, so a day can have real player
+    // counts and still have no arrival count.
+    const seated = visitsSince !== null && d >= visitsSince;
     series.push({
       date: d,
       ...totals,
       players: tracked ? (split ? split.new + split.returning : 0) : null,
       newPlayers: tracked ? (split?.new ?? 0) : null,
+      visitors: seated ? (visitsByDay.get(d) ?? 0) : null,
     });
   }
   return series;

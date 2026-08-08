@@ -131,15 +131,31 @@ function AtAGlance({
             {isToday ? "Today" : day.date}
             {day.dishName && ` · ${day.dishName}`}
           </h3>
+          {/* Nobody *played* is not the same as nothing happened. Since the visit
+              beacon shipped, a day with arrivals and no games is the loudest
+              signal on the dashboard — everyone who showed up bounced — so it
+              gets said rather than collapsed into "no plays recorded". */}
           {startedAny === 0 ? (
             <p className="dash-note" style={{ marginBottom: 16 }}>
-              {isToday
-                ? "No plays recorded for today yet — check back once the diner fills up."
-                : `Nobody played on ${day.date}.`}
+              {day.visited
+                ? `${day.visited} device${day.visited === 1 ? "" : "s"} opened the game ${
+                    isToday ? "today" : `on ${day.date}`
+                  } and nobody made a guess.`
+                : isToday
+                  ? "No plays recorded for today yet — check back once the diner fills up."
+                  : `Nobody played on ${day.date}.`}
             </p>
           ) : (
             <>
               <div className="metric-row">
+                {/* The funnel's top, ahead of games started because it's the
+                    wider number — omitted entirely on days it wasn't measured. */}
+                {day.visited !== null && (
+                  <div className="metric" title="Devices that opened a playable board this day. One per device, however many times they came back to the tab.">
+                    <span className="metric__num">{day.visited}</span>
+                    <span className="metric__label">Opened the game</span>
+                  </div>
+                )}
                 <div className="metric metric--primary">
                   <span className="metric__num">{startedAny}</span>
                   <span className="metric__label">Games started</span>
@@ -185,8 +201,21 @@ function AtAGlance({
               )}
 
               <div className="analytics-block">
-                <h3 className="analytics-sub">Finishing</h3>
-                <FinishRate totals={day.allKinds} open={day.open} />
+                <h3 className="analytics-sub">How far they got</h3>
+                <FinishRate
+                  totals={day.allKinds}
+                  open={day.open}
+                  visited={day.visited}
+                  // Devices, to match the arrivals they're divided by — see FinishRate.
+                  playedBy={day.players === null ? null : day.players.new + day.players.returning}
+                />
+                {day.visited === null && (
+                  <p className="dash-note">
+                    Arrivals weren't counted on this day
+                    {analytics.visits.since && ` — the visit beacon started ${shortDate(analytics.visits.since)}`}
+                    , so the funnel starts at the first guess here.
+                  </p>
+                )}
               </div>
 
               <div className="analytics-block">

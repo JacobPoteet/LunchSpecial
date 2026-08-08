@@ -539,6 +539,26 @@ export interface SolveTimes {
 }
 
 /**
+ * Devices that opened a playable board, and what became of them — the top of the
+ * funnel (migrations/0020).
+ *
+ * "Started" means the first submitted guess, so before the visit beacon existed
+ * the widest number on the dashboard was games started and there was nothing
+ * above it. A change that doubled interest while halving conversion looked
+ * exactly like no change at all.
+ *
+ * `visited` is **null for any day before the beacon shipped** — those days
+ * recorded rounds but nobody was counting arrivals, and reporting them as 0 would
+ * claim a 100% bounce rate for the whole of the game's history.
+ */
+export interface VisitCounts {
+  /** Distinct devices that opened a board, or null when it wasn't measured. */
+  visited: number | null;
+  /** The ET day the visit beacon first recorded anything, or null if never. */
+  since: string | null;
+}
+
+/**
  * Rounds that started and never reported finishing, split by whether they still
  * could.
  *
@@ -621,7 +641,9 @@ export interface PlayRhythm {
  * traffic wobbled instead of by how many people it was measured on.
  */
 export const EXPERIMENT_METRICS = [
+  "visitors",
   "started",
+  "playRate",
   "players",
   "newPlayers",
   "finishRate",
@@ -631,7 +653,7 @@ export const EXPERIMENT_METRICS = [
 export type ExperimentMetric = (typeof EXPERIMENT_METRICS)[number];
 
 /** Which metrics are proportions of a denominator rather than a daily quantity. */
-export const RATE_METRICS: readonly ExperimentMetric[] = ["finishRate", "winRate", "shareRate"];
+export const RATE_METRICS: readonly ExperimentMetric[] = ["playRate", "finishRate", "winRate", "shareRate"];
 
 export const EXPERIMENT_LIMITS = { label: 80, hypothesis: 500 } as const;
 
@@ -675,6 +697,13 @@ export interface ExperimentDay {
   players: number | null;
   /** Devices whose first-ever play was that day, or null as above. */
   newPlayers: number | null;
+  /**
+   * Devices that opened a board that day — the funnel's top, and the denominator
+   * of `playRate`. Null before the visit beacon shipped (migrations/0020), which
+   * is why an experiment from before then simply can't be read on those metrics
+   * rather than being read as a catastrophe.
+   */
+  visitors: number | null;
 }
 
 /** Everything the Experiments tab needs, in one response. */
@@ -930,6 +959,11 @@ export interface AnalyticsSummary extends AnalyticsPeriod {
      * gap as walkouts made every live afternoon look like a disaster.
      */
     open: OpenRounds;
+    /**
+     * Devices that opened a board this day. Null before the visit beacon shipped
+     * — see {@link VisitCounts}; "not counted" is not a 100% bounce rate.
+     */
+    visited: number | null;
   };
   /** The server's current ET day. `day.date` equals it unless a past day was asked for. */
   today: string;
@@ -976,4 +1010,9 @@ export interface AnalyticsSummary extends AnalyticsPeriod {
    * the difficulty signal guess count can't give. See {@link SolveTimes}.
    */
   solveTimes: SolveTimes;
+  /**
+   * All-time devices that opened a board, and when that started being counted.
+   * The funnel's top — see {@link VisitCounts}.
+   */
+  visits: VisitCounts;
 }

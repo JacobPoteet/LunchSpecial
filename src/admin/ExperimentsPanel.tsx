@@ -6,7 +6,7 @@ import type {
   ExperimentMetric,
   ExperimentReport,
 } from "../../shared/types";
-import { EXPERIMENT_LIMITS, EXPERIMENT_METRICS } from "../../shared/types";
+import { EXPERIMENT_LIMITS, EXPERIMENT_METRICS, RATE_METRICS } from "../../shared/types";
 import {
   compare,
   DEFAULT_WINDOW_DAYS,
@@ -36,7 +36,9 @@ import { SAMPLE_NOTE, shortDate } from "./analyticsUi";
  */
 
 export const METRIC_META: Record<ExperimentMetric, { label: string; hint: string; unit: string }> = {
+  visitors: { label: "Visitors", hint: "Devices that opened a board per day", unit: "a day" },
   started: { label: "Games started", hint: "Rounds begun per day, every mode", unit: "a day" },
+  playRate: { label: "Play rate", hint: "Share of the devices that opened a board which then played", unit: "" },
   players: { label: "Players", hint: "Distinct devices playing per day", unit: "a day" },
   newPlayers: { label: "New players", hint: "Devices whose first-ever play was that day", unit: "a day" },
   finishRate: { label: "Finish rate", hint: "Share of started rounds that reached game over", unit: "" },
@@ -125,10 +127,17 @@ function BeforeAfter({
     switch (metric) {
       case "started":
         return d.started;
+      case "visitors":
+        return d.visitors;
       case "players":
         return d.players;
       case "newPlayers":
         return d.newPlayers;
+      case "playRate":
+        // Devices over devices — see ratioOf() in shared/experiment.ts.
+        return d.visitors === null || d.visitors === 0 || d.players === null
+          ? null
+          : (d.players / d.visitors) * 100;
       case "finishRate":
         return d.started === 0 ? null : (d.completed / d.started) * 100;
       case "winRate":
@@ -154,8 +163,8 @@ function BeforeAfter({
           <div
             className={`ba__col${after ? " ba__col--after" : ""}${d.date === shippedOn ? " ba__col--ship" : ""}`}
             key={d.date}
-            title={`${d.date} · ${v === null ? "not measured" : v.toFixed(metric.endsWith("Rate") ? 0 : 0)}${
-              metric.endsWith("Rate") ? "%" : ""
+            title={`${d.date} · ${v === null ? "not measured" : Math.round(v)}${
+              RATE_METRICS.includes(metric) ? "%" : ""
             }${after ? " (after)" : " (before)"}`}
           >
             <span

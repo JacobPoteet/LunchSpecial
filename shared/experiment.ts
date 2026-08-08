@@ -77,12 +77,31 @@ function daysBetween(a: string, b: string): number {
   return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
 }
 
-/** The numerator/denominator pair a rate metric pools over a period. */
+/**
+ * The numerator/denominator pair a rate metric pools over a period.
+ *
+ * `playRate` is the odd one out twice over.
+ *
+ * Its denominator can be **unmeasured** rather than merely zero — days before the
+ * visit beacon shipped have no arrival count at all — so those days contribute to
+ * neither side, and an experiment straddling the beacon's start reads only the
+ * part that was measured.
+ *
+ * And it is the one rate counted in **devices on both sides**, because a visit is
+ * one device per day while `started` counts rounds: a player who does the Special
+ * and three Leftovers is one arrival and four starts, and dividing those would
+ * report a 400% play rate. `players` is the matching device count, so a day
+ * missing *either* number is skipped.
+ */
 function ratioOf(metric: ExperimentMetric, days: ExperimentDay[]): { hits: number; of: number } {
   let hits = 0;
   let of = 0;
   for (const d of days) {
-    if (metric === "finishRate") {
+    if (metric === "playRate") {
+      if (d.visitors === null || d.players === null) continue;
+      hits += d.players;
+      of += d.visitors;
+    } else if (metric === "finishRate") {
       hits += d.completed;
       of += d.started;
     } else if (metric === "winRate") {
@@ -99,6 +118,7 @@ function ratioOf(metric: ExperimentMetric, days: ExperimentDay[]): { hits: numbe
 /** One day's value for a count metric, or null when that day wasn't measured. */
 function countOn(metric: ExperimentMetric, day: ExperimentDay): number | null {
   if (metric === "started") return day.started;
+  if (metric === "visitors") return day.visitors;
   if (metric === "players") return day.players;
   return day.newPlayers;
 }

@@ -2213,3 +2213,11 @@
 
 /* On the spark there's no room for a rule, so the column marks its own base. */
 .spark__col--ship { border-bottom: 3px solid var(--cherry); }
+
+/* ---- The funnel's top ----------------------------------------------------- */
+
+/* "Played" joins the event palette as its first step: start = teal, complete =
+   cherry, share = mustard, dashboard-wide. It's the same teal the growth curve
+   and the returning-player line use for "activity", which is what an arrival is. */
+.finish__fill--played { background: var(--teal); }
+.finish__dot--played { background: var(--teal); }
