@@ -125,7 +125,7 @@ The game fires anonymous, fire-and-forget beacons to `/api/rounds/*` — one row
 
 ## Admin panel (`/admin`)
 
-Password login (Worker secret + HMAC-signed session cookie, 7 days). Four tabs plus a test-play escape hatch:
+Password login (Worker secret + HMAC-signed session cookie, 7 days). `npm run admin` starts the dev server and opens it straight away, the way `npm run play` does for a round. Four tabs plus a test-play escape hatch:
 
 - **Dashboard** — today's Special and the countdown to the next one, schedule health (warns under 7 days ahead), content warnings (dishes missing clues/ingredients), and the engagement panel described above
 - **Dishes** — searchable/filterable table; per-dish editor with canonical-ingredient tag input, 5 ordered clues, and a **live player preview**

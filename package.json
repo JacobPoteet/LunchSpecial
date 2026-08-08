@@ -8,6 +8,7 @@
     "dev": "vite",
     "play": "vite --open /play",
     "ramen": "vite --open /play?special=ramen",
+    "admin": "vite --open /admin",
     "tunnel": "cloudflared tunnel --url http://localhost:5173",
     "build": "tsc -b && vite build",
     "preview": "npm run build && vite preview",
