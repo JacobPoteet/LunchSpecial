@@ -8,13 +8,40 @@ import type {
   AnalyticsPace,
   AnalyticsPeriod,
   DayServiceTotals,
+  OpenRounds,
   PlayerSplit,
   RoundKind,
+  SolveTimes,
   StartedByKind,
   Surface,
 } from "../../shared/types";
+import { DNF_GRACE_MINUTES } from "../../shared/types";
+import { rangeLabel, rate, SMALL_SAMPLE_MIN } from "../../shared/sample";
 
 export const pct = (n: number, of: number) => (of === 0 ? 0 : Math.round((n / of) * 100));
+
+/** The one wording for why a percentage is carrying a range. */
+export const SAMPLE_NOTE =
+  `Under ${SMALL_SAMPLE_MIN} rounds the percentage moves several points on one player, so the range ` +
+  `it plausibly sits in (95% confidence) is shown beside it.`;
+
+/**
+ * The honest range around a rate — but only when the sample is thin enough that
+ * the point estimate can't carry itself. See shared/sample.ts.
+ *
+ * Rendered selectively on purpose. An interval on every number on the page
+ * teaches you to stop reading them; an interval on exactly the numbers that need
+ * one is a signal about which numbers those are.
+ */
+export function RangeHint({ n, of }: { n: number; of: number }) {
+  const label = rangeLabel(rate(n, of));
+  if (label === null) return null;
+  return (
+    <span className="rate-range" title={SAMPLE_NOTE}>
+      {label}
+    </span>
+  );
+}
 
 /** How long ago an instant was, in the roughest unit that still reads right. */
 export function ago(atMs: number, nowMs: number): string {
@@ -91,8 +118,17 @@ export function avgGuesses(dist: number[]): number | null {
  *
  * More guesses = the puzzle was harder, which is the read worth acting on: it's
  * the signal for whether the clue ladder is landing.
+ *
+ * Withheld under {@link DIFFICULTY_MIN_SOLVES}. One player having a bad morning
+ * moves a two-solve average by a whole guess, and "▲ 0.90 more guesses than
+ * average" is a very confident way to say nothing — the same rule `paceNote`
+ * follows for a baseline under one game.
  */
+export const DIFFICULTY_MIN_SOLVES = 5;
+
 export function difficultyNote(dayDist: number[], allTimeDist: number[], isToday: boolean): string | null {
+  const daySolves = dayDist.reduce((a, b) => a + b, 0);
+  if (daySolves < DIFFICULTY_MIN_SOLVES) return null;
   const dayAvg = avgGuesses(dayDist);
   const allTimeAvg = avgGuesses(allTimeDist);
   if (dayAvg === null || allTimeAvg === null) return null;
@@ -185,14 +221,56 @@ export function RatesRow({ totals }: { totals: AnalyticsPeriod["totals"] }) {
       <div className="metric">
         <span className="metric__num">{pct(totals.completed, totals.started)}%</span>
         <span className="metric__label">Completion</span>
+        <RangeHint n={totals.completed} of={totals.started} />
       </div>
       <div className="metric">
         <span className="metric__num">{pct(totals.solved, totals.completed)}%</span>
         <span className="metric__label">Win rate</span>
+        <RangeHint n={totals.solved} of={totals.completed} />
       </div>
       <div className="metric">
         <span className="metric__num">{totals.shared}</span>
         <span className="metric__label">Share count</span>
+      </div>
+    </div>
+  );
+}
+
+/** Minutes as a duration a person would say out loud: "3m", "1h 20m". */
+export function minutesLabel(minutes: number): string {
+  if (minutes < 1) return "under a minute";
+  if (minutes < 60) return `${minutes}m`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
+
+/**
+ * How long a solved round takes — the difficulty signal guess count can't give.
+ *
+ * Median and p90, never a mean: a round is a browser tab, and the handful opened
+ * at breakfast and finished at lunch are real rows that would drag an average by
+ * minutes. The p90 is the honest way to show that tail without letting it set the
+ * headline — "half solve inside 3m, the slow tenth take over 20m" is two facts,
+ * where a mean of 14m would be neither.
+ */
+export function SolveTimeRead({ times }: { times: SolveTimes }) {
+  if (times.medianMinutes === null) {
+    return <p className="dash-note">No solved round has been timed yet.</p>;
+  }
+  return (
+    <div className="metric-row" style={{ marginBottom: 0 }}>
+      <div className="metric">
+        <span className="metric__num">{minutesLabel(times.medianMinutes)}</span>
+        <span className="metric__label">Typical solve</span>
+      </div>
+      <div className="metric" title="Nine in ten solved rounds finish inside this. The slow tail, without letting it set the headline.">
+        <span className="metric__num">{times.p90Minutes === null ? "—" : minutesLabel(times.p90Minutes)}</span>
+        <span className="metric__label">Slowest tenth</span>
+      </div>
+      <div className="metric">
+        <span className="metric__num">{times.count}</span>
+        <span className="metric__label">Rounds timed</span>
       </div>
     </div>
   );
@@ -302,9 +380,13 @@ export function HourlyByKind({ hours, nowHour }: { hours: AnalyticsHour[]; nowHo
   );
 }
 
-/** Did-not-finish: started but never reached game over. Named, so it can't be misread. */
+/**
+ * The one wording for a round that started and never reported finishing — and
+ * for why that isn't one number.
+ */
 export const DNF_NOTE =
-  "DNF — did not finish: started but never reached game over. Still playing, or walked away.";
+  `Started but never reached game over. A round begun in the last ${DNF_GRACE_MINUTES / 60} hours is ` +
+  `counted as still playing; older than that and nobody is coming back to it.`;
 
 /**
  * How far a day's games got: what share were finished, and what share of *those*
@@ -315,14 +397,24 @@ export const DNF_NOTE =
  * and every later bar is read against a baseline that isn't drawn. Here each
  * track is the denominator and the fill is the answer, so both rows do work.
  *
+ * The unfinished remainder is **split, not lumped**. This used to report the
+ * whole gap as "DNF" and clamp it at zero, which mid-afternoon reads a full diner
+ * as a mass walkout: on a live day most of that gap is people who are still
+ * playing. Start and complete are independent beacons, so the split can't come
+ * from the rows themselves — it comes from how old each start cohort is (see
+ * foldDayService). Both halves are named; neither is inferred silently.
+ *
  * Colours are the Activity feed's **event** palette (finish = cherry, share =
  * mustard) so one event means one colour dashboard-wide. The kind palette is
  * deliberately not reused: mustard/teal/cherry already mean Special / Leftovers
  * / Chef's Choice on every other chart, and borrowing them here — even permuted
  * — makes a completion rate look like a game mode.
  */
-export function FinishRate({ totals }: { totals: DayServiceTotals }) {
-  const dnf = Math.max(0, totals.started - totals.completed);
+export function FinishRate({ totals, open }: { totals: DayServiceTotals; open: OpenRounds }) {
+  const rest = [
+    open.inProgress > 0 ? `${open.inProgress} still playing` : null,
+    open.abandoned > 0 ? `${open.abandoned} walked out` : null,
+  ].filter(Boolean) as string[];
   const rows = [
     {
       key: "done",
@@ -330,9 +422,7 @@ export function FinishRate({ totals }: { totals: DayServiceTotals }) {
       of: totals.started,
       label: "finished",
       ofLabel: "started",
-      // The players who dropped, named rather than left as arithmetic — but
-      // trailing the finishers, which is the number worth watching.
-      rest: dnf > 0 ? `${dnf} DNF` : null,
+      rest: rest.length > 0 ? rest.join(" · ") : null,
     },
     { key: "shared", n: totals.shared, of: totals.completed, label: "shared", ofLabel: "finished", rest: null },
   ];
@@ -354,6 +444,7 @@ export function FinishRate({ totals }: { totals: DayServiceTotals }) {
             {r.of > 0 && (
               <span className="finish__of">
                 {pct(r.n, r.of)}% of {r.of} {r.ofLabel}
+                <RangeHint n={r.n} of={r.of} />
               </span>
             )}
             {r.rest && (

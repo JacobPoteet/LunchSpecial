@@ -34,9 +34,11 @@ import {
   TEMPERATURES,
 } from "../../shared/types";
 import { announcementStatus, parseAnnouncementInput } from "../announcements";
-import { foldDayService, foldPace, type DayHourRow, type PaceRow } from "../service";
+import { foldDayService, foldPace, foldSolveTimes, type DayHourRow, type PaceRow, type SolveTimeRow } from "../service";
 import { foldGrowth, type GrowthRow } from "../growth";
 import { foldCountries, type CountryRow } from "../countries";
+import { foldDishStats, type DishMetaRow, type DishStatRow } from "../dishstats";
+import { foldRhythm, type RhythmRow } from "../rhythm";
 import {
   createToken,
   passwordMatches,
@@ -56,7 +58,7 @@ import {
   type PlayerBucketRow,
 } from "../players";
 import { assembleMenuMix, type MenuDishRow, type MenuScheduleRow } from "../menu";
-import { gameHour, gameToday, msUntilGameMidnight } from "../../shared/time";
+import { gameToday, msUntilGameMidnight } from "../../shared/time";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -762,6 +764,7 @@ app.get("/analytics", async (c) => {
     playerRes,
     trackingStartRes,
     countryRes,
+    solveTimeRes,
   ] = await c.env.DB.batch([
       c.env.DB.prepare(allTimeTotalsSql),
       c.env.DB.prepare(distSql("")).bind(MAX_GUESSES),
@@ -842,6 +845,18 @@ app.get("/analytics", async (c) => {
            FROM analytics_rounds WHERE started_at IS NOT NULL${surfAnd}
            GROUP BY country, player_id`,
       ),
+      // How long a solved round took, in whole minutes (migrations/0011 gave
+      // completions their own timestamp; nothing has read it until now). Grouped
+      // rather than returned per row, and folded to a median/p90 in JS — SQLite
+      // has no percentile function, and a mean here would follow the one round
+      // somebody left open in a background tab all morning.
+      c.env.DB.prepare(
+        `SELECT CAST((julianday(completed_at) - julianday(started_at)) * 1440 AS INTEGER) AS minutes,
+           COUNT(*) AS n
+           FROM analytics_rounds
+           WHERE solved = 1 AND completed_at IS NOT NULL AND started_at IS NOT NULL${surfAnd}
+           GROUP BY minutes`,
+      ),
     ]);
 
   const emptyTotals = { started: 0, completed: 0, solved: 0, shared: 0, fails: 0 };
@@ -851,13 +866,22 @@ app.get("/analytics", async (c) => {
     startedByKind: StartedByKind,
     players: PlayerSplit | null,
   ): AnalyticsPeriod => {
-    const { fails, ...totals } =
-      (totalsResult.results[0] as AnalyticsPeriod["totals"] & { fails: number }) ?? emptyTotals;
+    const row = (totalsResult.results[0] as Record<string, number> | undefined) ?? emptyTotals;
+    // Named explicitly rather than rest-spread off the row: the all-time query
+    // also selects the per-kind `started_*` columns that `startedByKind` is built
+    // from, and a spread quietly shipped those inside `totals` — fields the type
+    // never declared and nothing read.
+    const totals: AnalyticsPeriod["totals"] = {
+      started: row.started ?? 0,
+      completed: row.completed ?? 0,
+      solved: row.solved ?? 0,
+      shared: row.shared ?? 0,
+    };
     const guessDistribution = Array.from({ length: MAX_GUESSES }, () => 0);
     for (const r of distResult.results as { guesses: number; n: number }[]) {
       guessDistribution[r.guesses - 1] = r.n;
     }
-    return { totals, startedByKind, guessDistribution, fails, players };
+    return { totals, startedByKind, guessDistribution, fails: row.fails ?? 0, players };
   };
 
   // New vs returning players — see worker/players.ts for the fold. `playersFor`
@@ -939,15 +963,15 @@ app.get("/analytics", async (c) => {
   const dayPeriod = toPeriod(dayTotalsRes, dayDistRes, dayByKind, playersFor(day));
   const dayDish = dayDishRes.results[0] as { name: string } | undefined;
 
-  // Fold each UTC hour-bucket ("YYYY-MM-DD HH", UTC) into its ET hour of day.
-  // The same all-time buckets also give the set of ET days that saw any play —
-  // the only days the admin's day picker offers.
-  const hourly = Array.from({ length: 24 }, () => 0);
+  // The all-time UTC hour buckets are the busiest row set here, and three
+  // separate reads come out of them without a second query: the weekly rhythm
+  // (weekday × ET hour, which subsumes the old flat 24-hour array), the growth
+  // curve below, and the set of ET days that saw any play — the only days the
+  // admin's day picker offers.
   const active = new Set<string>();
   for (const r of hourlyRes.results as { bucket: string; n: number }[]) {
     const instant = new Date(`${r.bucket.replace(" ", "T")}:30:00Z`);
     if (Number.isNaN(instant.getTime())) continue;
-    hourly[gameHour(instant)] += r.n;
     active.add(gameToday(instant));
   }
 
@@ -965,6 +989,7 @@ app.get("/analytics", async (c) => {
       hourly: service.hourly,
       lastStartedAt: service.lastStartedAt,
       pace,
+      open: service.open,
     },
     today,
     activeDates: [...active].sort(),
@@ -981,9 +1006,52 @@ app.get("/analytics", async (c) => {
     // Where the rounds came from (GitHub #92) — see worker/countries.ts for why
     // the device-per-country attribution has to happen outside SQL.
     countries: foldCountries(countryRes.results as CountryRow[]),
-    hourly,
+    // Weekday × hour, off the same all-time buckets as `growth` and `activeDates`
+    // — no extra query. Its `byHour` marginal is what used to be the bare
+    // `hourly` array; the weekday axis is the cycle that array couldn't show.
+    rhythm: foldRhythm(hourlyRes.results as RhythmRow[], today),
+    solveTimes: foldSolveTimes(solveTimeRes.results as SolveTimeRow[]),
   };
   return c.json(summary);
+});
+
+// How each dish actually played, as opposed to how often the kitchen served it
+// (that's /menu-mix). `analytics_rounds.dish_id` has been stamped on every round
+// since migrations/0012 and nothing aggregated it until now, so the catalogue and
+// the outcomes had no way to meet. Surface-filtered like the rest of the player
+// reads; the fold is pure — see worker/dishstats.ts.
+//
+// Named "/dish-report" rather than anything containing "analytics" or "stats" for
+// the same reason as "/recent-rounds": ad blockers match those paths by shape and
+// cancel the request in-browser, which surfaces as a bare NetworkError with
+// nothing in the Worker logs.
+app.get("/dish-report", async (c) => {
+  const { and: surfAnd } = surfaceClause(c);
+  const today = serverToday();
+  const [roundsRes, metaRes] = await c.env.DB.batch([
+    // Grouped by outcome as well as dish so one query covers win rate, the guess
+    // histogram, DNF and shares. Cardinality is bounded by dishes × kinds ×
+    // outcomes, which stays in the hundreds at any volume this game will see.
+    c.env.DB.prepare(
+      `SELECT dish_id, kind, completed, solved, shared, guesses, COUNT(*) AS n
+         FROM analytics_rounds WHERE started_at IS NOT NULL${surfAnd}
+         GROUP BY dish_id, kind, completed, solved, shared, guesses`,
+    ),
+    // Catalogue detail for naming the rows, plus how often each dish has actually
+    // been the Special — a dish's record reads differently when it's one outing
+    // than when it's three.
+    c.env.DB
+      .prepare(
+        `SELECT d.id, d.name, d.country, d.region, d.course, d.protein,
+           (SELECT COUNT(*) FROM schedule s WHERE s.dish_id = d.id AND s.date <= ?) AS times_served,
+           (SELECT MAX(s.date) FROM schedule s WHERE s.dish_id = d.id AND s.date <= ?) AS last_served
+           FROM dishes d`,
+      )
+      .bind(today, today),
+  ]);
+  return c.json(
+    foldDishStats(roundsRes.results as unknown as DishStatRow[], metaRes.results as unknown as DishMetaRow[]),
+  );
 });
 
 // Recent activity feed (GitHub #47): the aggregates above tell you *how much*

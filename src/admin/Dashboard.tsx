@@ -3,6 +3,7 @@ import type { AdminDashboard, AnalyticsSummary } from "../../shared/types";
 import * as api from "./api";
 import type { AdminView } from "./AdminApp";
 import ActivityPanel from "./ActivityPanel";
+import DishReportPanel from "./DishReportPanel";
 import MenuMixPanel from "./MenuMixPanel";
 import OverviewPanel from "./OverviewPanel";
 import PlayersPanel from "./PlayersPanel";
@@ -10,28 +11,34 @@ import TrendsPanel from "./TrendsPanel";
 import { SurfaceToggle, type SurfaceFilter } from "./analyticsUi";
 
 /**
- * The dashboard used to be one ~9-screen scroll. It's now five tabs, in the
- * order you'd actually work through them: what needs a decision, what the
- * kitchen is serving, what players did with it, how that's moving, and the raw
- * feed underneath.
+ * The dashboard used to be one ~9-screen scroll. It's now five tabs, each holding
+ * one *question* rather than one data source — which is the reorganisation the
+ * tabs got wrong the first time: Overview and Players both rendered the day
+ * slice, while Trends carried the audience charts (retention, country) that had
+ * nothing to do with time.
+ *
+ * Read left to right: what's happening right now, what we're serving and how it
+ * lands, who's playing, where it's all going, and the raw feed underneath.
  */
-export type DashboardTab = "overview" | "menu" | "players" | "trends" | "activity";
+export type DashboardTab = "today" | "menu" | "players" | "trends" | "activity";
 
 const TABS: { key: DashboardTab; label: string }[] = [
-  { key: "overview", label: "Overview" },
-  { key: "menu", label: "Menu mix" },
+  { key: "today", label: "Today" },
+  { key: "menu", label: "Menu" },
   { key: "players", label: "Players" },
   { key: "trends", label: "Trends" },
   { key: "activity", label: "Activity" },
 ];
 
-const DEFAULT_TAB: DashboardTab = "overview";
+const DEFAULT_TAB: DashboardTab = "today";
 
 /**
- * Menu mix reads the schedule × dishes catalogue, not player beacons, so it has
- * no surface to filter by — the toggle would be a lie there.
+ * Every tab now reads player beacons somewhere. Menu is the mixed case — its
+ * composition half is pure catalogue and ignores the filter, its performance half
+ * doesn't — which the panel says out loud rather than letting the toggle imply it
+ * applies to both.
  */
-const SURFACE_AWARE: DashboardTab[] = ["overview", "players", "trends", "activity"];
+const SURFACE_AWARE: DashboardTab[] = ["today", "menu", "players", "trends", "activity"];
 
 const QUERY_KEY = "tab";
 
@@ -126,7 +133,7 @@ export default function Dashboard({
         )}
       </div>
 
-      {tab === "overview" && (
+      {tab === "today" && (
         <OverviewPanel
           data={dash}
           error={dashError}
@@ -138,9 +145,16 @@ export default function Dashboard({
           onOpenTab={setTab}
         />
       )}
-      {/* Menu mix and Activity fetch their own endpoints — mounting them only
-          when their tab is open keeps the dashboard's first paint to two calls. */}
-      {tab === "menu" && <MenuMixPanel />}
+      {/* Menu and Activity fetch their own endpoints — mounting them only when
+          their tab is open keeps the dashboard's first paint to two calls.
+          Performance leads the mix: "how did it land" is the read you'd act on,
+          and the composition below is the context it came from. */}
+      {tab === "menu" && (
+        <>
+          <DishReportPanel surface={surface} />
+          <MenuMixPanel />
+        </>
+      )}
       {tab === "players" && (
         <PlayersPanel
           data={analytics}

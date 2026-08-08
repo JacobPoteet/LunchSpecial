@@ -1,30 +1,17 @@
-import type {
-  AnalyticsDay,
-  AnalyticsSummary,
-  CountryMix,
-  CountryUsage,
-  GameGrowth,
-  GrowthTrend,
-  PlayerRetention,
-  RetentionStep,
-} from "../../shared/types";
-import {
-  countryName,
-  KIND_META,
-  KindLegend,
-  noRoundsNote,
-  pct,
-  shortDate,
-  untrackedNote,
-  type SurfaceFilter,
-} from "./analyticsUi";
+import { Fragment } from "react";
+import type { AnalyticsSummary, GameGrowth, GrowthTrend, PlayRhythm, WeekdayPlay } from "../../shared/types";
+import { KIND_META, KindLegend, hourLabel, noRoundsNote, pct, shortDate, type SurfaceFilter } from "./analyticsUi";
 
 /**
- * Below this many players a rung's percentage is one person's mood, so it's
- * flagged rather than quoted flat. Not hidden: "how many of my three-timers came
- * back" is the whole question, and a blank row answers it worse than a caveat.
+ * Everything that moves over *time*, and nothing else.
+ *
+ * This tab used to also carry the repeat-visit ladder and the country pie, on the
+ * grounds that they're charts. They're now on Players, where the rest of the
+ * audience lives — a tab defined by "has an x-axis" isn't a question anybody
+ * asks. What's left is one question asked at four scales: the whole run (growth),
+ * the last month (the spark), the week (weekday profile), and the day (the
+ * heatmap's hour axis).
  */
-const RETENTION_MIN_COHORT = 10;
 
 /**
  * Inside ±15% of the all-time average pace, "gaining" and "stalling" are both
@@ -79,14 +66,16 @@ function growthNote(trend: GrowthTrend, since: string): string {
  *
  * All-time and every kind together, which is what makes it a growth chart rather
  * than a second copy of the 30-day spark below: growth is the thing a moving
- * window is least able to show, and splitting by mode would answer "what are
- * they playing" instead of "are more people playing".
+ * window is least able to show, and splitting by mode would answer "what are they
+ * playing" instead of "are more people playing".
  *
  * **Cumulative on purpose.** A per-day series is dominated by which day of the
  * week you're looking at; the running total absorbs that, so the shape is the
  * answer — steepening means the game is gaining, flattening means it's stalling.
  * The trade is that a cumulative curve can never fall, so "it's going up" stops
  * carrying information: everything here is built to make the *bend* legible.
+ * (The day-of-week variation it absorbs isn't lost — it's the weekday profile
+ * further down, which is where that noise turns back into a signal.)
  *
  * Three choices worth keeping:
  *
@@ -204,439 +193,154 @@ function GrowthChart({ growth }: { growth: GameGrowth }) {
   );
 }
 
-const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "6th"];
-const ordinal = (n: number) => ORDINALS[n - 1] ?? `${n}th`;
+const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 /**
- * The headline read, in the one sentence a restaurant owner would want: how
- * often does a first-timer come back, and how much better does that get once
- * they already have?
- *
- * Null until **both** rungs clear {@link RETENTION_MIN_COHORT}, following the
- * same rule `paceNote` uses for a baseline under one game. The rungs themselves
- * can quote a thin cohort because each one prints its own "1 of 1" denominator
- * beside the percentage; a prose sentence can't carry that, and "once they've
- * come twice, 100%" off a single player is a claim the data hasn't earned.
+ * How many times a weekday has to have come around before its average is worth
+ * quoting flat. Three weeks is the first point at which one freak Tuesday stops
+ * setting the number.
  */
-function retentionNote(steps: RetentionStep[], windowDays: number): string | null {
-  const first = steps.find((s) => s.visits === 1);
-  const second = steps.find((s) => s.visits === 2);
-  if (!first || !second) return null;
-  if (first.atRisk < RETENTION_MIN_COHORT || second.atRisk < RETENTION_MIN_COHORT) return null;
-  const a = pct(first.returned, first.atRisk);
-  const b = pct(second.returned, second.atRisk);
-  const lead = `A first-timer comes back within ${windowDays} days ${a}% of the time; once they've come twice, ${b}%.`;
-  if (b > a + 5) return `${lead} The second visit is where regulars are made — the earlier you can earn it, the better every later number gets.`;
-  if (a > b + 5) return `${lead} Repeat visits are getting less likely rather than more — worth checking whether the later days are landing.`;
-  return `${lead} The odds barely move with familiarity, so what wins a second visit is winning a first.`;
+const WEEKDAY_MIN_OCCURRENCES = 3;
+
+/**
+ * The one sentence the weekday profile supports: which day the diner is busiest,
+ * and by how much.
+ *
+ * Held back until both ends of the comparison have enough occurrences behind
+ * them. Two Saturdays is not a pattern, and a launch that happened to land on a
+ * weekend will otherwise announce that weekends are the game's big moment for
+ * about a fortnight.
+ */
+function weekdayNote(byWeekday: WeekdayPlay[]): string | null {
+  const eligible = byWeekday.filter((d) => d.days >= WEEKDAY_MIN_OCCURRENCES);
+  if (eligible.length < 2) {
+    return `Every weekday needs about ${WEEKDAY_MIN_OCCURRENCES} outings before its average means anything — check back in a couple of weeks.`;
+  }
+  const sorted = [...eligible].sort((a, b) => b.perDay - a.perDay);
+  const best = sorted[0];
+  const worst = sorted[sorted.length - 1];
+  if (best.perDay === 0) return null;
+  const ratio = worst.perDay === 0 ? Infinity : best.perDay / worst.perDay;
+  const lead = `${WEEKDAY_LABELS[best.weekday]} is the busiest day at ${best.perDay.toFixed(1)} games a time, ${WEEKDAY_LABELS[worst.weekday]} the quietest at ${worst.perDay.toFixed(1)}`;
+  if (ratio < 1.25) {
+    return `${lead} — close enough that the week is basically flat, so a dip on any one day is worth looking into rather than shrugging off.`;
+  }
+  return `${lead}, about ${ratio === Infinity ? "∞" : `${ratio.toFixed(1)}×`} the traffic. Worth scheduling the harder Specials into the busy days, where a low win rate is measured on enough people to mean something.`;
 }
 
 /**
- * The repeat-visit curve: of the players who have visited N times, how many came
- * back for an N+1th? A visit is a *day* the device played on, which is the unit
- * that means "came back" in a game that resets at midnight.
+ * Games started by weekday, as a per-occurrence average.
  *
- * Built as tracks rather than a funnel, for the same reason `FinishRate` is: each
- * rung has its **own** denominator (the players who reached that many visits), so
- * the track is the cohort and the fill is the answer, and no row is the
- * always-full first bar a funnel wastes. Cohorts do shrink down the ladder, but
- * that's what the "17 of 50" reads say — encoding it as bar width too would
- * spend the axis on a number already written twice.
+ * **Averages, not totals** — the whole reason this exists as its own fold. A run
+ * that started on a Friday has had one more Friday in it than Thursday, and at a
+ * few weeks of history that head start alone invents a "big day". The occurrence
+ * count rides on every bar so the thin ones can't hide.
  *
- * The fill is **teal**, which already means "returning player" on the line chart
- * above and the player tiles. Not the kind palette (game mode) and not the event
- * palette (start/finish/share) — a third meaning on borrowed colours is how a
- * dashboard stops being readable.
+ * One hue, like the menu-mix bars: these are nominal categories, so bar length
+ * already carries the value and seven colours would just re-encode it.
  */
-function RetentionCurve({ retention }: { retention: PlayerRetention }) {
-  const { steps, windowDays } = retention;
-  const lateTotal = steps.reduce((n, s) => n + s.lateReturned, 0);
+function WeekdayProfile({ byWeekday }: { byWeekday: WeekdayPlay[] }) {
+  const max = Math.max(1, ...byWeekday.map((d) => d.perDay));
+  return (
+    <div className="wprofile">
+      {byWeekday.map((d) => (
+        <div className="wprofile__row" key={d.weekday}>
+          <span className="wprofile__key">{WEEKDAY_LABELS[d.weekday]}</span>
+          <span className="wprofile__track">
+            <span
+              className={`wprofile__bar${d.days < WEEKDAY_MIN_OCCURRENCES ? " wprofile__bar--thin" : ""}`}
+              style={{ width: `${d.perDay === 0 ? 0 : 4 + (d.perDay / max) * 96}%` }}
+            />
+          </span>
+          <span className="wprofile__num">{d.perDay.toFixed(1)}</span>
+          <span className="wprofile__of" title={`${d.started} games across ${d.days} ${WEEKDAY_LABELS[d.weekday]}s`}>
+            {d.started} over {d.days}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * When people play, as a weekday × hour grid (GitHub: Phase 0 dashboard pass).
+ *
+ * This replaces the flat 24-hour bar chart that used to sit here. That chart and
+ * the 30-day spark above it were **two one-dimensional shadows of the same
+ * two-dimensional thing** — and the interaction between the axes, which is the
+ * only part either of them couldn't show, is exactly the actionable bit: "Sunday
+ * mornings are busy and Tuesday mornings are dead" is a scheduling decision, and
+ * neither projection can state it.
+ *
+ * Two choices worth keeping:
+ *
+ * - **One hue, varying only in strength.** A heatmap's whole channel is
+ *   intensity; a rainbow ramp over it would add a second, false, categorical
+ *   reading — and mustard/teal/cherry already mean game mode everywhere else. The
+ *   teal here is the same "activity" teal the growth curve uses.
+ * - **Zero is drawn as an empty cell, not as the palest colour.** At this volume
+ *   most cells are 0 or 1, and a ramp that starts at "faint" makes an empty 4am
+ *   look like a measurement. The grid's texture should be where play *is*.
+ */
+function Heatmap({ rhythm }: { rhythm: PlayRhythm }) {
+  const max = Math.max(1, ...rhythm.heat.flat());
+  const rowTotals = rhythm.heat.map((row) => row.reduce((a, b) => a + b, 0));
+  const rowMax = Math.max(1, ...rowTotals);
+  const hourMax = Math.max(1, ...rhythm.byHour);
 
   return (
-    <div className="retention">
-      {steps.map((s) => {
-        // Everyone at this rung is still inside their window: there is no rate to
-        // draw yet, and 0% would be an answer we haven't earned.
-        const unanswered = s.atRisk === 0;
-        const rest = [
-          s.lateReturned > 0 ? `+${s.lateReturned} came back later` : null,
-          s.pending > 0 ? `${s.pending} still in window` : null,
-          !unanswered && s.atRisk < RETENTION_MIN_COHORT ? "small sample" : null,
-        ].filter(Boolean) as string[];
+    <div className="heat">
+      <div className="heat__grid">
+        <span className="heat__corner" />
+        {/* Hour ticks along the top, every three hours so they fit on a phone. */}
+        {Array.from({ length: 24 }, (_, h) => (
+          <span className="heat__htick" key={`h${h}`}>
+            {h % 3 === 0 ? String(h).padStart(2, "0") : ""}
+          </span>
+        ))}
+        <span className="heat__corner" />
 
-        return (
-          <div className="retention__row" key={s.visits}>
-            <span className="retention__key">
-              after {ordinal(s.visits)} visit
+        {rhythm.heat.map((row, weekday) => (
+          // A real Fragment, not <>: the grid is one flat row of cells, so each
+          // weekday's run of them needs a key at this level.
+          <Fragment key={`row${weekday}`}>
+            <span className="heat__wtick">{WEEKDAY_LABELS[weekday]}</span>
+            {row.map((n, hour) => (
+              <span
+                key={`${weekday}-${hour}`}
+                className={`heat__cell${n === 0 ? " heat__cell--none" : ""}`}
+                // Zero gets no fill at all — see the note above. Everything else
+                // ramps from a floor so a single round is still visible.
+                style={n === 0 ? undefined : { opacity: 0.22 + (n / max) * 0.78 }}
+                title={`${WEEKDAY_LABELS[weekday]} ${hourLabel(hour)} ET — ${n} started`}
+              />
+            ))}
+            {/* Row marginal: the weekday's total, as a bar rather than a number,
+                so the grid keeps one reading direction. */}
+            <span className="heat__margin" title={`${rowTotals[weekday]} started on a ${WEEKDAY_LABELS[weekday]}`}>
+              <span className="heat__margin-bar" style={{ width: `${(rowTotals[weekday] / rowMax) * 100}%` }} />
             </span>
-            <div className="retention__body">
-              <div className="retention__track">
-                <span
-                  className="retention__fill"
-                  style={{ width: `${unanswered ? 0 : pct(s.returned, s.atRisk)}%` }}
-                />
-              </div>
-              <p className="retention__legend">
-                {unanswered ? (
-                  <span className="retention__of">
-                    Nobody's {windowDays} days are up yet — no rate to report.
-                  </span>
-                ) : (
-                  <>
-                    <span className="retention__dot" />
-                    <strong className="retention__num">{pct(s.returned, s.atRisk)}%</strong> came back
-                    <span className="retention__of">
-                      {s.returned} of {s.atRisk} player{s.atRisk === 1 ? "" : "s"}
-                    </span>
-                  </>
-                )}
-                {rest.length > 0 && <span className="retention__rest">{rest.join(" · ")}</span>}
-              </p>
-            </div>
-          </div>
-        );
-      })}
-      <p className="dash-note">
-        A “visit” is an ET day this device played on — any game kind, so four leftovers in one sitting is
-        one visit, the way a diner counts covers and not courses. Each rung counts only players whose{" "}
-        {windowDays} days are already up, so today's arrivals sit out rather than counting as no-shows
-        {lateTotal > 0 &&
-          `, and the ${lateTotal} who came back after their window closed are listed beside the rung they lapsed on`}
-        .
+          </Fragment>
+        ))}
+
+        {/* Column marginal: the hour-of-day profile the old standalone chart was. */}
+        <span className="heat__wtick heat__wtick--margin">All</span>
+        {rhythm.byHour.map((n, hour) => (
+          <span className="heat__hmargin" key={`hm${hour}`} title={`${hourLabel(hour)} ET — ${n} started all week`}>
+            <span className="heat__hmargin-bar" style={{ height: `${n === 0 ? 0 : 8 + (n / hourMax) * 92}%` }} />
+          </span>
+        ))}
+        <span className="heat__corner" />
+      </div>
+      <p className="dash-note heat__caption">
+        Rounds started, by ET weekday and hour, all time. Bars on the right and along the bottom are the
+        same grid summed each way — the row totals are the weekday counts (not the averages above, which
+        divide by how often each day has come around).
       </p>
     </div>
   );
 }
 
-/**
- * How many countries get their own slice before the tail is pooled into
- * "Elsewhere". Past about this many the slices are thinner than their own border
- * and the legend is doing all the work anyway.
- */
-const MAX_COUNTRY_SLICES = 8;
-
-/** A point on the pie's rim. `t` is turns clockwise from 12 o'clock, 0..1. */
-function rim(cx: number, cy: number, r: number, t: number): string {
-  const a = t * Math.PI * 2;
-  return `${(cx + r * Math.sin(a)).toFixed(2)},${(cy - r * Math.cos(a)).toFixed(2)}`;
-}
-
-/** One wedge, from `t0` to `t1` turns clockwise from 12 o'clock. */
-function wedge(cx: number, cy: number, r: number, t0: number, t1: number): string {
-  const large = t1 - t0 > 0.5 ? 1 : 0;
-  return `M${cx},${cy} L${rim(cx, cy, r, t0)} A${r},${r} 0 ${large} 1 ${rim(cx, cy, r, t1)} Z`;
-}
-
-/** A slice as drawn: the pooled tail carries no code, only how many it stands for. */
-interface Slice {
-  key: string;
-  label: string;
-  players: number;
-  rounds: number;
-  /** Countries pooled into this slice — 1 for a real country, more for "Elsewhere". */
-  places: number;
-  /** Ramp step, or -1 for the pooled tail (which is grey, not a rank). */
-  rank: number;
-}
-
-/**
- * Cut the mix into at most {@link MAX_COUNTRY_SLICES} slices plus a pooled tail.
- *
- * A country with rounds but no attributed device (a client too old to send one)
- * can't take a slice of a device pie, but its rounds are real — it pools into the
- * tail rather than vanishing, so the round counts still add up.
- */
-function toSlices(entries: CountryUsage[]): Slice[] {
-  const ranked = entries.filter((e) => e.players > 0);
-  const head = ranked.slice(0, MAX_COUNTRY_SLICES);
-  const tail = [...ranked.slice(MAX_COUNTRY_SLICES), ...entries.filter((e) => e.players === 0)];
-  const slices: Slice[] = head.map((e, i) => ({
-    key: e.code,
-    label: countryName(e.code),
-    players: e.players,
-    rounds: e.rounds,
-    places: 1,
-    rank: i,
-  }));
-  if (tail.length > 0) {
-    slices.push({
-      key: "__rest",
-      label: `Elsewhere (${tail.length} countr${tail.length === 1 ? "y" : "ies"})`,
-      players: tail.reduce((n, e) => n + e.players, 0),
-      rounds: tail.reduce((n, e) => n + e.rounds, 0),
-      places: tail.length,
-      rank: -1,
-    });
-  }
-  return slices;
-}
-
-/**
- * The one sentence the pie is there to support: how concentrated the audience is.
- *
- * Deliberately about *shape*, not a ranking — "92% in one country" and "spread
- * across 14" are different situations, and the number that separates them is the
- * top slice's share, not its name.
- */
-function countryNote(mix: CountryMix, slices: Slice[]): string {
-  const top = slices[0];
-  const share = pct(top.players, mix.players);
-  const places = `${mix.entries.length} countr${mix.entries.length === 1 ? "y" : "ies"}`;
-  if (mix.entries.length === 1) return `Every player so far is in ${top.label}.`;
-  if (share >= 80) return `${share}% of players are in ${top.label}; the rest are scattered across ${places}.`;
-  if (share >= 50) return `${top.label} is the home crowd at ${share}% of players, but ${places} are represented.`;
-  return `No single home crowd — the biggest, ${top.label}, is only ${share}% of players across ${places}.`;
-}
-
-/**
- * The one wording for rounds that carry no country — the rows recorded before
- * country tracking shipped. Said out loud on the panel, because "not measured"
- * and "nobody was there" are different claims and the pie can only draw one of
- * them.
- */
-function countryUntrackedNote(mix: CountryMix): string {
-  if (mix.untracked === 0) return "No country recorded on any round yet.";
-  const rounds = `${mix.untracked.toLocaleString()} round${mix.untracked === 1 ? "" : "s"}`;
-  return mix.players === 0
-    ? `Country tracking only starts with rounds recorded after this release — the ${rounds} so far predate it, so there's nothing to plot yet.`
-    : `${rounds} predate country tracking and carry none; they're left out of the shares rather than counted as an unknown country.`;
-}
-
-/**
- * Where the audience is, all time (GitHub #92).
- *
- * **A pie, not bars**, which is the exception rather than the rule on this
- * dashboard: the question is what share of the audience sits where — a whole cut
- * into parts — and it's asked once, of one all-time total, with a handful of
- * slices. Bars would answer "how many played from each country", which is the
- * quantity the metric is least able to speak to (see below).
- *
- * Three things are load-bearing:
- *
- * 1. **Slices are devices, not rounds.** Rounds are the exact number, but one
- *    enthusiast abroad would then read as a foreign audience. Every device lands
- *    in exactly one country (worker/countries.ts), so the slices genuinely
- *    partition the whole — a pie whose parts don't add to the total is a lie the
- *    shape itself tells. Rounds are still printed beside each slice, because
- *    rounds-per-device is the tell that separates a real player from a bot.
- * 2. **A single-hue ramp, ordered by share — not a categorical palette.**
- *    mustard/teal/cherry already mean game *kind* dashboard-wide and the event
- *    palette means start/finish/share; a third categorical set on a fourth
- *    meaning is how a dashboard stops being readable. A pie can't be one hue the
- *    way the menu-mix bars are (there's no length to carry the value), so the
- *    ramp encodes rank — which the slices are already sorted by — and adds no new
- *    meaning. The pooled tail is grey, because "everyone else" isn't a rank.
- * 3. **Untracked rounds are stated, never drawn.** Rounds recorded before the
- *    country column carry no country; folding them in would invent a place, and
- *    dropping them silently would overstate every real slice.
- */
-function CountryPie({ mix }: { mix: CountryMix }) {
-  const slices = toSlices(mix.entries);
-  const total = slices.reduce((n, s) => n + s.players, 0);
-  const size = 180;
-  const c = size / 2;
-  const r = c - 2;
-
-  let t = 0;
-  const drawn = slices.map((s) => {
-    const from = t;
-    t += s.players / total;
-    return { ...s, from, to: t };
-  });
-
-  return (
-    <div className="cpie">
-      <svg
-        className="cpie__svg"
-        viewBox={`0 0 ${size} ${size}`}
-        role="img"
-        aria-label={`Players by country: ${drawn
-          .map((s) => `${s.label} ${pct(s.players, total)}%`)
-          .join(", ")}.`}
-      >
-        {drawn.length === 1 ? (
-          // A lone slice is a full turn, which an arc path can't express (its
-          // endpoints coincide and the wedge collapses to nothing).
-          <circle className="cpie__slice cpie__slice--0" cx={c} cy={c} r={r}>
-            <title>{`${drawn[0].label} — every player`}</title>
-          </circle>
-        ) : (
-          drawn.map((s) => (
-            <path
-              key={s.key}
-              className={`cpie__slice cpie__slice--${s.rank < 0 ? "rest" : s.rank}`}
-              d={wedge(c, c, r, s.from, s.to)}
-            >
-              <title>{`${s.label} — ${s.players} player${s.players === 1 ? "" : "s"} (${pct(
-                s.players,
-                total,
-              )}%), ${s.rounds} round${s.rounds === 1 ? "" : "s"}`}</title>
-            </path>
-          ))
-        )}
-      </svg>
-      <ul className="cpie__legend">
-        {drawn.map((s) => (
-          <li className="cpie__row" key={s.key}>
-            <span className={`cpie__dot cpie__dot--${s.rank < 0 ? "rest" : s.rank}`} />
-            <span className="cpie__name">{s.label}</span>
-            <span className="cpie__share">{pct(s.players, total)}%</span>
-            <span className="cpie__detail">
-              {s.players} player{s.players === 1 ? "" : "s"} · {s.rounds} round
-              {s.rounds === 1 ? "" : "s"}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-/** The two lines' colours for the new-vs-returning chart, matching admin.css. */
-const PLAYER_SERIES: { key: "newPlayers" | "returningPlayers"; cls: string; label: string }[] = [
-  { key: "newPlayers", cls: "new", label: "New players" },
-  { key: "returningPlayers", cls: "returning", label: "Returning players" },
-];
-
-/**
- * Two-line SVG chart of new vs returning players per ET day.
- *
- * `player_id` shipped after launch (migrations/0008), so the earliest days here
- * recorded rounds but no players. Those days are **not** drawn as zeros — that
- * would assert "nobody new played" when the truth is "nobody was counting". They
- * get a hatched "not tracked" band instead, and the lines start at the boundary.
- *
- * The band rather than a shorter x-axis is deliberate: the Games-started spark
- * directly above spans the full range at the same width, so a series that quietly
- * began later would line up with it and read as the same days.
- */
-function PlayerLineChart({ days, trackingStart }: { days: AnalyticsDay[]; trackingStart: string | null }) {
-  const W = 660;
-  const H = 190;
-  const padL = 26;
-  const padR = 12;
-  const padT = 12;
-  const padB = 24;
-  const n = days.length;
-  // Days carry null player counts until tracking started; everything from the
-  // first non-null onward is measured (a measured day can legitimately be 0).
-  const firstIdx = days.findIndex((d) => d.newPlayers !== null);
-  const x = (i: number) =>
-    n <= 1 ? padL + (W - padL - padR) / 2 : padL + (i / (n - 1)) * (W - padL - padR);
-
-  if (firstIdx === -1) {
-    return <p className="dash-note">{untrackedNote(trackingStart)}</p>;
-  }
-
-  const tracked = days.slice(firstIdx);
-  const max = Math.max(1, ...tracked.map((d) => Math.max(d.newPlayers ?? 0, d.returningPlayers ?? 0)));
-  const y = (v: number) => padT + (1 - v / max) * (H - padT - padB);
-  const path = (key: "newPlayers" | "returningPlayers") =>
-    tracked
-      .map((d, j) => `${j === 0 ? "M" : "L"}${x(j + firstIdx).toFixed(1)},${y(d[key] ?? 0).toFixed(1)}`)
-      .join(" ");
-  const xTickStep = Math.max(1, Math.ceil(n / 6));
-  const yTicks = [...new Set([0, Math.round(max / 2), max])];
-  // Where measurement begins. firstIdx 0 means the whole window is tracked.
-  const boundaryX = x(firstIdx);
-  const bandW = boundaryX - padL;
-  const hasBand = firstIdx > 0 && bandW > 0;
-
-  return (
-    <div className="pchart">
-      <div className="pchart__legend">
-        {PLAYER_SERIES.map((s) => (
-          <span className="pchart__legend-item" key={s.key}>
-            <span className={`pchart__swatch pchart__swatch--${s.cls}`} />
-            {s.label}
-          </span>
-        ))}
-        {hasBand && (
-          <span className="pchart__legend-item">
-            <span className="pchart__swatch pchart__swatch--untracked" />
-            Not tracked
-          </span>
-        )}
-      </div>
-      <svg
-        className="pchart__svg"
-        viewBox={`0 0 ${W} ${H}`}
-        role="img"
-        aria-label={
-          hasBand
-            ? `New vs returning players per day. Not tracked before ${days[firstIdx].date}.`
-            : "New vs returning players per day"
-        }
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <pattern id="pchart-hatch" width="6" height="6" patternUnits="userSpaceOnUse">
-            <path className="pchart__hatch" d="M0,6 l6,-6" />
-          </pattern>
-        </defs>
-        {yTicks.map((v) => (
-          <g key={v}>
-            <line className="pchart__grid" x1={padL} y1={y(v)} x2={W - padR} y2={y(v)} />
-            <text className="pchart__axis" x={padL - 6} y={y(v)} textAnchor="end" dominantBaseline="middle">
-              {v}
-            </text>
-          </g>
-        ))}
-        {hasBand && (
-          <>
-            {/* No line is drawn over this span — the metric didn't exist yet. */}
-            <rect
-              className="pchart__untracked"
-              x={padL}
-              y={padT}
-              width={bandW}
-              height={H - padT - padB}
-              fill="url(#pchart-hatch)"
-            >
-              <title>{untrackedNote(trackingStart)}</title>
-            </rect>
-            <line className="pchart__boundary" x1={boundaryX} y1={padT} x2={boundaryX} y2={H - padB} />
-            {bandW >= 70 && (
-              <text className="pchart__untracked-label" x={padL + bandW / 2} y={padT + 14} textAnchor="middle">
-                not tracked
-              </text>
-            )}
-          </>
-        )}
-        {PLAYER_SERIES.map((s) => (
-          <path key={s.key} className={`pchart__line pchart__line--${s.cls}`} d={path(s.key)} fill="none" />
-        ))}
-        {n <= 45 &&
-          PLAYER_SERIES.map((s) =>
-            tracked.map((d, j) => (
-              <circle
-                key={`${s.key}-${d.date}`}
-                className={`pchart__dot pchart__dot--${s.cls}`}
-                cx={x(j + firstIdx)}
-                cy={y(d[s.key] ?? 0)}
-                r={2.6}
-              >
-                <title>{`${d.date} · ${d[s.key]} ${s.label.toLowerCase()}`}</title>
-              </circle>
-            )),
-          )}
-        {days.map((d, i) =>
-          i % xTickStep === 0 || i === n - 1 ? (
-            <text key={d.date} className="pchart__axis" x={x(i)} y={H - 6} textAnchor="middle">
-              {shortDate(d.date)}
-            </text>
-          ) : null,
-        )}
-      </svg>
-    </div>
-  );
-}
-
-/**
- * Everything that moves over time: games started per day (stacked by kind), new
- * vs returning players, the hour-of-day profile, and the day-by-day table the
- * charts summarise. Single-service detail lives in the Players tab.
- */
 export default function TrendsPanel({
   data,
   error,
@@ -663,7 +367,7 @@ export default function TrendsPanel({
     );
   }
 
-  const { totals, players, daily, growth, hourly, playerTrackingStart, retention, countries } = data;
+  const { totals, daily, growth, rhythm, playerTrackingStart } = data;
   if (totals.started === 0) {
     return (
       <section className="panel">
@@ -676,13 +380,10 @@ export default function TrendsPanel({
   const dayMax = Math.max(1, ...daily.map((d) => d.started));
   // Label roughly 6 dates along the spark so they don't overlap; always tag the last day.
   const dayTickStep = Math.max(1, Math.ceil(daily.length / 6));
-  const hourMax = Math.max(1, ...hourly);
-  const peakHour = hourly.indexOf(Math.max(...hourly));
   // Most recent days first for the breakdown table.
   const recentDays = [...daily].reverse();
   const span = `last ${daily.length} day${daily.length === 1 ? "" : "s"}`;
-  const headline = retention && retentionNote(retention.steps, retention.windowDays);
-  const countrySlices = toSlices(countries.entries);
+  const weekday = weekdayNote(rhythm.byWeekday);
 
   return (
     <>
@@ -700,16 +401,19 @@ export default function TrendsPanel({
               {growth.trend && ` ${growthNote(growth.trend, growth.days[0].date)}`}
             </p>
             <GrowthChart growth={growth} />
-            <p className="dash-note">
-              A running total of every game started, all three kinds together, by the ET day it was started
-              on — so it can only go up, and the reading is the <em>shape</em>: steepening means the game is
-              gaining, flattening means it's stalling.{" "}
-              {growth.trend
-                ? "The dashed line is the same run at one constant pace (a least-squares fit through the curve), there to make that bend visible. It's a reference, not a forecast."
-                : `The steady-pace line needs a longer run than ${growth.days.length} day${
-                    growth.days.length === 1 ? "" : "s"
-                  } — it'll appear once there's enough history to mean something.`}
-            </p>
+            <details className="dash-details">
+              <summary>How to read it</summary>
+              <p className="dash-note">
+                A running total of every game started, all three kinds together, by the ET day it was
+                started on — so it can only go up, and the reading is the <em>shape</em>: steepening means
+                the game is gaining, flattening means it's stalling.{" "}
+                {growth.trend
+                  ? "The dashed line is the same run at one constant pace (a least-squares fit through the curve), there to make that bend visible. It's a reference, not a forecast."
+                  : `The steady-pace line needs a longer run than ${growth.days.length} day${
+                      growth.days.length === 1 ? "" : "s"
+                    } — it'll appear once there's enough history to mean something.`}
+              </p>
+            </details>
           </>
         )}
       </section>
@@ -753,137 +457,78 @@ export default function TrendsPanel({
         )}
       </section>
 
+      {/* The weekly cycle the growth curve deliberately averages out. Above the
+          heatmap because it's the summary the grid is the detail of. */}
       <section className="panel">
-        <h2>New vs returning players · {span}</h2>
-        {daily.length === 0 ? (
-          <p className="dash-note">No dated activity yet.</p>
-        ) : (
-          <>
-            <PlayerLineChart days={daily} trackingStart={playerTrackingStart} />
-            <p className="dash-note" style={{ marginTop: 8 }}>
-              {players === null ? (
-                untrackedNote(playerTrackingStart)
-              ) : (
-                <>
-                  {players.new} player{players.new === 1 ? "" : "s"} all time · {players.returning} ha
-                  {players.returning === 1 ? "s" : "ve"} come back on a later day. A “player” is an anonymous
-                  device (localStorage), counted once regardless of game kind.
-                </>
-              )}
-            </p>
-            {/* The instrument switched on mid-life, so the first tracked days are
-                biased as well as the untracked ones are missing: anyone who had
-                already played reappears as "new". Say so rather than let the
-                boundary spike read as a launch. */}
-            {playerTrackingStart && daily.length > 0 && daily[0].newPlayers === null && (
-              <p className="dash-note">
-                Player tracking started {playerTrackingStart}; the shaded span ran before it and wasn't
-                measured. Devices that had already played count as “new” on their first tracked day, so
-                “new” is overstated and “returning” understated around {playerTrackingStart}.
-              </p>
-            )}
-          </>
-        )}
-      </section>
-
-      {/* Sits under new-vs-returning because it's the same question asked
-          deeper: that chart counts how many came back, this one asks how likely
-          it was — and unlike the chart, it's all-time, not the last 30 days. */}
-      <section className="panel">
-        <h2>Repeat visits</h2>
-        {retention === null || retention.steps.length === 0 ? (
-          <p className="dash-note">{untrackedNote(playerTrackingStart)}</p>
-        ) : (
-          <>
-            {headline && <p className="retention__headline">{headline}</p>}
-            <RetentionCurve retention={retention} />
-          </>
-        )}
-      </section>
-
-      {/* "Where" sits between "who comes back" and "when they play" — the three
-          all-time cuts of the same audience. */}
-      <section className="panel">
-        <h2>Where players are · all time</h2>
-        {countries.players === 0 ? (
-          <p className="dash-note">{countryUntrackedNote(countries)}</p>
-        ) : (
-          <>
-            <p className="cpie__headline">{countryNote(countries, countrySlices)}</p>
-            <CountryPie mix={countries} />
-            <p className="dash-note">
-              The country comes from Cloudflare's edge when a game <em>starts</em> — so this counts people
-              who actually loaded and played, not requests. A country that's busy in Cloudflare's own
-              analytics but missing here never ran the game: that's scrapers and bots, and the gap between
-              the two is the read. Slices are anonymous devices (each counted in the one country it plays
-              from most); rounds are exact, and a country with far more rounds than players is one device
-              replaying, not a crowd.
-              {countries.untracked > 0 && ` ${countryUntrackedNote(countries)}`}
-            </p>
-          </>
-        )}
+        <h2>Which day of the week</h2>
+        {weekday && <p className="dish-report__headline">{weekday}</p>}
+        <WeekdayProfile byWeekday={rhythm.byWeekday} />
+        <p className="dash-note">
+          Games started per <em>occurrence</em> of each weekday, not per weekday in total — the run started
+          on a {WEEKDAY_LABELS[new Date(`${rhythm.since ?? "2026-07-17"}T00:00:00Z`).getUTCDay()]}, so some
+          days have come around more often than others and raw totals would hand those a head start.
+        </p>
       </section>
 
       <section className="panel">
-        <h2>Games started by hour · ET{totals.started > 0 && ` · peak ${String(peakHour).padStart(2, "0")}:00`}</h2>
-        <div className="hourly">
-          {hourly.map((n, h) => (
-            <div className="hourly__col" key={h} title={`${String(h).padStart(2, "0")}:00 ET — ${n} started`}>
-              {n > 0 && <span className="hourly__num">{n}</span>}
-              <span className="hourly__bar" style={{ height: `${n === 0 ? 0 : 6 + (n / hourMax) * 94}%` }} />
-              {h % 6 === 0 && <span className="hourly__tick">{String(h).padStart(2, "0")}</span>}
-            </div>
-          ))}
-        </div>
+        <h2>When people play · all time</h2>
+        <Heatmap rhythm={rhythm} />
       </section>
 
+      {/* Collapsed by default: eleven columns over thirty rows is the biggest
+          block on the dashboard and it's a data dump, not a read. The charts
+          above are what you'd look at; this is what you'd check a number in. */}
       <section className="panel">
-        <h2>Daily breakdown · {span}</h2>
-        {recentDays.length === 0 ? (
-          <p className="dash-note">No dated activity yet.</p>
-        ) : (
-          <div className="day-table-wrap">
-            <table className="day-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Started</th>
-                  <th title="Today's Special">Special</th>
-                  <th>Leftovers</th>
-                  <th title="Chef's Choice">Chef's</th>
-                  <th title="Players first seen this day">New</th>
-                  <th title="Players who first played earlier">Ret.</th>
-                  <th>Completed</th>
-                  <th>Solved</th>
-                  <th>Win rate</th>
-                  <th>Shared</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentDays.map((d) => (
-                  <tr key={d.date}>
-                    <td>{d.date}</td>
-                    <td>{d.started}</td>
-                    <td>{d.startedByKind.daily}</td>
-                    <td>{d.startedByKind.leftover}</td>
-                    <td>{d.startedByKind.random}</td>
-                    {/* "—" = before tracking shipped. Not a zero. */}
-                    <td title={d.newPlayers === null ? untrackedNote(playerTrackingStart) : undefined}>
-                      {d.newPlayers ?? "—"}
-                    </td>
-                    <td title={d.returningPlayers === null ? untrackedNote(playerTrackingStart) : undefined}>
-                      {d.returningPlayers ?? "—"}
-                    </td>
-                    <td>{d.completed}</td>
-                    <td>{d.solved}</td>
-                    <td>{pct(d.solved, d.completed)}%</td>
-                    <td>{d.shared}</td>
+        <details className="dash-details dash-details--table">
+          <summary>
+            <h2>Daily breakdown · {span}</h2>
+          </summary>
+          {recentDays.length === 0 ? (
+            <p className="dash-note">No dated activity yet.</p>
+          ) : (
+            <div className="day-table-wrap">
+              <table className="day-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Started</th>
+                    <th title="Today's Special">Special</th>
+                    <th>Leftovers</th>
+                    <th title="Chef's Choice">Chef's</th>
+                    <th title="Players first seen this day">New</th>
+                    <th title="Players who first played earlier">Ret.</th>
+                    <th>Completed</th>
+                    <th>Solved</th>
+                    <th>Win rate</th>
+                    <th>Shared</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {recentDays.map((d) => (
+                    <tr key={d.date}>
+                      <td>{d.date}</td>
+                      <td>{d.started}</td>
+                      <td>{d.startedByKind.daily}</td>
+                      <td>{d.startedByKind.leftover}</td>
+                      <td>{d.startedByKind.random}</td>
+                      {/* "—" = before tracking shipped. Not a zero. */}
+                      <td title={d.newPlayers === null ? `Player tracking started ${playerTrackingStart}` : undefined}>
+                        {d.newPlayers ?? "—"}
+                      </td>
+                      <td title={d.returningPlayers === null ? `Player tracking started ${playerTrackingStart}` : undefined}>
+                        {d.returningPlayers ?? "—"}
+                      </td>
+                      <td>{d.completed}</td>
+                      <td>{d.solved}</td>
+                      <td>{pct(d.solved, d.completed)}%</td>
+                      <td>{d.shared}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </details>
       </section>
     </>
   );

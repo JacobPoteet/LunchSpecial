@@ -1782,3 +1782,240 @@
   border-radius: 2px 2px 0 0;
   background: var(--teal);
 }
+
+/* ---- Small-sample honesty ------------------------------------------------ */
+
+/* The range a thin percentage plausibly sits in, printed beside it. Deliberately
+   quiet — it qualifies the number, it isn't a second number. It only renders at
+   all under SMALL_SAMPLE_MIN (see shared/sample.ts), so its presence is itself
+   the signal that the figure beside it is soft. */
+.rate-range {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.finish__of .rate-range,
+.dish-table .rate-range {
+  display: inline;
+  margin-left: 5px;
+}
+
+.finish__of .rate-range::before,
+.dish-table .rate-range::before { content: "("; }
+.finish__of .rate-range::after,
+.dish-table .rate-range::after { content: ")"; }
+
+/* ---- Collapsible prose / tables ------------------------------------------ */
+
+/* The dashboard's explanations are load-bearing but they don't all need to be on
+   screen at once — the long ones fold away, so the charts keep the vertical
+   space and the reasoning is still one click from the thing it explains. */
+.dash-details { margin-top: 10px; }
+
+.dash-details > summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal);
+  list-style: none;
+}
+
+.dash-details > summary::-webkit-details-marker { display: none; }
+
+.dash-details > summary::before {
+  content: "▸ ";
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.dash-details[open] > summary::before { content: "▾ "; }
+.dash-details > summary:hover { color: var(--cherry); }
+.dash-details > .dash-note { margin-top: 8px; }
+
+/* A folded table keeps its heading looking like a heading, not like a link. */
+.dash-details--table > summary { text-transform: none; letter-spacing: 0; }
+.dash-details--table > summary h2 { display: inline; font-size: 1.05rem; }
+.dash-details--table > .day-table-wrap { margin-top: 12px; }
+
+/* ---- Dish report --------------------------------------------------------- */
+
+.dish-report__headline {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  color: var(--ink);
+  border-left: 4px solid var(--mustard);
+  padding-left: 10px;
+}
+
+.dish-table td { vertical-align: middle; }
+
+/* A dish with too few finishes to have a record. Dimmed rather than dropped —
+   "how did Wednesday's dish go" is a real question, and a missing row answers it
+   worse than a quiet one. */
+.dish-table__row--thin td { opacity: 0.62; }
+
+/* One dish's guess spread, inline: six win buckets then the losses. Small enough
+   to sit in a table cell, which is the point — the shape of a distribution is
+   recognisable long before its numbers are readable. */
+.minidist {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 22px;
+  min-width: 56px;
+}
+
+.minidist__bar {
+  width: 6px;
+  border-radius: 1px 1px 0 0;
+  background: var(--teal);
+}
+
+.minidist__bar--fail { background: var(--cherry); }
+
+/* ---- Weekday profile ----------------------------------------------------- */
+
+/* One hue for every bar, like the menu-mix charts: these are nominal categories,
+   so bar length already carries the value and seven colours would re-encode it. */
+.wprofile { display: flex; flex-direction: column; gap: 5px; }
+
+.wprofile__row {
+  display: grid;
+  grid-template-columns: 34px 1fr 40px auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+
+.wprofile__key {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.wprofile__track {
+  background: rgba(27, 79, 74, 0.08);
+  border-radius: 3px;
+  height: 14px;
+  overflow: hidden;
+}
+
+.wprofile__bar {
+  display: block;
+  height: 100%;
+  background: var(--teal);
+  border-radius: 3px;
+}
+
+/* A weekday that hasn't come around enough times for its average to mean much.
+   Hatched rather than hidden — the bar is real, its precision isn't. */
+.wprofile__bar--thin {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--teal) 0 4px,
+    rgba(27, 79, 74, 0.35) 4px 8px
+  );
+}
+
+.wprofile__num {
+  font-family: var(--font-display);
+  color: var(--teal);
+  font-size: 0.9rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.wprofile__of {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* ---- Weekday x hour heatmap ---------------------------------------------- */
+
+/* Replaces the flat 24-hour bar chart, which alongside the 30-day spark was one
+   of two one-dimensional shadows of this same grid. One hue varying only in
+   strength: intensity is a heatmap's whole channel, and mustard/teal/cherry
+   already mean game mode everywhere else on this dashboard. */
+.heat { overflow-x: auto; }
+
+.heat__grid {
+  display: grid;
+  grid-template-columns: 30px repeat(24, minmax(11px, 1fr)) 34px;
+  gap: 2px;
+  min-width: 420px;
+  align-items: stretch;
+}
+
+.heat__corner { display: block; }
+
+.heat__htick,
+.heat__wtick {
+  font-size: 0.6rem;
+  color: var(--ink-soft);
+  text-align: center;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.heat__wtick {
+  text-align: right;
+  padding-right: 4px;
+  align-self: center;
+  text-transform: uppercase;
+}
+
+.heat__wtick--margin { opacity: 0.7; }
+
+.heat__cell {
+  display: block;
+  aspect-ratio: 1;
+  min-height: 11px;
+  border-radius: 2px;
+  background: var(--teal);
+}
+
+/* Zero is empty, not the palest step on the ramp. At this game's volume most
+   cells are 0 or 1, and a ramp starting at "faint" makes an empty 4am look like
+   a measurement — the grid's texture should be where play actually is. */
+.heat__cell--none {
+  background: rgba(27, 79, 74, 0.07);
+}
+
+/* The two marginals: the same grid summed each way, drawn as bars so the whole
+   figure keeps one visual language. */
+.heat__margin {
+  display: flex;
+  align-items: center;
+  padding-left: 3px;
+}
+
+.heat__margin-bar {
+  display: block;
+  height: 8px;
+  min-width: 1px;
+  border-radius: 2px;
+  background: var(--mustard);
+}
+
+.heat__hmargin {
+  display: flex;
+  align-items: flex-end;
+  height: 22px;
+}
+
+.heat__hmargin-bar {
+  display: block;
+  width: 100%;
+  min-height: 1px;
+  border-radius: 1px 1px 0 0;
+  background: var(--mustard);
+}
+
+.heat__caption { margin-top: 10px; }

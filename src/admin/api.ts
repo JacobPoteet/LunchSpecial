@@ -9,6 +9,7 @@ import type {
   AnalyticsEvent,
   AnalyticsSummary,
   AnnouncementInput,
+  DishReport,
   DishRequest,
   MenuMix,
   ScheduleEntry,
@@ -81,6 +82,14 @@ export const getAnalyticsEvents = (
   );
 /** Menu composition (region/course/protein/temperature ratios). No filters — catalogue data. */
 export const getMenuMix = () => request<MenuMix>("/menu-mix");
+/**
+ * How each dish actually played — the other half of the Menu tab. Player data,
+ * so unlike the mix it takes the surface filter.
+ * Path is "/dish-report", not "/dish-stats" or anything with "analytics" in it —
+ * see the route comment in worker/routes/admin.ts: ad blockers match those shapes.
+ */
+export const getDishReport = (surface?: Surface) =>
+  request<DishReport>(`/dish-report${surface ? `?surface=${surface}` : ""}`);
 export const getDishes = () => request<AdminDishRow[]>("/dishes");
 export const getDish = (id: number) => request<AdminDishDetail>(`/dishes/${id}`);
 export const createDish = (input: AdminDishInput) => request<{ id: number }>("/dishes", json(input));

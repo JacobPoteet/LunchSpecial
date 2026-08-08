@@ -4,6 +4,8 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    include: ["worker/**/*.test.ts"],
+    // shared/ is pure too (types, time, markdown, sample) and both projects
+    // import it, so its tests live beside it rather than under worker/.
+    include: ["worker/**/*.test.ts", "shared/**/*.test.ts"],
   },
 });

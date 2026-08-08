@@ -458,6 +458,157 @@ export interface CountryMix {
   untracked: number;
 }
 
+/**
+ * How one dish actually played, folded from the rounds that were played on it.
+ *
+ * The catalogue half of the dashboard (menu mix) says what the kitchen served;
+ * this says how it went. `dish_id` has been stamped on every round since
+ * migrations/0012 and until now nothing read it, so the two halves had no way to
+ * meet — you could see that the menu was Europe-heavy and separately that the win
+ * rate dipped, and never that they were the same fact.
+ */
+export interface DishReportRow {
+  dishId: number;
+  name: string;
+  country: string;
+  region: Region;
+  course: Course;
+  protein: Protein;
+  /** Rounds started on this dish, every kind. */
+  started: number;
+  /** Of those, the ones that reached game over. */
+  completed: number;
+  /** Of `completed`, the ones won. */
+  solved: number;
+  /** Of `completed`, the ones that ran out of guesses. */
+  fails: number;
+  /** Rounds whose result was shared. */
+  shared: number;
+  /** `started` split by mode, so a dish carried by replays can't pose as a hit Special. */
+  byKind: StartedByKind;
+  /** dist[i] = rounds solved in i+1 guesses. Length {@link MAX_GUESSES}. */
+  guessDistribution: number[];
+  /** Times this dish has been the scheduled Special, EPOCH through today. */
+  timesServed: number;
+  /** The most recent date it was the Special, or null if it never has been. */
+  lastServed: string | null;
+}
+
+/**
+ * Every dish players have actually played, hardest first — the Menu tab's
+ * performance half.
+ *
+ * Counts **all three kinds**, not just the daily. A leftover or a Chef's Choice
+ * is still a genuine first attempt at that dish for that device (the archive
+ * shows a finished day's result rather than replaying it), and at this game's
+ * volume folding them in is the difference between a dish having 30 attempts and
+ * having 9. `byKind` rides along so a dish whose numbers are mostly replays is
+ * visible as such.
+ */
+export interface DishReport {
+  rows: DishReportRow[];
+  /**
+   * Rounds carrying no dish: everything recorded before migrations/0012, plus any
+   * the beacon couldn't resolve. Reported rather than distributed — the same
+   * "unmeasured is not a place" rule the country pie follows.
+   */
+  untracked: number;
+  /** Rounds counted across `rows`. */
+  rounds: number;
+}
+
+/**
+ * How long a round takes, as a distribution rather than a mean.
+ *
+ * Derived from `completed_at - started_at`, which has been recorded since
+ * migrations/0011 and never read. It's the difficulty signal guess count can't
+ * give: solving in four guesses after twenty seconds and after six minutes are
+ * different puzzles, and only one of them is a player thinking.
+ *
+ * Median and p90, never a mean — a round left open in a background tab and
+ * finished after lunch is a real row, and one of those drags an average by
+ * minutes.
+ */
+export interface SolveTimes {
+  /** Rounds this was measured over (solved, with both timestamps). */
+  count: number;
+  /** Median minutes to solve, or null when nothing qualifies. */
+  medianMinutes: number | null;
+  /** 90th-percentile minutes — the slow tail, not the outlier. */
+  p90Minutes: number | null;
+}
+
+/**
+ * Rounds that started and never reported finishing, split by whether they still
+ * could.
+ *
+ * `FinishRate` used to report the whole gap as "DNF" and clamp it at zero,
+ * because start and complete are independent beacons. But a round begun four
+ * minutes ago and one begun on Tuesday are not the same event, and on a live day
+ * the first is most of the gap. Splitting them is the difference between "nine
+ * people walked out" and "nine people are eating".
+ */
+export interface OpenRounds {
+  /** Started recently enough to plausibly still be playing. */
+  inProgress: number;
+  /** Started long enough ago (see DNF_GRACE_MINUTES) that they aren't coming back. */
+  abandoned: number;
+}
+
+/**
+ * How long a round can stay open before the dashboard stops calling it "still
+ * playing". Two hours: comfortably longer than any real game (the median is
+ * minutes), short enough that a day's abandonment is legible before the day ends.
+ */
+export const DNF_GRACE_MINUTES = 120;
+
+/**
+ * One day of the week in the play rhythm. `perDay` — not `started` — is what the
+ * chart draws: a run that began on a Friday has had more Fridays in it than
+ * Thursdays, and at a few weeks of history that head start alone can invent a
+ * "big day" that doesn't exist.
+ */
+export interface WeekdayPlay {
+  /** 0 = Sunday, matching Date#getUTCDay. */
+  weekday: number;
+  /** Rounds started on this weekday, all time. */
+  started: number;
+  /**
+   * How many times this weekday has come around since the first recorded round.
+   * Counted over the calendar, not over active days — once the beacon is live a
+   * quiet Monday is a measured zero, and dropping it would flatter every weekday
+   * that happened to be busy.
+   */
+  days: number;
+  /** `started / days` — the average this weekday actually runs at. */
+  perDay: number;
+}
+
+/**
+ * When people play, all time: the weekly cycle and the daily one, and the
+ * interaction between them.
+ *
+ * Replaces the flat 24-hour bar chart, which — beside the 30-day spark — was one
+ * of two one-dimensional shadows of this same two-dimensional thing. For a game
+ * that resets at midnight ET, the weekly cycle is the dominant seasonality; the
+ * growth curve exists partly to average it out, and this is where it gets looked
+ * at instead.
+ */
+export interface PlayRhythm {
+  /** `heat[weekday][hour]` = rounds started, raw counts. 7 × 24, ET throughout. */
+  heat: number[][];
+  /** Column marginal: rounds started per ET hour of day, index 0..23. */
+  byHour: number[];
+  /** Row marginal, as per-occurrence averages — see {@link WeekdayPlay}. */
+  byWeekday: WeekdayPlay[];
+  /** Calendar days covered, first recorded round through today. */
+  days: number;
+  /** Rounds counted across the whole grid. */
+  started: number;
+  /** The ET day of the first recorded round, or null if nothing has been recorded. */
+  since: string | null;
+}
+
 /** Public engagement totals for the README badges. Aggregate-only, no guess content. */
 export interface PublicStats {
   /** Rounds started. */
@@ -698,6 +849,12 @@ export interface AnalyticsSummary extends AnalyticsPeriod {
     lastStartedAt: string | null;
     /** This day's pace against the days before it, or null with too little history. */
     pace: AnalyticsPace | null;
+    /**
+     * The started-but-unfinished gap, split into people who might still be
+     * playing and people who left. See {@link OpenRounds} — reporting the whole
+     * gap as walkouts made every live afternoon look like a disaster.
+     */
+    open: OpenRounds;
   };
   /** The server's current ET day. `day.date` equals it unless a past day was asked for. */
   today: string;
@@ -731,6 +888,17 @@ export interface AnalyticsSummary extends AnalyticsPeriod {
    * country tracking ships. See {@link CountryMix}.
    */
   countries: CountryMix;
-  /** Games started per hour of day (ET, the daily-rollover zone), index 0..23. */
-  hourly: number[];
+  /**
+   * When people play, all time and surface-filtered: the weekday × hour grid and
+   * both its marginals. Replaces the bare `hourly: number[]` this used to carry —
+   * that array is now `rhythm.byHour`, and the weekday axis it was missing is the
+   * dominant cycle in a game that resets every midnight. See {@link PlayRhythm}.
+   */
+  rhythm: PlayRhythm;
+  /**
+   * How long a solved round takes, all time and surface-filtered. Derived from
+   * timestamps recorded since migrations/0011 that nothing has read until now —
+   * the difficulty signal guess count can't give. See {@link SolveTimes}.
+   */
+  solveTimes: SolveTimes;
 }

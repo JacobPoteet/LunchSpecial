@@ -9,6 +9,7 @@ import {
   FinishRate,
   HourlyByKind,
   KindLegend,
+  RangeHint,
   ago,
   difficultyNote,
   hourLabel,
@@ -17,7 +18,6 @@ import {
   pct,
   shortDate,
   sumKinds,
-  untrackedNote,
   type SurfaceFilter,
 } from "./analyticsUi";
 
@@ -56,16 +56,19 @@ function useNow(): number {
 }
 
 /**
- * Two reads on the numbers: the day the Players tab is pointed at, then the
- * all-time running total under it. Enough to know whether anything needs
- * looking at, with a link through to the detail rather than a wall of charts on
- * the landing tab.
+ * One read: the day the dashboard is pointed at. Not two.
  *
- * The day half is deliberately the fuller one. All-time totals only ever creep,
- * so they're a strip of four tiles; today is what you'd actually act on, so it
- * gets the tiles *plus* the three questions a bare count can't answer — is this
- * busy for us (pace), is the puzzle fair (difficulty), and are the beacons even
- * arriving (last order).
+ * This used to end with a four-tile all-time strip, which was the Players tab's
+ * opening row rendered a second time — and all-time totals only ever creep, so it
+ * was a quarter of the landing tab spent on numbers that can't change between two
+ * visits. It's one sentence now, with the tab that owns those numbers one click
+ * away.
+ *
+ * What stays is what's *only* answerable today: is this busy for us (pace), is
+ * the puzzle fair (difficulty), how far are people getting (finishing), and are
+ * the beacons even arriving (last order). The new/returning split went with the
+ * all-time strip for the same reason — it's the Players tab's headline, and it
+ * was two more tiles here saying what the line chart there says better.
  */
 function AtAGlance({
   analytics,
@@ -102,7 +105,7 @@ function AtAGlance({
     );
   }
 
-  const { day, today, totals, startedByKind, guessDistribution, players, playerTrackingStart } = analytics;
+  const { day, today, totals, guessDistribution } = analytics;
   // The Players tab can point the shared fetch at an earlier service; say so
   // rather than mislabeling someone else's day as "today".
   const isToday = day.date === today;
@@ -159,15 +162,9 @@ function AtAGlance({
                 <div className="metric" title="The Special only — replays and Chef's Choice don't dilute the puzzle's own win rate.">
                   <span className="metric__num">{pct(day.totals.solved, day.totals.completed)}%</span>
                   <span className="metric__label">Win rate</span>
-                </div>
-                {/* "—" when the day predates player tracking: unmeasured, not zero. */}
-                <div className="metric metric--player metric--player-new" title={day.players === null ? untrackedNote(playerTrackingStart) : undefined}>
-                  <span className="metric__num">{day.players?.new ?? "—"}</span>
-                  <span className="metric__label">New players</span>
-                </div>
-                <div className="metric metric--player metric--player-returning" title={day.players === null ? untrackedNote(playerTrackingStart) : undefined}>
-                  <span className="metric__num">{day.players?.returning ?? "—"}</span>
-                  <span className="metric__label">Returning</span>
+                  {/* A morning's win rate is three players; say how wide that is
+                      rather than printing it at the same weight as an all-time one. */}
+                  <RangeHint n={day.totals.solved} of={day.totals.completed} />
                 </div>
               </div>
 
@@ -189,7 +186,7 @@ function AtAGlance({
 
               <div className="analytics-block">
                 <h3 className="analytics-sub">Finishing</h3>
-                <FinishRate totals={day.allKinds} />
+                <FinishRate totals={day.allKinds} open={day.open} />
               </div>
 
               <div className="analytics-block">
@@ -207,36 +204,20 @@ function AtAGlance({
             </>
           )}
 
-          {/* Every round ever recorded, on whichever surface is selected — the
-              running total the day slice above is one slice of. */}
-          <h3 className="dash-subhead">All time</h3>
-          <div className="metric-row" style={{ marginBottom: 0 }}>
-            <div className="metric metric--primary">
-              <span className="metric__num">{totals.started}</span>
-              <span className="metric__label">Games played</span>
-            </div>
-            <div className="metric">
-              <span className="metric__num">{startedByKind.daily}</span>
-              <span className="metric__label">The Special</span>
-            </div>
-            <div className="metric">
-              <span className="metric__num">{pct(totals.solved, totals.completed)}%</span>
-              <span className="metric__label">Win rate</span>
-            </div>
-            <div
-              className="metric"
-              title={
-                players === null
-                  ? untrackedNote(playerTrackingStart)
-                  : playerTrackingStart
-                    ? `Distinct devices since ${playerTrackingStart}, when player tracking shipped.`
-                    : undefined
-              }
-            >
-              <span className="metric__num">{players?.new ?? "—"}</span>
-              <span className="metric__label">Players</span>
-            </div>
-          </div>
+          {/* The all-time strip that used to sit here was the Players tab's
+              opening row, rendered twice. One line and a link instead. */}
+          <p className="dash-note" style={{ marginBottom: 0 }}>
+            <strong>{totals.started.toLocaleString()}</strong> games played all time
+            {analytics.rhythm.since && ` since ${shortDate(analytics.rhythm.since)}`}.{" "}
+            <button className="link-btn" onClick={() => onOpenTab("players")}>
+              Players
+            </button>{" "}
+            has the breakdown;{" "}
+            <button className="link-btn" onClick={() => onOpenTab("trends")}>
+              Trends
+            </button>{" "}
+            has where it's heading.
+          </p>
         </>
       )}
     </section>
