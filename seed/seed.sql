@@ -1809,7 +1809,12 @@ INSERT INTO dishes (id, name, slug, country, region, course, temperature, protei
 (345,'Fairy Bread','fairy-bread','Australia','oceania','dessert','cold','vegetarian','["bread","butter","sprinkles"]'),
 (346,'German Chocolate Cake','german-chocolate-cake','United States','north-america','dessert','cold','vegetarian','["chocolate","flour","sugar","egg","buttermilk","coconut","pecan","evaporated milk"]'),
 (347,'Funnel Cake','funnel-cake','United States','north-america','dessert','hot','vegetarian','["flour","egg","milk","sugar","baking powder","vanilla","powdered sugar"]'),
-(348,'Scrambled Eggs','scrambled-eggs','United States','north-america','breakfast','hot','vegetarian','["egg","butter","milk","salt","black pepper"]');
+(348,'Scrambled Eggs','scrambled-eggs','United States','north-america','breakfast','hot','vegetarian','["egg","butter","milk","salt","black pepper"]'),
+(349,'Cubano','cubano','Cuba','latin-america','entree','hot','pork','["bread","pork","ham","cheese","pickle","mustard","butter"]'),
+(350,'Katsu Sando','katsu-sando','Japan','east-asia','entree','cold','pork','["bread","pork","breadcrumbs","cabbage","butter","mustard"]'),
+(351,'Patty Melt','patty-melt','United States','north-america','entree','hot','beef','["beef","rye bread","cheese","onion","butter"]'),
+(352,'Peanut Butter and Jelly Sandwich','peanut-butter-and-jelly-sandwich','United States','north-america','appetizer','cold','vegetarian','["bread","peanut butter","jam"]'),
+(353,'Pulled Pork Sandwich','pulled-pork-sandwich','United States','north-america','entree','hot','pork','["pork","bread roll","vinegar","brown sugar","paprika","cabbage"]');
 
 INSERT INTO clues (dish_id, order_index, text) VALUES
 (285,1,'A staple of North Africa, from the kingdom at the continent''s northwest corner.'),
@@ -2131,7 +2136,32 @@ INSERT INTO clues (dish_id, order_index, text) VALUES
 (348,2,'The Romans beat and cooked eggs much this way; the French later codified the slow version, with Escoffier insisting on gentle heat and a great deal of butter.'),
 (348,3,'It is the classic test a chef gives a line cook at a job trial, and Gordon Ramsay''s soft, creamy take is one of the most-watched cooking clips on the internet.'),
 (348,4,'Eggs are beaten with a splash of milk, poured into melted butter over low heat, and pushed slowly around the pan so they set in soft folds — then pulled off before they look done.'),
-(348,5,'Beaten eggs stirred gently in butter over low heat until they set into soft curds, seasoned with salt and pepper.');
+(348,5,'Beaten eggs stirred gently in butter over low heat until they set into soft curds, seasoned with salt and pepper.'),
+(349,1,'It carries the name of a Caribbean island, but the sandwich itself was assembled on the American mainland.'),
+(349,2,'Cigar-factory workers in Key West and Ybor City built it for lunch, borrowing from the Cuban, Spanish, Italian and German shops that shared their street.'),
+(349,3,'Tampa and Miami have argued over it for a century — Tampa insists on a layer of Genoa salami, Miami calls that heresy.'),
+(349,4,'Roast pork and ham are layered with Swiss cheese, yellow mustard and dill pickles, then buttered and flattened in a hot press until the bread crackles.'),
+(349,5,'A pressed, griddled pork-and-ham sandwich with pickles and mustard, named for the island its makers left behind.'),
+(350,1,'From an East Asian island nation — the one where an excellent lunch is often bought at a convenience store.'),
+(350,2,'A Tokyo cutlet restaurant put its fried pork between bread in the 1930s, reportedly so geishas could eat one-handed without ruining their lipstick.'),
+(350,3,'Convenience stores sell them by the million from a chilled shelf, while luxury versions built on wagyu now cost as much as a steak dinner.'),
+(350,4,'A panko-breaded pork cutlet is pressed with shredded cabbage between crustless slices of soft, buttered milk bread.'),
+(350,5,'A crustless white-bread sandwich built around a deep-fried breaded cutlet, eaten cold straight from the wrapper.'),
+(351,1,'North American, and it never leaves the flat-top griddle.'),
+(351,2,'Los Angeles diner lore credits Tiny Naylor in the 1940s; within a decade every coffee shop in the country had one on the board.'),
+(351,3,'Ordering it is the tell of a regular — not on every menu, but never missing from the ones that matter.'),
+(351,4,'A beef patty goes on with a heap of slowly browned onions and melting cheese, all of it griddled between buttered slices until the outside is dark and crisp.'),
+(351,5,'Half burger and half grilled cheese, built on rye instead of a bun, with sweet griddled onions inside.'),
+(352,1,'North American, requires no cooking whatsoever, and is usually made for somebody under the age of twelve.'),
+(352,2,'A US cooking magazine printed the pairing in 1901, and the wartime ration kit of the 1940s put both spreads in the same box, which sealed the habit.'),
+(352,3,'The average American child is said to get through a thousand or so before finishing high school.'),
+(352,4,'Two spreads on soft white bread — one ground from a roasted legume, the other boiled down from fruit and sugar.'),
+(352,5,'The lunchbox sandwich of two sweet spreads, one nutty and one fruity, on plain white bread.'),
+(353,1,'From the American South, where this is cooked in hours rather than minutes.'),
+(353,2,'The Carolinas have cooked whole hogs over coals since the colonial era, at community gatherings that fed entire towns at once.'),
+(353,3,'It reliably starts an argument about sauce: vinegar in the east, mustard in the middle of South Carolina, sweet tomato further west.'),
+(353,4,'A pork shoulder is rubbed with paprika and brown sugar and smoked low and slow until it shreds by hand, then piled on a soft roll under a tangle of vinegar slaw.'),
+(353,5,'Smoked, hand-shredded pork heaped on a soft bun and crowned with coleslaw.');
 
 
 -- Dishes that came in through the player suggestion form. Flagged here rather
