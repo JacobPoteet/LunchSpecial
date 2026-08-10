@@ -1005,6 +1005,54 @@ export interface AnalyticsEvent {
 export const ANALYTICS_EVENTS_PAGE = 50;
 export const ANALYTICS_EVENTS_MAX = 200;
 
+/**
+ * Everything one anonymous device has written into the analytics tables — the
+ * *review* half of "delete my own play-testing out of the numbers".
+ *
+ * It exists because the admin is also a player: every dev round, every `/admin`
+ * visit that started a board, every "does the modal still open" reload lands in
+ * the same tables the dashboard reads, and at tens of rounds a day one person
+ * testing is a visible fraction of every rate on it. The device is identified
+ * exactly the way the Activity feed's "mine" filter identifies it — the
+ * localStorage player id — so what this summarises is precisely what that
+ * filter shows.
+ *
+ * Counts, never rows: the rows themselves are the Activity feed set to "Only
+ * mine", which is a better review surface than a second table would be. This is
+ * the part the feed can't answer — *how much* of the dashboard is you.
+ */
+export interface DeviceDataSummary {
+  /** Echoed back so the client can be sure it reviewed what it's about to delete. */
+  playerId: string;
+  rounds: {
+    total: number;
+    completed: number;
+    shared: number;
+    /** Zero-filled, so a kind this device never played reads 0 rather than absent. */
+    byKind: StartedByKind;
+    bySurface: Record<Surface, number>;
+    /** ISO-8601 UTC instants, or null when there are no rounds at all. */
+    firstAt: string | null;
+    lastAt: string | null;
+  };
+  /**
+   * Arrival rows — one per ET day this device opened the game (migrations/0020).
+   * The reason this feature exists: opening the game without guessing writes
+   * *only* this, so a testing habit of "load it and look" is invisible in the
+   * round counts and inflates nothing but the bounce rate.
+   */
+  visits: { total: number; firstDay: string | null; lastDay: string | null };
+  /** Notice-reach rows this device counts toward (announcement_views). */
+  noticeViews: number;
+}
+
+/** What a device wipe actually removed, per table — reported back, never assumed. */
+export interface DeviceDataDeleted {
+  rounds: number;
+  visits: number;
+  noticeViews: number;
+}
+
 /** Anonymous engagement aggregates for the admin dashboard. No guess content. */
 export interface AnalyticsSummary extends AnalyticsPeriod {
   /**

@@ -2327,3 +2327,29 @@
    and the returning-player line use for "activity", which is what an arrival is. */
 .finish__fill--played { background: var(--teal); }
 .finish__dot--played { background: var(--teal); }
+
+/* ---- This device's data (review + delete) --------------------------------- */
+
+/* The facts under the tiles: what the counts are made of, so the review is a
+   description and not just three numbers. Plain list, no bullets — these are
+   captions for the row above, not items you'd act on individually. */
+.device-data__facts {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.device-data__facts li + li { margin-top: 3px; }
+
+/* An irreversible action's own outcome, and the one place on this dashboard a
+   note is allowed to shout. Cherry because it's the delete's colour, not because
+   anything is wrong. */
+.dash-note--warn {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-left: 4px solid var(--cherry);
+  background: rgba(201, 53, 74, 0.08);
+  color: var(--ink);
+}

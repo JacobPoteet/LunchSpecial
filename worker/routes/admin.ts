@@ -14,6 +14,7 @@ import type {
   AnnouncementAudience,
   AnnouncementReach,
   DashboardAnnouncement,
+  DeviceDataDeleted,
   DishRequest,
   Experiment,
   ExperimentInput,
@@ -43,6 +44,7 @@ import { announcementStatus, parseAnnouncementInput } from "../announcements";
 import { foldDayService, foldPace, foldSolveTimes, type DayHourRow, type PaceRow, type SolveTimeRow } from "../service";
 import { foldGrowth, type GrowthRow } from "../growth";
 import { foldCountries, type CountryRow } from "../countries";
+import { foldDeviceData, type DeviceRoundRow, type DeviceVisitRow } from "../device";
 import { foldDishStats, type DishMetaRow, type DishStatRow } from "../dishstats";
 import { foldExperimentSeries, type ExperimentHourRow } from "../experiments";
 import { foldFunnel, type FunnelBucketRow } from "../funnel";
@@ -1336,6 +1338,85 @@ app.get("/recent-rounds", async (c) => {
     solved: r.solved === null || r.solved === undefined ? null : r.solved === 1,
   }));
   return c.json(events);
+});
+
+// ---- This device's own data (review, then delete) ---------------------------
+//
+// The admin is also a player. Every dev round, every "does the modal still open"
+// reload, every board opened and abandoned mid-change lands in the same tables
+// the dashboard reads — and at tens of rounds a day, one person testing is a
+// visible fraction of every rate on it. The arrivals ledger is the worst of it:
+// opening the game and never guessing writes a visit row and nothing else, so a
+// morning of looking at the page shows up purely as bounce.
+//
+// "This device" means exactly what the Activity feed's "mine" filter means — the
+// anonymous localStorage player id — so the rows summarised here are the rows
+// that filter shows, and reviewing there before deleting here is a real review.
+//
+// Two routes on one path, deliberately: the GET *is* the confirmation step, and
+// sharing the path keeps them from drifting into describing different sets.
+//
+// Path note: "/device-data" carries none of the blocker-bait words (analytics,
+// event, track, collect, beacon, telemetry, pixel) that forced /recent-rounds
+// and /dish-report to be renamed.
+
+/** Both routes take the id as `?player=` — free text, so always a bound param. */
+function playerParam(c: Context): string | null {
+  const player = c.req.query("player")?.trim();
+  return player ? player : null;
+}
+
+app.get("/device-data", async (c) => {
+  const player = playerParam(c);
+  if (!player) return c.json({ error: "No device id given" }, 400);
+
+  // Grouped by (kind, surface) rather than aggregated flat: the fold needs the
+  // split to zero-fill, and one query is cheaper than four COUNT(*)s.
+  const [rounds, visits, views] = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `SELECT kind, surface, COUNT(*) AS rounds,
+              SUM(completed) AS completed, SUM(shared) AS shared,
+              MIN(started_at) AS first_at,
+              MAX(COALESCE(shared_at, completed_at, updated_at, started_at)) AS last_at
+         FROM analytics_rounds WHERE player_id = ?
+        GROUP BY kind, surface`,
+    ).bind(player),
+    c.env.DB.prepare(
+      `SELECT COUNT(*) AS total, MIN(visit_day) AS first_day, MAX(visit_day) AS last_day
+         FROM analytics_visits WHERE player_id = ?`,
+    ).bind(player),
+    c.env.DB.prepare(`SELECT COUNT(*) AS total FROM announcement_views WHERE player_id = ?`).bind(player),
+  ]);
+
+  const visitRow = (visits.results[0] as DeviceVisitRow | undefined) ?? {
+    total: 0,
+    first_day: null,
+    last_day: null,
+  };
+  const viewCount = (views.results[0] as { total: number } | undefined)?.total ?? 0;
+  return c.json(foldDeviceData(player, rounds.results as unknown as DeviceRoundRow[], visitRow, viewCount));
+});
+
+// Irreversible, and prod D1 has no automatic backup — which is why the client
+// won't offer this until it has fetched the summary above. The reply reports what
+// each table actually lost rather than echoing what was asked for: a wipe that
+// matched nothing is a wrong id, and saying "done" would hide that.
+app.delete("/device-data", async (c) => {
+  const player = playerParam(c);
+  if (!player) return c.json({ error: "No device id given" }, 400);
+
+  const [rounds, visits, views] = await c.env.DB.batch([
+    c.env.DB.prepare("DELETE FROM analytics_rounds WHERE player_id = ?").bind(player),
+    c.env.DB.prepare("DELETE FROM analytics_visits WHERE player_id = ?").bind(player),
+    c.env.DB.prepare("DELETE FROM announcement_views WHERE player_id = ?").bind(player),
+  ]);
+
+  const deleted: DeviceDataDeleted = {
+    rounds: rounds.meta.changes ?? 0,
+    visits: visits.meta.changes ?? 0,
+    noticeViews: views.meta.changes ?? 0,
+  };
+  return c.json(deleted);
 });
 
 export default app;
