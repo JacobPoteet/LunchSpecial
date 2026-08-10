@@ -9,6 +9,8 @@ import type {
   AnalyticsEvent,
   AnalyticsSummary,
   AnnouncementInput,
+  DeviceDataDeleted,
+  DeviceDataSummary,
   DishReport,
   DishRequest,
   ExperimentInput,
@@ -82,6 +84,18 @@ export const getAnalyticsEvents = (
     `/recent-rounds?limit=${limit}${surface ? `&surface=${surface}` : ""}` +
       (mine ? `&player=${encodeURIComponent(mine.playerId)}&playerMode=${mine.mode}` : ""),
   );
+/**
+ * What this browser's own anonymous device id has written into the analytics
+ * tables — the review step before {@link deleteDeviceData}. Same "who is me" as
+ * the feed's mine filter above: the localStorage player id.
+ * No surface filter: the point is *everything* this device recorded, and a
+ * filtered summary would under-report what the delete removes.
+ */
+export const getDeviceData = (playerId: string) =>
+  request<DeviceDataSummary>(`/device-data?player=${encodeURIComponent(playerId)}`);
+/** Irreversible. Returns what each table actually lost, not what was asked for. */
+export const deleteDeviceData = (playerId: string) =>
+  request<DeviceDataDeleted>(`/device-data?player=${encodeURIComponent(playerId)}`, { method: "DELETE" });
 /** Menu composition (region/course/protein/temperature ratios). No filters — catalogue data. */
 export const getMenuMix = () => request<MenuMix>("/menu-mix");
 /**
