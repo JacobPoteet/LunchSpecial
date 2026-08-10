@@ -884,6 +884,109 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The player funnel: opened → guessed → finished → shared / played again, every
+   rung counted in DEVICES. That unit is what earns the funnel shape here — see
+   FunnelChart in PlayersPanel.tsx — where `.finish` above stays two tracks
+   because its rows count games against a denominator of people.
+
+   Fills take the Activity feed's EVENT palette (start = teal, complete = cherry,
+   share = mustard), so one event is one colour dashboard-wide. Arrivals take a
+   muted ink: it's the one rung that isn't an event, and giving it a fourth hue
+   would imply a fourth meaning. "Played again" is teal because it IS another
+   start. */
+.funnel { display: flex; flex-direction: column; }
+
+.funnel__headline {
+  margin: 0 0 14px;
+  font-size: 0.92rem;
+  color: var(--ink);
+  border-left: 3px solid var(--teal);
+  padding-left: 10px;
+}
+
+.funnel__step { display: flex; flex-direction: column; gap: 4px; }
+
+.funnel__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+
+.funnel__label {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  cursor: help;
+}
+
+.funnel__num {
+  margin-left: auto;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--teal);
+  font-variant-numeric: tabular-nums;
+}
+
+.funnel__track {
+  height: 18px;
+  border-radius: 3px;
+  background: rgba(27, 79, 74, 0.1);
+  overflow: hidden;
+}
+
+.funnel__fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  /* The bars are read against each other top to bottom, so a width change should
+     look like the same crowd shrinking rather than four separate bars. */
+  transition: width 220ms ease-out;
+}
+
+.funnel__fill--visited { background: var(--miss); }
+.funnel__fill--played { background: var(--teal); }
+.funnel__fill--finished { background: var(--cherry); }
+.funnel__fill--shared { background: var(--mustard); }
+.funnel__fill--playedAgain { background: var(--teal); }
+
+.funnel__legend {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.funnel__step-pct {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.funnel__of { color: var(--ink-soft); font-size: 0.78rem; }
+
+/* Share-of-arrivals trails the step conversion, because the step is the one
+   that says whether *this* hand-off worked. */
+.funnel__of--top { margin-left: auto; }
+
+/* The gap between two rungs, which is the number the panel exists to show. Set
+   in from the left so it reads as a branch off the funnel rather than a rung. */
+.funnel__drop {
+  margin: 6px 0 10px;
+  padding-left: 14px;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.funnel__drop-pct { color: var(--cherry-dark); }
+
 /* Country pie: what share of the audience is where (GitHub #92). The one pie on
    the dashboard — it's a whole cut into parts, asked once of an all-time total. */
 .cpie {
@@ -989,6 +1092,9 @@
   .retention__rest { margin-left: 0; }
   /* 108px of label plus a track is too narrow to read at 375px — stack instead. */
   .retention__row { grid-template-columns: 1fr; gap: 3px; }
+  /* Same fix for the funnel's two right-aligned figures: at this width the
+     share-of-arrivals is pushed off the row instead of wrapping under it. */
+  .funnel__of--top { margin-left: 0; }
 }
 
 .day-table-wrap { overflow-x: auto; }

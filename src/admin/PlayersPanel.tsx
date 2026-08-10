@@ -1,17 +1,21 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type {
   AnalyticsDay,
   AnalyticsSummary,
   CountryMix,
   CountryUsage,
+  FunnelCounts,
+  FunnelEnding,
+  PlayerFunnel,
   PlayerRetention,
   RetentionStep,
 } from "../../shared/types";
-import { MAX_GUESSES } from "../../shared/types";
+import { DNF_GRACE_MINUTES, MAX_GUESSES } from "../../shared/types";
 import DayPicker from "./DayPicker";
 import {
   GuessBars,
   PlayersRow,
+  RangeHint,
   RatesRow,
   SolveTimeRead,
   StartedByKindRow,
@@ -145,6 +149,324 @@ function RetentionCurve({ retention }: { retention: PlayerRetention }) {
         .
       </p>
     </div>
+  );
+}
+
+/**
+ * The two things the funnel's last stage can measure, and how each drop-off
+ * reads. Sharing is the loop pointing outward — the game reaching somebody who
+ * isn't playing it; playing again is the loop pointing inward — the game holding
+ * the person it already has. Both are "what happened after game over", they
+ * answer different questions, and the panel switches rather than choosing.
+ */
+const ENDINGS: { key: FunnelEnding; toggle: string; label: string; lost: string; help: string }[] = [
+  {
+    key: "shared",
+    toggle: "Shared",
+    label: "Shared a result",
+    lost: "kept it to themselves",
+    help: "Devices that sent their result card. Sharing is only reachable after game over, so this is a slice of the finishers above.",
+  },
+  {
+    key: "playedAgain",
+    toggle: "Played again",
+    label: "Played another round",
+    lost: "stopped after one",
+    help:
+      "Devices that started another game after finishing one, the same ET day — a Leftover or a Chef's Choice. " +
+      "Ordered against the earlier finish, so two boards opened in two tabs before either was played don't count as coming back for seconds.",
+  },
+];
+
+/** One rung of the drawn funnel. */
+interface FunnelStage {
+  key: string;
+  label: string;
+  n: number;
+  /** What the people who didn't reach the *next* stage did instead. */
+  lost: string;
+  help: string;
+}
+
+/**
+ * The stages, top to bottom, for one set of counts.
+ *
+ * The arrivals row is dropped entirely — not drawn as an empty or zero row — on
+ * any day before the visit beacon shipped. "Not measured" is not a bounce, and a
+ * funnel whose top rung is a guess is worse than one that starts a step lower.
+ */
+function stagesOf(counts: FunnelCounts, ending: FunnelEnding): FunnelStage[] {
+  const last = ENDINGS.find((e) => e.key === ending)!;
+  const walkedOut = counts.open.abandoned;
+  const stillPlaying = counts.open.inProgress;
+  return [
+    ...(counts.visited === null
+      ? []
+      : [
+          {
+            key: "visited",
+            label: "Opened the game",
+            n: counts.visited,
+            lost: "looked and left without a guess",
+            help: "Devices that loaded a playable board. One per device per day, however many times they came back to the tab.",
+          },
+        ]),
+    {
+      key: "played",
+      label: "Made a guess",
+      n: counts.played,
+      // The unfinished are split the way the day's rounds are: a game begun ten
+      // minutes ago isn't a walkout. Both halves are named or neither is.
+      lost:
+        stillPlaying > 0 && walkedOut > 0
+          ? `left mid-game (${stillPlaying} still playing, ${walkedOut} gone)`
+          : stillPlaying > 0
+            ? "are still playing"
+            : "left mid-game",
+      help: "Devices that submitted at least one guess — the point a round counts as started.",
+    },
+    {
+      key: "finished",
+      label: "Reached game over",
+      n: counts.finished,
+      lost: last.lost,
+      help: `Devices that finished at least one game, win or lose. A game begun in the last ${
+        DNF_GRACE_MINUTES / 60
+      } hours still counts as in play rather than as a walkout.`,
+    },
+    { key: ending, label: last.label, n: counts[ending], lost: "", help: last.help },
+  ];
+}
+
+/**
+ * The single sentence worth reading first: which step loses the most people.
+ *
+ * Losses are compared as **counts, not rates**, because the point is where the
+ * players went. A 60% fall-off at the bottom of a funnel is four people; a 25%
+ * one at the top is thirty, and it's the thirty that are worth a morning's work.
+ * Null when nothing falls out anywhere, which is worth saying differently.
+ */
+function biggestDropNote(stages: FunnelStage[]): string | null {
+  let worst: { from: FunnelStage; to: FunnelStage; lost: number } | null = null;
+  for (let i = 0; i < stages.length - 1; i++) {
+    const lost = stages[i].n - stages[i + 1].n;
+    if (lost > 0 && (worst === null || lost > worst.lost)) {
+      worst = { from: stages[i], to: stages[i + 1], lost };
+    }
+  }
+  if (worst === null) return null;
+  return `Biggest fall-off: ${worst.lost} of the ${worst.from.n} who ${worst.from.label.toLowerCase()} ${
+    worst.from.lost
+  } — ${pct(worst.lost, worst.from.n)}% of that step.`;
+}
+
+/**
+ * The player funnel: how many devices got from opening the game to coming back
+ * for seconds.
+ *
+ * **Every stage counts devices**, which is the only reason this can be a funnel
+ * at all. The dashboard's other read of the same journey (`FinishRate`, on the
+ * Today tab) is drawn as separate tracks precisely because its rows don't share
+ * a unit — a visit is one device per ET day while a "start" is a round, so a
+ * player doing the Special plus three Leftovers is one arrival and four starts,
+ * and stacking those gives a funnel that gets *wider* as it descends. In devices
+ * each rung is a genuine subset of the one above, so a bar's width means what a
+ * funnel's width is supposed to mean. The two live on different tabs on purpose:
+ * Today counts games, because that's the service; Players counts people.
+ *
+ * Each rung carries two numbers rather than one, which is what stops the
+ * always-full top bar from being a wasted row: the **bar** is share of arrivals
+ * (how much of the original audience is left), and the **legend** is share of the
+ * step above (how well that one hand-off worked). A funnel drawn with only the
+ * first can't tell a bad step from one that inherited a small crowd.
+ *
+ * Fills are the Activity feed's event palette — start = teal, complete = cherry,
+ * share = mustard — so an event means one colour dashboard-wide. Arrivals take a
+ * muted ink, being the one rung that isn't an event; "played again" takes teal
+ * because it *is* another start.
+ */
+function FunnelChart({ counts, ending }: { counts: FunnelCounts; ending: FunnelEnding }) {
+  const stages = stagesOf(counts, ending);
+  const top = Math.max(1, stages[0].n);
+  return (
+    <div className="funnel">
+      {stages.map((s, i) => {
+        const prev = i === 0 ? null : stages[i - 1];
+        const lost = prev === null ? 0 : prev.n - s.n;
+        // The *bar* is clamped, the percentage beside it is not. A rung can
+        // legitimately outrun the one above: start, complete and share are
+        // independent beacons, so a share whose completion beacon never landed
+        // is a real player the row above can't see. Clamping the number would
+        // hide that; clamping only the fill keeps the shape readable.
+        const width = Math.min(100, Math.max(0, (s.n / top) * 100));
+        return (
+          <Fragment key={s.key}>
+            {prev !== null && (
+              <p className="funnel__drop">
+                {lost > 0 ? (
+                  <>
+                    ↓ {lost} {prev.lost} <span className="funnel__drop-pct">({pct(lost, prev.n)}%)</span>
+                  </>
+                ) : (
+                  <>↓ everyone carried on</>
+                )}
+              </p>
+            )}
+            <div className="funnel__step">
+              <p className="funnel__head">
+                <span className="funnel__label" title={s.help}>
+                  {s.label}
+                </span>
+                <strong className="funnel__num">{s.n}</strong>
+              </p>
+              <div className="funnel__track">
+                <span className={`funnel__fill funnel__fill--${s.key}`} style={{ width: `${width}%` }} />
+              </div>
+              <p className="funnel__legend">
+                {prev === null ? (
+                  <span className="funnel__of">everyone who showed up</span>
+                ) : (
+                  <>
+                    <span className="funnel__step-pct">{pct(s.n, prev.n)}%</span>
+                    <span className="funnel__of">
+                      of the {prev.n} who {prev.label.toLowerCase()}
+                      <RangeHint n={s.n} of={prev.n} />
+                    </span>
+                    {i > 1 && (
+                      <span className="funnel__of funnel__of--top">{pct(s.n, stages[0].n)}% of arrivals</span>
+                    )}
+                  </>
+                )}
+              </p>
+            </div>
+          </Fragment>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Which slice of time the funnel is drawn over. */
+type FunnelScope = "day" | "allTime";
+
+/**
+ * The funnel panel: the two toggles, the headline, the chart, and the caveats.
+ *
+ * The scope toggle exists because one day at this game's volume is tens of
+ * people — enough to catch a catastrophe, not enough to tune anything. The
+ * pooled window is **device-days**: one device that played on three days counts
+ * three times, because the question "of the people who showed up, how many
+ * played" is asked afresh every day. It's clipped to days arrivals were actually
+ * counted on, so the top of the funnel can't be measured over a shorter span
+ * than the rows beneath it.
+ */
+function FunnelSection({
+  funnel,
+  isToday,
+  dayDate,
+  visitsSince,
+}: {
+  funnel: PlayerFunnel;
+  isToday: boolean;
+  dayDate: string;
+  visitsSince: string | null;
+}) {
+  const [scope, setScope] = useState<FunnelScope>("allTime");
+  const [ending, setEnding] = useState<FunnelEnding>("shared");
+
+  const counts = scope === "day" ? funnel.day : funnel.allTime;
+  const dayLabel = isToday ? "Today" : shortDate(dayDate);
+  const headline = biggestDropNote(stagesOf(counts, ending));
+  const nothing = counts.played === 0 && (counts.visited ?? 0) === 0;
+
+  return (
+    <section className="panel">
+      <div className="analytics-head">
+        <h2>Where players drop off</h2>
+        <div className="analytics-head__tools">
+          <div className="surface-toggle" role="tablist" aria-label="Which slice of time to fold the funnel over">
+            {(
+              [
+                { key: "day" as const, label: dayLabel },
+                { key: "allTime" as const, label: "All time" },
+              ]
+            ).map((s) => (
+              <button
+                key={s.key}
+                role="tab"
+                aria-selected={scope === s.key}
+                className={`surface-toggle__btn${scope === s.key ? " surface-toggle__btn--active" : ""}`}
+                onClick={() => setScope(s.key)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <div className="surface-toggle" role="tablist" aria-label="What the last stage measures">
+            {ENDINGS.map((e) => (
+              <button
+                key={e.key}
+                role="tab"
+                aria-selected={ending === e.key}
+                className={`surface-toggle__btn${ending === e.key ? " surface-toggle__btn--active" : ""}`}
+                onClick={() => setEnding(e.key)}
+                title={e.help}
+              >
+                {e.toggle}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {nothing ? (
+        <p className="dash-note">
+          {scope === "day"
+            ? isToday
+              ? "Nobody has opened the game today yet."
+              : `Nobody opened the game on ${dayDate}.`
+            : "No arrivals recorded yet."}
+        </p>
+      ) : (
+        <>
+          {headline && <p className="funnel__headline">{headline}</p>}
+          <FunnelChart counts={counts} ending={ending} />
+          <p className="dash-note" style={{ marginTop: 12 }}>
+            {scope === "allTime" ? (
+              <>
+                Pooled over {funnel.allTime.days} day{funnel.allTime.days === 1 ? "" : "s"}
+                {funnel.allTime.since && ` since ${shortDate(funnel.allTime.since)}`} — counted per device per
+                day, so somebody who played on three of them is three arrivals.
+              </>
+            ) : (
+              <>
+                {isToday ? "Today" : dayDate} only. One day is tens of people at this volume; “All time” pools
+                every measured day for a steadier read.
+              </>
+            )}
+          </p>
+          {counts.visited === null && (
+            <p className="dash-note">
+              Arrivals weren't counted{visitsSince ? ` before ${shortDate(visitsSince)}` : " yet"}, so this
+              funnel starts at the first guess — a top rung of 0 would claim a 100% bounce rate rather than
+              admit the instrument was off.
+            </p>
+          )}
+          <details className="dash-details">
+            <summary>What this counts</summary>
+            <p className="dash-note">
+              Every stage counts <strong>devices, not games</strong>. A visit is one device per ET day while a
+              “start” is a round, so a player who does the Special and three Leftovers is one arrival and four
+              starts — stacked as a funnel those would grow as they descend and report a 400% play rate.
+              Counted in devices each stage is a real subset of the one above it. The Today tab's finishing
+              bars count games instead, which is the right unit for a service and the wrong one for a funnel.
+              The bar is share of arrivals; the percentage beside it is share of the step above, and it's the
+              second one that says whether a step is working.
+            </p>
+          </details>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -519,6 +841,8 @@ export default function PlayersPanel({
     retention,
     countries,
     solveTimes,
+    funnel,
+    visits,
   } = data;
   // The server settles what day we're actually looking at, so trust `day.date`
   // over the requested one (a future/garbage date falls back to today).
@@ -677,6 +1001,16 @@ export default function PlayersPanel({
           )}
         </p>
       </section>
+
+      {/* Between the totals and the coming-back charts, because that's the order
+          the questions come in: how many, then where they fell out, then whether
+          the ones who stayed came back another day. */}
+      <FunnelSection
+        funnel={funnel}
+        isToday={isToday}
+        dayDate={day.date}
+        visitsSince={visits.since}
+      />
 
       <section className="panel">
         <h2>New vs returning · {span}</h2>
