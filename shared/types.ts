@@ -559,6 +559,84 @@ export interface VisitCounts {
 }
 
 /**
+ * What the funnel's last stage measures. Sharing is the end of the loop
+ * *outward* (the game reaching someone else); playing again is the end of it
+ * *inward* (the game holding the person it already has). They're different
+ * retention questions and the panel switches between them rather than picking.
+ */
+export const FUNNEL_ENDINGS = ["shared", "playedAgain"] as const;
+export type FunnelEnding = (typeof FUNNEL_ENDINGS)[number];
+
+/**
+ * Devices that started a game and never reached game over, split the same way
+ * {@link OpenRounds} splits rounds — but counted in **people**, because that's
+ * the funnel's unit throughout. A device is "still playing" when its most recent
+ * start is inside {@link DNF_GRACE_MINUTES}; older than that and it left.
+ */
+export interface OpenPlayers {
+  inProgress: number;
+  abandoned: number;
+}
+
+/**
+ * One player funnel: how many **devices** reached each stage of a single day.
+ *
+ * Every stage counts devices, not rounds, and that is the whole reason this can
+ * be drawn as a funnel at all. A visit is one device per ET day while a "start"
+ * is a round, so a player who does the Special and three Leftovers is one
+ * arrival and four starts — stacking those as stages would report a 400% play
+ * rate and a shape that grows as it descends. Counted in devices each stage is a
+ * genuine subset of the one above it, so the width of a bar means what a funnel's
+ * width is supposed to mean.
+ *
+ * The two endings are both computed server-side, so switching between them costs
+ * no request — the same reason the Experiments tab ships raw series and windows
+ * them on the client.
+ */
+export interface FunnelCounts {
+  /** Devices that opened a board. Null before the visit beacon (migrations/0020). */
+  visited: number | null;
+  /** Devices that submitted a first guess — i.e. started at least one round. */
+  played: number;
+  /** Devices that reached game over on at least one round. */
+  finished: number;
+  /** Devices that shared a result. */
+  shared: number;
+  /**
+   * Devices that started another round *after* finishing one, the same ET day.
+   * Strictly ordered against the earlier round's completion, so "opened four
+   * tabs at once" isn't counted as coming back for seconds.
+   */
+  playedAgain: number;
+  /** Of the devices that played and never finished, who's still at the table. */
+  open: OpenPlayers;
+}
+
+/** A funnel pooled over several days, with how many it covers. */
+export interface FunnelWindow extends FunnelCounts {
+  /** ET days pooled — device-days, so one device on three days counts three times. */
+  days: number;
+  /** Earliest ET day pooled, or null when nothing is. */
+  since: string | null;
+}
+
+/**
+ * The player funnel at two scopes: the selected day, and every day since the
+ * visit beacon switched on.
+ *
+ * Both are offered because at this game's volume one day is tens of people —
+ * enough to spot a catastrophe, not enough to tune anything. The pooled window
+ * is deliberately clipped to days where arrivals were actually measured; pooling
+ * in earlier days would keep their plays while dropping their (unmeasured)
+ * visitors, which would flatter the top of the funnel exactly as much as it
+ * understated the bounce.
+ */
+export interface PlayerFunnel {
+  day: FunnelCounts;
+  allTime: FunnelWindow;
+}
+
+/**
  * Rounds that started and never reported finishing, split by whether they still
  * could.
  *
@@ -1015,4 +1093,11 @@ export interface AnalyticsSummary extends AnalyticsPeriod {
    * The funnel's top — see {@link VisitCounts}.
    */
   visits: VisitCounts;
+  /**
+   * Where players fall out between opening the game and coming back for
+   * seconds, counted in devices at every stage. Surface-filtered, and its `day`
+   * slice follows the day picker like the rest of the day reads.
+   * See {@link PlayerFunnel}.
+   */
+  funnel: PlayerFunnel;
 }

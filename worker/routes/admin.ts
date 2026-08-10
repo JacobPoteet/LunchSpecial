@@ -45,6 +45,7 @@ import { foldGrowth, type GrowthRow } from "../growth";
 import { foldCountries, type CountryRow } from "../countries";
 import { foldDishStats, type DishMetaRow, type DishStatRow } from "../dishstats";
 import { foldExperimentSeries, type ExperimentHourRow } from "../experiments";
+import { foldFunnel, type FunnelBucketRow } from "../funnel";
 import { foldRhythm, type RhythmRow } from "../rhythm";
 import {
   createToken,
@@ -829,8 +830,21 @@ app.get("/analytics", async (c) => {
       // ET days in JS; a player's earliest ET day is when they were "new", every
       // later active ET day makes them "returning". Rows before player_id shipped
       // (NULL) are excluded — the split is only meaningful going forward.
+      //
+      // The funnel rides the same grouping rather than paying for a second scan:
+      // it needs the same (player, hour) rows, plus what those rounds did. The
+      // two timestamps are what make "played again" answerable — the earliest
+      // completion and the latest start in the group, compared as fixed-width
+      // UTC strings in worker/funnel.ts. `completed_at` only exists from
+      // migrations/0011, so pre-0011 completions fall back to `updated_at`, the
+      // same fallback the recent-activity feed uses for their event times.
       c.env.DB.prepare(
-        `SELECT player_id, strftime('%Y-%m-%d %H', started_at) AS bucket
+        `SELECT player_id, strftime('%Y-%m-%d %H', started_at) AS bucket,
+           COUNT(*) AS started,
+           COALESCE(SUM(completed), 0) AS completed,
+           COALESCE(SUM(shared), 0) AS shared,
+           MIN(CASE WHEN completed = 1 THEN COALESCE(completed_at, updated_at) END) AS first_completed,
+           MAX(started_at) AS last_started
            FROM analytics_rounds
            WHERE player_id IS NOT NULL AND started_at IS NOT NULL${surfAnd}
            GROUP BY player_id, bucket`,
@@ -1040,6 +1054,11 @@ app.get("/analytics", async (c) => {
     rhythm: foldRhythm(hourlyRes.results as RhythmRow[], today),
     solveTimes: foldSolveTimes(solveTimeRes.results as SolveTimeRow[]),
     visits: { visited: visitsSince === null ? null : visitsAllTime, since: visitsSince },
+    // Where players fall out, in devices at every stage — off the same
+    // (player, hour) rows as the new-vs-returning fold above, so it costs no
+    // extra query. Both endings (shared / played again) are computed here so the
+    // panel's toggle is presentation, not a round trip. See worker/funnel.ts.
+    funnel: foldFunnel(playerRes.results as FunnelBucketRow[], visitsByDay, day),
   };
   return c.json(summary);
 });
