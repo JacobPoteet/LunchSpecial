@@ -38,7 +38,7 @@ Local admin password: `ADMIN_PASSWORD` in `.dev.vars` (gitignored; currently `lu
 
 ### Where secrets live
 
-- **Worker secrets** (`ADMIN_PASSWORD`, `SESSION_SECRET`): set directly on the Worker via `wrangler secret put`. They live on the Worker and persist across deploys, so CI never needs them.
+- **Worker secrets** (`ADMIN_PASSWORD`, `SESSION_SECRET`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`): set directly on the Worker via `wrangler secret put`. They live on the Worker and persist across deploys, so CI never needs them. The Discord pair is **optional** — without it every deployment still runs, minus the Activity's Rich Presence (`/api/discord/token` answers 503). The client *id* isn't secret (it already ships in the bundle as `VITE_DISCORD_CLIENT_ID`); it's a Worker secret only so the pair stays together and no app id is hardcoded in the repo.
 - **CI credentials** (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`): stored as **GitHub Actions secrets** (Settings → Secrets and variables → Actions).
   - `CLOUDFLARE_API_TOKEN` — a CF API token with the "Edit Cloudflare Workers" template scope + D1:Edit
   - `CLOUDFLARE_ACCOUNT_ID` — `9016037cfaa0836d9bbc85d754935cb5`
@@ -75,14 +75,21 @@ Note: the vite plugin writes a build-processed config into dist/; plain `wrangle
 
 ## Discord Activity
 
-The game also runs as a **Discord Activity** (embedded iframe app) — **no separate build**. Discord doesn't host the code; it frames `lunchspecial.app` through its proxy via a URL mapping. So the same `npm run build` / `npm run deploy` ships both the public site and the Activity. The only Discord-specific code is `src/discord/bootstrap.ts`, activated purely at runtime.
+The game also runs as a **Discord Activity** (embedded iframe app) — **no separate build**. Discord doesn't host the code; it frames `lunchspecial.app` through its proxy via a URL mapping. So the same `npm run build` / `npm run deploy` ships both the public site and the Activity. The only Discord-specific client code is `src/discord/` (`bootstrap.ts` + `presence.ts`), activated purely at runtime.
 
 - **Detection:** `isDiscordActivity()` checks for the `frame_id` query param Discord adds to the iframe URL. On the open web it's absent, so `initDiscord()` returns null and the Embedded App SDK (`@discord/embedded-app-sdk`, behind a **dynamic import**) is never downloaded — zero cost to web visitors.
-- **Boot:** `src/main.tsx` awaits `initDiscord()` before mounting React. When embedded, it completes the SDK `ready()` handshake, then the existing game runs **anonymously** exactly as on the web (localStorage state, no accounts). Current scope is "minimal embed": no OAuth / user identity yet.
+- **Boot:** `src/main.tsx` awaits `initDiscord()` before mounting React. When embedded, it completes the SDK `ready()` handshake, then the existing game runs **anonymously** exactly as on the web (localStorage state, no accounts). The one OAuth scope taken is `rpc.activities.write`, for Rich Presence — no identifying scope, so there is still no per-user identity anywhere in the app.
 - **Sharing results inside the Activity = copy to clipboard.** The receipt's share button builds the same emoji grid as the web (`buildShareText()`), then on the `discord` surface copies `text + SHARE_URL` via `copyShareText()` (src/game/share.ts) and relabels itself "Copied — paste it in chat!". No SDK involved. The Web Share sheet is skipped outright in the embed — the iframe has no `web-share` permission, and its rejection handler leaves the button looking untouched.
   - `copyShareText()` tries `navigator.clipboard.writeText` and **falls back to a hidden-textarea `document.execCommand("copy")`**. That fallback is the point: `navigator.clipboard` is gated behind the `clipboard-write` permissions policy, which Discord's iframe doesn't grant, so the modern API alone just rejects there. `execCommand` only needs a user gesture. It returns a boolean and the button shows a retry label on `false` — never let a share fail silently.
   - **Previously tried and reverted:** `sdk.commands.shareLink({ message })` (Discord's own share modal, posts as the player with a deep link back into the Activity). It kept erroring in practice — the button just showed the retry label. A Discord-native share is worth revisiting, but re-read this before reaching for `shareLink` again. `openShareMomentDialog` is not the answer either: web-only and needs a Discord CDN image URL.
-  - **If you do wire the SDK back up, the 5s `ready()` cap must not gate it.** The cap only decides *when React mounts* so a stalled handshake doesn't white-screen the iframe; a handshake landing at 5.1s is still a perfectly good SDK. The original #49+#51 shape registered the instance only on the race's winning branch, which silently killed the share button on every slow Activity start.
+  - **The 5s `ready()` cap must not gate anything but the mount.** The cap only decides *when React mounts* so a stalled handshake doesn't white-screen the iframe; a handshake landing at 5.1s is still a perfectly good SDK. The original #49+#51 shape registered the instance only on the race's winning branch, which silently killed the share button on every slow Activity start — which is why `attachPresence(sdk)` is called inside the handshake's own `.then()`, not on the branch that wins the race.
+- **Rich Presence** (GitHub #101): the player's Discord profile shows which mode they're in and how far through the guesses they are — "Playing Lunch Special / Today's Special · No. 26 / Guess 3 of 6", with an elapsed timer. The copy is a pure fold in `shared/presence.ts` (`buildPresence`, unit-tested in presence.test.ts); the SDK plumbing is `src/discord/presence.ts`; `GamePage` calls `setPresence()` from an effect keyed on round status + guess count. Six things are load-bearing:
+  1. **It never names the dish.** A profile is read by people who haven't played today, so the answer, the guessed dishes and the clues are all barred from those two lines — the same rule as "never leak the target except via /reveal". Progress is safe; a guess count says nothing about what the dish is. A test asserts the fold's whole output space stays inside a character class no dish name can survive.
+  2. **One scope, and it isn't an identifying one.** `setActivity` is gated behind `rpc.activities.write`, so presence is the first thing in this app that genuinely needs OAuth — but it asks for `identify`/`guilds` **not at all**, so the anonymous model survives whole. Keep `SCOPES` at one entry.
+  3. **The token exchange is server-side** (`worker/routes/discord.ts`, `POST /api/discord/token`): the SDK's `authorize()` yields a code, and trading it for an access token needs the client secret, which must never reach the browser. Unconfigured deployments answer **503** and the game is otherwise unaffected — presence is a flourish on someone else's profile and nothing may ever wait on it.
+  4. **Authorize once per page load, whatever happens.** `prompt: "none"` keeps it silent for anyone who has authorized before; a refusal or a broken exchange sets `unavailable` and is never retried. Re-asking on the next guess is harassment, and a consent sheet mid-round is worse than no presence.
+  5. **Throttled to one update per 4s with a trailing send**, because Discord's RPC limit is 5 SET_ACTIVITY per 20s and a burst would drop the *interesting* update (the win) rather than the noise. Identical activities are dropped by comparing the serialized payload, and a failed send clears that memo so the same state can be retried.
+  6. **The elapsed timer measures this sitting and is dropped once the round ends.** A board restored from localStorage was begun on a page load we no longer have, so dating the timer to the round would report hours; and a counter still climbing beside "Solved it in 4 guesses" is measuring how long the tab stayed open. Preview and playtest publish nothing, gated on the same `tracked` flag as the beacons.
 - **Why it works with no proxy gymnastics:** the app is same-origin + self-contained — all client calls are relative `/api/*`, all assets/fonts/art are Worker-served (no CDNs). Discord's "route everything through the proxy" rule is satisfied automatically by a root URL mapping.
 - **Client ID:** `VITE_DISCORD_CLIENT_ID` — a **public** build-time Vite var (ships in the bundle; NOT a secret; do not put it in `.dev.vars`). Local dev: add it to `.env.local` (gitignored; see `.env.example`). CI: set it as a repo Actions **Variable** (not secret) — `deploy.yml` passes it to the build.
 - **localStorage caveat:** inside Discord it's sandboxed to the `discordsays.com` origin, so Activity players have a **separate** game history from lunchspecial.app. Acceptable for the anonymous MVP; unifying stats is the (future) OAuth path.
@@ -93,6 +100,7 @@ The game also runs as a **Discord Activity** (embedded iframe app) — **no sepa
 2. Enable **Activities** in the app's Embedded settings.
 3. Add **URL Mapping**: prefix `/` → `lunchspecial.app`.
 4. Add an OAuth2 redirect URI (`https://127.0.0.1` placeholder is fine for the embedded flow).
+5. For Rich Presence, copy the same **Client ID** and the OAuth2 **Client Secret** onto the Worker: `npx wrangler secret put DISCORD_CLIENT_ID` and `npx wrangler secret put DISCORD_CLIENT_SECRET` (plus the same two keys in `.dev.vars` for local dev — leave them empty and presence simply stays off). No portal toggle is needed: `rpc.activities.write` is requested at runtime, and the presence card shows the app's own icon, so nothing has to be uploaded under Rich Presence → Art Assets.
 
 **Dev testing inside real Discord:** Discord can't reach `localhost`, so it needs a public HTTPS URL. Run `npm run dev` in one terminal and `npm run tunnel` (cloudflared quick tunnel → :5173) in another, then point the portal's URL Mapping at the printed `*.trycloudflare.com` URL while testing. (`cloudflared` must be installed separately.)
 
@@ -119,9 +127,11 @@ worker/experiments.ts PURE all-time daily series fold (hour buckets + player act
 worker/funnel.ts      PURE player-funnel fold (same (player, hour) rows + visits by day → per-device stages) — unit tested
 worker/device.ts      PURE one-device fold (grouped rounds + visits + notice views → the review shown before a wipe) — unit tested
 shared/markdown.ts    PURE inline-markdown tokenizer for announcement bodies (bold/italic/link → tokens, never HTML) — unit tested
+shared/presence.ts    PURE Discord Rich Presence copy (round → "Today's Special · No. 26" / "Guess 3 of 6"; never the dish) — unit tested
 shared/sample.ts      PURE small-sample statistics — Wilson intervals, SMALL_SAMPLE_MIN, weighted median/percentile — unit tested
 shared/experiment.ts  PURE before/after comparison — windowing, pooled rates, verdicts, "how many more days" — unit tested
 shared/time.ts        GAME_TIMEZONE (America/New_York), gameToday, msUntilGameMidnight — the midnight-ET daily rollover, shared by worker + client
+worker/routes/discord.ts  /api/discord/token — OAuth code→token hop for Rich Presence (client secret never reaches the browser)
 worker/routes/public.ts   /api/dishes, /daily, /guess, /reveal — never leak target except via /reveal
                           + /announcements (eligible notices) and /announcements/seen (reach)
 worker/routes/admin.ts    /api/admin/*: login/logout/session, dish CRUD, ingredients vocab,
@@ -133,6 +143,7 @@ worker/routes/admin.ts    /api/admin/*: login/logout/session, dish CRUD, ingredi
                           /experiments CRUD (+ the all-time daily series it's measured against),
                           /announcements CRUD (+ per-notice reach)
 src/discord/          bootstrap.ts = Discord Activity runtime hook (frame_id detect + SDK ready); dynamic-imported, web pays nothing
+                      presence.ts = Rich Presence plumbing (one OAuth scope, throttled setActivity); no-op off Discord
 src/App.tsx           path startsWith /admin → lazy AdminApp, else GamePage (no router lib)
 src/api.ts            public fetch wrappers + localToday()
 src/game/             GamePage (orchestrator), components.tsx (Modal/GuessRow/ClueTicket/GuessInput/Countdown),

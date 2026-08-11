@@ -20,6 +20,11 @@
     "enabled": true
   }
   // Secrets (set via `wrangler secret put`, never committed):
-  //   ADMIN_PASSWORD  — password for the /admin panel
-  //   SESSION_SECRET  — random string used to sign admin session cookies
+  //   ADMIN_PASSWORD        — password for the /admin panel
+  //   SESSION_SECRET        — random string used to sign admin session cookies
+  //   DISCORD_CLIENT_ID     — Discord app id (public, but it travels with the
+  //                           secret below so the pair stays together)
+  //   DISCORD_CLIENT_SECRET — Discord app secret, for the Rich Presence OAuth
+  //                           token exchange (/api/discord/token). Optional:
+  //                           without it the game runs, minus presence.
 }
