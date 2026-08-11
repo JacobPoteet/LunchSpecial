@@ -13,25 +13,44 @@ import type { DiscordSDK } from "@discord/embedded-app-sdk";
 import type { PresenceActivity } from "../../shared/presence";
 
 /**
- * The scopes presence needs. Both of them, and no more.
+ * The one scope presence is *known* to need: `rpc.activities.write`, which
+ * grants `setActivity`.
  *
- * `rpc.activities.write` is the one that grants `setActivity`. `identify` is
- * here because the RPC handshake forces it: `authenticate()` resolves the token
- * to a user, and the SDK parses its reply against a schema where `user`
- * (username, discriminator, id, public_flags) is **required and non-optional**.
- * A token without `identify` can't produce that object, so the parse throws and
- * every later `setActivity` is dead — which is exactly how this shipped first
- * (GitHub #101): the consent sheet appeared, authorization succeeded, and no
- * profile ever changed. Discord's own documented example pairs the two for the
- * same reason.
+ * ---- THIS LIST IS AN OPEN EXPERIMENT. Read before changing it. ----
  *
- * What survives is the part that matters: **the user object is dropped on the
- * floor.** It is never read, stored, sent to the Worker, or written to
- * localStorage. The game is still anonymous — no accounts, per-device state, no
- * identity in any table. `identify` buys Discord's handshake and nothing else.
- * Don't add a third scope, and don't start reading the one we're forced to take.
+ * Presence first shipped with exactly this one entry and never appeared on
+ * anyone's profile. The fix that made it work changed **two** things at once —
+ * it added `identify` *and* started sending `type: 0` — so which of them was
+ * load-bearing was never established. This reverts the scope half alone, with
+ * `type` left in, to find out.
+ *
+ * The suspicion against `identify` was that `authenticate()` is an identity
+ * call: the SDK parses its reply against a schema where `user` (username,
+ * discriminator, id, public_flags) is **required and non-optional**, and a
+ * token without `identify` can't produce that object, so the parse throws and
+ * every later `setActivity` is dead. Discord's documented example pairs the two
+ * scopes. That's a good argument and it may well be right — but it was never
+ * observed, and the alternative (the missing `type`) explains the symptom just
+ * as well.
+ *
+ * It matters because the sheet `identify` adds asks a new player for their
+ * username, avatar and banner to play a game that has no accounts and stores
+ * nothing about them. That's a real cost at the worst possible moment, and it
+ * shouldn't be paid on an inference.
+ *
+ * **To settle it:** deploy this, revoke the existing grant (User Settings →
+ * Authorized Apps → Lunch Special — otherwise `prompt: "none"` silently reuses
+ * what was already approved and the run proves nothing), then open the Activity
+ * and read the console.
+ *   - `[discord] Rich Presence active: …`      → `identify` was never needed.
+ *     Delete this whole block, keep the one entry, and record that it was
+ *     measured.
+ *   - `[discord] … (failed at: authenticate)`  → it is genuinely required.
+ *     Put `identify` back with that finding written down, so nobody spends a
+ *     third round trip on it.
+ * Either way, replace this comment with the answer.
  */
-const SCOPES = ["identify", "rpc.activities.write"] as const;
+const SCOPES = ["rpc.activities.write"] as const;
 
 /** Activity type 0 = "Playing", the header Discord puts above the two lines. */
 const ACTIVITY_TYPE_PLAYING = 0;
