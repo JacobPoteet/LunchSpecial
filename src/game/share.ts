@@ -2,10 +2,12 @@
 
 import type { GuessFeedback, MatchLevel } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
+import { SITE_ORIGIN } from "../../shared/links";
 
 const SQUARE: Record<MatchLevel, string> = { hit: "🟩", near: "🟨", miss: "⬜" };
 
-export const SHARE_URL = "https://lunchspecial.app";
+/** Where a shared score card points. One origin, defined once (shared/links.ts). */
+export const SHARE_URL = SITE_ORIGIN;
 
 // The score card only — NO url. Callers pass the url as a separate Web Share
 // field (and append it for the clipboard fallback). Keeping them apart lets

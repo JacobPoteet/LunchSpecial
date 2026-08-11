@@ -7,6 +7,7 @@
 
 import { Fragment } from "react";
 import { parseMarkdown, type Span } from "../../shared/markdown";
+import { interceptOutbound } from "../discord/links";
 
 function renderSpan(span: Span, key: number) {
   switch (span.type) {
@@ -17,12 +18,15 @@ function renderSpan(span: Span, key: number) {
     case "link": {
       // Same-site paths (/privacy, /?date=…) navigate in place; anything
       // off-site opens in a new tab so a player mid-round doesn't lose the
-      // board — and never with a window.opener handle back to us.
+      // board — and never with a window.opener handle back to us. Inside the
+      // Discord Activity neither of those works for a link that leaves the app,
+      // so the handler takes those over; on the web it does nothing.
       const external = /^https?:/i.test(span.href);
       return (
         <a
           key={key}
           href={span.href}
+          onClick={(e) => interceptOutbound(e, span.href)}
           {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
         >
           {span.text}

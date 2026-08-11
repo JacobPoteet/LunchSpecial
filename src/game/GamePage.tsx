@@ -21,6 +21,7 @@ import AnnouncementModal from "./AnnouncementModal";
 import ArchiveModal from "./ArchiveModal";
 import { dateLabel, isPastPuzzleDate } from "./archive";
 import { currentSurface, surfaceUrl } from "../discord/bootstrap";
+import { interceptOutbound } from "../discord/links";
 import { setPresence } from "../discord/presence";
 import { buildPresence } from "../../shared/presence";
 import { playSfx } from "./sfx";
@@ -958,8 +959,14 @@ export default function GamePage() {
 
       <footer className="footer-note">
         <p>Created by Jacob Poteet</p>
+        {/* These three are separate static documents, so following one unloads
+            the game — inside the Activity that means unloading the Activity.
+            interceptOutbound opens them in the player's browser there, and
+            leaves them as ordinary links on the web. */}
         <p className="footer-note__links">
-          <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/press">Press</a>
+          <a href="/privacy" onClick={(e) => interceptOutbound(e, "/privacy")}>Privacy</a> ·{" "}
+          <a href="/terms" onClick={(e) => interceptOutbound(e, "/terms")}>Terms</a> ·{" "}
+          <a href="/press" onClick={(e) => interceptOutbound(e, "/press")}>Press</a>
         </p>
       </footer>
 
