@@ -30,12 +30,14 @@ jobs:
       - run: npm ci
 
       # wrangler types derives Env's secret members (ADMIN_PASSWORD, SESSION_SECRET,
-      # DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET) from .dev.vars, which is gitignored.
-      # Give CI a placeholder so the generated Env includes them. Values are dummy —
-      # the real secrets are set on the Worker itself (wrangler secret put) and are
-      # never needed at build time. Keep this list in sync with the identical line
-      # in ci.yml.
-      - run: printf 'ADMIN_PASSWORD=placeholder\nSESSION_SECRET=placeholder\nDISCORD_CLIENT_ID=placeholder\nDISCORD_CLIENT_SECRET=placeholder\n' > .dev.vars
+      # DISCORD_CLIENT_ID, …) from .dev.vars, which is gitignored. Give the build a
+      # placeholder so the generated Env includes them. Values are dummy — the real
+      # secrets are set on the Worker itself (wrangler secret put) and are never
+      # needed at build time.
+      #
+      # Derived from the committed .dev.vars.example rather than spelled out, so
+      # adding a secret can't break the typecheck here and in ci.yml separately.
+      - run: grep -E '^[A-Z_]+=' .dev.vars.example | sed -E 's/=.*/=placeholder/' > .dev.vars
 
       # worker-configuration.d.ts (Cloudflare runtime types + Env) is gitignored
       # and generated, so CI must regenerate it before typecheck/build.

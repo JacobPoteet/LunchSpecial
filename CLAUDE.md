@@ -61,7 +61,7 @@ Three workflows, deliberately scoped so routine pushes don't pay for the full ga
 git tag v1.1.0 && git push origin v1.1.0
 ```
 
-CI gotcha: `worker-configuration.d.ts` and the `Env` secret members are generated from `.dev.vars` — both gitignored — so the workflow regenerates types (`cf-typegen`) and writes a dummy `.dev.vars` (placeholder values; the real secrets live on the Worker) before the typecheck/build, or `tsc` fails on missing runtime types / `Env` members.
+CI gotcha: `worker-configuration.d.ts` and the `Env` secret members are generated from `.dev.vars` — both gitignored — so the workflow regenerates types (`cf-typegen`) and writes a dummy `.dev.vars` before the typecheck/build, or `tsc` fails on missing runtime types / `Env` members. That placeholder is **derived from the committed `.dev.vars.example`** (`grep`+`sed`, identical in ci.yml and deploy.yml) rather than spelled out: it used to be two hardcoded lists, and adding `DISCORD_PUBLIC_KEY` broke the typecheck on exactly that. **So a new Worker secret must be added to `.dev.vars.example`**, or CI can't see it.
 
 CI runs migrations (idempotent, additive) but **never** the seed — `seed/seed.sql` DELETEs and re-inserts every dish, which would wipe admin edits. Seed only by hand, once, during bootstrap.
 
