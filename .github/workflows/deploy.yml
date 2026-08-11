@@ -33,7 +33,8 @@ jobs:
       # DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET) from .dev.vars, which is gitignored.
       # Give CI a placeholder so the generated Env includes them. Values are dummy —
       # the real secrets are set on the Worker itself (wrangler secret put) and are
-      # never needed at build time.
+      # never needed at build time. Keep this list in sync with the identical line
+      # in ci.yml.
       - run: printf 'ADMIN_PASSWORD=placeholder\nSESSION_SECRET=placeholder\nDISCORD_CLIENT_ID=placeholder\nDISCORD_CLIENT_SECRET=placeholder\n' > .dev.vars
 
       # worker-configuration.d.ts (Cloudflare runtime types + Env) is gitignored
