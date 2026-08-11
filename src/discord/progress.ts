@@ -19,7 +19,6 @@
 import type { DiscordSDK } from "@discord/embedded-app-sdk";
 import { buildScorecard, type Scorecard } from "../../shared/scorecard";
 import type { GuessFeedback } from "../../shared/types";
-import { peekToken } from "./auth";
 
 /**
  * The application command `shareInteraction` invokes. Registered once against
@@ -77,7 +76,12 @@ export function publishProgress(input: {
   ingredientCount: number;
   live: boolean;
 }): void {
-  if (!sdk || retired || peekToken() === null) return;
+  // Deliberately NOT gated on the OAuth token presence uses. Nothing in this
+  // loop needs it — `shareInteraction` is an SDK command, and the edit rides the
+  // interaction token the Worker banked — so requiring one would mean the
+  // channel message silently never appeared whenever DISCORD_CLIENT_SECRET was
+  // unset, which has nothing to do with this feature and is miserable to debug.
+  if (!sdk || retired) return;
   // Nothing to show yet. The first guess is the moment this becomes interesting
   // to a channel, and posting an empty board before it would be noise.
   if (input.guesses.length === 0) return;
