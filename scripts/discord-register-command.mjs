@@ -71,12 +71,17 @@ if (!res.ok) {
   // Discord's validation errors are the useful part of a failed registration.
   console.error(`Discord refused the registration (${res.status}):`);
   console.error(await res.text());
-  process.exit(1);
+  // exitCode rather than exit(): calling process.exit() while the fetch's
+  // handles are still settling trips a libuv assertion on Windows and reports
+  // 127 instead of the failure we meant.
+  process.exitCode = 1;
 }
 
-const registered = await res.json();
-console.log(`Registered ${registered.length} command(s):`);
-for (const cmd of registered) console.log(`  /${cmd.name} — ${cmd.description}`);
-console.log("\nNext: set the Interactions Endpoint URL in the Developer Portal to");
-console.log("  https://lunchspecial.app/api/discord/interactions");
-console.log("Discord validates it on save with a deliberately bad signature and expects a 401.");
+if (res.ok) {
+  const registered = await res.json();
+  console.log(`Registered ${registered.length} command(s):`);
+  for (const cmd of registered) console.log(`  /${cmd.name} — ${cmd.description}`);
+  console.log("\nNext: set the Interactions Endpoint URL in the Developer Portal to");
+  console.log("  https://lunchspecial.app/api/discord/interactions");
+  console.log("Discord validates it on save with a deliberately bad signature and expects a 401.");
+}
