@@ -37,18 +37,12 @@ Built as a single Cloudflare Worker: React SPA served from Workers Static Assets
 
 ```bash
 npm install
-cp .dev.vars.example .dev.vars       # set ADMIN_PASSWORD + SESSION_SECRET
-npm run db:migrate                   # create tables in local D1
-npm run db:seed                      # 353 dishes, 1,765 clues, 30 scheduled days
-npm run dev                          # http://localhost:5173
+cp .dev.vars.example .dev.vars       # ADMIN_PASSWORD + SESSION_SECRET
+npm run db:migrate && npm run db:seed
+npm run dev                          # game at :5173/, admin at :5173/admin
 ```
 
-- Game: `http://localhost:5173/`
-- Admin: `http://localhost:5173/admin` (password = `ADMIN_PASSWORD` from `.dev.vars`)
-
-`.dev.vars` holds **Worker** secrets. Client build-time vars (currently just `VITE_DISCORD_CLIENT_ID`) go in a gitignored `.env.local` — see `.env.example`. Neither is needed to play the game locally.
-
-`npm test` runs the unit tests; `npm run check` typechecks everything.
+`.dev.vars` holds **Worker** secrets; client build-time vars (currently just `VITE_DISCORD_CLIENT_ID`) go in a gitignored `.env.local` — see `.env.example`. Neither is needed to play the game locally. `npm test` runs the unit tests, `npm run check` typechecks everything.
 
 ### Debug / testing options
 
@@ -63,37 +57,23 @@ Ways to poke at the game locally without editing the schedule or touching your s
 | `npm run admin` | Starts the dev server and opens **`/admin`** straight at the login, skipping the game. |
 | Admin **Test play** | From `/admin`, a signed preview link that plays a *specific* dish (see [Admin panel](#admin-panel-admin)). |
 
-Under the hood a random seed is sent to the API and mapped to an active dish deterministically — one round stays on a single dish, while a new seed rolls a new one. This is the same **Chef's Choice** round players can launch from Leftovers in production; it's spoiler-free (it never touches the schedule) and saves no local stats. The `/play` and `?freeplay` entrances above are dev conveniences (client behind `import.meta.env.DEV`) that drop you straight into a random round on load.
-
-`?special=<slug>` is the same idea with the roll taken out: the slug names the dish outright. It's a testing tool, so it's the most throwaway mode of all — no localStorage, no lifetime stats, and (unlike a random round) no analytics either. The client honours it in dev only.
-
-Because it's mostly used to look at the **end of a round**, it's dressed as the daily on the way there: today's real Special number, and a finished-round check with the countdown, share button, stats panel and **📅 Play again** exactly where the daily puts them. The banner at the top is the only tell. Two seams are on purpose — the stats panel shows the numbers you started with (the round wasn't recorded), and sharing copies a real score card without logging a share.
+A random round sends a seed the API maps deterministically to an active dish, so the round stays on one dish and a new seed rolls another — the same spoiler-free **Chef's Choice** mode players get in production (never touches the schedule, saves no stats). `?special=<slug>` takes the roll out and names the dish outright; it's the most throwaway mode of all — no localStorage, no lifetime stats, no analytics — and the client honours it in dev only. Because it exists to rehearse the **end of a round**, it's dressed as the daily right down to the check, countdown and share button, with the top banner as the only tell.
 
 ## Deploying to Cloudflare
 
-The app is live and deploys automatically. The whole thing (game + API + admin) ships as one Worker — free-tier friendly.
-
-### Releases (automated)
-
-Push a version tag and GitHub Actions handles the rest — test, typecheck, apply remote D1 migrations, deploy:
+The whole thing (game + API + admin) ships as one Worker — free-tier friendly. It's live, and releases are automated: push a version tag and GitHub Actions tests, typechecks, applies remote D1 migrations, and deploys.
 
 ```bash
 git tag v1.1.0 && git push origin v1.1.0
 ```
 
-You can also run it on demand from **Actions → Deploy to Cloudflare → Run workflow**. CI authenticates with two GitHub Actions secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`); the Worker secrets below live on the Worker and persist across deploys, so CI never touches them. The seed is **never** run in CI — it would overwrite dishes edited via `/admin`.
+Also runnable on demand from **Actions → Deploy to Cloudflare → Run workflow**. CI authenticates with two GitHub Actions secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`); `ADMIN_PASSWORD` and `SESSION_SECRET` live on the Worker itself and persist across deploys, so CI never touches them. The seed is **never** run in CI — it would overwrite dishes edited via `/admin`.
 
 **Production D1 is the only copy of half the data.** The seed and migrations reconstruct the dish *pool* and nothing else — the booked schedule, every admin dish edit, analytics, announcements and experiments live only in production and have no representation in this repo. There is no automatic backup, so take one before any production database work: `npm run db:export:remote` writes a full dump to a gitignored `backups/`, and `npm run db:export:catalog` writes a dishes-and-clues-only dump that's safe to share.
 
 The release's changelog is generated from the merged PRs' labels (`.github/release.yml`), so it falls out of the label each PR already carries rather than being written by hand. Dependency updates arrive as grouped weekly Dependabot PRs, and CodeQL runs security/quality analysis on every PR (`.github/workflows/codeql.yml`).
 
-### First-time setup (one-off)
-
-1. `npx wrangler login`
-2. `npx wrangler d1 create lunch-special-db` → copy the returned id into `database_id` in `wrangler.jsonc`
-3. `npm run db:migrate:remote && npm run db:seed:remote`
-4. `npx wrangler secret put ADMIN_PASSWORD` and `npx wrangler secret put SESSION_SECRET` (use a long random string)
-5. `npm run deploy` for the first manual deploy, then add the two GitHub Actions secrets to arm CI
+Rebuilding the environment from scratch (already done once, unlikely to be needed again): `wrangler login` → `wrangler d1 create` and paste the id into `wrangler.jsonc` → `db:migrate:remote` + `db:seed:remote` → `wrangler secret put` the two Worker secrets → `npm run deploy` → add the two Actions secrets to arm CI. CLAUDE.md keeps the full record, including which account and token scopes.
 
 ## Discord Activity
 
