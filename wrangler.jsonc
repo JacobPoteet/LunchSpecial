@@ -27,4 +27,11 @@
   //   DISCORD_CLIENT_SECRET — Discord app secret, for the Rich Presence OAuth
   //                           token exchange (/api/discord/token). Optional:
   //                           without it the game runs, minus presence.
+  //   DISCORD_PUBLIC_KEY    — Discord app's Ed25519 public key, used to verify
+  //                           that interactions really came from Discord
+  //                           (/api/discord/interactions). Optional: without it
+  //                           the endpoint answers 503 and the Activity's live
+  //                           progress message simply doesn't post.
+  // NOT a secret here: the bot token. It's used once, by
+  // scripts/discord-register-command.mjs, and nothing in the running app has one.
 }

@@ -22,6 +22,7 @@ import ArchiveModal from "./ArchiveModal";
 import { dateLabel, isPastPuzzleDate } from "./archive";
 import { currentSurface, surfaceUrl } from "../discord/bootstrap";
 import { setPresence } from "../discord/presence";
+import { publishProgress, resetProgress } from "../discord/progress";
 import { canShareToChannel, shareToChannel } from "../discord/share";
 import { canInvite, onParticipantCount, openInvite } from "../discord/social";
 import { buildPresence } from "../../shared/presence";
@@ -813,6 +814,38 @@ export default function GamePage() {
       }),
     );
   }, [tracked, daily, analyticsKind, round.status, round.guesses.length]);
+
+  // A new board is a new message. Without this, starting a second round in the
+  // same tab would edit the first round's message into the second round's score.
+  //
+  // Declared *above* the publisher so it runs first: effects fire in order, and a
+  // board restored from localStorage mid-round publishes on mount. Reset it
+  // afterwards and that first post would be orphaned, with the next guess posting
+  // a second message for the same round.
+  useEffect(() => {
+    resetProgress();
+  }, [date, random, playtest]);
+
+  // The live message in the Discord channel: posted on the first guess, rewritten
+  // on every one after it, past-tensed when the round ends. Same trigger as
+  // presence and the same `tracked` gate — a preview or a playtest is nobody's
+  // round and has no business in a channel.
+  //
+  // Deliberately not awaited and deliberately without an error path: the module
+  // retires itself on the first failure, so the worst case is a channel that
+  // doesn't hear about this round.
+  useEffect(() => {
+    if (!tracked || !daily || SURFACE !== "discord") return;
+    publishProgress({
+      puzzleNumber: daily.puzzleNumber,
+      guesses: round.guesses,
+      won: round.status === "won",
+      ingredientCount: daily.ingredientCount,
+      live: round.status === "playing",
+    });
+    // Keyed on the guess *count*, like presence: the array's identity changes on
+    // renders that didn't add a guess, and each one would be another upload.
+  }, [tracked, daily, round.status, round.guesses.length]);
 
   // The ticket waits out the whole guess sequence — row drop, tile flips, chip
   // pops — plus a beat of stillness, so the clue reads as a separate event

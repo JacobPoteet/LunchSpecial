@@ -17,6 +17,7 @@
 import type { DiscordSDK } from "@discord/embedded-app-sdk";
 import type { Surface } from "../../shared/types";
 import { attachPresence } from "./presence";
+import { attachProgress } from "./progress";
 import { attachShare } from "./share";
 import { attachSocial } from "./social";
 
@@ -179,6 +180,7 @@ export async function initDiscord(): Promise<DiscordSDK | null> {
         // SDK, and tying features to that timer is how the Discord share button
         // silently died on every slow Activity start. See CLAUDE.md.
         attachPresence(sdk);
+        attachProgress(sdk);
         attachShare(sdk);
         attachSocial(sdk);
         lockPortrait(sdk);

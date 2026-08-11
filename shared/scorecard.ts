@@ -52,6 +52,25 @@ export const SCORECARD_FOOTER = "lunchspecial.app";
 const TITLE = "Lunch Special";
 
 /**
+ * The one line of text above the card in the channel.
+ *
+ * Present tense while the round is live and past tense once it's over, because
+ * the message is edited in place and stays in the channel afterwards — "is
+ * playing" on a round that finished an hour ago is the message lying about the
+ * present. It's `content` rather than part of the embed for a mechanical reason
+ * too: Discord replaces embeds wholesale on edit, so the tense and the author
+ * line have to live in different fields or changing one would mean re-sending
+ * the other (and therefore storing the player's name to re-send it with).
+ *
+ * It never says how they're doing. The card underneath says that, and a channel
+ * scrolling past shouldn't be told someone lost before they've closed the tab.
+ */
+export function progressLine(live: boolean, puzzleNumber: number): string {
+  const what = puzzleNumber > 0 ? `**${TITLE}** · No. ${puzzleNumber}` : `**${TITLE}**`;
+  return `${live ? "is" : "was"} playing ${what}`;
+}
+
+/**
  * Fold a finished round into the card.
  *
  * `won` is passed rather than derived from the last guess because a round can

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildScorecard, SCORECARD_FOOTER } from "./scorecard";
+import { buildScorecard, progressLine, SCORECARD_FOOTER } from "./scorecard";
 import type { GuessFeedback, MatchLevel } from "./types";
 import { MAX_GUESSES } from "./types";
 
@@ -73,6 +73,25 @@ describe("buildScorecard", () => {
         // guard that matters is that no free text reaches the card at all.
         expect(text).toMatch(/^[A-Za-z0-9'·./\s]+$/);
       }
+    }
+  });
+});
+
+describe("progressLine", () => {
+  it("changes tense when the round ends", () => {
+    expect(progressLine(true, 26)).toBe("is playing **Lunch Special** · No. 26");
+    expect(progressLine(false, 26)).toBe("was playing **Lunch Special** · No. 26");
+  });
+
+  it("drops the number when the round hasn't got one", () => {
+    expect(progressLine(true, 0)).toBe("is playing **Lunch Special**");
+  });
+
+  // The channel sees this line the whole time the round is live, including
+  // while the player still has guesses left.
+  it("never says how it's going", () => {
+    for (const live of [true, false]) {
+      expect(progressLine(live, 26)).not.toMatch(/solved|lost|won|guess|\d\/\d/i);
     }
   });
 });
