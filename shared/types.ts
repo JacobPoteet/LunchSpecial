@@ -827,7 +827,35 @@ export interface PublicBreakdown {
   modes: Record<RoundKind, { started: number; completed: number }>;
   /** Rounds and distinct devices per surface — drives the surface table. */
   surfaces: Record<Surface, { rounds: number; devices: number }>;
+  /**
+   * The device-based player funnel, pooled over every ET day arrivals have been
+   * measured on. Null before the visit beacon (migrations/0020) recorded
+   * anything — an unmeasured top of the funnel is reported as absent rather than
+   * as a zero, exactly as the admin dashboard does, because "nobody arrived" and
+   * "nobody counted" render identically and mean opposite things.
+   */
+  funnel: PublicFunnel | null;
+  /**
+   * `daysPlayed[i]` = devices that have played on **at least** i+1 distinct ET
+   * days, so index 0 is every tracked device and the curve only falls.
+   *
+   * Deliberately a survival curve and not the dashboard's retention *rate*:
+   * that one censors players whose window hasn't closed yet, which is the right
+   * answer to "did they come back" and needs an explanation beside it. This
+   * answers the smaller question "how many days does a device play", which needs
+   * none and can't be misread as a rate.
+   */
+  daysPlayed: number[];
+  /** Running total of rounds per ET day + the constant-pace reference line. */
+  growth: GameGrowth;
 }
+
+/**
+ * The public funnel: the admin's pooled {@link FunnelWindow} minus the in-progress
+ * / abandoned split, which is a live-service read for whoever is on shift and
+ * means nothing on a page someone opens three weeks later.
+ */
+export type PublicFunnel = Omit<FunnelWindow, "open">;
 
 // ---- Menu mix (what has actually been on the menu) ----
 

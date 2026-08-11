@@ -1,5 +1,5 @@
 -- Lunch Special — seed data
--- 344 dishes with canonical ingredients + 5 clues each, and a 30-day schedule.
+-- 353 dishes with canonical ingredients + 5 clues each, and a 30-day schedule.
 -- Safe to re-run LOCALLY: clears existing content first.
 -- Clue order: 1 broad hint → 2 origin/history → 3 fame/pop culture → 4 key ingredients/technique → 5 near-giveaway.
 --
