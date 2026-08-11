@@ -8,14 +8,18 @@
 // the Embedded App SDK is never even downloaded (it's behind a dynamic import).
 //
 // Scope: still anonymous — the game runs inside Discord exactly as it does on
-// the web (localStorage state, no accounts). The one thing the SDK is used for
-// is Rich Presence (src/discord/presence.ts). That does take OAuth, including
-// the `identify` scope its handshake turned out to require, but the user object
-// is discarded on arrival: nothing here ever stores or sends who the player is.
+// the web (localStorage state, no accounts). Two things use the SDK: Rich
+// Presence (src/discord/presence.ts) and the portrait lock below. Only the
+// first takes OAuth, including the `identify` scope its handshake turned out to
+// require, and even there the user object is discarded on arrival: nothing here
+// ever stores or sends who the player is.
 
 import type { DiscordSDK } from "@discord/embedded-app-sdk";
 import type { Surface } from "../../shared/types";
 import { attachPresence } from "./presence";
+import { attachProgress } from "./progress";
+import { attachShare } from "./share";
+import { attachSocial } from "./social";
 
 /**
  * The query params Discord adds to the Activity iframe URL. `frame_id` is the
@@ -111,6 +115,34 @@ export function surfaceUrl(url: string): string {
 const READY_TIMEOUT_MS = 5000;
 
 /**
+ * `OrientationLockStateTypeObject.PORTRAIT`, inlined so the constant doesn't
+ * have to be carried out of the dynamic import just to be read once.
+ */
+const ORIENTATION_PORTRAIT = 2;
+
+/**
+ * Ask Discord's mobile clients to keep the Activity upright.
+ *
+ * The board is a portrait menu card — a column of guess rows under a header,
+ * laid out for 375px and checked at that width. Rotating a phone hands it a
+ * viewport that's a few hundred pixels tall, where the card scrolls and the
+ * check (the tallest thing in the game at 375px) barely fits. Every other
+ * surface the game runs on lets the player choose that; the Activity is the one
+ * place we can decline it.
+ *
+ * Desktop ignores this, and it takes no OAuth scope. PIP and grid lock states
+ * are left to Discord: their tiles are far too small to play in either way, so
+ * there's no orientation worth asking for.
+ */
+function lockPortrait(instance: DiscordSDK): void {
+  instance.commands.setOrientationLockState({ lock_state: ORIENTATION_PORTRAIT }).catch((err: unknown) => {
+    // Best-effort like everything else here: an old client that doesn't know the
+    // command must not cost the player their game.
+    console.warn("[discord] setOrientationLockState failed:", err);
+  });
+}
+
+/**
  * When embedded in Discord, download + initialize the Embedded App SDK and
  * complete the `ready()` handshake. Resolves to the live SDK instance, or
  * `null` when running on the open web (or if init fails — we never block the
@@ -148,6 +180,10 @@ export async function initDiscord(): Promise<DiscordSDK | null> {
         // SDK, and tying features to that timer is how the Discord share button
         // silently died on every slow Activity start. See CLAUDE.md.
         attachPresence(sdk);
+        attachProgress(sdk);
+        attachShare(sdk);
+        attachSocial(sdk);
+        lockPortrait(sdk);
         return sdk;
       })
       .catch((err: unknown) => {

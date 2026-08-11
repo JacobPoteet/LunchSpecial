@@ -982,6 +982,18 @@
   box-shadow: 0 1px 0 var(--cherry-dark);
 }
 
+/* Only reachable while the Discord share is drawing and uploading the card —
+   a second or two. It keeps its colour (this is still the button you pressed,
+   working) and only stops looking pressable. */
+.share-btn--primary:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.share-btn--primary:disabled:hover {
+  background: var(--cherry);
+}
+
 /* Countdown and share sit side by side in one band, split by a dashed rule —
    Wordle's footer shape. Stacking them cost a full extra line for no gain. */
 .check-actions {
@@ -1347,6 +1359,29 @@ textarea.dish-request__input {
 
 .freeplay-bar__btn:hover {
   background: var(--cherry);
+}
+
+/* Who else is in this Discord Activity instance. Quieter than the other bars —
+   solid rather than dashed, no button — because it's the only one that isn't
+   telling the player something about the round they're in. It never renders
+   with a count of zero, so there's no empty state to style. */
+.counter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(42, 122, 118, 0.1);
+  border: 1.5px solid rgba(42, 122, 118, 0.28);
+  border-radius: var(--radius);
+  padding: 6px 14px;
+  margin-bottom: 12px;
+}
+
+.counter-bar__tag {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 /* Archive mode banner (replaying a previous day). */
@@ -2330,4 +2365,80 @@ textarea.dish-request__input {
     font-size: 0.94rem;
     padding: 10px 16px;
   }
+}
+
+/* ---- Discord picture-in-picture ---- */
+
+/* Discord can draw the Activity in a small floating tile while the player is
+   doing something else, and it stays interactive — so this is a board you can
+   still order from, not a thumbnail. src/discord/social.ts stamps the mode on
+   <html>; everything below is the compact state.
+
+   Scoped to the attribute rather than a width query on purpose. A PIP tile and
+   a narrow phone are different situations that happen to share a width: the
+   phone is the game's main surface and keeps its whole card, while the tile is
+   a corner of a screen doing something else.
+
+   What survives is the guess input and the rows under it, in that DOM order, so
+   the thing you act on stays at the top and the history scrolls away beneath it.
+   Everything cut below is either scene-setting or a control with somewhere else
+   to live — the toolbar's modals are unreadable at this size anyway, and the
+   header duplicates the app name Discord already draws on its own chrome. */
+:root[data-discord-layout="pip"] .marquee,
+:root[data-discord-layout="pip"] .menu-card__header,
+:root[data-discord-layout="pip"] .special-line,
+:root[data-discord-layout="pip"] .tickets,
+:root[data-discord-layout="pip"] .menu-card__thanks,
+:root[data-discord-layout="pip"] .footer-note,
+:root[data-discord-layout="pip"] .counter-bar,
+:root[data-discord-layout="pip"] .newday-bar,
+:root[data-discord-layout="pip"] .archive-bar,
+:root[data-discord-layout="pip"] .freeplay-bar,
+:root[data-discord-layout="pip"] .preview-banner {
+  display: none;
+}
+
+/* The blurred diner and its vignette are two fixed full-viewport layers with a
+   blur filter on one of them — the most expensive thing on the page, painting
+   behind a card that now covers the whole tile. */
+:root[data-discord-layout="pip"] .scene::before,
+:root[data-discord-layout="pip"] .scene::after {
+  display: none;
+}
+
+:root[data-discord-layout="pip"] .scene {
+  min-height: 0;
+  padding: 6px;
+  /* The card is the whole surface now, so the teal that the backdrop layer was
+     painting has to come from somewhere. */
+  background: var(--teal-dark);
+}
+
+/* Paper, the double frame, the drop shadow and the 600px cap are all there to
+   make the card an object sitting on a scene. There's no scene left. */
+:root[data-discord-layout="pip"] .menu-card {
+  max-width: none;
+  border: none;
+  border-radius: 6px;
+  box-shadow: none;
+  padding: 8px 10px;
+}
+
+:root[data-discord-layout="pip"] .menu-card::before {
+  display: none;
+}
+
+/* Tightened rather than shrunk: the type stays legible and the air between
+   rows is what gives way, because a tile is short before it is narrow. */
+:root[data-discord-layout="pip"] .guess-input {
+  margin-bottom: 4px;
+}
+
+:root[data-discord-layout="pip"] .guesses {
+  gap: 6px;
+  margin-bottom: 0;
+}
+
+:root[data-discord-layout="pip"] .guess-row {
+  padding: 6px 8px;
 }

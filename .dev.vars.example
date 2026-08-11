@@ -2,3 +2,8 @@
 # In production, set these with `wrangler secret put ADMIN_PASSWORD` etc.
 ADMIN_PASSWORD=choose-a-password
 SESSION_SECRET=any-long-random-string
+
+# Optional — the Discord Activity. Leave blank and the game runs without it.
+DISCORD_CLIENT_ID=
+DISCORD_CLIENT_SECRET=
+DISCORD_PUBLIC_KEY=

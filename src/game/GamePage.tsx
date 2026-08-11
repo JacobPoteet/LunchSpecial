@@ -14,7 +14,7 @@ import {
   postGuess,
   submitDishRequest,
 } from "../api";
-import type { Announcement, DailyInfo, DishSummary, RevealInfo, RoundKind } from "../../shared/types";
+import type { Announcement, DailyInfo, DishSummary, RevealInfo, RoundKind, Surface } from "../../shared/types";
 import { DISH_REQUEST_LIMITS, MAX_GUESSES } from "../../shared/types";
 import { ClueTicket, Countdown, GuessInput, GuessRow, Modal, useNewDayAvailable } from "./components";
 import AnnouncementModal from "./AnnouncementModal";
@@ -22,7 +22,11 @@ import ArchiveModal from "./ArchiveModal";
 import { dateLabel, isPastPuzzleDate } from "./archive";
 import { currentSurface, surfaceUrl } from "../discord/bootstrap";
 import { setPresence } from "../discord/presence";
+import { publishProgress, resetProgress } from "../discord/progress";
+import { canShareToChannel, shareToChannel } from "../discord/share";
+import { canInvite, onParticipantCount, openInvite } from "../discord/social";
 import { buildPresence } from "../../shared/presence";
+import { buildScorecard } from "../../shared/scorecard";
 import { playSfx } from "./sfx";
 import { buildShareText, copyShareText, SHARE_URL } from "./share";
 import {
@@ -72,6 +76,20 @@ const WIN_TOASTS = [
   "Just in time!",
   "Phew — saved it!",
 ];
+
+/**
+ * How many *other* people are in this Discord Activity instance right now — 0
+ * everywhere else, and 0 when it's just you.
+ *
+ * Subtracting yourself is the whole point: "1 person here" is a worse thing to
+ * read than nothing at all, because it names an empty room. The count is the
+ * only fact that leaves src/discord/social.ts; who those people are never does.
+ */
+function useCounterCompany(): number {
+  const [count, setCount] = useState(0);
+  useEffect(() => onParticipantCount(setCount), []);
+  return Math.max(0, count - 1);
+}
 
 function WinToast({ text }: { text: string }) {
   return (
@@ -323,6 +341,33 @@ function KitchenClosed({ detail, onRetry }: { detail: string | null; onRetry: ()
   );
 }
 
+type ShareState = "idle" | "working" | "shared" | "copied" | "failed";
+
+/**
+ * What the share button says.
+ *
+ * The idle label doesn't name a destination inside Discord, because which path
+ * runs is only settled at click time: posting to the channel rides on the
+ * authorization presence takes, and a player who declined that gets the
+ * clipboard. A button that promised "Share to channel" and then quietly copied
+ * would be lying about where the round went — so the button offers to share and
+ * the *result* says where it ended up.
+ */
+function shareLabel(state: ShareState, surface: Surface): string {
+  switch (state) {
+    case "working":
+      return "Plating up…";
+    case "shared":
+      return "Sent to the channel!";
+    case "copied":
+      return surface === "discord" ? "Copied — paste it in chat!" : "Copied!";
+    case "failed":
+      return "Tap to retry";
+    default:
+      return surface === "discord" ? "📤 Share" : "📋 Share";
+  }
+}
+
 function ResultModal({
   round,
   daily,
@@ -354,7 +399,10 @@ function ResultModal({
   onArchive: () => void;
   onClose: () => void;
 }) {
-  const [shareState, setShareState] = useState<"idle" | "copied" | "failed">("idle");
+  const [shareState, setShareState] = useState<ShareState>("idle");
+  // Resolved once as the check opens: off Discord, or in a DM where there's no
+  // channel to invite anyone to, there's no button.
+  const [showInvite] = useState(() => SURFACE === "discord" && canInvite());
   const won = round.status === "won";
   const share = async () => {
     setShareState("idle");
@@ -364,12 +412,20 @@ function ResultModal({
     if (round.analyticsId) {
       beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date, kind, surface: SURFACE });
     }
-    // Inside the Activity, copy the score card and let the player paste it into
-    // the channel themselves. The Web Share sheet doesn't exist in the iframe,
-    // and the SDK's own share modal (`shareLink`) kept erroring out, so this is
-    // the path that reliably works today — a Discord-native share is a later
-    // revisit, see CLAUDE.md.
+    // Inside the Activity, put the check straight into the channel as an image.
+    // The Web Share sheet doesn't exist in the iframe, so the fallback below is
+    // the old behaviour — copy the grid and ask the player to paste it — which
+    // is what every Discord player got before the share dialog existed. Trying
+    // and failing therefore costs nothing.
     if (SURFACE === "discord") {
+      if (canShareToChannel()) {
+        setShareState("working");
+        const card = buildScorecard(daily.puzzleNumber, round.guesses, won, daily.ingredientCount);
+        if (await shareToChannel(card)) {
+          setShareState("shared");
+          return;
+        }
+      }
       setShareState((await copyShareText(`${text}\n${SHARE_URL}`)) ? "copied" : "failed");
       return;
     }
@@ -401,25 +457,17 @@ function ResultModal({
         <div className="check-actions">
           {asDaily && <Countdown compact />}
           {canShare && (
-            <button className="share-btn share-btn--primary" onClick={share}>
+            <button className="share-btn share-btn--primary" onClick={share} disabled={shareState === "working"}>
               {/* Keyed on the state so the label remounts and cross-fades
                   instead of hot-swapping text under the player's thumb. */}
               <span className="share-btn__label" key={shareState}>
-                {shareState === "copied"
-                  ? SURFACE === "discord"
-                    ? "Copied — paste it in chat!"
-                    : "Copied!"
-                  : shareState === "failed"
-                    ? "Tap to retry"
-                    : SURFACE === "discord"
-                      ? "📋 Copy results"
-                      : "📋 Share"}
+                {shareLabel(shareState, SURFACE)}
               </span>
             </button>
           )}
         </div>
       )}
-      {(isRandom || canArchive) && (
+      {(isRandom || canArchive || showInvite) && (
         <div className="replay-actions">
           {isRandom && (
             <button className="replay-btn" onClick={onNewGame}>
@@ -429,6 +477,15 @@ function ResultModal({
           {canArchive && (
             <button className="replay-btn" onClick={onArchive}>
               📅 Play again
+            </button>
+          )}
+          {/* The check is where an invite belongs — Discord's own guidance is
+              that it goes at the moment the experience wants company, not on
+              the start screen where nobody has anything to invite anyone to
+              yet. You've just finished; who else should be doing this? */}
+          {showInvite && (
+            <button className="replay-btn" onClick={openInvite}>
+              🍽️ Invite the table
             </button>
           )}
         </div>
@@ -629,6 +686,7 @@ export default function GamePage() {
   // yesterday. Suppressed in preview, which has no "today" to go stale.
   const rolledOver = useNewDayAvailable(today);
   const newDayAvailable = rolledOver && !isPreview;
+  const company = useCounterCompany();
 
   // Navigation between modes is URL-driven (the app has no router). Every hop
   // goes through surfaceUrl() so a Discord Activity keeps its iframe params —
@@ -757,6 +815,38 @@ export default function GamePage() {
     );
   }, [tracked, daily, analyticsKind, round.status, round.guesses.length]);
 
+  // A new board is a new message. Without this, starting a second round in the
+  // same tab would edit the first round's message into the second round's score.
+  //
+  // Declared *above* the publisher so it runs first: effects fire in order, and a
+  // board restored from localStorage mid-round publishes on mount. Reset it
+  // afterwards and that first post would be orphaned, with the next guess posting
+  // a second message for the same round.
+  useEffect(() => {
+    resetProgress();
+  }, [date, random, playtest]);
+
+  // The live message in the Discord channel: posted on the first guess, rewritten
+  // on every one after it, past-tensed when the round ends. Same trigger as
+  // presence and the same `tracked` gate — a preview or a playtest is nobody's
+  // round and has no business in a channel.
+  //
+  // Deliberately not awaited and deliberately without an error path: the module
+  // retires itself on the first failure, so the worst case is a channel that
+  // doesn't hear about this round.
+  useEffect(() => {
+    if (!tracked || !daily || SURFACE !== "discord") return;
+    publishProgress({
+      puzzleNumber: daily.puzzleNumber,
+      guesses: round.guesses,
+      won: round.status === "won",
+      ingredientCount: daily.ingredientCount,
+      live: round.status === "playing",
+    });
+    // Keyed on the guess *count*, like presence: the array's identity changes on
+    // renders that didn't add a guess, and each one would be another upload.
+  }, [tracked, daily, round.status, round.guesses.length]);
+
   // The ticket waits out the whole guess sequence — row drop, tile flips, chip
   // pops — plus a beat of stillness, so the clue reads as a separate event
   // rather than part of the guess landing. Its sound must wait exactly as long
@@ -873,6 +963,16 @@ export default function GamePage() {
           <div className="freeplay-bar">
             <span className="freeplay-bar__tag">🎲 Random recipe — nothing saved</span>
             <button className="freeplay-bar__btn" onClick={newGame}>New random dish</button>
+          </div>
+        )}
+        {/* Last of the bars: the others are about what you're playing, this is
+            just who else is in the room. Absent on the web, and absent inside
+            Discord until somebody else actually turns up. */}
+        {company > 0 && (
+          <div className="counter-bar" role="status" aria-live="polite">
+            <span className="counter-bar__tag">
+              🍽️ {company} {company === 1 ? "other is" : "others are"} at the counter
+            </span>
           </div>
         )}
         <div className="menu-card__header">
