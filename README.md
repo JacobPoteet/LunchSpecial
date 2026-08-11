@@ -13,13 +13,13 @@
 
 Every day the diner runs one *Special* — a famous dish from somewhere in the world. Players get 6 guesses. Each guess (any dish on the menu) reveals which ingredients it shares with the Special and how its country, course, serving temperature, and protein compare. After every miss, the kitchen slips you a clue ticket: country of origin, history, the moment that made the dish famous.
 
-Finished today's check? Open **Leftovers** — a calendar of every past Special, marked with what you've solved and what you missed — and replay any day you skipped. Or order **Chef's Choice** for a no-stakes round on a dish picked at random. Think something's missing from the menu? The receipt at the end of a round has a form to suggest a dish, which lands in an admin inbox.
+Finished today's check? Open **Leftovers** — a calendar of every past Special, marked with what you've solved and what you missed — and replay any day you skipped. Or order **Chef's Choice** for a no-stakes round on a dish picked at random. Think something's missing from the menu? The receipt at the end of a round has a form to suggest a dish, which lands in an admin inbox; dishes that make it onto the menu that way are credited on the check. Occasionally there's a **note from the kitchen** — a short notice posted from the admin panel, shown once, on Today's Special only.
 
 The same build also runs as a **Discord Activity** — see [Discord Activity](#discord-activity) below.
 
 Built as a single Cloudflare Worker: React SPA served from Workers Static Assets, Hono API, D1 (SQLite) database.
 
-📄 **[Project breakdown](https://jacobpoteet.github.io/LunchSpecial/)** — a longer write-up of the feedback design, the stack, and what the live numbers say about difficulty.
+📄 **[Project breakdown](https://jacobpoteet.github.io/LunchSpecial/)** — a longer write-up: the feedback design, the narrative system behind the clues, the stack, how the game is instrumented, and what the live numbers say.
 
 ## Stack
 
@@ -27,11 +27,11 @@ Built as a single Cloudflare Worker: React SPA served from Workers Static Assets
 |---|---|
 | Frontend | React 19 + Vite, hand-written CSS (no framework), self-hosted OFL fonts |
 | API | [Hono](https://hono.dev) on Cloudflare Workers (`worker/`) |
-| Database | Cloudflare D1 — dishes, clues, schedule, analytics, dish requests (`migrations/`, `seed/`) |
+| Database | Cloudflare D1 — dishes, clues, schedule, analytics, visits, announcements, experiments, dish requests (`migrations/`, `seed/`) |
 | Dev/build | `@cloudflare/vite-plugin` (Worker runs in workerd during `vite dev`) |
 | Discord | `@discord/embedded-app-sdk`, dynamically imported only inside the Activity iframe (`src/discord/`) |
-| Tests | Vitest — pure game engine, badge/stats + analytics-breakdown assembly, and a catalog data-integrity check (`worker/*.test.ts`) |
-| CI/CD | GitHub Actions — a `v*` tag tests, migrates, and deploys the Worker (`deploy.yml`); `ci.yml` validates catalog data on PRs that touch it; `codeql.yml` scans every PR; Dependabot (`dependabot.yml`) keeps dependencies current |
+| Tests | Vitest — the pure game engine plus every analytics fold, the announcement/markdown logic, the small-sample statistics, and a catalog data-integrity check (`worker/*.test.ts`, `shared/*.test.ts`) |
+| CI/CD | GitHub Actions — a `v*` tag tests, migrates, and deploys the Worker (`deploy.yml`); `ci.yml` runs tests + typecheck on every code push/PR (prose-only changes skip it); `codeql.yml` scans every PR; Dependabot (`dependabot.yml`) keeps dependencies current |
 
 ## Local development
 
@@ -39,7 +39,7 @@ Built as a single Cloudflare Worker: React SPA served from Workers Static Assets
 npm install
 cp .dev.vars.example .dev.vars       # set ADMIN_PASSWORD + SESSION_SECRET
 npm run db:migrate                   # create tables in local D1
-npm run db:seed                      # 283 dishes, 1,415 clues, 30 scheduled days
+npm run db:seed                      # 353 dishes, 1,765 clues, 30 scheduled days
 npm run dev                          # http://localhost:5173
 ```
 
@@ -60,6 +60,7 @@ Ways to poke at the game locally without editing the schedule or touching your s
 | `/play` or `?freeplay` | The same free-play mode by URL (e.g. `http://localhost:5173/play`). |
 | `npm run ramen` | The same thing pinned to **one named dish** (Ramen) instead of a random one — for playtesting a specific board, and the finished-round screen, over and over. |
 | `?special=<slug>` | The pinned-dish mode by URL (e.g. `http://localhost:5173/play?special=pho`). Any active dish's slug works; add another `npm run <dish>` script for one you reach for often. |
+| `npm run admin` | Starts the dev server and opens **`/admin`** straight at the login, skipping the game. |
 | Admin **Test play** | From `/admin`, a signed preview link that plays a *specific* dish (see [Admin panel](#admin-panel-admin)). |
 
 Under the hood a random seed is sent to the API and mapped to an active dish deterministically — one round stays on a single dish, while a new seed rolls a new one. This is the same **Chef's Choice** round players can launch from Leftovers in production; it's spoiler-free (it never touches the schedule) and saves no local stats. The `/play` and `?freeplay` entrances above are dev conveniences (client behind `import.meta.env.DEV`) that drop you straight into a random round on load.
@@ -82,6 +83,8 @@ git tag v1.1.0 && git push origin v1.1.0
 
 You can also run it on demand from **Actions → Deploy to Cloudflare → Run workflow**. CI authenticates with two GitHub Actions secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`); the Worker secrets below live on the Worker and persist across deploys, so CI never touches them. The seed is **never** run in CI — it would overwrite dishes edited via `/admin`.
 
+**Production D1 is the only copy of half the data.** The seed and migrations reconstruct the dish *pool* and nothing else — the booked schedule, every admin dish edit, analytics, announcements and experiments live only in production and have no representation in this repo. There is no automatic backup, so take one before any production database work: `npm run db:export:remote` writes a full dump to a gitignored `backups/`, and `npm run db:export:catalog` writes a dishes-and-clues-only dump that's safe to share.
+
 The release's changelog is generated from the merged PRs' labels (`.github/release.yml`), so it falls out of the label each PR already carries rather than being written by hand. Dependency updates arrive as grouped weekly Dependabot PRs, and CodeQL runs security/quality analysis on every PR (`.github/workflows/codeql.yml`).
 
 ### First-time setup (one-off)
@@ -98,8 +101,8 @@ The game also runs inside Discord as an [Activity](https://discord.com/developer
 
 - **Detection is runtime-only.** `src/discord/bootstrap.ts` looks for the `frame_id` query param Discord adds to the iframe URL. On the open web it's absent, the Embedded App SDK (behind a dynamic import) is never downloaded, and web visitors pay nothing for it.
 - **Anonymous, same as the web.** The embed completes the SDK handshake and then runs the ordinary game — localStorage state, no OAuth, no accounts. (Caveat: localStorage inside Discord is scoped to the `discordsays.com` origin, so Activity players have a separate history from the website.)
-- **Sharing posts to the channel.** In the embed the receipt's share button calls `shareLink()` with the same emoji grid the web build builds, and Discord's own modal posts it as the player — the iframe has neither Web Share nor clipboard access, so this replaces that path rather than falling back to it.
-- Analytics record which **surface** a round came from (`web` or `discord`), which the admin dashboard can filter by.
+- **Sharing copies to the clipboard.** In the embed the receipt's share button builds the same emoji grid as the web, copies it, and relabels itself "Copied — paste it in chat!". The Web Share sheet is skipped outright, since the iframe has no `web-share` permission. `navigator.clipboard` is gated behind a permissions policy Discord's iframe doesn't grant, so the copy falls back to a hidden-textarea `execCommand`, which only needs a user gesture. The button shows a retry label if both fail — a share is never allowed to fail silently. (Discord's own `shareLink()` modal was tried and reverted; it kept erroring in practice.)
+- Analytics record which **surface** a round came from (`web` or `discord`), which every chart in the admin dashboard can filter by.
 
 Setup is four clicks in the Discord Developer Portal (enable Activities, map `/` → `lunchspecial.app`, add a redirect URI) plus `VITE_DISCORD_CLIENT_ID` — a **public** build-time var, not a secret. Discord can't reach `localhost`, so testing in real Discord means `npm run dev` in one terminal and `npm run tunnel` (cloudflared) in another, with the portal's URL mapping pointed at the tunnel.
 
@@ -112,33 +115,50 @@ Setup is four clicks in the Discord Developer Portal (enable Activities, map `/`
 
 ## Engagement stats
 
-The game fires anonymous, fire-and-forget beacons to `/api/rounds/*` — one row per round (start, completion, share) keyed by a client-generated id, **never any guess content** (`worker/routes/analytics.ts`, `analytics_rounds` table). Rounds are tagged with their **kind** (Today's Special / Leftovers / Chef's Choice), their **surface** (web / Discord), and a random per-device player id used only to tell new players from returning ones. Two ways to read them back:
+The game fires anonymous, fire-and-forget beacons to `/api/rounds/*`, **never carrying any guess content** (`worker/routes/analytics.ts`). Four events:
 
-- **Admin dashboard** — full breakdown: guess distribution, fail count, hourly and daily activity, new-vs-returning players, a web/Discord filter, a calendar picker for any past day, and a feed of the individual events behind the charts (login required).
+| Beacon | Written to | Means |
+|---|---|---|
+| `/seated` | `analytics_visits` | A device opened a real board — one row per device per ET day |
+| `/start` | `analytics_rounds` | First guess submitted; the round begins |
+| `/complete` | `analytics_rounds` | Game over, with guesses used and whether it was solved |
+| `/share` | `analytics_rounds` | The result was posted |
+
+Rounds are tagged with their **kind** (Today's Special / Leftovers / Chef's Choice), their **surface** (web / Discord), the **dish**, and a random per-device player id used only to tell new players from returning ones. The **country** is resolved at the edge and stamped server-side — the client never sends it, and no IP is stored. Two ways to read them back:
+
+- **Admin dashboard** — six tabs, each holding one question rather than one data source: Today (live service), Menu (what's served and how it lands), Players (funnel, retention, new-vs-returning, country), Trends (growth, weekday/hour rhythm), Experiments (before/after for logged changes), Activity (the raw beacon feed). Every tab is web/Discord filterable, and the day slice takes a calendar picker. Login required.
 - **Public totals** — `GET /api/stats` returns aggregate-only counts:
 
   ```json
-  { "rounds": 12450, "completed": 9000, "solved": 6300, "shared": 1200 }
+  { "dishes": 351, "rounds": 745, "completed": 650, "solved": 537, "shared": 104, "avgGuesses": 3.15 }
   ```
 
-  `GET /api/stats/badge?metric=rounds|solved|solveRate|shared` returns the same numbers in [shields.io's endpoint schema](https://shields.io/badges/endpoint-badge), which is what powers the badges at the top of this README.
+  `GET /api/stats/badge?metric=rounds|solved|solveRate|shared` returns the same numbers in [shields.io's endpoint schema](https://shields.io/badges/endpoint-badge), which powers the badges at the top of this README. `GET /api/stats/breakdown` returns one consolidated, edge-cached payload — guess distribution, per-mode and per-surface splits, the device-based funnel, days-played survival curve, and the cumulative growth series — which is what the [project breakdown page](https://jacobpoteet.github.io/LunchSpecial/) charts live. All aggregate-only; no per-player rows are ever exposed.
+
+**Endpoint naming is a precaution.** These paths were originally `/api/analytics/*`. The *admin* feed at `/api/admin/analytics/events` demonstrably failed for blocked clients — a bare `NetworkError` in the browser with nothing in the Worker logs — which is why it's now `/api/admin/recent-rounds`. The player beacons were renamed at the same time on the same reasoning, but that half was never measured either way: they're fire-and-forget, so a blocked beacon is indistinguishable from a delivered one, and no before/after change in volume was observed. Treat it as cheap insurance rather than a fixed bug, and avoid `analytics`, `event`, `track`, `collect`, `beacon`, `telemetry`, `pixel`, `visit`, or `view` in a client-called URL.
 
 ## Admin panel (`/admin`)
 
-Password login (Worker secret + HMAC-signed session cookie, 7 days). `npm run admin` starts the dev server and opens it straight away, the way `npm run play` does for a round. Four tabs plus a test-play escape hatch:
+Password login (Worker secret + HMAC-signed session cookie, 7 days). `npm run admin` starts the dev server and opens it straight away, the way `npm run play` does for a round. Five sections plus a test-play escape hatch:
 
-- **Dashboard** — today's Special and the countdown to the next one, schedule health (warns under 7 days ahead), content warnings (dishes missing clues/ingredients), and the engagement panel described above
-- **Dishes** — searchable/filterable table; per-dish editor with canonical-ingredient tag input, 5 ordered clues, and a **live player preview**
+- **Dashboard** — today's Special and the countdown to the next one, schedule health (warns under 7 days ahead), content warnings (dishes missing clues/ingredients), and the six engagement tabs described above
+- **Dishes** — searchable/filterable table; per-dish editor with canonical-ingredient tag input, 5 ordered clues, a fan-submission credit flag, and a **live player preview**
 - **Schedule** — upcoming board, assign/swap/clear days, **auto-fill 30 days** (least-recently-served, no repeats within 60 days), past days locked
+- **Announcements** — write, schedule and retire the notices players see; limited markdown (bold/italic/link only), audience of everyone or returning players, plus per-notice reach
 - **Requests** — inbox of player-suggested dishes (badge = pending count); review, remove, or open one prefilled in a new dish editor
 - **Test play** — signed preview link that opens the real game against any dish without touching daily state or stats
 
+The Activity tab also carries **This device's data**: a review of everything this browser has recorded across rounds, visits and notice views, and a button to delete it. The admin is also a player, and at this volume one person play-testing is a visible fraction of every rate on the dashboard.
+
 ## Content model
 
-- `dishes` — name, country, region (drives the yellow "close" country match), course, hot/cold, protein, JSON array of canonical ingredients
+- `dishes` — name, country, region (drives the yellow "close" country match), course, hot/cold, protein, JSON array of canonical ingredients, fan-submission flag
 - `clues` — 5 per dish, ordered vague → specific (region hint → origin → famous moment → key ingredient → near-giveaway)
 - `schedule` — `date (YYYY-MM-DD) → dish_id`
 - `dish_requests` — player suggestions, an inbox kept deliberately separate from the `dishes` catalog
+- `announcements` + `announcement_views` — notices and who they reached
+- `experiments` — one row per deliberate change: what shipped, when, and the metric it was meant to move
+- `analytics_rounds` + `analytics_visits` — the engagement beacons described above
 
 Ingredient names are canonical (lowercase, singular: `tomato`, not `tomatoes`) so matches line up across dishes. The admin tag input autocompletes against the existing pantry to keep it that way.
 

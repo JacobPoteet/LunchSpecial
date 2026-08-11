@@ -4,12 +4,16 @@
 
 import { Hono } from "hono";
 import { MAX_GUESSES, type PublicBreakdown, type PublicStats } from "../../shared/types";
+import type { FunnelBucketRow } from "../funnel";
+import type { GrowthRow } from "../growth";
 import {
   assembleBreakdown,
+  assemblePublicEngagement,
   buildBadge,
   isBadgeMetric,
   type BreakdownDistRow,
   type BreakdownSurfaceDeviceRow,
+  type PublicVisitRow,
 } from "../stats";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -42,7 +46,7 @@ async function loadStats(env: Env): Promise<PublicStats> {
 // mirror the admin `/analytics` aggregates (fails = completed and not solved;
 // distribution = solved rounds bucketed by guesses) so the two never disagree.
 async function loadBreakdown(env: Env): Promise<PublicBreakdown> {
-  const [scalarRes, distRes, surfaceDevicesRes] = await env.DB.batch([
+  const [scalarRes, distRes, surfaceDevicesRes, hourRes, funnelRes, visitRes] = await env.DB.batch([
     env.DB.prepare(
       `SELECT
          (SELECT COUNT(*) FROM dishes) AS dishes,
@@ -74,13 +78,46 @@ async function loadBreakdown(env: Env): Promise<PublicBreakdown> {
       `SELECT surface, COUNT(DISTINCT player_id) AS devices
          FROM analytics_rounds WHERE player_id IS NOT NULL GROUP BY surface`,
     ),
+    // The next three feed the engagement half. All aggregate: hour buckets and
+    // per-device day counts, never a round's content. started_at is stored in
+    // UTC and ET has DST, so rows come back as UTC hour buckets and are folded
+    // to ET days in JS — the same conversion the admin dashboard does, via the
+    // same folds, so the two can't drift into disagreeing about a number.
+    env.DB.prepare(
+      `SELECT strftime('%Y-%m-%d %H', started_at) AS bucket, COUNT(*) AS n
+         FROM analytics_rounds WHERE started_at IS NOT NULL GROUP BY bucket`,
+    ),
+    // One row per (device, active UTC hour) — the funnel's stages and the
+    // days-played curve both fold out of this single grouping.
+    env.DB.prepare(
+      `SELECT player_id, strftime('%Y-%m-%d %H', started_at) AS bucket,
+         COUNT(*) AS started,
+         COALESCE(SUM(completed), 0) AS completed,
+         COALESCE(SUM(shared), 0) AS shared,
+         MIN(CASE WHEN completed = 1 THEN COALESCE(completed_at, updated_at) END) AS first_completed,
+         MAX(started_at) AS last_started
+         FROM analytics_rounds
+         WHERE player_id IS NOT NULL AND started_at IS NOT NULL
+         GROUP BY player_id, bucket`,
+    ),
+    // Arrivals — already stamped with their ET day server-side, so no fold.
+    env.DB.prepare(
+      `SELECT visit_day, COUNT(*) AS visitors FROM analytics_visits GROUP BY visit_day`,
+    ),
   ]);
 
-  return assembleBreakdown(
-    scalarRes.results[0] as Record<string, number> | undefined,
-    distRes.results as BreakdownDistRow[],
-    surfaceDevicesRes.results as BreakdownSurfaceDeviceRow[],
-  );
+  return {
+    ...assembleBreakdown(
+      scalarRes.results[0] as Record<string, number> | undefined,
+      distRes.results as BreakdownDistRow[],
+      surfaceDevicesRes.results as BreakdownSurfaceDeviceRow[],
+    ),
+    ...assemblePublicEngagement(
+      hourRes.results as GrowthRow[],
+      funnelRes.results as FunnelBucketRow[],
+      visitRes.results as PublicVisitRow[],
+    ),
+  };
 }
 
 // Raw public totals.

@@ -757,27 +757,6 @@
       /* ============================================================
          Misc
          ============================================================ */
-      .band {
-        background: var(--band);
-        color: var(--band-ink);
-        border-radius: 8px;
-        padding: 22px 24px 24px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-      .band h3 {
-        color: var(--band-ink);
-      }
-      .band p {
-        color: var(--band-ink);
-        opacity: 0.9;
-      }
-      .band code {
-        background: rgba(127, 127, 127, 0.2);
-        border-color: rgba(127, 127, 127, 0.3);
-        color: inherit;
-      }
       ul.plain {
         margin: 0;
         padding-left: 1.15em;
@@ -826,6 +805,308 @@
       }
       main > .field {
         padding-top: 48px;
+      }
+
+      /* ============================================================
+         Section nav — the skim rail.
+         A hiring manager reads this page in one of two ways: front to
+         back, or by hunting for the one section they care about. The
+         second reader has no rails without this, and a 3,000-word page
+         is where they give up. Sticky, scrollspy-lit, and it degrades
+         to a plain row of anchor links with JS off.
+         ============================================================ */
+      .nav {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: color-mix(in srgb, var(--bg) 88%, transparent);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--rule);
+      }
+      .nav__inner {
+        max-width: var(--field);
+        margin: 0 auto;
+        padding: 0 24px;
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .nav__inner::-webkit-scrollbar {
+        display: none;
+      }
+      .nav a {
+        flex: 0 0 auto;
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        text-decoration: none;
+        color: var(--ink-mute);
+        padding: 13px 10px 11px;
+        border-bottom: 2px solid transparent;
+        white-space: nowrap;
+      }
+      .nav a:hover {
+        color: var(--ink);
+      }
+      .nav a[aria-current="true"] {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+      /* Reading progress, hairline across the top of the rail. */
+      .nav__bar {
+        height: 2px;
+        background: var(--accent);
+        width: 0;
+        transition: width 0.1s linear;
+      }
+
+      /* ============================================================
+         Takeaway — the line a skimmer reads instead of the section.
+         Every section ends with exactly one. Read end to end they are
+         the argument of the page, which is the whole point: the fast
+         reader and the thorough reader should reach the same claims.
+         ============================================================ */
+      .takeaway {
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        border-top: 2px solid var(--accent);
+        padding-top: 12px;
+      }
+      .takeaway__k {
+        font-family: var(--font-mono);
+        font-size: 0.64rem;
+        text-transform: uppercase;
+        letter-spacing: 0.11em;
+        color: var(--accent);
+        flex: 0 0 auto;
+      }
+      .takeaway p {
+        font-family: var(--font-slab);
+        font-weight: 600;
+        font-size: 1.06rem;
+        line-height: 1.5;
+        text-wrap: pretty;
+      }
+
+      /* ============================================================
+         The argument — the page's contents, as claims rather than
+         section names. A table of contents tells you where things are;
+         this tells you what the page is going to assert, so a skimmer
+         can pick the claim they doubt.
+         ============================================================ */
+      .argument {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .argument li {
+        display: grid;
+        grid-template-columns: 26px 1fr;
+        gap: 14px;
+        padding: 13px 0;
+        border-bottom: 1px solid var(--rule-soft);
+      }
+      .argument li:last-child {
+        border-bottom: none;
+      }
+      .argument__n {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: var(--accent);
+        line-height: 1.75;
+      }
+      .argument__c {
+        font-family: var(--font-slab);
+        font-weight: 600;
+        font-size: 1rem;
+        line-height: 1.5;
+        text-wrap: pretty;
+      }
+      .argument__w {
+        display: block;
+        font-family: var(--font-body);
+        font-weight: 400;
+        font-size: 0.94rem;
+        color: var(--ink-soft);
+        margin-top: 2px;
+      }
+      .argument a {
+        text-decoration: none;
+        color: inherit;
+        border-bottom: 1px solid var(--rule);
+      }
+      .argument a:hover {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+      }
+
+      /* ============================================================
+         The loop ring.
+         Two constraints fight here. Unconstrained, the SVG grows to
+         the card width and the labels render enormous; shrunk to a
+         phone, the same labels fall to ~6px and the diagram becomes
+         decoration. So the ring is width-capped for the top end, and
+         below 640px it is replaced outright by an ordered list —
+         a six-station circle cannot be made legible at 320px, and
+         the reading order is the part that actually matters.
+         ============================================================ */
+      .ring {
+        display: block;
+        width: 100%;
+        max-width: 560px;
+        height: auto;
+        margin: 0 auto;
+      }
+      .ring__t {
+        font-family: var(--font-slab);
+        font-weight: 600;
+        font-size: 16px;
+        fill: var(--ink);
+      }
+      .ring__d {
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        fill: var(--ink-mute);
+      }
+      .ring__num {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        fill: var(--accent);
+      }
+      .ring__c {
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        fill: var(--ink-mute);
+        letter-spacing: 0.08em;
+      }
+      .ring__list {
+        display: none;
+      }
+      @media (max-width: 640px) {
+        .ring {
+          display: none;
+        }
+        .ring__list {
+          display: flex;
+        }
+      }
+
+      /* ============================================================
+         Verdict cards — the experiment read.
+         The bars are intervals, not values, because the argument of
+         that section is that two numbers being different is not the
+         same as two numbers being *distinguishable*. Drawing the
+         uncertainty is what lets a reader see the answer instead of
+         being told it.
+         ============================================================ */
+      .verdict {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .verdict__head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: baseline;
+        justify-content: space-between;
+      }
+      .verdict__meta {
+        font-family: var(--font-mono);
+        font-size: 0.67rem;
+        color: var(--ink-mute);
+        letter-spacing: 0.05em;
+      }
+      .chip {
+        font-family: var(--font-mono);
+        font-size: 0.63rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        padding: 5px 10px;
+        border-radius: 999px;
+        border: 1px solid;
+        white-space: nowrap;
+        flex: 0 0 auto;
+      }
+      .chip--up {
+        color: var(--hit);
+        border-color: var(--hit);
+        background: color-mix(in srgb, var(--hit) 12%, transparent);
+      }
+      .chip--flat {
+        color: var(--ink-mute);
+        border-color: var(--rule);
+        background: var(--surface-2);
+      }
+      .chip--wait {
+        color: var(--near);
+        border-color: var(--near);
+        background: color-mix(in srgb, var(--near) 12%, transparent);
+      }
+      .iv-band {
+        fill: var(--cat-2);
+        opacity: 0.22;
+      }
+      .iv-band--after {
+        fill: var(--cat-1);
+      }
+      .iv-rule {
+        stroke: var(--cat-2);
+        stroke-width: 2;
+      }
+      .iv-rule--after {
+        stroke: var(--cat-1);
+      }
+      .iv-dot {
+        fill: var(--cat-2);
+      }
+      .iv-dot--after {
+        fill: var(--cat-1);
+      }
+      .iv-lab {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        fill: var(--ink-mute);
+      }
+      .iv-val {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        fill: var(--ink);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* A dated claim. Used where a number was a judgement made on a
+         day rather than a figure that recomputes itself. */
+      .asof {
+        font-family: var(--font-mono);
+        font-size: 0.63rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--ink-mute);
+        border: 1px dashed var(--rule);
+        border-radius: 4px;
+        padding: 4px 9px;
+        align-self: flex-start;
+      }
+
+      /* ============================================================
+         Hero byline
+         ============================================================ */
+      .hero__by {
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        letter-spacing: 0.04em;
+        color: var(--paper);
+        margin: 18px 0 0;
+      }
+      .hero__by strong {
+        color: var(--mustard);
+        font-weight: 400;
       }
 
       /* ============================================================
@@ -923,7 +1204,73 @@
       .anim .flow .arrow:nth-of-type(2) { animation-delay: 0.35s; }
       .anim .flow .arrow:nth-of-type(3) { animation-delay: 0.7s; }
       .anim .flow .arrow:nth-of-type(4) { animation-delay: 1.05s; }
-    </style>
+
+      /* The takeaway rule draws itself across, so the eye is caught by
+         the one line a skimmer most needs to read. */
+      .anim .takeaway { border-top-color: transparent; position: relative; }
+      .anim .takeaway::before {
+        content: "";
+        position: absolute;
+        top: -2px; left: 0;
+        height: 2px;
+        width: 0;
+        background: var(--accent);
+      }
+      .anim .takeaway.in::before {
+        width: 100%;
+        transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      /* A service dot runs the loop diagram, because the claim that
+         section makes is that the thing is a *cycle* — a still ring
+         with arrowheads states it, a dot going round demonstrates it. */
+      @keyframes ring-run {
+        to { offset-distance: 100%; }
+      }
+      .anim .ring__runner {
+        offset-path: path("M 250 64 A 146 146 0 1 1 249.9 64");
+        offset-distance: 0%;
+        animation: ring-run 12s linear infinite;
+      }
+      /* The dot's arrival lights each station's border in turn.
+         Deliberately NOT an opacity fade: dimming the stations between
+         visits would leave the diagram sitting at partial contrast most
+         of the time, which costs exactly the legibility the ring was
+         redrawn to gain. Only the border moves, so every label stays at
+         full strength throughout. The delay comes from each station's
+         own --i rather than nth-of-type, which would be thrown off by
+         the chevron <g> sharing the parent. */
+      @keyframes station-lit {
+        0%, 8% { stroke: var(--accent); stroke-width: 2.5; }
+        18%, 100% { stroke: var(--rule); stroke-width: 1.5; }
+      }
+      .anim .ring__station rect {
+        animation: station-lit 12s linear infinite;
+        animation-delay: calc(var(--i) * 2s);
+      }
+
+      /* Interval bands grow outward from their point estimate — the
+         gesture is "here is the number, and here is how much it could
+         actually be", in that order. */
+      .anim .verdict--grow .iv-band,
+      .anim .verdict--grow .iv-rule {
+        transform: scaleX(0);
+        /* fill-box so the percentage origin is the shape's own box, not the
+           whole SVG canvas — without it every band grows from the same point. */
+        transform-box: fill-box;
+        transform-origin: 50% 50%;
+      }
+      .anim .verdict--grow.in .iv-band,
+      .anim .verdict--grow.in .iv-rule {
+        transform: scaleX(1);
+        transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.15s;
+      }
+      .anim .verdict--grow .iv-dot { opacity: 0; }
+      .anim .verdict--grow.in .iv-dot {
+        opacity: 1;
+        transition: opacity 0.3s ease;
+      }
+</style>
   </head>
   <body>
     <!-- ==========================================================
@@ -933,41 +1280,131 @@
       <div class="hero__inner">
         <p class="hero__eyebrow">Project breakdown</p>
         <h1 class="hero__mark">Lunch Special</h1>
-        <p class="hero__sub">A daily dish-guessing game set in the golden age of diners.</p>
+        <p class="hero__sub">
+          A daily dish-guessing game — and the whole apparatus behind it for designing, shipping,
+          measuring, and revising a live game.
+        </p>
+        <p class="hero__by">
+          <strong>Jacob Poteet</strong> · narrative technical game designer · designed, built,
+          instrumented and run solo
+        </p>
         <p class="hero__note">
           Six guesses to name the day's Special. Every guess is a real dish, and the game reports
-          what that dish has in common with the answer. This page covers how the feedback system was
-          designed, how the thing is built and deployed, and what the live analytics say about its
-          difficulty.
+          what that dish has in common with the answer. I designed the feedback grammar, wrote the
+          1,755 clues, and built the admin CMS that authors them, the telemetry underneath, and the
+          experiment log used to judge whether a change accomplished anything.
         </p>
         <div class="hero__links">
           <a class="btn btn--solid" href="https://lunchspecial.app">Play it</a>
+          <a class="btn btn--ghost" href="#experiments">Experiment results</a>
           <a class="btn btn--ghost" href="https://github.com/JacobPoteet/LunchSpecial">Source</a>
-          <a class="btn btn--ghost" href="#numbers">The numbers</a>
         </div>
       </div>
       <div class="strip" id="numbers-strip" aria-live="polite">
         <div class="strip__cell">
           <div class="strip__n" data-stat="dishes" data-decimals="0">—</div>
-          <div class="strip__l">total dishes<br />on the menu</div>
+          <div class="strip__l">dishes written<br />5 clues each</div>
         </div>
         <div class="strip__cell">
           <div class="strip__n" data-stat="rounds" data-decimals="0">—</div>
-          <div class="strip__l">total games played<br />across every mode</div>
+          <div class="strip__l">games played<br />across every mode</div>
         </div>
         <div class="strip__cell">
-          <div class="strip__n" data-stat="avgGuesses" data-decimals="1">—</div>
-          <div class="strip__l">average guess<br />(budget is 6)</div>
+          <div class="strip__n" data-stat="devices" data-decimals="0">—</div>
+          <div class="strip__l">anonymous players<br />no accounts, ever</div>
         </div>
         <div class="strip__cell">
-          <div class="strip__n" data-stat="shared" data-decimals="0">—</div>
-          <div class="strip__l">total shares<br />results posted</div>
+          <div class="strip__n" data-stat="daysLive" data-decimals="0">—</div>
+          <div class="strip__l">days live<br />one new Special daily</div>
         </div>
       </div>
     </header>
 
+    <nav class="nav" id="nav" aria-label="Sections">
+      <div class="nav__inner">
+        <a href="#premise">Problem</a>
+        <a href="#narrative">Narrative</a>
+        <a href="#loop">Gameplay loop</a>
+        <a href="#system">Live-service loop</a>
+        <a href="#stack">Architecture</a>
+        <a href="#measuring">Instrumentation</a>
+        <a href="#numbers">Metrics</a>
+        <a href="#experiments">Experiments</a>
+        <a href="#funnelpass">Funnel pass</a>
+        <a href="#next">Roadmap</a>
+      </div>
+      <div class="nav__bar" id="nav-bar"></div>
+    </nav>
+
     <main>
       <div class="field stack stack--loose">
+        <!-- ==========================================================
+             0. THE ARGUMENT — the skimmer's map, as claims not headings
+             ========================================================== -->
+        <section class="stack" id="argument">
+          <h2 class="lead">
+            <span class="lead__t">Overview</span>
+            <span class="lead__dots"></span>
+            <span class="lead__p">the short version</span>
+          </h2>
+          <div class="card">
+            <ol class="argument">
+              <li>
+                <span class="argument__n">01</span>
+                <span class="argument__c">
+                  <a href="#premise">Food doesn't support Wordle's feedback grammar, so I designed a different one.</a>
+                  <span class="argument__w">
+                    Two feedback channels, one deductive and one that concedes information as you
+                    fail, with the shareable result card specified before either of them.
+                  </span>
+                </span>
+              </li>
+              <li>
+                <span class="argument__n">02</span>
+                <span class="argument__c">
+                  <a href="#narrative">The clue writing is a system rather than 351 separate creative problems.</a>
+                  <span class="argument__w">
+                    Every dish is written against the same five-rung ladder, which is what makes a
+                    daily content requirement sustainable for a single author.
+                  </span>
+                </span>
+              </li>
+              <li>
+                <span class="argument__n">03</span>
+                <span class="argument__c">
+                  <a href="#system">The game is one part of a live-service loop I built to operate it.</a>
+                  <span class="argument__w">
+                    An authoring CMS, a scheduler, a suggestion inbox, an announcement channel,
+                    telemetry, and an experiment log, connected as a single loop from idea to verdict.
+                  </span>
+                </span>
+              </li>
+              <li>
+                <span class="argument__n">04</span>
+                <span class="argument__c">
+                  <a href="#measuring">The instrumentation is designed to report its own limits.</a>
+                  <span class="argument__w">
+                    Small samples carry their confidence intervals, unmeasured periods are never
+                    drawn as zero, and "too early to tell" is one of four verdicts the comparison
+                    can return.
+                  </span>
+                </span>
+              </li>
+              <li>
+                <span class="argument__n">05</span>
+                <span class="argument__c">
+                  <a href="#experiments">A scheduling change was logged, shipped, and then shown to have worked.</a>
+                  <span class="argument__w">
+                    Finish rate moved from 81% to 91% with non-overlapping confidence intervals —
+                    and read over a shorter window, the same change would have reported nothing.
+                  </span>
+                </span>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <hr class="divider" />
         <!-- ==========================================================
              1. DESIGN PROBLEM
              ========================================================== -->
@@ -975,38 +1412,183 @@
           <h2 class="lead">
             <span class="lead__t">The design problem</span>
             <span class="lead__dots"></span>
-            <span class="lead__p">Premise</span>
+            <span class="lead__p">feedback design</span>
           </h2>
 
           <div class="col stack stack--tight">
             <p>
-              I consider cooking to be one of my biggest hobbies, so I wanted to bring my love of food into 
-              a game that can teach people more about the dishes they enjoy everyday.
-
-            </p>
-            <p>
-              That premise breaks the format it borrows from. Wordle's feedback is positional: a word
-              is an ordered list of letters, and the colours mean <em>right letter, right slot</em>. A
-              dish has no slots. "Pad Thai" and "Bibimbap" don't line up character by character in any
-              way a player cares about. So the feedback language had to be designed from scratch.
+              Cooking is my biggest hobby, and I wanted a game that teaches people something about
+              the food they already eat. That premise breaks the format it borrows from. Wordle's
+              feedback is positional: a word is an ordered list of letters and the colours mean
+              <em>right letter, right slot</em>. A dish has no slots, and "Pad Thai" and "Bibimbap"
+              do not line up character by character in any way a player would care about.
             </p>
           </div>
 
           <div class="card col">
-            <p class="eyebrow">Constraints</p>
+            <p class="eyebrow">Constraints, set before anything was built</p>
             <ul class="plain" style="margin-top: 12px">
               <li>Readable at a glance, mid-round, without parsing prose.</li>
-              <li>Expressible as emoji — if the result can't be posted as a spoiler-free grid, the game has no distribution.</li>
-              <li>Narrowing enough that a 283-dish space collapses within six guesses.</li>
-              <li>Fair to a player who has never heard of the answer.</li>
+              <li>Expressible as emoji — a result that can't be posted as a spoiler-free grid gives the game no distribution.</li>
+              <li>Narrowing enough that a 351-dish space collapses inside six guesses.</li>
+              <li><strong>Fair to a player who has never heard of the answer.</strong></li>
             </ul>
           </div>
 
           <p class="col">
-            The last one drove the rest. Wordle can be pure deduction because every English speaker
-            owns the whole answer space. Food knowledge isn't distributed that way. So the game runs
-            two feedback channels at once: one deductive, one that gives information away outright.
+            The fairness constraint drove the rest. Wordle can be pure deduction because every
+            English speaker already owns the entire answer space; food knowledge is not distributed
+            that way, and a player in Ohio and a player in Lagos begin a round on Shakshuka in
+            genuinely different positions. The game therefore runs two feedback channels at once: one
+            that rewards deduction, and one that concedes information as you fail, which is the
+            subject of the next section.
           </p>
+
+          <div class="card col stack stack--tight">
+            <h3>Channel one — deduction</h3>
+            <p style="color: var(--ink-soft); font-size: 0.97rem">
+              Every guess is a real dish, scored on four categorical attributes plus a set
+              intersection over its ingredients. Country is the only attribute with a middle state:
+              the same country is a hit, and a different country in the same region is a near-miss.
+              That single warm signal is what makes geographic triangulation possible.
+            </p>
+            <div class="tiles tiles--flip" style="margin-top: 4px">
+              <span class="tile tile--hit">Country · hit</span>
+              <span class="tile tile--near">Country · same region</span>
+              <span class="tile tile--miss">Course · miss</span>
+              <span class="tile tile--miss">Temp · miss</span>
+              <span class="tile tile--hit">Protein · hit</span>
+            </div>
+            <p class="footnote" style="margin-top: 4px">
+              Ingredients report as <em>n of m matched</em>, never which ones, or the answer leaks.
+            </p>
+          </div>
+
+          <div class="takeaway">
+            <span class="takeaway__k">Takeaway</span>
+            <p>
+              The problem was not to reskin Wordle for food, but to build a feedback language for a
+              domain where players do not share a vocabulary.
+            </p>
+          </div>
+        </section>
+
+        <hr class="divider" />
+
+        <!-- ==========================================================
+             3. THE NARRATIVE SYSTEM
+             ========================================================== -->
+        <section class="stack" id="narrative">
+          <h2 class="lead">
+            <span class="lead__t">Narrative and content design</span>
+            <span class="lead__dots"></span>
+            <span class="lead__p">1,755 clues · one ladder</span>
+          </h2>
+
+          <p class="col">
+            A daily game consumes a piece of authored content every 24 hours, indefinitely.
+            Approaching 351 dishes as 351 individual creative problems becomes unsustainable within a
+            month or two. The clue set is therefore organised as a fixed dramatic order: the same
+            five rungs for every dish, descending from geography to near-giveaway.
+          </p>
+
+          <div class="card stack">
+            <p class="eyebrow" style="margin-bottom: 4px">The ladder, revealed one rung per miss</p>
+            <div class="scroller">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 2em">#</th>
+                    <th style="width: 27%">Rung</th>
+                    <th>What it's doing dramatically</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="num">1</td>
+                    <td>Broad geography</td>
+                    <td>Narrows the map without naming a country.</td>
+                  </tr>
+                  <tr>
+                    <td class="num">2</td>
+                    <td>Origin and history</td>
+                    <td>The first rung with a voice, where the dish stops being a puzzle token and starts being from somewhere.</td>
+                  </tr>
+                  <tr>
+                    <td class="num">3</td>
+                    <td>What made it famous</td>
+                    <td>The film, the street, the argument over who invented it. The rung people remember afterwards.</td>
+                  </tr>
+                  <tr>
+                    <td class="num">4</td>
+                    <td>A key ingredient or technique</td>
+                    <td>Converts knowing about the dish into being able to name it.</td>
+                  </tr>
+                  <tr>
+                    <td class="num">5</td>
+                    <td>Near-giveaway</td>
+                    <td>Everything but the name. Missing at this point should feel unlucky rather than unfair.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="footnote">
+              The same ladder, 351 times over. Writing clue 3 for Pierogi is the same task as writing
+              clue 3 for Ceviche, and a repeatable task is one that can still be done in month six.
+            </p>
+          </div>
+
+          <div class="grid2">
+            <div class="card stack stack--tight">
+              <h3>The fiction carries the interface</h3>
+              <p style="color: var(--ink-soft); font-size: 0.97rem">
+                Each piece of UI is named for what it would be in a diner, and the names do
+                explanatory work that would otherwise fall to a tutorial. A player already
+                understands what a receipt is for.
+              </p>
+              <div class="scroller">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 40%">In the fiction</th>
+                      <th>What it actually is</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>The Special</td><td>Today's puzzle — one dish, everyone, worldwide</td></tr>
+                    <tr><td>A clue ticket</td><td>The rung the kitchen slips you after a miss</td></tr>
+                    <tr><td>The check</td><td>End-of-round screen: result, streak, share</td></tr>
+                    <tr><td>Leftovers</td><td>The archive of past days</td></tr>
+                    <tr><td>Chef's Choice</td><td>A random dish, no stakes</td></tr>
+                    <tr><td>A note from the kitchen</td><td>An announcement from me to players</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card stack stack--tight">
+              <h3>The share card was specified first</h3>
+              <p style="color: var(--ink-soft); font-size: 0.97rem">
+                Before the feedback system and before the schema. A daily game with no shareable
+                result has no distribution, and what the emoji grid can express is a hard constraint
+                on what the feedback is permitted to be: four tiles per row, one pantry count, no
+                dish names, and nothing that spoils the answer.
+              </p>
+              <div class="receipt receipt--print"><span class="receipt__line">Lunch Special #4 — 3/6</span><span class="receipt__line">⬜🟩🟩⬜ 1/6🥄</span><span class="receipt__line">🟨🟩🟩🟩 3/6🥄</span><span class="receipt__line">🟩🟩🟩🟩 🛎️</span></div>
+              <p class="footnote">
+                For most people this card is the only part of the game they will ever see, which is a
+                reasonable argument for designing it before the system that produces it.
+              </p>
+            </div>
+          </div>
+
+          <div class="takeaway">
+            <span class="takeaway__k">Takeaway</span>
+            <p>
+              Narrative design here is a production system: a fixed dramatic order that makes 1,755
+              clues writable at a steady rate, and a fiction that absorbs most of the tutorial.
+            </p>
+          </div>
         </section>
 
         <hr class="divider" />
@@ -1016,22 +1598,17 @@
              ========================================================== -->
         <section class="stack" id="loop">
           <h2 class="lead">
-            <span class="lead__t">The gameplay loop</span>
+            <span class="lead__t">Core gameplay loop</span>
             <span class="lead__dots"></span>
             <span class="lead__p">6 guesses · 5 clues</span>
           </h2>
-
-          <p class="col">
-            Each miss costs a guess and reveals a clue, so difficulty falls as the round goes on. A
-            daily game that regularly sends players away with nothing doesn't get opened again.
-          </p>
 
           <div class="card">
             <p class="eyebrow" style="margin-bottom: 14px">One round</p>
             <div class="flow">
               <div class="node">
                 <span class="node__t">Guess a dish</span>
-                <span class="node__d">typeahead over<br />283 active dishes</span>
+                <span class="node__d">typeahead over<br />351 active dishes</span>
               </div>
               <span class="arrow" aria-hidden="true">→</span>
               <div class="node node--accent">
@@ -1058,77 +1635,10 @@
 
           <div class="grid2">
             <div class="card stack stack--tight">
-              <h3>Channel one — deduction</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                Each guess is scored on four categorical attributes plus a set intersection over
-                ingredients. Country is the only attribute with a middle state: same country is a hit,
-                different country in the same region is a near-miss. That one warm signal is what
-                makes geographic triangulation work.
-              </p>
-              <div class="tiles tiles--flip" style="margin-top: 4px">
-                <span class="tile tile--hit">Country · hit</span>
-                <span class="tile tile--near">Country · same region</span>
-                <span class="tile tile--miss">Course · miss</span>
-                <span class="tile tile--miss">Temp · miss</span>
-                <span class="tile tile--hit">Protein · hit</span>
-              </div>
-              <p class="footnote" style="margin-top: 4px">
-                Ingredients report as <em>n of m matched</em> — never which ones, or the answer leaks.
-              </p>
-            </div>
-
-            <div class="card stack stack--tight">
-              <h3>Channel two — the clue ladder</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                Five clues per dish in a fixed rhetorical order, so difficulty falls predictably. The
-                same ladder applies to all 283 dishes, which turns clue writing into a repeatable job
-                instead of 283 separate creative problems.
-              </p>
-              <div class="scroller">
-                <table>
-                  <caption>Rungs, revealed after misses 1–5</caption>
-                  <tbody>
-                    <tr>
-                      <td class="num" style="width: 2em">1</td>
-                      <td>Broad geography</td>
-                    </tr>
-                    <tr>
-                      <td class="num">2</td>
-                      <td>Origin and history</td>
-                    </tr>
-                    <tr>
-                      <td class="num">3</td>
-                      <td>What made it famous</td>
-                    </tr>
-                    <tr>
-                      <td class="num">4</td>
-                      <td>A key ingredient or technique</td>
-                    </tr>
-                    <tr>
-                      <td class="num">5</td>
-                      <td>Near-giveaway — everything but the name</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid2">
-            <div class="card stack stack--tight">
-              <h3>The share card came first</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                The emoji grid was specified before the feedback system, because it constrains what
-                the feedback can be. Four tiles per row, one pantry count, no dish names.
-              </p>
-              <div class="receipt receipt--print"><span class="receipt__line">Lunch Special #4 — 3/6</span><span class="receipt__line">⬜🟩🟩⬜ 1/6🥄</span><span class="receipt__line">🟨🟩🟩🟩 3/6🥄</span><span class="receipt__line">🟩🟩🟩🟩 🛎️</span></div>
-            </div>
-
-            <div class="card stack stack--tight">
               <h3>Three modes, one engine</h3>
               <p style="color: var(--ink-soft); font-size: 0.97rem">
                 One round resolver serves all three. They differ only in how the target is picked and
-                what gets written down afterwards, which is why adding modes cost almost nothing.
+                what's written down afterwards, which is why adding a mode costs almost nothing.
               </p>
               <div class="scroller">
                 <table>
@@ -1159,239 +1669,211 @@
                 </table>
               </div>
               <p class="footnote">
-                Replays must not be able to inflate a streak. Sealing lifetime stats off from the
-                archive is what makes the archive safe to offer at all.
+                Replays must not be able to inflate a streak, so lifetime stats are sealed off from
+                the archive. That is what makes the archive safe to be generous with.
               </p>
             </div>
+
+            <div class="card stack stack--tight">
+              <h3>One rollover time for the whole world</h3>
+              <p style="color: var(--ink-soft); font-size: 0.97rem">
+                The day turns over at a single named timezone shared by client and server rather than
+                at each player's local midnight, so everyone is on the same dish at the same moment
+                and a grid posted in a group chat refers to the puzzle everyone else is playing.
+                Local midnight would hand a player in Sydney the answer to a puzzle Los Angeles has
+                not started.
+              </p>
+              <p class="footnote">
+                The archive plays backwards to puzzle #1, but the server refuses a request for
+                tomorrow, with a two-day tolerance so a skewed device clock cannot lock out a
+                legitimate player.
+              </p>
+            </div>
+          </div>
+
+          <div class="takeaway">
+            <span class="takeaway__k">Takeaway</span>
+            <p>
+              Three modes share one resolver and one clock. What varies between them is only what
+              gets written down afterwards.
+            </p>
           </div>
         </section>
 
         <hr class="divider" />
 
         <!-- ==========================================================
-             3. ANNOUNCEMENTS
+             4. THE SYSTEM — the apparatus around the game
              ========================================================== -->
-        <section class="stack" id="announcements">
+        <section class="stack" id="system">
           <h2 class="lead">
-            <span class="lead__t">Talking to players</span>
+            <span class="lead__t">Live-service loop</span>
             <span class="lead__dots"></span>
-            <span class="lead__p">no accounts · one channel</span>
+            <span class="lead__p">author → measure → ship</span>
           </h2>
 
           <p class="col">
-            No sign-ups means no mailing list, no push token, no way to reach anybody who isn't
-            already looking at the game. So when sixty dishes land, or the Discord version goes live,
-            the only guaranteed moment of attention is the few seconds after someone opens the app.
-            Spending that badly is how a daily game teaches people to stop opening it.
+            The game engine took a few days. Everything since has been the apparatus around it, on
+            the principle that a daily game is not something you finish but something you operate.
+            Each station below was built because the one before it started raising questions I had
+            no way to answer.
           </p>
 
-          <p class="col">
-            An announcement system is therefore not a content feature. It's a rationing system for
-            the one moment of attention the game reliably gets.
-          </p>
+          <div class="card stack">
+            <p class="eyebrow">One turn of the loop</p>
+            <svg class="ring" viewBox="0 0 500 410" role="img"
+              aria-label="A closed six-station loop: author, schedule, play, measure, hypothesise, ship, returning to author.">
+              <circle cx="250" cy="210" r="146" fill="none" stroke="var(--rule)" stroke-width="2" />
 
-          <div class="card stack stack--tight">
-            <p class="eyebrow">Rules set before any of it was built</p>
-            <div class="scroller">
-              <table>
-                <caption>Interruption is a budget — this is how it gets spent</caption>
-                <tbody>
-                  <tr>
-                    <td>Never before the game</td>
-                    <td>
-                      A first-timer meets the how-to, plays, and only then hears the news. Somebody
-                      who hasn't learned what the game is has no use for what changed about it.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Once per player, ever</td>
-                    <td>
-                      A notice that reappears is a notice that gets dismissed unread, and it teaches
-                      players to swat the next one before their eyes reach the words.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>One at a time</td>
-                    <td>
-                      Overlapping notices queue and open in the order they were posted. Nothing gets
-                      dropped for being second, and nothing stacks into a wall.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Today's Special only</td>
-                    <td>
-                      The archive and Chef's Choice are side doors, usually opened mid-session by
-                      someone already deep in the game. A notice there is noise, not news.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>The check goes first</td>
-                    <td>
-                      Someone returning to a round they already finished gets their receipt, then the
-                      notice. Never two cards on screen at once.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Say it in sixty characters</td>
-                    <td>
-                      The header is capped at 60 and the body at 600. A field long enough to hold a
-                      changelog will eventually hold one.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+              <!-- Direction chevrons at the midpoint of each arc. -->
+              <g fill="none" stroke="var(--ink-mute)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M -6 -6 L 0 0 L -6 6" transform="translate(396 210) rotate(90)" />
+                <path d="M -6 -6 L 0 0 L -6 6" transform="translate(323 336.4) rotate(150)" />
+                <path d="M -6 -6 L 0 0 L -6 6" transform="translate(177 336.4) rotate(210)" />
+                <path d="M -6 -6 L 0 0 L -6 6" transform="translate(104 210) rotate(270)" />
+                <path d="M -6 -6 L 0 0 L -6 6" transform="translate(177 83.6) rotate(330)" />
+                <path d="M -6 -6 L 0 0 L -6 6" transform="translate(323 83.6) rotate(30)" />
+              </g>
 
-          <div class="card">
-            <p class="eyebrow" style="margin-bottom: 14px">Where it sits in the first ten seconds</p>
-            <div class="flow">
-              <div class="node">
-                <span class="node__t">Open the app</span>
-                <span class="node__d">notices fetched<br />immediately, held back</span>
-              </div>
-              <span class="arrow" aria-hidden="true">→</span>
-              <div class="node">
-                <span class="node__t">How to play</span>
-                <span class="node__d">first-timers only,<br />once</span>
-              </div>
-              <span class="arrow" aria-hidden="true">→</span>
-              <div class="node node--accent">
-                <span class="node__t">Note from the kitchen</span>
-                <span class="node__d">queued, oldest first,<br />one card at a time</span>
-              </div>
-              <span class="arrow" aria-hidden="true">→</span>
-              <div class="node">
-                <span class="node__t">The board</span>
-                <span class="node__d">uninterrupted<br />from here on</span>
-              </div>
-            </div>
-            <p class="footnote" style="margin-top: 14px">
-              Fetching on open but displaying after the how-to closes is the whole trick: the network
-              round-trip happens while the player is reading the rules, so the notice is already in
-              hand the instant the how-to slides away. No spinner, no gap, no second of dead screen.
+              <!-- The service dot, running the loop. -->
+              <circle class="ring__runner" r="6" fill="var(--accent)" />
+
+              <g class="ring__station" style="--i: 0">
+                <rect x="174" y="34" width="152" height="60" rx="8" fill="var(--surface-2)" stroke="var(--rule)" stroke-width="1.5" />
+                <text class="ring__num" x="186" y="52">01</text>
+                <text class="ring__t" x="250" y="64" text-anchor="middle">Author</text>
+                <text class="ring__d" x="250" y="82" text-anchor="middle">dish + 5 clues</text>
+              </g>
+              <g class="ring__station" style="--i: 1">
+                <rect x="300.4" y="107" width="152" height="60" rx="8" fill="var(--surface-2)" stroke="var(--rule)" stroke-width="1.5" />
+                <text class="ring__num" x="312.4" y="125">02</text>
+                <text class="ring__t" x="376.4" y="137" text-anchor="middle">Schedule</text>
+                <text class="ring__d" x="376.4" y="155" text-anchor="middle">30 days ahead</text>
+              </g>
+              <g class="ring__station" style="--i: 2">
+                <rect x="300.4" y="253" width="152" height="60" rx="8" fill="var(--surface-2)" stroke="var(--rule)" stroke-width="1.5" />
+                <text class="ring__num" x="312.4" y="271">03</text>
+                <text class="ring__t" x="376.4" y="283" text-anchor="middle">Play</text>
+                <text class="ring__d" x="376.4" y="301" text-anchor="middle">web + Discord</text>
+              </g>
+              <g class="ring__station" style="--i: 3">
+                <rect x="174" y="326" width="152" height="60" rx="8" fill="var(--surface-2)" stroke="var(--rule)" stroke-width="1.5" />
+                <text class="ring__num" x="186" y="344">04</text>
+                <text class="ring__t" x="250" y="356" text-anchor="middle">Measure</text>
+                <text class="ring__d" x="250" y="374" text-anchor="middle">4 anonymous beacons</text>
+              </g>
+              <g class="ring__station" style="--i: 4">
+                <rect x="47.6" y="253" width="152" height="60" rx="8" fill="var(--surface-2)" stroke="var(--rule)" stroke-width="1.5" />
+                <text class="ring__num" x="59.6" y="271">05</text>
+                <text class="ring__t" x="123.6" y="283" text-anchor="middle">Hypothesise</text>
+                <text class="ring__d" x="123.6" y="301" text-anchor="middle">metric named first</text>
+              </g>
+              <g class="ring__station" style="--i: 5">
+                <rect x="47.6" y="107" width="152" height="60" rx="8" fill="var(--surface-2)" stroke="var(--rule)" stroke-width="1.5" />
+                <text class="ring__num" x="59.6" y="125">06</text>
+                <text class="ring__t" x="123.6" y="137" text-anchor="middle">Ship</text>
+                <text class="ring__d" x="123.6" y="155" text-anchor="middle">tag &#8594; live</text>
+              </g>
+
+              <text class="ring__c" x="250" y="205" text-anchor="middle">ONE TURN</text>
+              <text class="ring__c" x="250" y="222" text-anchor="middle">OF THE LOOP</text>
+            </svg>
+
+            <!-- Under 640px the ring is replaced by its reading order. -->
+            <ol class="pipe ring__list">
+              <li><div class="pipe__body"><span class="pipe__t">Author</span><span class="pipe__d">A dish and its five clues, written in the admin CMS against a live player preview.</span></div></li>
+              <li><div class="pipe__body"><span class="pipe__t">Schedule</span><span class="pipe__d">Booked onto a date, 30 days ahead, by autofill or by hand.</span></div></li>
+              <li><div class="pipe__body"><span class="pipe__t">Play</span><span class="pipe__d">Served to the website and the Discord Activity from one build.</span></div></li>
+              <li><div class="pipe__body"><span class="pipe__t">Measure</span><span class="pipe__d">Four anonymous beacons: arrived, first guess, game over, share.</span></div></li>
+              <li><div class="pipe__body"><span class="pipe__t">Hypothesise</span><span class="pipe__d">A change logged with the metric it should move, named before it ships.</span></div></li>
+              <li><div class="pipe__body"><span class="pipe__t">Ship</span><span class="pipe__d">A version tag runs the tests, migrates the database, and deploys.</span></div></li>
+            </ol>
+            <p class="footnote">
+              Each station is a piece I built in response to the one before it, in the order shown.
             </p>
           </div>
 
-          <div class="grid2">
-            <div class="card stack stack--tight">
-              <h3>The motion is the label</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                Every other modal in the game slides up from the bottom. An announcement drops in
-                from above and bounces to a stop, then lifts back out when dismissed. A player who
-                has finished a hundred rounds knows before reading a word that this isn't their
-                check — the opposition is doing the work, not the decoration.
-              </p>
-              <p class="footnote">
-                The bounce lives in the keyframe stops — three diminishing overshoots against a plain
-                ease-out — rather than in a springy easing curve, which is the difference between a
-                card with weight and a card on a spring. The contents then rise into it a beat apart,
-                so the eye is walked eyebrow → headline → message. All of it is dropped under
-                <code>prefers-reduced-motion</code>.
-              </p>
-            </div>
-
-            <div class="card stack stack--tight">
-              <h3>Who's a "returning player" with no accounts?</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                Copy that says <em>welcome back</em> must never greet somebody in their first minute.
-                Without identity, the definition has to come from something the game already knows:
-                a player is returning once they've <em>finished</em> at least one round on this
-                device. Halfway through a first game still counts as new.
-              </p>
-              <div class="scroller">
-                <table>
-                  <thead>
-                    <tr>
-                      <th></th>
-                      <th>Marked "everyone"</th>
-                      <th>Marked "returning"</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>First-timer</td>
-                      <td>After the how-to</td>
-                      <td>Never delivered</td>
-                    </tr>
-                    <tr>
-                      <td>Finished ≥1 round</td>
-                      <td>On open</td>
-                      <td>On open</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <div class="scroller card">
+            <table>
+              <caption>What sits on each station</caption>
+              <thead>
+                <tr>
+                  <th style="width: 17%">Station</th>
+                  <th style="width: 30%">What I built</th>
+                  <th>Why it had to exist</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Author</td>
+                  <td>Admin CMS with a live player preview; a batch-SQL spec; a suggestion inbox</td>
+                  <td>
+                    A clue has to be read in the ticket it will appear in, not in a text field.
+                    Player suggestions from the end-of-round receipt promote to a prefilled editor in
+                    one click — five dishes on the menu arrived that way, and get credited on the
+                    check when they come up.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Schedule</td>
+                  <td>Calendar, 30-day autofill, a schedulable invariant</td>
+                  <td>
+                    Autofill takes least-recently-served dishes and skips the last 60 days, so
+                    booking a month is one button rather than thirty decisions. Nothing reaches a
+                    live date without ≥3 ingredients and exactly 5 clues.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Play</td>
+                  <td>One resolver, three modes, two surfaces</td>
+                  <td>One build serves the website and the Discord Activity, so they cannot drift.</td>
+                </tr>
+                <tr>
+                  <td>Measure</td>
+                  <td>Four anonymous beacons; a six-tab dashboard</td>
+                  <td>
+                    Arrival, first guess, game over, share. Every tab holds one <em>question</em>
+                    rather than one data source — what's live, what the menu is doing, who's playing,
+                    what's changing, did I cause it, and the raw feed.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Hypothesise</td>
+                  <td>An experiment log with the metric named up front</td>
+                  <td>
+                    What the change was, what I expected, the day it shipped, and which metric it
+                    should move. Chosen afterwards, the metric is whichever of the eight happened to
+                    move most, which is not evidence of anything.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Ship</td>
+                  <td>Tag-triggered CI: test, typecheck, migrate, deploy</td>
+                  <td>
+                    Migrations run before the code expecting the new columns. Secrets live on the
+                    Worker and never reach CI.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          <p class="col">
-            The delivery side is two ledgers that deliberately disagree about what they're for.
-          </p>
-
-          <div class="grid2">
-            <div class="card stack stack--tight">
-              <h3>The device decides what to show</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                Which notices this browser has already seen lives in <code>localStorage</code>,
-                alongside the round and the streak. That's what makes the modal able to open the
-                frame after the how-to closes — no request to wait on, and it still works offline.
-                The server never gets asked "has this person seen it", because there is no person to
-                ask about.
-              </p>
-            </div>
-
-            <div class="card stack stack--tight">
-              <h3>The server counts who was reached</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                The moment a notice hits the screen it fires one fire-and-forget POST carrying the
-                same anonymous device id the gameplay beacons use. The table's primary key is
-                <code>(announcement_id, player_id)</code>, so the insert is idempotent by
-                construction: a player who clears storage and sees a notice twice is still one player
-                reached, and the admin panel never has to de-duplicate anything at read time.
-              </p>
-              <p class="footnote">
-                Counted on display, not on dismissal — somebody who reads a note and closes the tab
-                still read it.
-              </p>
-            </div>
-
-            <div class="card stack stack--tight">
-              <h3>Markdown that parses to tokens, not HTML</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                Bold, italic, and links — nothing else. The parser emits a token array and the client
-                turns those into React elements, so there is no
-                <code>innerHTML</code> anywhere along the path and nothing to sanitize. Link targets
-                are restricted to absolute http(s) or a same-site path; anything else degrades to its
-                own label as plain text.
-              </p>
-              <p class="footnote">
-                The parser is pure, lives in shared code, and is unit tested — including that a
-                <code>javascript:</code> URL can never produce a link node.
-              </p>
-            </div>
-
-            <div class="card stack stack--tight">
-              <h3>Windows on game time</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                A notice runs between two calendar days, both ends inclusive, in the same
-                America/New_York day the Special itself rolls over on. One clock for the whole
-                product: a notice ending "today" ends when today's dish does, for every player in
-                every timezone. A manual kill switch outranks the dates, so pulling something early
-                doesn't mean deleting it and losing what it earned.
-              </p>
-            </div>
+          <div class="card col stack stack--tight">
+            <h3>Reaching players with no audience list</h3>
+            <p style="color: var(--ink-soft); font-size: 0.97rem">
+              Without accounts there is no mailing list and no push token, so the only reliable
+              moment of attention is the few seconds after someone opens the app. The announcement
+              system exists to ration that moment: never before the game itself, once per player,
+              one card at a time, with the header capped at 60 characters so it cannot grow into a
+              changelog.
+            </p>
           </div>
 
-          <div class="finding col">
-            <span class="finding__tag">Trade-off</span>
+          <div class="takeaway">
+            <span class="takeaway__k">Takeaway</span>
             <p>
-              Reach counts devices, not people. Inside Discord the game runs on a different origin
-              with its own sandboxed storage, so the same human playing on the web and in the Activity
-              is two devices, sees the notice twice, and counts twice. Fixing it means identity, which
-              means accounts — the exact thing the whole game is built to avoid. The admin panel
-              splits reach by surface instead, which answers the question that actually matters:
-              did the announcement land where I thought it would?
+              The deliverable is not only the game but the loop around it, which can carry a change
+              from an initial hypothesis to a measured verdict without a second person involved.
             </p>
           </div>
         </section>
@@ -1399,19 +1881,20 @@
         <hr class="divider" />
 
         <!-- ==========================================================
-             4. STACK
+             5. ARCHITECTURE — chosen to serve the loop above
              ========================================================== -->
         <section class="stack" id="stack">
           <h2 class="lead">
-            <span class="lead__t">The stack</span>
+            <span class="lead__t">Technical architecture</span>
             <span class="lead__dots"></span>
             <span class="lead__p">4 runtime deps</span>
           </h2>
 
           <p class="col">
-            The whole thing is one Cloudflare Worker. It serves the React bundle, answers the API, and
-            queries a SQLite database on the same platform. No second service, no container, nothing
-            to keep warm, and one deploy command that can't half-succeed.
+            One Cloudflare Worker serves the React bundle, answers the API, and queries a SQLite
+            database on the same platform. No second service, nothing to keep warm, one deploy that
+            can't half-succeed. Every choice below was made to keep the distance between "I have an
+            idea" and "it's live and being measured" as short as one person can make it.
           </p>
 
           <div class="card">
@@ -1442,88 +1925,83 @@
               <span class="arrow" aria-hidden="true">→</span>
               <div class="node">
                 <span class="node__t">D1</span>
-                <span class="node__d">dishes, clues,<br />schedule</span>
+                <span class="node__d">dishes, clues,<br />schedule, telemetry</span>
               </div>
             </div>
             <p class="footnote" style="margin-top: 14px">
-              Routing rule: <code>run_worker_first: ["/api/*"]</code>. Everything else is served from
-              the asset layer and never wakes the API, so the board is a static file and only guesses
-              cost anything.
+              Only <code>/api/*</code> wakes the Worker; everything else is served from the asset
+              layer. The board is a static file, and only guesses cost anything.
             </p>
           </div>
 
           <div class="scroller card">
             <table>
-              <caption>Choices and reasons</caption>
+              <caption>Choices, and what each one bought the design loop</caption>
               <thead>
                 <tr>
-                  <th style="width: 20%">Layer</th>
-                  <th style="width: 26%">Choice</th>
-                  <th>Reason</th>
+                  <th style="width: 24%">Choice</th>
+                  <th>What it bought</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>Client</td>
-                  <td>React 19 + Vite, hand-written CSS</td>
+                  <td>The Worker runs in the real runtime locally</td>
                   <td>
-                    No component library, no CSS framework, no router — one path check splits the game
-                    from the admin app. The diner look is specific enough that a framework would have
-                    been fought rather than used.
+                    Local and production execute the same engine, so there is no mock API to drift
+                    and playtesting is accurate. This is the main reason a change can go from idea
+                    to live in an evening.
                   </td>
                 </tr>
                 <tr>
-                  <td>API</td>
-                  <td>Hono on Workers</td>
+                  <td>D1 (SQLite) with real constraints</td>
                   <td>
-                    Small enough to read end to end, and it runs in the same isolate as the assets.
-                    Four runtime dependencies across the whole project.
+                    Every enum is a column-level check, so a mistyped region is a failed insert
+                    rather than a tile that silently never matches anything.
                   </td>
                 </tr>
                 <tr>
-                  <td>Database</td>
-                  <td>Cloudflare D1 (SQLite)</td>
+                  <td>No accounts — player state in local storage</td>
                   <td>
-                    The data is a small catalogue and a calendar. SQLite's constraints do real work
-                    here — see the next section.
+                    No sign-up friction, no personal data, no auth surface to defend. The costs are
+                    real: stats do not follow a player between devices, and every audience figure on
+                    this page counts devices rather than people.
                   </td>
                 </tr>
                 <tr>
-                  <td>Dev loop</td>
-                  <td><code>@cloudflare/vite-plugin</code></td>
+                  <td>Discord Activity on the same deploy</td>
                   <td>
-                    The Worker runs in workerd during <code>vite dev</code>, so local and production
-                    execute the same runtime. No mock API layer to drift.
-                  </td>
-                </tr>
-                <tr>
-                  <td>Player state</td>
-                  <td>localStorage, no accounts</td>
-                  <td>
-                    No sign-up friction, no personal data, no auth surface to defend. The cost is that
-                    stats don't follow you between devices.
-                  </td>
-                </tr>
-                <tr>
-                  <td>Second surface</td>
-                  <td>Discord Activity</td>
-                  <td>
-                    Same deploy. Discord frames the live site through its proxy; the only
-                    Discord-specific code is one dynamically-imported file, so web visitors never
-                    download the SDK.
+                    Discord frames the live site through its proxy, and the only Discord-specific
+                    code is one dynamically-imported file. The second surface cost one file rather
+                    than a second product.
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
 
+          <p class="col">
+            Releases are cut by pushing a version tag. CI re-runs the tests and typecheck, applies
+            pending database migrations, then deploys — migrations first, so the schema is never
+            behind the code expecting it. The tests cover the pure logic: feedback scoring, date
+            validation, and every analytics fold on this page. Keeping those folds free of I/O is
+            what makes them testable, since the queries need a database and the arithmetic does not.
+          </p>
+
           <div class="finding col">
-            <span class="finding__tag">Trade-off</span>
+            <span class="finding__tag">Trade-off worth naming</span>
             <p>
-              The client is trusted with round bookkeeping — the reveal is client-initiated after game
-              over, like Wordle. Anyone determined can read the answer out of a network tab. Closing
-              that means server-side sessions, which means identity, which means accounts. The cheat
-              is self-punishing; the account system wouldn't be.
+              The client is trusted with round bookkeeping, and the reveal is client-initiated after
+              game over, as it is in Wordle. Anyone determined can read the answer out of a network
+              tab. Closing that would require server-side sessions, and therefore accounts. The cheat
+              costs one player their own round; the account system would cost every player something.
+            </p>
+          </div>
+
+          <div class="takeaway">
+            <span class="takeaway__k">Takeaway</span>
+            <p>
+              Four runtime dependencies and one deployable artefact, kept deliberately unambitious so
+              that the time goes into the menu instead.
             </p>
           </div>
         </section>
@@ -1531,352 +2009,114 @@
         <hr class="divider" />
 
         <!-- ==========================================================
-             5. DATA
+             6. MEASURING — the instrument, and its honesty rules
              ========================================================== -->
-        <section class="stack" id="data">
+        <section class="stack" id="measuring">
           <h2 class="lead">
-            <span class="lead__t">How the content is organised to iterate fast</span>
+            <span class="lead__t">Instrumentation</span>
             <span class="lead__dots"></span>
-            <span class="lead__p">3 tables</span>
-          </h2>
-
-          <p class="col">
-            A daily game consumes a piece of authored content every 24 hours, indefinitely. The engine
-            took a few days; what determines whether the game keeps running is how cheap it is to add
-            the 284th dish. So the data model is built around one question: what is the smallest
-            correct unit of content, and can the system tell me when one is malformed before a player
-            sees it?
-          </p>
-
-          <div class="grid3">
-            <div class="card stack stack--tight">
-              <p class="eyebrow">Table 1</p>
-              <h3><code>dishes</code></h3>
-              <p style="color: var(--ink-soft); font-size: 0.95rem">
-                Name, country, region, three enums — course, temperature, protein — and a JSON array
-                of canonical ingredients.
-              </p>
-              <p class="footnote">283 rows · 58 countries · 9 regions</p>
-            </div>
-            <div class="card stack stack--tight">
-              <p class="eyebrow">Table 2</p>
-              <h3><code>clues</code></h3>
-              <p style="color: var(--ink-soft); font-size: 0.95rem">
-                Five per dish, each stamped with its rung. A unique constraint on (dish, rung) makes a
-                duplicated rung impossible.
-              </p>
-              <p class="footnote">1,415 rows · exactly 283 × 5</p>
-            </div>
-            <div class="card stack stack--tight">
-              <p class="eyebrow">Table 3</p>
-              <h3><code>schedule</code></h3>
-              <p style="color: var(--ink-soft); font-size: 0.95rem">
-                One date, one dish. Deliberately thin — it holds no game state, so rescheduling is a
-                one-row edit.
-              </p>
-              <p class="footnote">Date format enforced by a GLOB check</p>
-            </div>
-          </div>
-
-          <div class="grid2">
-            <div class="card stack stack--tight">
-              <h3>The invariant that does the most work</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                A dish is schedulable only with at least 3 ingredients and exactly 5 clues. That rule
-                is enforced in the scheduling endpoint, shown as a badge in the admin UI, and checked
-                in CI. A half-written dish can sit in the pool indefinitely with no risk of landing on
-                a live date.
-              </p>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                Every enum is a column-level <code>CHECK</code>, so a mistyped region is a failed
-                insert rather than a grey tile that never matches anything.
-              </p>
-            </div>
-
-            <div class="card stack stack--tight">
-              <h3>Ingredients are a controlled vocabulary</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                Matching is a set intersection on raw strings, so <code>tomato</code> and
-                <code>tomatoes</code> are two different foods as far as the game is concerned. The
-                vocabulary is canonical — lowercase, singular — and the admin editor autocompletes
-                from what exists rather than letting me coin a new spelling by accident.
-              </p>
-              <p class="footnote">
-                Dull, but it's the difference between feedback that feels sharp and feedback that
-                feels broken.
-              </p>
-            </div>
-          </div>
-
-          <div class="card stack">
-            <h3>Four authoring paths, one catalogue</h3>
-            <div class="scroller">
-              <table>
-                <thead>
-                  <tr>
-                    <th style="width: 22%">Path</th>
-                    <th style="width: 28%">Used for</th>
-                    <th>How it works</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>Admin CMS</td>
-                    <td>Editing one dish, fixing a clue</td>
-                    <td>
-                      Password-gated app at <code>/admin</code>. The dish editor renders a live
-                      preview using the real game components, so a clue is read in the ticket it will
-                      appear in, not in a text field.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Batch SQL</td>
-                    <td>Adding 50 dishes at once</td>
-                    <td>
-                      A written spec in the repo defines every field's rules, so a batch is mechanical
-                      to produce and mechanical to check. Three migrations are 50-dish drops.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Player requests</td>
-                    <td>Finding out what people want</td>
-                    <td>
-                      A suggestion form on the end-of-round receipt writes to a separate inbox table.
-                      One click promotes a request into a prefilled dish editor.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>Auto-fill</td>
-                    <td>Filling the calendar</td>
-                    <td>
-                      Picks least-recently-served schedulable dishes and skips anything served in the
-                      last 60 days. Scheduling a month is one button, not thirty decisions.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div class="band">
-            <h3>The seed / migration split</h3>
-            <p>
-              There are two representations of the catalogue, doing different jobs.
-              <code>seed/seed.sql</code> is the canonical, diffable source of truth — it deletes and
-              rebuilds everything, which is right for a fresh local database and catastrophic against
-              production, where it would erase every edit made through the admin. Production only
-              receives additive migrations: inserts only, dishes keyed by slug rather than hardcoded
-              id, applied automatically on release and never re-run.
-            </p>
-            <p>
-              A path-filtered CI job validates the catalogue against the real schema constraints
-              whenever a migration or the seed changes, so a mistyped enum fails on the pull request
-              rather than on the day that dish is the Special.
-            </p>
-          </div>
-        </section>
-
-        <hr class="divider" />
-
-        <!-- ==========================================================
-             6. PIPELINE
-             ========================================================== -->
-        <section class="stack" id="pipeline">
-          <h2 class="lead">
-            <span class="lead__t">Development to production</span>
-            <span class="lead__dots"></span>
-            <span class="lead__p">git tag → live</span>
-          </h2>
-
-          <p class="col">
-            Releases are cut by pushing a version tag. Everything after that is automated, gated on
-            the same checks I run locally, and ordered so the database is migrated before the code
-            that expects the new columns goes live.
-          </p>
-
-          <div class="card">
-            <ol class="pipe">
-              <li>
-                <div class="pipe__body">
-                  <span class="pipe__t">Local dev against the real runtime</span>
-                  <span class="pipe__d">
-                    Vite serves the client while the Worker runs in workerd against a local D1 file. A
-                    separate free-play entry point opens a fresh round on a random dish, so I can test
-                    the loop repeatedly without burning the day's puzzle or writing to stats.
-                  </span>
-                  <span class="pipe__cmd">npm run dev · npm run play</span>
-                </div>
-              </li>
-              <li>
-                <div class="pipe__body">
-                  <span class="pipe__t">Gate locally</span>
-                  <span class="pipe__d">
-                    Unit tests cover the pure logic — feedback scoring, puzzle numbering, date
-                    validation, the deterministic fallback pick, and the shaping of the public
-                    analytics breakdown. Keeping that logic free of I/O is what makes it testable:
-                    the aggregate queries can't run without a database, so the code that folds their
-                    rows into a response was split into a pure function that can. Then a strict
-                    TypeScript build across three composite projects. Worker code compiles without
-                    DOM types, so a stray <code>window</code> in an API handler fails the build.
-                  </span>
-                  <span class="pipe__cmd">npm test &amp;&amp; npm run check</span>
-                </div>
-              </li>
-              <li>
-                <div class="pipe__body">
-                  <span class="pipe__t">Pull request — data integrity CI</span>
-                  <span class="pipe__d">
-                    Path-filtered: it fires only when migrations, the seed, or the integrity test
-                    change, so routine commits aren't taxed but bad content can't merge.
-                  </span>
-                  <span class="pipe__cmd">.github/workflows/ci.yml</span>
-                </div>
-              </li>
-              <li>
-                <div class="pipe__body">
-                  <span class="pipe__t">Tag the release</span>
-                  <span class="pipe__d">
-                    Any <code>v*</code> tag triggers the deploy workflow. A concurrency group makes
-                    two deploys unable to race. The changelog is generated from the merged PRs'
-                    labels, so it's a by-product of the label each one already carries, not a
-                    document kept in sync by hand.
-                  </span>
-                  <span class="pipe__cmd">git tag v1.1.0 &amp;&amp; git push origin v1.1.0</span>
-                </div>
-              </li>
-              <li>
-                <div class="pipe__body">
-                  <span class="pipe__t">CI regenerates, re-tests, migrates, deploys</span>
-                  <span class="pipe__d">
-                    Cloudflare's runtime types are generated rather than committed, so CI rebuilds
-                    them first, re-runs tests and the typecheck, applies pending D1 migrations to
-                    production, then builds and deploys. Migrations before deploy, never the reverse.
-                  </span>
-                  <span class="pipe__cmd"
-                    >cf-typegen → test → check → d1 migrations apply --remote → deploy</span
-                  >
-                </div>
-              </li>
-              <li>
-                <div class="pipe__body">
-                  <span class="pipe__t">Live on the custom domain</span>
-                  <span class="pipe__d">
-                    The same artefact serves the public site and the Discord Activity, so the two
-                    surfaces can't drift apart.
-                  </span>
-                  <span class="pipe__cmd">lunchspecial.app</span>
-                </div>
-              </li>
-            </ol>
-          </div>
-
-          <div class="grid2">
-            <div class="card stack stack--tight">
-              <h3>Secrets never reach CI</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                The admin password and the token-signing key are set directly on the Worker and
-                persist across deploys, so the build pipeline has no access to either. CI holds only
-                its own Cloudflare deploy credentials. The type generator reads a placeholder file,
-                because it needs the shape of the environment, not the values.
-              </p>
-            </div>
-            <div class="card stack stack--tight">
-              <h3>What CI deliberately won't do</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                It never runs the seed. Seeding is destructive by design, and automating a destructive
-                step against production is how you lose a month of content edits. It stays a manual,
-                once-per-environment bootstrap step.
-              </p>
-            </div>
-          </div>
-
-          <div class="grid2">
-            <div class="card stack stack--tight">
-              <h3>Dependencies update on a schedule</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                Four runtime dependencies means nearly all the churn is tooling — the bundler, the
-                Workers CLI, the test runner — plus the pinned action versions in the workflows.
-                Dependabot opens grouped weekly pull requests for those, so the same local gate and
-                typecheck decide whether a bump is safe and the ordinary tag-to-deploy flow ships it.
-                Grouping is the point: a couple of tidy PRs a week instead of one per package.
-              </p>
-            </div>
-            <div class="card stack stack--tight">
-              <h3>Security scanning on every pull request</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                CodeQL runs its security-and-quality queries over the TypeScript on every PR — not
-                path-filtered like the data-integrity job, because a logic change anywhere is what it
-                looks at. It needs no build step: it reads the source directly, which sidesteps the
-                generated Cloudflare types the real build depends on. Free on a public repo, with
-                results in the repository's Security tab.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <hr class="divider" />
-
-        <!-- ==========================================================
-             7. ANALYTICS
-             ========================================================== -->
-        <section class="stack" id="numbers">
-          <h2 class="lead">
-            <span class="lead__t">Instrumentation, and what it says</span>
-            <span class="lead__dots"></span>
-            <span class="lead__p">Live production data</span>
+            <span class="lead__p">4 beacons · no accounts</span>
           </h2>
 
           <p class="col">
             A daily puzzle has one main tuning knob — difficulty — and no way to judge it from the
-            inside, so the game was instrumented before launch. The engagement charts here read
-            live from the production database — <span data-fill="rounds">154</span> rounds from
-            <span data-fill="devices">43</span> devices so far. It is still an early, self-selected
-            sample, so treat it as a method and a first read, not a result.
+            inside, so the game was instrumented before launch. The hard part was never collecting
+            the data. It was building an instrument that admits what it doesn't know.
           </p>
 
           <div class="card stack">
-            <h3>How the telemetry works</h3>
-            <p class="col" style="color: var(--ink-soft); font-size: 0.97rem">
-              One row per round, created by a fire-and-forget beacon when the board opens and updated
-              twice after. No accounts, no guess content, no personal data — the player id is a random
-              value generated on the device, and its only job is to separate a returning player from a
-              new one.
-            </p>
+            <p class="eyebrow">What one player generates</p>
             <div class="flow">
-              <div class="node">
-                <span class="node__t">start</span>
-                <span class="node__d">board opens,<br />row inserted</span>
+              <div class="node node--accent">
+                <span class="node__t">arrived</span>
+                <span class="node__d">opened the game,<br />once per day</span>
               </div>
               <span class="arrow" aria-hidden="true">→</span>
               <div class="node">
-                <span class="node__t">complete</span>
+                <span class="node__t">started</span>
+                <span class="node__d">first guess<br />submitted</span>
+              </div>
+              <span class="arrow" aria-hidden="true">→</span>
+              <div class="node">
+                <span class="node__t">finished</span>
                 <span class="node__d">guesses used,<br />won or lost</span>
               </div>
               <span class="arrow" aria-hidden="true">→</span>
               <div class="node">
-                <span class="node__t">share</span>
+                <span class="node__t">shared</span>
                 <span class="node__d">result posted</span>
               </div>
-              <span class="arrow" aria-hidden="true">→</span>
-              <div class="node node--accent">
-                <span class="node__t">Five dimensions</span>
-                <span class="node__d">puzzle · date · mode ·<br />surface · device</span>
-              </div>
             </div>
-            <p class="footnote">
-              Every write is an upsert keyed on the round id, so a replayed or out-of-order beacon
-              can't double-count, and the first completion timestamp is never overwritten by a later
-              share.
+            <p class="footnote" style="margin-top: 14px">
+              No accounts, no guess content, no personal data, no IP stored. The player id is random
+              and generated on the device, and its only purpose is distinguishing a returning player
+              from a new one. Every write is keyed on the round, so a replayed beacon cannot
+              double-count.
             </p>
           </div>
+
+          <div class="grid2">
+            <div class="card stack stack--tight">
+              <h3>Unmeasured is never drawn as zero</h3>
+              <p style="color: var(--ink-soft); font-size: 0.97rem">
+                Each instrument switched on at a different time. Days before the player id existed
+                carry null rather than 0, and days before the arrival beacon shipped omit the
+                funnel's top row rather than drawing it empty. Reporting an unmeasured day as zero
+                would assert a 100% bounce rate across the whole history of the game.
+              </p>
+            </div>
+
+            <div class="card stack stack--tight">
+              <h3>Thin numbers carry their uncertainty</h3>
+              <p style="color: var(--ink-soft); font-size: 0.97rem">
+                At tens of rounds a day, a 67% win rate drawn from 3 completions and one drawn from
+                300 render identically and mean very different things. Any rate quoted from fewer
+                than 30 observations shows its 95% interval beside it, and nothing else does — an
+                interval on every number would simply train the reader to ignore them.
+              </p>
+              <p class="footnote">
+                Wilson intervals rather than the normal approximation, because this game sits where
+                the approximation fails: small samples, and rates pinned near 0 or 1, where it
+                returns an interval of zero width.
+              </p>
+            </div>
+          </div>
+
+<div class="takeaway">
+            <span class="takeaway__k">Takeaway</span>
+            <p>
+              An instrument with no way to report "I don't know" will report something else instead,
+              and that answer is very hard to distinguish from a real one.
+            </p>
+          </div>
+        </section>
+
+        <hr class="divider" />
+
+        <!-- ==========================================================
+             7. THE NUMBERS — live from production
+             ========================================================== -->
+        <section class="stack" id="numbers">
+          <h2 class="lead">
+            <span class="lead__t">Production metrics</span>
+            <span class="lead__dots"></span>
+            <span class="lead__p">read live</span>
+          </h2>
+
+          <p class="col">
+            Everything in this section is read live from the production database when the page
+            loads. The audience is small and self-selected — <span data-fill="rounds">745</span>
+            rounds from <span data-fill="devices">242</span> devices — so these are best read as a
+            method and a first result rather than a conclusion.
+          </p>
 
           <!-- ---------- guess distribution ---------- -->
           <div class="card chart" id="chart-guesses">
             <div>
               <div class="chart__title">Guesses needed to solve</div>
               <div class="chart__sub">
-                <span data-fill="solved">102</span> solved rounds ·
-                <span data-fill="fails">10</span> more ran out of guesses
+                <span data-fill="solved">537</span> solved rounds ·
+                <span data-fill="fails">113</span> more ran out of guesses
               </div>
             </div>
             <svg viewBox="0 0 720 254" role="img" aria-label="Bar chart of guesses needed to solve, from one guess through six, plus rounds that ran out of guesses.">
@@ -1885,36 +2125,36 @@
               <line class="gridline" x1="46" y1="112.8" x2="700" y2="112.8" />
               <line class="gridline" x1="46" y1="69.2" x2="700" y2="69.2" />
               <text class="ax y-tick" x="38" y="204" text-anchor="end">0</text>
-              <text class="ax y-tick" x="38" y="160" text-anchor="end">10</text>
-              <text class="ax y-tick" x="38" y="116" text-anchor="end">20</text>
-              <text class="ax y-tick" x="38" y="73" text-anchor="end">30</text>
+              <text class="ax y-tick" x="38" y="160" text-anchor="end">50</text>
+              <text class="ax y-tick" x="38" y="116" text-anchor="end">100</text>
+              <text class="ax y-tick" x="38" y="73" text-anchor="end">150</text>
 
-              <rect class="bar" x="60" y="165.1" width="72" height="34.9" rx="4" fill="var(--cat-2)"><title>Solved in 1 guess — 8 rounds (8%)</title></rect>
-              <text class="val" x="96" y="157" text-anchor="middle">8</text>
+              <rect class="bar" x="60" y="180.9" width="72" height="19.1" rx="4" fill="var(--cat-2)"><title>Solved in 1 guess — 22 rounds</title></rect>
+              <text class="val" x="96" y="173" text-anchor="middle">22</text>
               <text class="ax" x="96" y="220" text-anchor="middle">1</text>
 
-              <rect class="bar" x="148" y="56.1" width="72" height="143.9" rx="4" fill="var(--cat-2)"><title>Solved in 2 guesses — 33 rounds (32%)</title></rect>
-              <text class="val" x="184" y="48" text-anchor="middle">33</text>
+              <rect class="bar" x="148" y="39.5" width="72" height="160.5" rx="4" fill="var(--cat-2)"><title>Solved in 2 guesses — 184 rounds</title></rect>
+              <text class="val val--em" x="184" y="31" text-anchor="middle">184</text>
               <text class="ax" x="184" y="220" text-anchor="middle">2</text>
 
-              <rect class="bar" x="236" y="30" width="72" height="170" rx="4" fill="var(--cat-2)"><title>Solved in 3 guesses — 39 rounds (38%), the most common outcome</title></rect>
-              <text class="val val--em" x="272" y="21" text-anchor="middle">39</text>
+              <rect class="bar" x="236" y="74.4" width="72" height="125.6" rx="4" fill="var(--cat-2)"><title>Solved in 3 guesses — 144 rounds</title></rect>
+              <text class="val" x="272" y="66" text-anchor="middle">144</text>
               <text class="ax" x="272" y="220" text-anchor="middle">3</text>
 
-              <rect class="bar" x="324" y="125.9" width="72" height="74.1" rx="4" fill="var(--cat-2)"><title>Solved in 4 guesses — 17 rounds (17%)</title></rect>
-              <text class="val" x="360" y="118" text-anchor="middle">17</text>
+              <rect class="bar" x="324" y="115.4" width="72" height="84.6" rx="4" fill="var(--cat-2)"><title>Solved in 4 guesses — 97 rounds</title></rect>
+              <text class="val" x="360" y="107" text-anchor="middle">97</text>
               <text class="ax" x="360" y="220" text-anchor="middle">4</text>
 
-              <rect class="bar" x="412" y="178.2" width="72" height="21.8" rx="4" fill="var(--cat-2)"><title>Solved in 5 guesses — 5 rounds (5%)</title></rect>
-              <text class="val" x="448" y="170" text-anchor="middle">5</text>
+              <rect class="bar" x="412" y="149.4" width="72" height="50.6" rx="4" fill="var(--cat-2)"><title>Solved in 5 guesses — 58 rounds</title></rect>
+              <text class="val" x="448" y="141" text-anchor="middle">58</text>
               <text class="ax" x="448" y="220" text-anchor="middle">5</text>
 
-              <rect class="bar" x="500" y="198" width="72" height="2" rx="1" fill="var(--miss)"><title>Solved in 6 guesses — 0 rounds. Nobody has needed the full budget.</title></rect>
-              <text class="val" x="536" y="190" text-anchor="middle">0</text>
+              <rect class="bar" x="500" y="172.1" width="72" height="27.9" rx="4" fill="var(--cat-2)"><title>Solved in 6 guesses — 32 rounds, the last of the budget</title></rect>
+              <text class="val" x="536" y="164" text-anchor="middle">32</text>
               <text class="ax" x="536" y="220" text-anchor="middle">6</text>
 
-              <rect class="bar" x="600" y="156.4" width="72" height="43.6" rx="4" fill="var(--cat-1)"><title>Ran out of guesses — 10 rounds (9% of completed)</title></rect>
-              <text class="val" x="636" y="148" text-anchor="middle">10</text>
+              <rect class="bar" x="600" y="101.4" width="72" height="98.6" rx="4" fill="var(--cat-1)"><title>Ran out of guesses — 113 rounds</title></rect>
+              <text class="val" x="636" y="93" text-anchor="middle">113</text>
               <text class="ax" x="636" y="220" text-anchor="middle">✗</text>
 
               <text class="ax" x="46" y="244">guesses used →</text>
@@ -1923,23 +2163,20 @@
             <div class="legend">
               <span><i class="swatch" style="background: var(--cat-2)"></i> Solved</span>
               <span><i class="swatch" style="background: var(--cat-1)"></i> Ran out of guesses</span>
-              <span><i class="swatch" style="background: var(--miss)"></i> Never observed</span>
             </div>
           </div>
 
           <div class="finding col">
-            <span class="finding__tag">What the distribution shows</span>
+            <span class="finding__tag">This chart is a changed mind</span>
             <p>
-              Mean solve is <span data-fill="avgGuesses">2.8</span> guesses, and the sixth is almost
-              never needed. <span data-fill="byThree">78%</span> of solves land by guess three, so
-              most players see clue rungs 1 and 2, some see 3, and rungs 4 and 5 are rarely reached —
-              <span data-fill="unusedClues">566</span> clues that almost nobody reads.
-            </p>
-            <p>
-              That's a difficulty problem showing up as a content-budget problem. The fix isn't more
-              clues: either the pool gets harder (it currently skews toward globally famous dishes,
-              which is what a launch needs), or the guess budget shortens and the ladder recompresses.
-              The instrumentation to measure either change is already in place.
+              An earlier version of this page reported a mean solve of <strong>2.8 guesses</strong>,
+              with the sixth guess never needed and the last two clue rungs almost never read. The
+              pool skewed toward globally famous dishes, which suits a launch better than it suits a
+              player in their fourth week. I added 60 dishes chosen to close the gaps and began
+              booking the schedule against the menu-mix panel. The mean is now
+              <span data-fill="avgGuesses">3.2</span>, the full guess budget is used, and
+              <span data-fill="unsolvedRate">17%</span> of finished rounds end unsolved, which gives
+              the game a genuine loss rate.
             </p>
           </div>
 
@@ -1947,30 +2184,37 @@
           <div class="grid2">
             <div class="card chart" id="chart-funnel">
               <div>
-                <div class="chart__title">Round funnel</div>
-                <div class="chart__sub">All modes, since launch</div>
+                <div class="chart__title">Where players drop off</div>
+                <div class="chart__sub" id="funnel-sub">
+                  Counted in devices, pooled over every day arrivals have been measured
+                </div>
               </div>
-              <svg viewBox="0 0 480 230" role="img" aria-label="Funnel of rounds started, completed, solved, and shared.">
-                <text class="ax fn-label" x="0" y="14">STARTED</text>
-                <rect class="bar" x="0" y="20" width="400" height="26" rx="4" fill="var(--cat-2)"><title>Started</title></rect>
-                <text class="val" x="408" y="38">154</text>
+              <svg viewBox="0 0 480 250" role="img" aria-label="Funnel of devices that arrived, played, finished, and shared or replayed.">
+                <text class="ax fn-label" x="0" y="14">ARRIVED</text>
+                <rect class="bar" x="0" y="20" width="400" height="26" rx="4" fill="var(--miss)"><title>Opened the game</title></rect>
+                <text class="val" x="408" y="38">31</text>
 
-                <text class="ax fn-label" x="0" y="68">COMPLETED · 73% of starts</text>
-                <rect class="bar" x="0" y="74" width="290.9" height="26" rx="4" fill="var(--cat-2)"><title>Completed</title></rect>
-                <text class="val" x="298.9" y="92">112</text>
+                <text class="ax fn-label" x="0" y="68">PLAYED</text>
+                <rect class="bar" x="0" y="74" width="271" height="26" rx="4" fill="var(--cat-2)"><title>Submitted a first guess</title></rect>
+                <text class="val" x="279" y="92">21</text>
 
-                <text class="ax fn-label" x="0" y="122">SOLVED · 91% of completions</text>
-                <rect class="bar" x="0" y="128" width="264.9" height="26" rx="4" fill="var(--cat-2)"><title>Solved</title></rect>
-                <text class="val" x="272.9" y="146">102</text>
+                <text class="ax fn-label" x="0" y="122">FINISHED</text>
+                <rect class="bar" x="0" y="128" width="258" height="26" rx="4" fill="var(--cat-1)"><title>Reached game over</title></rect>
+                <text class="val" x="266" y="146">20</text>
 
-                <text class="ax fn-label" x="0" y="176">SHARED · 21% of completions</text>
-                <rect class="bar" x="0" y="182" width="59.7" height="26" rx="4" fill="var(--cat-2)"><title>Shared</title></rect>
-                <text class="val" x="67.7" y="200">23</text>
+                <text class="ax fn-label" x="0" y="176">SHARED</text>
+                <rect class="bar" x="0" y="182" width="129" height="26" rx="4" fill="var(--cat-3)"><title>Posted a result</title></rect>
+                <text class="val" x="137" y="200">10</text>
+
+                <text class="ax fn-label" x="0" y="230">PLAYED AGAIN</text>
+                <rect class="bar" x="0" y="236" width="52" height="26" rx="4" fill="var(--cat-2)"><title>Started another round after finishing one</title></rect>
+                <text class="val" x="60" y="254">4</text>
               </svg>
-              <p class="footnote">
-                <span data-fill="winRate">91%</span> of finished rounds are wins, consistent with the
-                difficulty read above. The interesting gap is the
-                <span data-fill="dropoff">27%</span> who open a board and never finish.
+              <p class="footnote" id="funnel-note">
+                Every stage counts devices rather than rounds, which is the only reason this is
+                allowed to be a funnel at all. A player who does the Special plus three Leftovers is
+                one arrival and four starts, and stacked as stages those numbers would grow as they
+                descend.
               </p>
             </div>
 
@@ -1980,100 +2224,107 @@
                 <div class="chart__sub">Which entrance players actually use</div>
               </div>
               <svg viewBox="0 0 480 230" role="img" aria-label="Rounds by mode: Today's Special, Leftovers, and Chef's Choice.">
-                <text class="ax md-label" x="0" y="14">TODAY'S SPECIAL · 69% completed</text>
+                <text class="ax md-label" x="0" y="14">TODAY'S SPECIAL</text>
                 <rect class="bar" x="0" y="20" width="400" height="26" rx="4" fill="var(--cat-1)"><title>Today's Special</title></rect>
-                <text class="val" x="408" y="38">134</text>
+                <text class="val" x="408" y="38">476</text>
 
-                <text class="ax md-label" x="0" y="68">LEFTOVERS · 100% completed</text>
-                <rect class="bar" x="0" y="74" width="35.8" height="26" rx="4" fill="var(--cat-2)"><title>Leftovers (archive replay)</title></rect>
-                <text class="val" x="43.8" y="92">12</text>
+                <text class="ax md-label" x="0" y="68">LEFTOVERS</text>
+                <rect class="bar" x="0" y="74" width="168" height="26" rx="4" fill="var(--cat-2)"><title>Leftovers (archive replay)</title></rect>
+                <text class="val" x="176" y="92">200</text>
 
-                <text class="ax md-label" x="0" y="122">CHEF'S CHOICE · 100% completed</text>
-                <rect class="bar" x="0" y="128" width="23.9" height="26" rx="4" fill="var(--cat-3)"><title>Chef's Choice (random dish)</title></rect>
-                <text class="val" x="31.9" y="146">8</text>
+                <text class="ax md-label" x="0" y="122">CHEF'S CHOICE</text>
+                <rect class="bar" x="0" y="128" width="58" height="26" rx="4" fill="var(--cat-3)"><title>Chef's Choice (random dish)</title></rect>
+                <text class="val" x="66" y="146">69</text>
 
-                <text class="ax md-note" x="0" y="196">The two optional modes are 13% of all rounds,</text>
-                <text class="ax md-note" x="0" y="212">and nearly all are played to the end.</text>
+                <text class="ax md-note" x="0" y="196">The two optional modes are 36% of all rounds,</text>
+                <text class="ax md-note" x="0" y="212">and 94% of them are played to the end.</text>
               </svg>
-              <div class="legend">
-                <span><i class="swatch" style="background: var(--cat-1)"></i> Today's Special</span>
-                <span><i class="swatch" style="background: var(--cat-2)"></i> Leftovers</span>
-                <span><i class="swatch" style="background: var(--cat-3)"></i> Chef's Choice</span>
-              </div>
+              <p class="footnote">
+                The archive was built as a courtesy for latecomers and became a third of all play.
+              </p>
             </div>
           </div>
 
-          <div class="finding col">
-            <span class="finding__tag">Second read</span>
-            <p>
-              The optional modes are <span data-fill="optShare">13%</span> of rounds and finish at
-              <span data-fill="optComplete">100%</span>, against
-              <span data-fill="dailyComplete">69%</span> for the daily. Nobody opens an archive round
-              by accident — you have to go looking for it, and almost everyone who does plays it out.
-              Small and self-selected, but it suggests the drop-off in the daily is a discovery
-              problem rather than a problem with the round itself.
-            </p>
-          </div>
-
-          <!-- ---------- per puzzle (frozen launch-week snapshot — see note below) ---------- -->
-          <div class="card chart" id="chart-puzzles">
+          <!-- ---------- growth ---------- -->
+          <div class="card chart" id="chart-growth">
             <div>
-              <div class="chart__title">Rounds per puzzle, launch week</div>
-              <div class="chart__sub">
-                A frozen launch-week snapshot — grouped by the puzzle's date, not the day it was
-                played · #5 was still in progress
-              </div>
+              <div class="chart__title">Games played, running total</div>
+              <div class="chart__sub" id="growth-sub">Every mode together, since the first recorded round</div>
             </div>
-            <svg viewBox="0 0 720 220" role="img" aria-label="Rounds per puzzle. Puzzle 1: 3 rounds, 3 devices. Puzzle 2: 24 rounds, 4 devices. Puzzle 3: 70 rounds, 4 devices. Puzzle 4: 56 rounds, 41 devices. Puzzle 5: 1 round, 1 device, in progress.">
-              <line class="gridline" x1="52" y1="170" x2="700" y2="170" />
-              <line class="gridline" x1="52" y1="123" x2="700" y2="123" />
-              <line class="gridline" x1="52" y1="76" x2="700" y2="76" />
-              <line class="gridline" x1="52" y1="29" x2="700" y2="29" />
-              <text class="ax" x="44" y="174" text-anchor="end">0</text>
-              <text class="ax" x="44" y="127" text-anchor="end">25</text>
-              <text class="ax" x="44" y="80" text-anchor="end">50</text>
-              <text class="ax" x="44" y="33" text-anchor="end">75</text>
-
-              <rect class="bar" x="70" y="164.4" width="96" height="5.6" rx="3" fill="var(--cat-2)"><title>Puzzle #1 · Jul 17 — 3 rounds from 3 devices</title></rect>
-              <text class="val" x="118" y="156" text-anchor="middle">3</text>
-              <text class="ax" x="118" y="190" text-anchor="middle">#1 · Jul 17</text>
-              <text class="ax" x="118" y="204" text-anchor="middle">3 devices</text>
-
-              <rect class="bar" x="196" y="124.9" width="96" height="45.1" rx="4" fill="var(--cat-2)"><title>Puzzle #2 · Jul 18 — 24 rounds from 4 devices</title></rect>
-              <text class="val" x="244" y="116" text-anchor="middle">24</text>
-              <text class="ax" x="244" y="190" text-anchor="middle">#2 · Jul 18</text>
-              <text class="ax" x="244" y="204" text-anchor="middle">4 devices</text>
-
-              <rect class="bar" x="322" y="38.4" width="96" height="131.6" rx="4" fill="var(--cat-2)"><title>Puzzle #3 · Jul 19 — 70 rounds from 4 devices, mostly pre-launch testing</title></rect>
-              <text class="val" x="370" y="30" text-anchor="middle">70</text>
-              <text class="ax" x="370" y="190" text-anchor="middle">#3 · Jul 19</text>
-              <text class="ax" x="370" y="204" text-anchor="middle">4 devices</text>
-
-              <rect class="bar" x="448" y="64.7" width="96" height="105.3" rx="4" fill="var(--cat-1)"><title>Puzzle #4 · Jul 20 — 56 rounds from 41 devices, the first day with real players</title></rect>
-              <text class="val val--em" x="496" y="56" text-anchor="middle">56</text>
-              <text class="ax" x="496" y="190" text-anchor="middle">#4 · Jul 20</text>
-              <text class="ax" x="496" y="204" text-anchor="middle">41 devices</text>
-
-              <rect class="bar" x="574" y="168.1" width="96" height="1.9" rx="1" fill="var(--miss)"><title>Puzzle #5 · Jul 21 — 1 round so far; the day had barely started</title></rect>
-              <text class="val" x="622" y="160" text-anchor="middle">1</text>
-              <text class="ax" x="622" y="190" text-anchor="middle">#5 · Jul 21</text>
-              <text class="ax" x="622" y="204" text-anchor="middle">in progress</text>
+            <svg viewBox="0 0 720 240" role="img" aria-label="Cumulative games played per day since launch, against a constant-pace reference line.">
+              <defs>
+                <clipPath id="growth-clip"><rect x="46" y="14" width="654" height="176" /></clipPath>
+              </defs>
+              <line class="gridline" x1="46" y1="190" x2="700" y2="190" />
+              <line class="gridline" x1="46" y1="146" x2="700" y2="146" />
+              <line class="gridline" x1="46" y1="102" x2="700" y2="102" />
+              <line class="gridline" x1="46" y1="58" x2="700" y2="58" />
+              <text class="ax y-tick" x="38" y="194" text-anchor="end">0</text>
+              <text class="ax y-tick" x="38" y="150" text-anchor="end">333</text>
+              <text class="ax y-tick" x="38" y="106" text-anchor="end">667</text>
+              <text class="ax y-tick" x="38" y="62" text-anchor="end">1,000</text>
+              <g clip-path="url(#growth-clip)">
+                <path id="growth-area" fill="var(--cat-2)" opacity="0.16" d="M 46.0 187.4 L 74.4 178.8 L 102.9 169.9 L 131.3 166.6 L 159.7 159.8 L 188.2 155.4 L 216.6 150.9 L 245.0 148.8 L 273.5 143.1 L 301.9 141.8 L 330.3 138.9 L 358.8 136.1 L 387.2 135.0 L 415.7 130.7 L 444.1 128.9 L 472.5 126.2 L 501.0 122.7 L 529.4 115.3 L 557.8 111.9 L 586.3 102.1 L 614.7 96.9 L 643.1 95.5 L 671.6 94.2 L 700.0 91.7 L 700.0 190 L 46 190 Z" />
+                <path id="growth-line" fill="none" stroke="var(--cat-2)" stroke-width="2.5" stroke-linejoin="round" d="M 46.0 187.4 L 74.4 178.8 L 102.9 169.9 L 131.3 166.6 L 159.7 159.8 L 188.2 155.4 L 216.6 150.9 L 245.0 148.8 L 273.5 143.1 L 301.9 141.8 L 330.3 138.9 L 358.8 136.1 L 387.2 135.0 L 415.7 130.7 L 444.1 128.9 L 472.5 126.2 L 501.0 122.7 L 529.4 115.3 L 557.8 111.9 L 586.3 102.1 L 614.7 96.9 L 643.1 95.5 L 671.6 94.2 L 700.0 91.7" />
+                <line id="growth-trend" x1="46" y1="178.8" x2="700" y2="90.3" stroke="var(--ink-mute)" stroke-width="1.5" stroke-dasharray="6 5" />
+              </g>
+              <text class="ax" id="growth-first" x="46" y="212">Jul 18</text>
+              <text class="ax" id="growth-last" x="700" y="212" text-anchor="end">Aug 10</text>
             </svg>
             <div class="legend">
-              <span><i class="swatch" style="background: var(--cat-1)"></i> First day with real players</span>
-              <span><i class="swatch" style="background: var(--cat-2)"></i> Pre-launch, mostly my own testing</span>
-              <span><i class="swatch" style="background: var(--miss)"></i> Partial day</span>
+              <span><i class="swatch" style="background: var(--cat-2)"></i> Running total</span>
+              <span><i class="swatch" style="background: var(--ink-mute); height: 2px; border-radius: 0"></i> Constant-pace reference</span>
             </div>
             <p class="footnote">
-              Puzzle #3's 70 rounds came from four devices — that's testing, not traffic. Puzzle #4 is
-              the first bar that means anything, and the device count is the column to read, not the
-              round count.
+              A cumulative curve can only rise, so the fact that it goes up carries no information;
+              the bend does. The dashed line is the same run at a single constant pace, fitted by
+              least squares. The curve pulling above it means the game is gaining, and sagging below
+              it means the game is stalling. Without that reference, every cumulative chart looks
+              like success.
             </p>
           </div>
 
+          <!-- ---------- retention + surfaces ---------- -->
           <div class="grid2">
+            <div class="card chart" id="chart-days">
+              <div>
+                <div class="chart__title">Days played per device</div>
+                <div class="chart__sub">Devices that came back for an Nth day</div>
+              </div>
+              <svg viewBox="0 0 480 210" role="img" aria-label="Devices by how many distinct days they played: 242 played at least one day, 50 at least two, 29 at least three, 17 at least four, 11 at least five.">
+                <text class="ax" x="0" y="33">1+ day</text>
+                <rect class="bar" x="92" y="16" width="300" height="24" rx="4" fill="var(--miss)" />
+                <text class="val" x="400" y="33">242</text>
+
+                <text class="ax" x="0" y="69">2+ days</text>
+                <rect class="bar" x="92" y="52" width="62" height="24" rx="4" fill="var(--cat-2)" />
+                <text class="val" x="162" y="69">50</text>
+                <text class="ax" x="470" y="69" text-anchor="end">21% of all devices</text>
+
+                <text class="ax" x="0" y="105">3+ days</text>
+                <rect class="bar" x="92" y="88" width="36" height="24" rx="4" fill="var(--cat-2)" />
+                <text class="val" x="136" y="105">29</text>
+                <text class="ax" x="470" y="105" text-anchor="end">12% of all devices</text>
+
+                <text class="ax" x="0" y="141">4+ days</text>
+                <rect class="bar" x="92" y="124" width="21" height="24" rx="4" fill="var(--cat-2)" />
+                <text class="val" x="121" y="141">17</text>
+                <text class="ax" x="470" y="141" text-anchor="end">7% of all devices</text>
+
+                <text class="ax" x="0" y="177">5+ days</text>
+                <rect class="bar" x="92" y="160" width="14" height="24" rx="4" fill="var(--cat-2)" />
+                <text class="val" x="114" y="177">11</text>
+                <text class="ax" x="470" y="177" text-anchor="end">5% of all devices</text>
+              </svg>
+              <p class="footnote" id="days-note">
+                <strong>79% of devices played on exactly one day and never came back.</strong> This
+                is the most important number on the page and the one the recent funnel work exists
+                to move. Retention, not acquisition, is the constraint on this project.
+              </p>
+            </div>
+
             <div class="card stack stack--tight">
-              <h3>Two surfaces, one dataset</h3>
+              <h3>Two surfaces, near parity</h3>
               <div class="scroller">
                 <table>
                   <caption>Rounds and distinct devices by surface</caption>
@@ -2087,55 +2338,35 @@
                   <tbody>
                     <tr>
                       <td>Web</td>
-                      <td class="num" data-fill="webRounds">149</td>
-                      <td class="num" data-fill="webDevices">39</td>
+                      <td class="num" data-fill="webRounds">490</td>
+                      <td class="num" data-fill="webDevices">122</td>
                     </tr>
                     <tr>
                       <td>Discord Activity</td>
-                      <td class="num" data-fill="discordRounds">5</td>
-                      <td class="num" data-fill="discordDevices">4</td>
+                      <td class="num" data-fill="discordRounds">255</td>
+                      <td class="num" data-fill="discordDevices">121</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
               <p style="color: var(--ink-soft); font-size: 0.95rem">
-                Every beacon carries its surface, and the admin dashboard has a web / Discord / all
-                toggle over the whole engagement panel. The Discord numbers are tiny — the Activity is
-                days old — but the split existed from its first day, so there's nothing to retrofit
-                when it grows.
+                An earlier version of this page described the Discord numbers as tiny and the
+                Activity as days old. It is now half the audience by device count, from one
+                dynamically-imported file and no second build. The surface was recorded on every
+                beacon from the first day, so nothing had to be retrofitted when it grew.
               </p>
-            </div>
-
-            <div class="card stack stack--tight">
-              <h3>What the dashboard shows</h3>
-              <ul class="plain">
-                <li>Today's guess distribution above the all-time one, so a single hard puzzle is visible instead of averaged away.</li>
-                <li>New versus returning devices, folded by day.</li>
-                <li>Rounds started per hour in the game's timezone, so a rollover-time change can be judged.</li>
-                <li>A live feed of individual beacons, filterable to exclude my own device — otherwise testing drowns the signal.</li>
-                <li>Schedule health: days scheduled ahead, the first gap, and any pooled dish failing the schedulable rule.</li>
-              </ul>
+              <p class="footnote">
+                Web devices play more rounds each and Discord brings more first-time players, which
+                is why every chart on the dashboard can be filtered by surface.
+              </p>
             </div>
           </div>
 
-          <div class="band">
-            <h3>Instrumentation bug: blocked beacons</h3>
+          <div class="takeaway">
+            <span class="takeaway__k">Takeaway</span>
             <p>
-              The beacons originally posted to paths containing the word <em>analytics</em>. Ad
-              blockers ship filter rules for that path shape, so in a meaningful slice of browsers the
-              requests were cancelled before they left the page. The admin dashboard failed loudly — a
-              bare network error with nothing in the server logs. The player beacons failed silently:
-              they're fire-and-forget, so a blocked beacon is indistinguishable from a delivered one,
-              and those players never appeared in any count.
-            </p>
-            <p>
-              Missing data biased toward the technical users most likely to block things is worse than
-              wrong data, because nothing looks broken. The fix was renaming the endpoints to
-              something boring, and writing the rule into the project docs: no client-called URL may
-              contain <code>analytics</code>, <code>event</code>, <code>track</code>,
-              <code>collect</code>, <code>beacon</code>, <code>telemetry</code>, or
-              <code>pixel</code>. The admin client also now translates a rejected request into a
-              message naming content blockers as the likely cause.
+              The difficulty measurement moved after I acted on it. The retention measurement has
+              not moved, and that is the current state of the project.
             </p>
           </div>
         </section>
@@ -2143,104 +2374,286 @@
         <hr class="divider" />
 
         <!-- ==========================================================
-             8. TRADE-OFFS
+             8. EXPERIMENTS — the loop closing
              ========================================================== -->
-        <section class="stack" id="calls">
+        <section class="stack" id="experiments">
           <h2 class="lead">
-            <span class="lead__t">Trade-offs</span>
+            <span class="lead__t">Experiment log and results</span>
             <span class="lead__dots"></span>
-            <span class="lead__p">Decisions worth naming</span>
+            <span class="lead__p">before / after</span>
           </h2>
+
+          <p class="col">
+            Every chart above answers what is happening. None of them answers whether I caused it.
+            So the database also holds a change log: one row per deliberate change, recording what I
+            expected and — set before shipping, not after — which metric it was meant to move. The
+            dashboard splits the daily series at the ship date and compares the two halves. At this
+            volume the correct answer is often <strong>"not enough data yet"</strong>, and a
+            comparison with no way to return that will return something else instead. Making it a
+            first-class result is most of the design of this feature.
+          </p>
+
+          <span class="asof">Verdict as of 10 Aug 2026 · 14-day window</span>
+
+          <!-- experiment 1 -->
+          <div class="card verdict verdict--grow">
+            <div class="verdict__head">
+              <div>
+                <h3>Schedule the menu from the mix panel, not by feel</h3>
+                <div class="verdict__meta">shipped 26 Jul · metric named up front: finish rate</div>
+              </div>
+              <span class="chip chip--up">Moved up</span>
+            </div>
+            <p style="color: var(--ink-soft); font-size: 0.97rem">
+              The schedule had always been picked for variety, but by instinct. This is the day I
+              began booking it against the menu-mix panel, which compares the region, course, protein
+              and temperature ratios of what has been served against the pool it is drawn from.
+            </p>
+            <svg viewBox="0 0 660 132" role="img" aria-label="Finish rate before: 81 percent, interval 76 to 85. After: 91 percent, interval 88 to 94. The intervals do not overlap.">
+              <line class="gridline" x1="120" y1="18" x2="120" y2="104" />
+              <line class="gridline" x1="390" y1="18" x2="390" y2="104" />
+              <line class="gridline" x1="640" y1="18" x2="640" y2="104" />
+              <text class="iv-lab" x="120" y="126" text-anchor="middle">70%</text>
+              <text class="iv-lab" x="390" y="126" text-anchor="middle">85%</text>
+              <text class="iv-lab" x="640" y="126" text-anchor="middle">100%</text>
+
+              <text class="iv-lab" x="0" y="42">BEFORE · 8 days</text>
+              <rect class="iv-band" x="228" y="30" width="90" height="18" rx="4" style="--iv-origin: 50%" />
+              <line class="iv-rule" x1="228" y1="39" x2="318" y2="39" style="--iv-origin: 50%" />
+              <circle class="iv-dot" cx="318" cy="39" r="5" />
+              <text class="iv-val" x="336" y="44">81%</text>
+
+              <text class="iv-lab" x="0" y="90">AFTER · 14 days</text>
+              <rect class="iv-band iv-band--after" x="444" y="78" width="108" height="18" rx="4" style="--iv-origin: 50%" />
+              <line class="iv-rule iv-rule--after" x1="444" y1="87" x2="552" y2="87" style="--iv-origin: 50%" />
+              <circle class="iv-dot iv-dot--after" cx="498" cy="87" r="5" />
+              <text class="iv-val" x="570" y="92">91%</text>
+            </svg>
+            <p class="footnote">
+              81% to 91% of started rounds reaching game over, across 312 rounds before and 404
+              after. The bars are 95% intervals, and the test is simply whether they overlap. That is
+              stricter than a difference-of-proportions test, deliberately: the more expensive
+              mistake for a project this size is being convinced by noise, not missing a small
+              effect.
+            </p>
+          </div>
+
+          <div class="finding col">
+            <span class="finding__tag">Why the window is fixed in advance</span>
+            <p>
+              Read at a <strong>7-day</strong> window instead of 14, the same comparison returns
+              <em>no change</em>: 84% against 89%, with intervals that overlap. Nothing about the
+              game differs between those two readings, only how much of the surrounding variation
+              each window includes. Choosing the window after seeing the data means choosing the
+              answer, which is why the window and the metric are both recorded before the change
+              ships.
+            </p>
+          </div>
+
+          <div class="scroller card">
+            <table>
+              <caption>The rules that make a verdict worth anything</caption>
+              <tbody>
+                <tr>
+                  <td style="width: 30%">The metric is named first</td>
+                  <td>Chosen afterwards, the metric is whichever of the eight moved most. Reading a different one than the change was logged against prints a warning.</td>
+                </tr>
+                <tr>
+                  <td>Rates are pooled, never averaged</td>
+                  <td>Total solved over total completed. Averaging daily percentages lets a one-round Tuesday outvote a whole weekend — which is why the series ships raw counts.</td>
+                </tr>
+                <tr>
+                  <td>Counts and rates get different tests</td>
+                  <td>A count's variation is day-to-day spread; a rate's is binomial. Judging a share rate by how much traffic fluctuated answers the wrong question.</td>
+                </tr>
+                <tr>
+                  <td>The ship day counts as "after"</td>
+                  <td>A change that went live during a day affected the rest of it. The window is also clipped at today, since padding it with days that have not happened dilutes the effect.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="takeaway">
+            <span class="takeaway__k">Takeaway</span>
+            <p>
+              A change is worth claiming only once it can be separated from ordinary variation, and
+              the system is built to say when it cannot be.
+            </p>
+          </div>
+        </section>
+
+        <hr class="divider" />
+
+        <!-- ==========================================================
+             9. FUNNEL PASS — the most recent work
+             ========================================================== -->
+        <section class="stack" id="funnelpass">
+          <h2 class="lead">
+            <span class="lead__t">Recent work: the player funnel</span>
+            <span class="lead__dots"></span>
+            <span class="lead__p">Aug 2026 · 3 releases</span>
+          </h2>
+
+          <p class="col">
+            A round counts as started on the player's <strong>first submitted guess</strong>. That
+            was a deliberate decision, on the grounds that opening a page is not playing a game, and
+            it had a cost I did not anticipate: everyone who arrived and never guessed was invisible.
+            The widest number on the dashboard was games started, with nothing above it, so a change
+            that doubled interest while halving conversion would have looked identical to no change
+            at all.
+          </p>
+
+          <div class="card stack">
+            <p class="eyebrow">Three releases, in order</p>
+            <ol class="pipe">
+              <li>
+                <div class="pipe__body">
+                  <span class="pipe__t">Measure arrivals</span>
+                  <span class="pipe__d">
+                    One row per device per day, fired when a real board is ready and never on a
+                    playtest. Session storage decides whether to send; a composite primary key
+                    decides what to count. Neither is sufficient alone, because session storage is
+                    per-tab and every mode switch navigates by assigning a URL.
+                  </span>
+                  <span class="pipe__cmd">POST /api/rounds/seated</span>
+                </div>
+              </li>
+              <li>
+                <div class="pipe__body">
+                  <span class="pipe__t">Draw the funnel the arrivals made possible</span>
+                  <span class="pipe__d">
+                    Arrived, played, finished, then shared or played again, every stage counted in
+                    devices. It rides a query the new-vs-returning fold already ran, so it cost no
+                    additional database work. Two experiment metrics came with it, which made the
+                    conversion question askable for the first time.
+                  </span>
+                  <span class="pipe__cmd">worker/funnel.ts · pure, unit-tested</span>
+                </div>
+              </li>
+              <li>
+                <div class="pipe__body">
+                  <span class="pipe__t">Take my own play-testing back out of the numbers</span>
+                  <span class="pipe__d">
+                    At tens of rounds a day, one person testing is a visible fraction of every rate
+                    on this page. A morning of reloading to check a change writes arrival rows and
+                    nothing else, which reads as pure bounce in the funnel I had just built. The
+                    admin panel reviews what this browser has recorded across all three tables and
+                    then deletes it.
+                  </span>
+                  <span class="pipe__cmd">GET then DELETE /api/admin/device-data</span>
+                </div>
+              </li>
+            </ol>
+          </div>
 
           <div class="grid2">
             <div class="card stack stack--tight">
-              <h3>The day rolls over at one fixed time worldwide</h3>
+              <h3>The unit switch that makes the arithmetic true</h3>
               <p style="color: var(--ink-soft); font-size: 0.97rem">
-                Not the player's local midnight, not UTC — a single timezone shared by client and
-                server. Everyone is on the same puzzle at the same moment, so a result posted in a
-                group chat is about the same dish. The alternative hands a player in Sydney the answer
-                to a puzzle a player in Los Angeles hasn't started.
+                The funnel's first row counts people and the rows beneath it count games. A visit is
+                one device per day, while a start is a round, so dividing one by the other directly
+                would report play rates well over 100%. The top row is devices over devices, and
+                every row names its unit.
+              </p>
+              <p class="footnote">
+                A ratio above 100% remains possible, since a round begun at 11:58pm files its start
+                on the following day. The number is left as measured and only the bar is clamped.
               </p>
             </div>
+
             <div class="card stack stack--tight">
-              <h3>An unscheduled day still gets a Special</h3>
+              <h3>The review is a required step</h3>
               <p style="color: var(--ink-soft); font-size: 0.97rem">
-                If the calendar has a gap, the game hashes the date and picks deterministically from
-                the active pool — same date, same dish, for everyone. The failure mode for forgetting
-                to fill in a month is a less curated puzzle, not a 404.
+                The delete button does not exist until the summary of what it will remove has loaded.
+                Production has no automatic backup, so an irreversible wipe should not be reachable
+                without first showing what it covers.
               </p>
             </div>
-            <div class="card stack stack--tight">
-              <h3>Future dates are refused server-side</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                The archive plays backwards to puzzle #1, but a request for tomorrow is rejected —
-                with a two-day tolerance so a skewed device clock or a request landing on the rollover
-                boundary doesn't lock out a legitimate player. Spoiler protection has to live on the
-                server, because the client is the part you can't trust.
-              </p>
-            </div>
-            <div class="card stack stack--tight">
-              <h3>The archive can't touch your streak</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                Replays are stored per date, outside lifetime stats. It costs nothing to implement and
-                it's the only reason the archive can be generous.
-              </p>
-            </div>
-            <div class="card stack stack--tight">
-              <h3>Discord added no build complexity</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                The Activity works because the app is same-origin and self-contained — every API call
-                relative, every font and image served by the same Worker. Discord's proxy rules were
-                satisfied by decisions made for other reasons. Inside the embed the share button routes
-                through Discord's own share command, because the iframe has neither clipboard nor
-                share permission.
-              </p>
-            </div>
-            <div class="card stack stack--tight">
-              <h3>A share failure is never silent</h3>
-              <p style="color: var(--ink-soft); font-size: 0.97rem">
-                Sharing returns three states rather than a boolean: shared, unavailable, or failed.
-                Only <em>unavailable</em> falls back to the web path, because inside Discord that path
-                is a dead end that rejects quietly and leaves the button looking untouched. A real
-                failure changes the button label instead.
-              </p>
-            </div>
+          </div>
+
+          <div class="takeaway">
+            <span class="takeaway__k">Takeaway</span>
+            <p>
+              A definition I still think was correct turned out to be the system's largest blind
+              spot, and finding that mattered more than any single change built on top of it.
+            </p>
           </div>
         </section>
 
         <hr class="divider" />
 
         <!-- ==========================================================
-             9. NEXT
+             10. NEXT
              ========================================================== -->
         <section class="stack" id="next">
           <h2 class="lead">
-            <span class="lead__t">What's next</span>
+            <span class="lead__t">Roadmap</span>
             <span class="lead__dots"></span>
-            <span class="lead__p">In priority order</span>
+            <span class="lead__p">with target metrics</span>
           </h2>
-          <div class="card col">
-            <ul class="plain">
-              <li>
-                <strong>Recalibrate difficulty.</strong> The 2.8-guess mean says the pool is too easy.
-                Tag dishes with a difficulty estimate, schedule a curve across the week, watch the
-                distribution move.
-              </li>
-              <li>
-                <strong>Reclaim the unused clue rungs.</strong> Either shorten the guess budget so
-                later rungs are reachable, or spend that authoring effort on more dishes instead.
-              </li>
-              <li>
-                <strong>Find where the 27% leave.</strong> First guess, third, or before guessing at
-                all — the distinction changes the fix completely, and it isn't measured yet.
-              </li>
-              <li>
-                <strong>Unify identity across surfaces.</strong> Storage inside Discord is sandboxed
-                to Discord's origin, so an Activity player has a separate history from the same person
-                on the web. Solving it properly means optional accounts, which trades against the
-                no-signup premise — worth doing only once the Discord numbers justify it.
-              </li>
-            </ul>
+
+          <p class="col">
+            Each item names the metric it should move before it is built, which is the same rule the
+            experiment log enforces, applied to the roadmap. An item I cannot name a metric for is
+            not ready to be on the list.
+          </p>
+
+          <div class="scroller card">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 34%">Next</th>
+                  <th style="width: 20%">Metric it should move</th>
+                  <th>The reasoning</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Give a first-time player a second reason to return tomorrow</strong></td>
+                  <td>Days played per device</td>
+                  <td>
+                    Most devices play once. The streak exists but stays invisible until a player
+                    already has one, which is the wrong way round.
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Find where the arrivals who never guess get stuck</strong></td>
+                  <td>Play rate (played ÷ arrived)</td>
+                  <td>
+                    Whether they leave at the how-to, the typeahead, or the first empty board changes
+                    the fix entirely, and telling those apart is a small instrumentation job.
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Tag dishes by difficulty and schedule a weekly curve</strong></td>
+                  <td>Win rate, spread across the week</td>
+                  <td>
+                    Adding harder dishes moved the mean from 2.8 to 3.2, but the schedule still
+                    cannot deliberately plan an easy Monday and a hard Saturday. The per-dish report
+                    already knows which is which.
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Unify identity across surfaces</strong></td>
+                  <td>—</td>
+                  <td>
+                    Discord storage is sandboxed to Discord's origin, so one person on both surfaces
+                    counts as two devices. Solving it properly means optional accounts, which trades
+                    against the no-signup premise, and is worth doing only if the Discord half of
+                    the audience keeps growing.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="takeaway">
+            <span class="takeaway__k">Takeaway</span>
+            <p>
+              The roadmap is ordered by what the measurements identify as the constraint, which is
+              currently retention rather than anything about the puzzle itself.
+            </p>
           </div>
         </section>
       </div>
@@ -2249,34 +2662,43 @@
     <footer>
       <div class="field">
         <p class="wordmark">Lunch Special</p>
-        <p style="margin: 0; color: #cbdcd6">Design, engineering, and art direction by Jacob Poteet.</p>
+        <p style="margin: 0; color: #cbdcd6">
+          Design, narrative, engineering, and art direction by <strong>Jacob Poteet</strong> —
+          narrative technical game designer.
+        </p>
         <p style="margin: 0">
           <a href="https://lunchspecial.app">lunchspecial.app</a> ·
           <a href="https://github.com/JacobPoteet/LunchSpecial">github.com/JacobPoteet/LunchSpecial</a>
           · <a href="https://lunchspecial.app/press">press kit</a>
+          · <a href="mailto:jacobwilliampoteet@gmail.com">jacobwilliampoteet@gmail.com</a>
         </p>
         <p class="footnote" style="margin-top: 8px">
-          The headline figures, the guess distribution, the round funnel, the mode split, and the
-          surface table are all read live from the production database each visit (served
-          edge-cached, so page traffic doesn't re-query on every load). Only the launch-week
-          "rounds per puzzle" chart is a frozen snapshot — its per-puzzle annotations are a fixed
-          record of launch week. Artwork is AI-generated placeholder pending commission. Typefaces
-          are Alfa Slab One and Yellowtail, both OFL.
+          The headline figures, the guess distribution, the drop-off funnel, the mode split, the
+          growth curve, the days-played curve and the surface table are read live from the
+          production database each visit (edge-cached, so page traffic doesn't re-query on every
+          load). The three experiment verdicts are a dated snapshot — a verdict is a judgement made
+          on a day, and one that silently recomputed under its own prose would be worse than one
+          that's honestly dated. Artwork is AI-generated placeholder pending commission. Typefaces
+          are Alfa Slab One, Bitter and Yellowtail, all OFL.
         </p>
       </div>
     </footer>
 
     <script>
-      // Live breakdown numbers + motion. One cross-origin fetch to the game's
-      // consolidated, edge-cached aggregate endpoint (no accounts, no per-player
-      // data) feeds the headline strip, the three engagement charts, the surface
-      // table, and the inline figures in the prose. Everything degrades: with the
-      // fetch failed, JS off, or reduced motion requested, the page is legible as
-      // static HTML — the charts keep their baked launch-week values as a fallback
-      // and nothing hides or moves.
+      // Live figures + motion. One cross-origin fetch to the game's consolidated,
+      // edge-cached aggregate endpoint (no accounts, no per-player data) feeds the
+      // headline strip, five charts, the surface table, and the inline figures in
+      // the prose.
+      //
+      // Everything degrades. With the fetch failed, JS off, or reduced motion
+      // requested, the page is legible as static HTML — charts keep the baked
+      // values in the markup, and nothing hides or moves. The experiment verdicts
+      // are deliberately NOT live: a verdict is a judgement made on a day, so it
+      // is baked and dated rather than silently recomputing under its own prose.
       (function () {
         "use strict";
         var BREAKDOWN_URL = "https://lunchspecial.app/api/stats/breakdown";
+        var EPOCH = "2026-07-17"; // puzzle #1
 
         var reduceMotion =
           window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -2289,7 +2711,9 @@
           typeof window.requestAnimationFrame === "function";
         if (canAnim) document.documentElement.classList.add("anim");
 
-        // ---- number helpers ----
+        var SVG_NS = "http://www.w3.org/2000/svg";
+
+        // ---- helpers ----
         function easeOut(t) {
           return 1 - Math.pow(1 - t, 3);
         }
@@ -2299,11 +2723,16 @@
         function pct(a, b) {
           return b > 0 ? Math.round((a / b) * 100) + "%" : "—";
         }
+        function el(name, attrs, text) {
+          var node = document.createElementNS(SVG_NS, name);
+          for (var k in attrs) if (attrs[k] !== null) node.setAttribute(k, attrs[k]);
+          if (text !== undefined) node.textContent = text;
+          return node;
+        }
         // Tween 0→target over `duration`, calling step(current) each frame. Snaps
         // straight to target when motion is off, or when the tab is hidden at
         // kickoff — requestAnimationFrame is paused in background tabs, so without
-        // this a page opened in the background would sit on its placeholder until
-        // first viewed.
+        // this a page opened in the background would sit on its placeholder.
         function animateValue(target, duration, step, done) {
           if (!canAnim || document.hidden) {
             step(target);
@@ -2320,9 +2749,7 @@
           }
           window.requestAnimationFrame(frame);
         }
-        // Run cb the first time el scrolls into view (immediately if motion is off,
-        // so the live/final state still lands).
-        function onceInView(el, cb) {
+        function onceInView(node, cb) {
           if (!canAnim) {
             cb();
             return;
@@ -2338,7 +2765,7 @@
             },
             { threshold: 0.15, rootMargin: "0px 0px -6% 0px" },
           );
-          io.observe(el);
+          io.observe(node);
         }
         // "Nice" axis maximum at or above n: 1/2/5 × a power of ten.
         function niceCeil(n) {
@@ -2348,21 +2775,72 @@
           var nf = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
           return nf * pow;
         }
-        function num(el) {
-          return el ? parseFloat((el.textContent || "").replace(/[^0-9.]/g, "")) : NaN;
+        function num(node) {
+          return node ? parseFloat((node.textContent || "").replace(/[^0-9.]/g, "")) : NaN;
+        }
+        function shortDate(iso) {
+          var parts = String(iso).split("-");
+          if (parts.length !== 3) return iso;
+          var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+          return months[parseInt(parts[1], 10) - 1] + " " + parseInt(parts[2], 10);
+        }
+
+        // ---- section nav: scrollspy + reading progress ----
+        function setupNav() {
+          var links = [].slice.call(document.querySelectorAll(".nav a"));
+          var bar = document.getElementById("nav-bar");
+          var sections = links
+            .map(function (a) {
+              return document.getElementById(a.getAttribute("href").slice(1));
+            })
+            .filter(Boolean);
+          if (!sections.length) return;
+
+          function update() {
+            if (bar) {
+              var max = document.body.scrollHeight - window.innerHeight;
+              bar.style.width = (max > 0 ? Math.min(window.scrollY / max, 1) * 100 : 0) + "%";
+            }
+            // The section whose top has most recently passed the nav rail is the
+            // one being read. Falls back to the first, so something is always lit.
+            var current = 0;
+            for (var i = 0; i < sections.length; i++) {
+              if (sections[i].getBoundingClientRect().top <= 90) current = i;
+            }
+            for (var j = 0; j < links.length; j++) {
+              if (j === current) links[j].setAttribute("aria-current", "true");
+              else links[j].removeAttribute("aria-current");
+            }
+          }
+
+          var ticking = false;
+          window.addEventListener(
+            "scroll",
+            function () {
+              if (ticking) return;
+              ticking = true;
+              window.requestAnimationFrame(function () {
+                update();
+                ticking = false;
+              });
+            },
+            { passive: true },
+          );
+          window.addEventListener("resize", update, { passive: true });
+          update();
         }
 
         // ---- headline strip ----
-        function renderHeadline(headline) {
+        function renderHeadline(values) {
           var cells = document.querySelectorAll("#numbers-strip [data-stat]");
           for (var i = 0; i < cells.length; i++) {
-            (function (el) {
-              var key = el.getAttribute("data-stat");
-              var decimals = parseInt(el.getAttribute("data-decimals"), 10) || 0;
-              var value = Number(headline[key]);
+            (function (node) {
+              var key = node.getAttribute("data-stat");
+              var decimals = parseInt(node.getAttribute("data-decimals"), 10) || 0;
+              var value = Number(values[key]);
               if (!isFinite(value)) return;
               animateValue(value, 1400, function (v) {
-                el.textContent = decimals > 0 ? v.toFixed(decimals) : commas(v);
+                node.textContent = decimals > 0 ? v.toFixed(decimals) : commas(v);
               });
             })(cells[i]);
           }
@@ -2370,31 +2848,21 @@
 
         // ---- inline figures in the prose ----
         function fillProse(fills) {
-          var els = document.querySelectorAll("[data-fill]");
-          for (var i = 0; i < els.length; i++) {
-            var key = els[i].getAttribute("data-fill");
-            if (fills[key] != null) els[i].textContent = fills[key];
+          var nodes = document.querySelectorAll("[data-fill]");
+          for (var i = 0; i < nodes.length; i++) {
+            var key = nodes[i].getAttribute("data-fill");
+            if (fills[key] != null) nodes[i].textContent = fills[key];
           }
         }
         function computeFills(bd) {
           var h = bd.headline;
-          var d = bd.guessDistribution || [];
-          var byThree = (d[0] || 0) + (d[1] || 0) + (d[2] || 0);
-          var optStarted = bd.modes.leftover.started + bd.modes.random.started;
-          var optCompleted = bd.modes.leftover.completed + bd.modes.random.completed;
           return {
             rounds: commas(h.rounds),
             devices: commas(bd.devices),
             solved: commas(h.solved),
             fails: commas(bd.fails),
             avgGuesses: (Number(h.avgGuesses) || 0).toFixed(1),
-            byThree: pct(byThree, h.solved),
-            unusedClues: commas(h.dishes * 2),
-            winRate: pct(h.solved, h.completed),
-            dropoff: pct(h.rounds - h.completed, h.rounds),
-            optShare: pct(optStarted, h.rounds),
-            optComplete: pct(optCompleted, optStarted),
-            dailyComplete: pct(bd.modes.daily.completed, bd.modes.daily.started),
+            unsolvedRate: pct(bd.fails, h.completed),
             webRounds: commas(bd.surfaces.web.rounds),
             webDevices: commas(bd.surfaces.web.devices),
             discordRounds: commas(bd.surfaces.discord.rounds),
@@ -2402,7 +2870,7 @@
           };
         }
 
-        // ---- vertical bar charts (set live values, then grow on scroll-in) ----
+        // ---- guess distribution ----
         function setGuessChart(dist, fails) {
           var svg = document.querySelector("#chart-guesses svg");
           if (!svg) return;
@@ -2410,8 +2878,7 @@
           var vals = svg.querySelectorAll(".val");
           var ticks = svg.querySelectorAll(".y-tick");
           var values = dist.slice(0, 6).concat([fails]);
-          var maxVal = Math.max.apply(null, values.concat([1]));
-          var niceMax = niceCeil(maxVal);
+          var niceMax = niceCeil(Math.max.apply(null, values.concat([1])));
           var baseY = 200,
             topY = 69.2; // y of value 0 and of the top gridline (= niceMax)
           var scale = (baseY - topY) / niceMax;
@@ -2420,14 +2887,11 @@
           }
           for (var i = 0; i < bars.length; i++) {
             var v = values[i] || 0;
-            var h = Math.max(v * scale, v > 0 ? 3 : 2);
-            var y = baseY - h;
+            var height = Math.max(v * scale, v > 0 ? 3 : 2);
+            var y = baseY - height;
             bars[i].setAttribute("y", y);
-            bars[i].setAttribute("height", h);
-            bars[i].setAttribute(
-              "fill",
-              v > 0 ? (i < 6 ? "var(--cat-2)" : "var(--cat-1)") : "var(--miss)",
-            );
+            bars[i].setAttribute("height", height);
+            bars[i].setAttribute("fill", v > 0 ? (i < 6 ? "var(--cat-2)" : "var(--cat-1)") : "var(--miss)");
             var title = bars[i].querySelector("title");
             if (title) {
               title.textContent =
@@ -2442,7 +2906,7 @@
           }
         }
         // Grows any vertical bar chart from its baseline to whatever y/height the
-        // bars currently hold (live or the baked snapshot), counting the labels up.
+        // bars currently hold (live or the baked snapshot), counting labels up.
         function growVerticalBars(svg) {
           if (!canAnim || !svg) return;
           var bars = svg.querySelectorAll(".bar");
@@ -2454,7 +2918,9 @@
             (function (bar, valEl, idx) {
               var th = parseFloat(bar.getAttribute("height"));
               var target = num(valEl);
-              var offset = valEl ? parseFloat(valEl.getAttribute("y")) - parseFloat(bar.getAttribute("y")) : 0;
+              var offset = valEl
+                ? parseFloat(valEl.getAttribute("y")) - parseFloat(bar.getAttribute("y"))
+                : 0;
               bar.setAttribute("y", baseline);
               bar.setAttribute("height", 0);
               if (valEl) valEl.setAttribute("y", baseline + offset);
@@ -2462,11 +2928,11 @@
                 1,
                 900 + idx * 40,
                 function (p) {
-                  var h = th * p;
-                  bar.setAttribute("y", baseline - h);
-                  bar.setAttribute("height", h);
+                  var height = th * p;
+                  bar.setAttribute("y", baseline - height);
+                  bar.setAttribute("height", height);
                   if (valEl) {
-                    valEl.setAttribute("y", baseline - h + offset);
+                    valEl.setAttribute("y", baseline - height + offset);
                     if (!isNaN(target)) valEl.textContent = String(Math.round(target * p));
                   }
                 },
@@ -2478,57 +2944,7 @@
           }
         }
 
-        // ---- horizontal bar charts (funnel + modes) ----
-        function setFunnel(h) {
-          var svg = document.querySelector("#chart-funnel svg");
-          if (!svg) return;
-          var bars = svg.querySelectorAll(".bar");
-          var vals = svg.querySelectorAll(".val");
-          var labels = svg.querySelectorAll(".fn-label");
-          var vs = [h.rounds, h.completed, h.solved, h.shared];
-          for (var i = 0; i < bars.length; i++) {
-            var w = h.rounds > 0 ? 400 * (vs[i] / h.rounds) : 0;
-            w = Math.max(w, vs[i] > 0 ? 2 : 0);
-            bars[i].setAttribute("width", w);
-            if (vals[i]) {
-              vals[i].setAttribute("x", w + 8);
-              vals[i].textContent = String(vs[i]);
-            }
-          }
-          if (labels[0]) labels[0].textContent = "STARTED";
-          if (labels[1]) labels[1].textContent = "COMPLETED · " + pct(h.completed, h.rounds) + " of starts";
-          if (labels[2]) labels[2].textContent = "SOLVED · " + pct(h.solved, h.completed) + " of completions";
-          if (labels[3]) labels[3].textContent = "SHARED · " + pct(h.shared, h.completed) + " of completions";
-        }
-        function setModes(modes) {
-          var svg = document.querySelector("#chart-modes svg");
-          if (!svg) return;
-          var bars = svg.querySelectorAll(".bar");
-          var vals = svg.querySelectorAll(".val");
-          var labels = svg.querySelectorAll(".md-label");
-          var notes = svg.querySelectorAll(".md-note");
-          var order = ["daily", "leftover", "random"];
-          var starts = [modes.daily.started, modes.leftover.started, modes.random.started];
-          var maxStart = Math.max.apply(null, starts.concat([1]));
-          for (var i = 0; i < order.length; i++) {
-            var m = modes[order[i]];
-            var w = 400 * (m.started / maxStart);
-            w = Math.max(w, m.started > 0 ? 2 : 0);
-            if (bars[i]) bars[i].setAttribute("width", w);
-            if (vals[i]) {
-              vals[i].setAttribute("x", w + 8);
-              vals[i].textContent = String(m.started);
-            }
-          }
-          if (labels[0]) labels[0].textContent = "TODAY'S SPECIAL · " + pct(modes.daily.completed, modes.daily.started) + " completed";
-          if (labels[1]) labels[1].textContent = "LEFTOVERS · " + pct(modes.leftover.completed, modes.leftover.started) + " completed";
-          if (labels[2]) labels[2].textContent = "CHEF'S CHOICE · " + pct(modes.random.completed, modes.random.started) + " completed";
-          var optStarted = modes.leftover.started + modes.random.started;
-          var optCompleted = modes.leftover.completed + modes.random.completed;
-          var totalStarted = modes.daily.started + optStarted;
-          if (notes[0]) notes[0].textContent = "The two optional modes are " + pct(optStarted, totalStarted) + " of all rounds,";
-          if (notes[1]) notes[1].textContent = "and " + pct(optCompleted, optStarted) + " of them are played to the end.";
-        }
+        // ---- horizontal bar charts ----
         function growHorizontalBars(svg) {
           if (!canAnim || !svg) return;
           var bars = svg.querySelectorAll(".bar");
@@ -2536,9 +2952,13 @@
           for (var i = 0; i < bars.length; i++) {
             (function (bar, valEl, idx) {
               var tw = parseFloat(bar.getAttribute("width"));
+              // Not every horizontal chart starts its track at x=0 — the
+              // days-played rows are indented past their labels — so the value
+              // rides the bar's own origin rather than the canvas's.
+              var x0 = parseFloat(bar.getAttribute("x")) || 0;
               var target = num(valEl);
               bar.setAttribute("width", 0);
-              if (valEl) valEl.setAttribute("x", 8);
+              if (valEl) valEl.setAttribute("x", x0 + 8);
               animateValue(
                 1,
                 900 + idx * 80,
@@ -2546,7 +2966,7 @@
                   var w = tw * p;
                   bar.setAttribute("width", w);
                   if (valEl) {
-                    valEl.setAttribute("x", w + 8);
+                    valEl.setAttribute("x", x0 + w + 8);
                     if (!isNaN(target)) valEl.textContent = String(Math.round(target * p));
                   }
                 },
@@ -2558,51 +2978,273 @@
           }
         }
 
-        // ---- scroll reveal for headers, cards, tiles, and the receipt ----
+        // The funnel. Stages are DEVICES, and every label says so — the bar is the
+        // share of arrivals, the label after it is the share of the step above,
+        // because a stage that inherited a small crowd is otherwise
+        // indistinguishable from a broken one.
+        function setFunnel(funnel, present) {
+          var card = document.getElementById("chart-funnel");
+          if (!card) return;
+          // An absent field and a null one are different facts. A server too old
+          // to send `funnel` at all says nothing about the game, so the baked
+          // values stay; `funnel: null` is the server actively reporting that
+          // arrivals were never measured, and then the card goes — an unmeasured
+          // stage must never render as an empty bar, which reads as "nobody".
+          if (!present) return;
+          if (!funnel || funnel.visited == null) {
+            card.parentNode.removeChild(card);
+            return;
+          }
+          var svg = card.querySelector("svg");
+          var bars = svg.querySelectorAll(".bar");
+          var vals = svg.querySelectorAll(".val");
+          var labels = svg.querySelectorAll(".fn-label");
+          var stages = [
+            ["ARRIVED", funnel.visited, null],
+            ["PLAYED", funnel.played, funnel.visited],
+            ["FINISHED", funnel.finished, funnel.played],
+            ["SHARED", funnel.shared, funnel.finished],
+            ["PLAYED AGAIN", funnel.playedAgain, funnel.finished],
+          ];
+          var top = funnel.visited || 1;
+          for (var i = 0; i < stages.length; i++) {
+            var value = stages[i][1] || 0;
+            // Clamped to the bar's own track: a ratio over 100% is genuinely
+            // possible (a round begun at 11:58pm files its start the next day),
+            // so the number stays honest and only the fill is capped.
+            var w = Math.max(Math.min(value / top, 1) * 400, value > 0 ? 2 : 0);
+            if (bars[i]) bars[i].setAttribute("width", w);
+            if (vals[i]) {
+              vals[i].setAttribute("x", w + 8);
+              vals[i].textContent = String(value);
+            }
+            if (labels[i]) {
+              labels[i].textContent =
+                stages[i][0] +
+                (stages[i][2] ? " · " + pct(value, stages[i][2]) + " of the step above" : "");
+            }
+          }
+          var sub = document.getElementById("funnel-sub");
+          if (sub) {
+            sub.textContent =
+              "Devices, pooled over " +
+              funnel.days +
+              (funnel.days === 1 ? " day" : " days") +
+              " of measured arrivals" +
+              (funnel.since ? " since " + shortDate(funnel.since) : "");
+          }
+        }
+
+        function setModes(modes) {
+          var svg = document.querySelector("#chart-modes svg");
+          if (!svg) return;
+          var bars = svg.querySelectorAll(".bar");
+          var vals = svg.querySelectorAll(".val");
+          var notes = svg.querySelectorAll(".md-note");
+          var order = ["daily", "leftover", "random"];
+          var starts = order.map(function (k) {
+            return modes[k].started;
+          });
+          var maxStart = Math.max.apply(null, starts.concat([1]));
+          for (var i = 0; i < order.length; i++) {
+            var w = Math.max((starts[i] / maxStart) * 400, starts[i] > 0 ? 2 : 0);
+            if (bars[i]) bars[i].setAttribute("width", w);
+            if (vals[i]) {
+              vals[i].setAttribute("x", w + 8);
+              vals[i].textContent = String(starts[i]);
+            }
+          }
+          var optStarted = modes.leftover.started + modes.random.started;
+          var optCompleted = modes.leftover.completed + modes.random.completed;
+          var total = modes.daily.started + optStarted;
+          if (notes[0]) {
+            notes[0].textContent = "The two optional modes are " + pct(optStarted, total) + " of all rounds,";
+          }
+          if (notes[1]) {
+            notes[1].textContent = "and " + pct(optCompleted, optStarted) + " of them are played to the end.";
+          }
+        }
+
+        // The cumulative curve, and the constant-pace line it is read against.
+        function setGrowth(growth) {
+          var card = document.getElementById("chart-growth");
+          if (!card || !growth || !growth.days || growth.days.length < 2) return;
+          var svg = card.querySelector("svg");
+          var days = growth.days;
+          var x0 = 46, x1 = 700, yBase = 190, yTop = 58;
+          var niceMax = niceCeil(days[days.length - 1].cumulative);
+          var scale = (yBase - yTop) / niceMax;
+          var step = (x1 - x0) / (days.length - 1);
+          var xOf = function (i) { return x0 + step * i; };
+          var yOf = function (v) { return yBase - v * scale; };
+
+          var ticks = svg.querySelectorAll(".y-tick");
+          for (var t = 0; t < ticks.length; t++) {
+            ticks[t].textContent = commas((niceMax * t) / (ticks.length - 1));
+          }
+
+          var d = "";
+          for (var i = 0; i < days.length; i++) {
+            d += (i === 0 ? "M " : " L ") + xOf(i).toFixed(1) + " " + yOf(days[i].cumulative).toFixed(1);
+          }
+          var line = svg.querySelector("#growth-line");
+          var area = svg.querySelector("#growth-area");
+          if (line) line.setAttribute("d", d);
+          if (area) {
+            area.setAttribute("d", d + " L " + xOf(days.length - 1).toFixed(1) + " " + yBase + " L " + x0 + " " + yBase + " Z");
+          }
+
+          var trendLine = svg.querySelector("#growth-trend");
+          if (trendLine && growth.trend) {
+            // The fit is CLIPPED, never clamped: an accelerating run's best-fit
+            // line crosses zero before day one, so `first` is routinely negative
+            // and the line legitimately exits the plot. Pinning it to the axis
+            // would flatten the very pace it exists to state.
+            trendLine.setAttribute("x1", x0);
+            trendLine.setAttribute("y1", yOf(growth.trend.first).toFixed(1));
+            trendLine.setAttribute("x2", x1);
+            trendLine.setAttribute("y2", yOf(growth.trend.last).toFixed(1));
+          } else if (trendLine) {
+            trendLine.setAttribute("stroke", "transparent");
+          }
+
+          var first = svg.querySelector("#growth-first");
+          var last = svg.querySelector("#growth-last");
+          if (first) first.textContent = shortDate(days[0].date);
+          if (last) last.textContent = shortDate(days[days.length - 1].date);
+
+          var sub = document.getElementById("growth-sub");
+          if (sub && growth.trend) {
+            sub.textContent =
+              days.length +
+              " days · " +
+              growth.trend.recentPerDay.toFixed(1) +
+              " games/day over the last " +
+              growth.trend.recentDays +
+              ", against an all-time average of " +
+              growth.trend.slope.toFixed(1);
+          }
+
+          if (canAnim && line) {
+            // Draw the curve on, left to right, with the fill following it.
+            var length = line.getTotalLength ? line.getTotalLength() : 0;
+            if (length) {
+              line.style.strokeDasharray = length;
+              line.style.strokeDashoffset = length;
+              if (area) area.style.opacity = 0;
+              onceInView(card, function () {
+                line.style.transition = "stroke-dashoffset 1.6s cubic-bezier(0.33, 1, 0.68, 1)";
+                line.style.strokeDashoffset = 0;
+                if (area) {
+                  area.style.transition = "opacity 1s ease 0.5s";
+                  area.style.opacity = "";
+                }
+              });
+            }
+          }
+        }
+
+        // Days played per device — a survival curve, so each bar is a real subset
+        // of the one above it and the shape can only fall.
+        function setDaysPlayed(daysPlayed) {
+          var card = document.getElementById("chart-days");
+          if (!card || !daysPlayed || !daysPlayed.length) return;
+          var svg = card.querySelector("svg");
+          while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+          var rungs = Math.min(daysPlayed.length, 5);
+          var top = daysPlayed[0] || 1;
+          var rowH = 36, y0 = 16, barW = 300, labelW = 92;
+          svg.setAttribute("viewBox", "0 0 480 " + (y0 + rungs * rowH + 14));
+
+          for (var i = 0; i < rungs; i++) {
+            var y = y0 + i * rowH;
+            var value = daysPlayed[i];
+            var w = Math.max((value / top) * barW, value > 0 ? 2 : 0);
+            svg.appendChild(
+              el("text", { class: "ax", x: 0, y: y + 17 }, i + 1 + (i === 0 ? "+ day" : "+ days")),
+            );
+            svg.appendChild(
+              el("rect", {
+                class: "bar",
+                x: labelW,
+                y: y,
+                width: w,
+                height: 24,
+                rx: 4,
+                fill: i === 0 ? "var(--miss)" : "var(--cat-2)",
+              }),
+            );
+            svg.appendChild(el("text", { class: "val", x: labelW + w + 8, y: y + 17 }, String(value)));
+            if (i > 0) {
+              svg.appendChild(
+                el(
+                  "text",
+                  { class: "ax", x: 470, y: y + 17, "text-anchor": "end" },
+                  pct(value, top) + " of all devices",
+                ),
+              );
+            }
+          }
+
+          var note = document.getElementById("days-note");
+          if (note && daysPlayed.length > 1) {
+            var once = daysPlayed[0] - daysPlayed[1];
+            note.innerHTML =
+              "<strong>" +
+              pct(once, daysPlayed[0]) +
+              " of devices played on exactly one day and never came back.</strong> " +
+              "This is the most important number on the page and the one the recent funnel work " +
+              "exists to move. Retention, not acquisition, is the constraint on this project.";
+          }
+        }
+
+        // ---- scroll reveal ----
         function setupReveal() {
           if (!canAnim) return;
           var leads = document.querySelectorAll(".lead");
           for (var i = 0; i < leads.length; i++) {
-            (function (el) {
-              onceInView(el, function () {
-                el.classList.add("in");
+            (function (node) {
+              onceInView(node, function () {
+                node.classList.add("in");
               });
             })(leads[i]);
           }
-          var cards = document.querySelectorAll(".card, .finding, .band");
+          var cards = document.querySelectorAll(".card, .finding, .takeaway");
           for (var j = 0; j < cards.length; j++) {
-            (function (el) {
-              el.classList.add("reveal");
-              var p = el.parentElement;
-              if (p && (p.className.indexOf("grid2") > -1 || p.className.indexOf("grid3") > -1)) {
-                var idx = Array.prototype.indexOf.call(p.children, el);
-                if (idx > 0) el.classList.add("reveal--d" + Math.min(idx, 3));
+            (function (node) {
+              node.classList.add("reveal");
+              var parent = node.parentElement;
+              if (parent && (parent.className.indexOf("grid2") > -1 || parent.className.indexOf("grid3") > -1)) {
+                var idx = Array.prototype.indexOf.call(parent.children, node);
+                if (idx > 0) node.classList.add("reveal--d" + Math.min(idx, 3));
               }
-              onceInView(el, function () {
-                el.classList.add("in");
+              onceInView(node, function () {
+                node.classList.add("in");
               });
             })(cards[j]);
           }
           var flips = document.querySelectorAll(".tiles--flip, .receipt--print");
           for (var k = 0; k < flips.length; k++) {
-            (function (el) {
-              onceInView(el, function () {
-                el.classList.add("in");
+            (function (node) {
+              onceInView(node, function () {
+                node.classList.add("in");
               });
             })(flips[k]);
           }
         }
 
         // ---- boot ----
+        setupNav();
         setupReveal();
-        // The launch-week chart is a frozen snapshot: grow its baked bars purely as
-        // a visual, no data fetch.
-        var puzzleCard = document.getElementById("chart-puzzles");
-        if (puzzleCard) {
-          onceInView(puzzleCard, function () {
-            growVerticalBars(puzzleCard.querySelector("svg"));
-          });
-        }
+
+        // Days live is arithmetic, not telemetry — it doesn't need the fetch, and
+        // it shouldn't sit blank if the fetch fails.
+        var daysLive = Math.max(
+          1,
+          Math.round((Date.now() - Date.parse(EPOCH + "T00:00:00Z")) / 86400000) + 1,
+        );
+        renderHeadline({ daysLive: daysLive });
 
         fetch(BREAKDOWN_URL, { headers: { accept: "application/json" } })
           .then(function (r) {
@@ -2611,20 +3253,30 @@
           })
           .then(function (bd) {
             if (!bd || !bd.headline) return;
-            renderHeadline(bd.headline);
+            renderHeadline({
+              dishes: bd.headline.dishes,
+              rounds: bd.headline.rounds,
+              devices: bd.devices,
+              daysLive: daysLive,
+            });
             fillProse(computeFills(bd));
             setGuessChart(bd.guessDistribution || [], bd.fails || 0);
-            setFunnel(bd.headline);
+            setFunnel(bd.funnel, Object.prototype.hasOwnProperty.call(bd, "funnel"));
             setModes(bd.modes);
-            var g = document.getElementById("chart-guesses");
-            var f = document.getElementById("chart-funnel");
-            var m = document.getElementById("chart-modes");
-            if (g) onceInView(g, function () { growVerticalBars(g.querySelector("svg")); });
-            if (f) onceInView(f, function () { growHorizontalBars(f.querySelector("svg")); });
-            if (m) onceInView(m, function () { growHorizontalBars(m.querySelector("svg")); });
+            setGrowth(bd.growth);
+            setDaysPlayed(bd.daysPlayed);
+
+            var guesses = document.getElementById("chart-guesses");
+            var funnel = document.getElementById("chart-funnel");
+            var modes = document.getElementById("chart-modes");
+            var days = document.getElementById("chart-days");
+            if (guesses) onceInView(guesses, function () { growVerticalBars(guesses.querySelector("svg")); });
+            if (funnel) onceInView(funnel, function () { growHorizontalBars(funnel.querySelector("svg")); });
+            if (modes) onceInView(modes, function () { growHorizontalBars(modes.querySelector("svg")); });
+            if (days) onceInView(days, function () { growHorizontalBars(days.querySelector("svg")); });
           })
           .catch(function () {
-            /* leave baked snapshot values + placeholders in place */
+            /* leave the baked snapshot values and placeholders in place */
           });
       })();
     </script>
