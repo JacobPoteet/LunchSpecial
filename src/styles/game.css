@@ -982,6 +982,18 @@
   box-shadow: 0 1px 0 var(--cherry-dark);
 }
 
+/* Only reachable while the Discord share is drawing and uploading the card —
+   a second or two. It keeps its colour (this is still the button you pressed,
+   working) and only stops looking pressable. */
+.share-btn--primary:disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.share-btn--primary:disabled:hover {
+  background: var(--cherry);
+}
+
 /* Countdown and share sit side by side in one band, split by a dashed rule —
    Wordle's footer shape. Stacking them cost a full extra line for no gain. */
 .check-actions {
@@ -1347,6 +1359,29 @@ textarea.dish-request__input {
 
 .freeplay-bar__btn:hover {
   background: var(--cherry);
+}
+
+/* Who else is in this Discord Activity instance. Quieter than the other bars —
+   solid rather than dashed, no button — because it's the only one that isn't
+   telling the player something about the round they're in. It never renders
+   with a count of zero, so there's no empty state to style. */
+.counter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(42, 122, 118, 0.1);
+  border: 1.5px solid rgba(42, 122, 118, 0.28);
+  border-radius: var(--radius);
+  padding: 6px 14px;
+  margin-bottom: 12px;
+}
+
+.counter-bar__tag {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 /* Archive mode banner (replaying a previous day). */
@@ -2330,4 +2365,47 @@ textarea.dish-request__input {
     font-size: 0.94rem;
     padding: 10px 16px;
   }
+}
+
+/* ---- Discord picture-in-picture ---- */
+
+/* Discord can draw the Activity in a small floating tile while the player does
+   something else. src/discord/social.ts stamps the mode on <html>, and this is
+   the compact board: everything that exists to set the scene goes, and what's
+   left is the part you can still act on — the guess rows and the input.
+
+   Scoped to the attribute rather than a width query on purpose. A PIP tile and
+   a narrow phone are different situations that happen to share a width: the
+   phone is the game's main surface and keeps its whole card, while the tile is
+   a glance at a game running somewhere else. */
+:root[data-discord-layout="pip"] .marquee,
+:root[data-discord-layout="pip"] .tickets,
+:root[data-discord-layout="pip"] .menu-card__thanks,
+:root[data-discord-layout="pip"] .footer-note,
+:root[data-discord-layout="pip"] .counter-bar,
+:root[data-discord-layout="pip"] .menu-card__meta,
+:root[data-discord-layout="pip"] .menu-card__toolbar {
+  display: none;
+}
+
+/* The paper, the double frame and the backdrop are all scene-setting at this
+   size — at ~300px wide they cost more room than they earn. */
+:root[data-discord-layout="pip"] .menu-card {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 10px 12px;
+}
+
+:root[data-discord-layout="pip"] .menu-card::before {
+  display: none;
+}
+
+:root[data-discord-layout="pip"] .menu-card__header {
+  border-bottom: 2px solid var(--cherry-dark);
+  padding-bottom: 6px;
+}
+
+:root[data-discord-layout="pip"] .menu-card__title {
+  font-size: 1rem;
 }

@@ -2,8 +2,9 @@
 //
 // What the player's Discord profile says while they're playing ("Playing Lunch
 // Special / Today's Special · No. 26 / Guess 3 of 6"). The *copy* is a pure fold
-// in shared/presence.ts; this module owns the parts that touch Discord: the one
-// OAuth scope it takes, and the rate at which updates are allowed to leave.
+// in shared/presence.ts; this module owns one thing Discord cares about: the
+// rate at which updates are allowed to leave. The OAuth it rides on moved to
+// src/discord/auth.ts, which the share upload shares.
 //
 // Everything here is best-effort and silent on failure. Rich Presence is a
 // flourish on someone else's profile — the game must never wait on it, and a
@@ -11,31 +12,7 @@
 
 import type { DiscordSDK } from "@discord/embedded-app-sdk";
 import type { PresenceActivity } from "../../shared/presence";
-
-/**
- * Both scopes presence needs. Not one, and not three.
- *
- * `rpc.activities.write` grants `setActivity`. `identify` is required by the
- * `authenticate()` hop: the SDK parses its reply against a schema where `user`
- * (username, discriminator, id, public_flags) is **required and non-optional**,
- * so a token that can't produce that object fails the parse — and every later
- * `setActivity` with it.
- *
- * **This was measured, not reasoned** (GitHub #101 → #106). The list was
- * deliberately cut back to `rpc.activities.write` alone, with `type: 0` left in
- * so the two candidate causes were separated, and presence went silent again.
- * Both scopes: works. One: dead. The cost of `identify` — username, avatar and
- * banner on the consent sheet of a game that has no accounts — is real enough
- * to be worth one round trip to confirm we were paying it for a reason. We
- * were. Don't spend a third: leave this list alone.
- *
- * What that cost buys is Discord's handshake and nothing else. **The user
- * object is dropped on the floor** — never read, stored, sent to the Worker, or
- * written to localStorage. The game stays anonymous: no accounts, per-device
- * state, no identity in any table. Don't start reading the scope we're forced
- * to take, and don't add a third.
- */
-const SCOPES = ["identify", "rpc.activities.write"] as const;
+import { ensureAuthorized } from "./auth";
 
 /** Activity type 0 = "Playing", the header Discord puts above the two lines. */
 const ACTIVITY_TYPE_PLAYING = 0;
@@ -55,7 +32,6 @@ let desired: PresenceActivity | null = null;
 let sent = "";
 let sentAt = 0;
 let timer: ReturnType<typeof setTimeout> | null = null;
-let authorizing: Promise<boolean> | null = null;
 let authorized = false;
 /** Sticky: a refused or broken authorization must not re-prompt on every guess. */
 let unavailable = false;
@@ -84,59 +60,15 @@ export function setPresence(activity: PresenceActivity): void {
 }
 
 /**
- * Trade the Activity's authorization code for an access token and hand it back
- * to the Discord client. The code alone is useless without the app's client
- * secret, which lives on the Worker — hence the /api/discord/token hop.
- *
- * `prompt: "none"` keeps this silent for anyone who has authorized the app
- * before; the consent sheet is a first-launch cost only.
+ * Kick off (or join) the Activity's single authorization, then flush. The token
+ * itself is the share upload's business; all presence needs to know is whether
+ * `setActivity` will be accepted.
  */
-async function authorize(instance: DiscordSDK): Promise<boolean> {
-  const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID;
-  if (!clientId) return false;
-  // Which of the three hops we're on, so a failure names itself in the console.
-  // This flow is only reproducible inside the real Discord client, where the
-  // difference between "they declined", "the Worker isn't configured" and "the
-  // handshake rejected our token" is otherwise one indistinguishable warning.
-  let step = "authorize";
-  try {
-    const { code } = await instance.commands.authorize({
-      client_id: clientId,
-      response_type: "code",
-      state: "",
-      prompt: "none",
-      scope: [...SCOPES],
-    });
-
-    step = "token exchange";
-    const res = await fetch("/api/discord/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code }),
-    });
-    if (!res.ok) throw new Error(`/api/discord/token answered ${res.status}`);
-    const { accessToken } = (await res.json()) as { accessToken?: string };
-    if (!accessToken) throw new Error("/api/discord/token returned no access token");
-
-    step = "authenticate";
-    await instance.commands.authenticate({ access_token: accessToken });
-    return true;
-  } catch (err) {
-    // Includes the player simply declining. Logged, then dropped: the game is
-    // unaffected and re-asking on the next guess would be harassment.
-    console.warn(`[discord] Rich Presence unavailable (failed at: ${step}) — skipping profile updates:`, err);
-    return false;
-  }
-}
-
-/** Authorize at most once per page load, whatever the outcome. */
-function ensureAuthorized(instance: DiscordSDK): void {
-  if (authorizing) return;
-  authorizing = authorize(instance).then((ok) => {
-    authorized = ok;
-    unavailable = !ok;
-    if (ok) flush();
-    return ok;
+function requestAuthorization(instance: DiscordSDK): void {
+  void ensureAuthorized(instance).then((token) => {
+    authorized = token !== null;
+    unavailable = token === null;
+    if (authorized) flush();
   });
 }
 
@@ -147,7 +79,7 @@ function ensureAuthorized(instance: DiscordSDK): void {
 function flush(): void {
   if (!sdk || !desired || unavailable) return;
   if (!authorized) {
-    ensureAuthorized(sdk);
+    requestAuthorization(sdk);
     return;
   }
 
