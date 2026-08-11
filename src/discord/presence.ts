@@ -13,16 +13,28 @@ import type { DiscordSDK } from "@discord/embedded-app-sdk";
 import type { PresenceActivity } from "../../shared/presence";
 
 /**
- * The only scope we ask for.
+ * The scopes presence needs. Both of them, and no more.
  *
- * `setActivity` is gated behind `rpc.activities.write`, so — unlike the rest of
- * the game — presence genuinely requires an OAuth round trip. We deliberately
- * ask for nothing else: not `identify`, not `guilds`. The app still never learns
- * who the player is, so the anonymous model (localStorage state, no accounts)
- * survives intact; all we buy is the right to write one line onto their own
- * profile. Keep this list at one entry.
+ * `rpc.activities.write` is the one that grants `setActivity`. `identify` is
+ * here because the RPC handshake forces it: `authenticate()` resolves the token
+ * to a user, and the SDK parses its reply against a schema where `user`
+ * (username, discriminator, id, public_flags) is **required and non-optional**.
+ * A token without `identify` can't produce that object, so the parse throws and
+ * every later `setActivity` is dead — which is exactly how this shipped first
+ * (GitHub #101): the consent sheet appeared, authorization succeeded, and no
+ * profile ever changed. Discord's own documented example pairs the two for the
+ * same reason.
+ *
+ * What survives is the part that matters: **the user object is dropped on the
+ * floor.** It is never read, stored, sent to the Worker, or written to
+ * localStorage. The game is still anonymous — no accounts, per-device state, no
+ * identity in any table. `identify` buys Discord's handshake and nothing else.
+ * Don't add a third scope, and don't start reading the one we're forced to take.
  */
-const SCOPES = ["rpc.activities.write"] as const;
+const SCOPES = ["identify", "rpc.activities.write"] as const;
+
+/** Activity type 0 = "Playing", the header Discord puts above the two lines. */
+const ACTIVITY_TYPE_PLAYING = 0;
 
 /**
  * Discord's RPC rate limit for SET_ACTIVITY is 5 updates per 20 seconds, so one
@@ -78,6 +90,11 @@ export function setPresence(activity: PresenceActivity): void {
 async function authorize(instance: DiscordSDK): Promise<boolean> {
   const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID;
   if (!clientId) return false;
+  // Which of the three hops we're on, so a failure names itself in the console.
+  // This flow is only reproducible inside the real Discord client, where the
+  // difference between "they declined", "the Worker isn't configured" and "the
+  // handshake rejected our token" is otherwise one indistinguishable warning.
+  let step = "authorize";
   try {
     const { code } = await instance.commands.authorize({
       client_id: clientId,
@@ -86,20 +103,24 @@ async function authorize(instance: DiscordSDK): Promise<boolean> {
       prompt: "none",
       scope: [...SCOPES],
     });
+
+    step = "token exchange";
     const res = await fetch("/api/discord/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code }),
     });
-    if (!res.ok) throw new Error(`token exchange failed (${res.status})`);
+    if (!res.ok) throw new Error(`/api/discord/token answered ${res.status}`);
     const { accessToken } = (await res.json()) as { accessToken?: string };
-    if (!accessToken) throw new Error("token exchange returned no access token");
+    if (!accessToken) throw new Error("/api/discord/token returned no access token");
+
+    step = "authenticate";
     await instance.commands.authenticate({ access_token: accessToken });
     return true;
   } catch (err) {
     // Includes the player simply declining. Logged, then dropped: the game is
     // unaffected and re-asking on the next guess would be harassment.
-    console.warn("[discord] Rich Presence unavailable — skipping profile updates:", err);
+    console.warn(`[discord] Rich Presence unavailable (failed at: ${step}) — skipping profile updates:`, err);
     return false;
   }
 }
@@ -142,13 +163,23 @@ function flush(): void {
     return;
   }
 
-  const activity = desired;
+  // `type` is a protocol detail rather than copy, so it's composed in here
+  // instead of in the fold. Every documented example carries it.
+  const activity = { type: ACTIVITY_TYPE_PLAYING, ...desired };
+  const first = sent === "";
   sent = payload;
   sentAt = Date.now();
-  sdk.commands.setActivity({ activity }).catch((err: unknown) => {
-    // Let the same state be retried on the next change rather than latching a
-    // failed update as "already showing".
-    sent = "";
-    console.warn("[discord] setActivity failed:", err);
-  });
+  sdk.commands.setActivity({ activity }).then(
+    () => {
+      // One line, once, so "is presence even running?" is answerable from the
+      // console without reproducing a failure.
+      if (first) console.info("[discord] Rich Presence active:", activity.details, "·", activity.state);
+    },
+    (err: unknown) => {
+      // Let the same state be retried on the next change rather than latching a
+      // failed update as "already showing".
+      sent = "";
+      console.warn("[discord] setActivity failed:", err);
+    },
+  );
 }

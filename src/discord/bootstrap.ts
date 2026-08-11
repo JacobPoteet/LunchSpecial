@@ -9,9 +9,9 @@
 //
 // Scope: still anonymous — the game runs inside Discord exactly as it does on
 // the web (localStorage state, no accounts). The one thing the SDK is used for
-// is Rich Presence (src/discord/presence.ts), which takes a single OAuth scope
-// (`rpc.activities.write`) and deliberately no identifying one, so nothing here
-// ever learns who the player is.
+// is Rich Presence (src/discord/presence.ts). That does take OAuth, including
+// the `identify` scope its handshake insists on, but the user object is
+// discarded on arrival: nothing here ever stores or sends who the player is.
 
 import type { DiscordSDK } from "@discord/embedded-app-sdk";
 import type { Surface } from "../../shared/types";
