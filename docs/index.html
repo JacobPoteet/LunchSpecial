@@ -1281,8 +1281,8 @@
         <p class="hero__eyebrow">Project breakdown</p>
         <h1 class="hero__mark">Lunch Special</h1>
         <p class="hero__sub">
-          A daily dish-guessing game — and the whole apparatus behind it for designing, shipping,
-          measuring, and revising a live game.
+          A daily dish-guessing game, plus the whole apparatus I built to design, ship, measure and
+          revise it.
         </p>
         <p class="hero__by">
           <strong>Jacob Poteet</strong> · narrative technical game designer · designed, built,
@@ -1292,7 +1292,7 @@
           Six guesses to name the day's Special. Every guess is a real dish, and the game reports
           what that dish has in common with the answer. I designed the feedback grammar, wrote the
           1,755 clues, and built the admin CMS that authors them, the telemetry underneath, and the
-          experiment log used to judge whether a change accomplished anything.
+          experiment log I judge a change against.
         </p>
         <div class="hero__links">
           <a class="btn btn--solid" href="https://lunchspecial.app">Play it</a>
@@ -1355,7 +1355,7 @@
                   <a href="#premise">Food doesn't support Wordle's feedback grammar, so I designed a different one.</a>
                   <span class="argument__w">
                     Two feedback channels, one deductive and one that concedes information as you
-                    fail, with the shareable result card specified before either of them.
+                    fail. I specified the shareable result card before either of them.
                   </span>
                 </span>
               </li>
@@ -1382,7 +1382,7 @@
               <li>
                 <span class="argument__n">04</span>
                 <span class="argument__c">
-                  <a href="#measuring">The instrumentation is designed to report its own limits.</a>
+                  <a href="#measuring">The instrumentation reports its own limits.</a>
                   <span class="argument__w">
                     Small samples carry their confidence intervals, unmeasured periods are never
                     drawn as zero, and "too early to tell" is one of four verdicts the comparison
@@ -1393,10 +1393,10 @@
               <li>
                 <span class="argument__n">05</span>
                 <span class="argument__c">
-                  <a href="#experiments">A scheduling change was logged, shipped, and then shown to have worked.</a>
+                  <a href="#experiments">I logged a scheduling change, shipped it, and then measured that it worked.</a>
                   <span class="argument__w">
-                    Finish rate moved from 81% to 91% with non-overlapping confidence intervals —
-                    and read over a shorter window, the same change would have reported nothing.
+                    Finish rate moved from 81% to 91% with non-overlapping confidence intervals.
+                    Read over a shorter window, the same change would have reported nothing.
                   </span>
                 </span>
               </li>
@@ -1429,7 +1429,7 @@
             <p class="eyebrow">Constraints, set before anything was built</p>
             <ul class="plain" style="margin-top: 12px">
               <li>Readable at a glance, mid-round, without parsing prose.</li>
-              <li>Expressible as emoji — a result that can't be posted as a spoiler-free grid gives the game no distribution.</li>
+              <li>Expressible as emoji. A result that can't be posted as a spoiler-free grid gives the game no distribution.</li>
               <li>Narrowing enough that a 351-dish space collapses inside six guesses.</li>
               <li><strong>Fair to a player who has never heard of the answer.</strong></li>
             </ul>
@@ -1438,19 +1438,18 @@
           <p class="col">
             The fairness constraint drove the rest. Wordle can be pure deduction because every
             English speaker already owns the entire answer space; food knowledge is not distributed
-            that way, and a player in Ohio and a player in Lagos begin a round on Shakshuka in
-            genuinely different positions. The game therefore runs two feedback channels at once: one
-            that rewards deduction, and one that concedes information as you fail, which is the
-            subject of the next section.
+            that way, and a player in Ohio and a player in Lagos begin a round on Shakshuka from
+            different positions. The game therefore runs two feedback channels at once: one that
+            rewards deduction, and one that concedes information as you fail.
           </p>
 
           <div class="card col stack stack--tight">
-            <h3>Channel one — deduction</h3>
+            <h3>Channel one: deduction</h3>
             <p style="color: var(--ink-soft); font-size: 0.97rem">
               Every guess is a real dish, scored on four categorical attributes plus a set
               intersection over its ingredients. Country is the only attribute with a middle state:
               the same country is a hit, and a different country in the same region is a near-miss.
-              That single warm signal is what makes geographic triangulation possible.
+              That single warm signal makes geographic triangulation possible.
             </p>
             <div class="tiles tiles--flip" style="margin-top: 4px">
               <span class="tile tile--hit">Country · hit</span>
@@ -1467,8 +1466,8 @@
           <div class="takeaway">
             <span class="takeaway__k">Takeaway</span>
             <p>
-              The problem was not to reskin Wordle for food, but to build a feedback language for a
-              domain where players do not share a vocabulary.
+              The job was to build a feedback language for a domain where players do not share a
+              vocabulary, which is a different job from reskinning Wordle for food.
             </p>
           </div>
         </section>
@@ -1512,7 +1511,7 @@
                   <tr>
                     <td class="num">2</td>
                     <td>Origin and history</td>
-                    <td>The first rung with a voice, where the dish stops being a puzzle token and starts being from somewhere.</td>
+                    <td>The first rung with a voice, where the dish becomes a thing from somewhere rather than a puzzle token.</td>
                   </tr>
                   <tr>
                     <td class="num">3</td>
@@ -1534,7 +1533,7 @@
             </div>
             <p class="footnote">
               The same ladder, 351 times over. Writing clue 3 for Pierogi is the same task as writing
-              clue 3 for Ceviche, and a repeatable task is one that can still be done in month six.
+              clue 3 for Ceviche, and I can still face a repeatable task in month six.
             </p>
           </div>
 
@@ -1551,11 +1550,11 @@
                   <thead>
                     <tr>
                       <th style="width: 40%">In the fiction</th>
-                      <th>What it actually is</th>
+                      <th>What it is</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr><td>The Special</td><td>Today's puzzle — one dish, everyone, worldwide</td></tr>
+                    <tr><td>The Special</td><td>Today's puzzle: one dish, every player, worldwide</td></tr>
                     <tr><td>A clue ticket</td><td>The rung the kitchen slips you after a miss</td></tr>
                     <tr><td>The check</td><td>End-of-round screen: result, streak, share</td></tr>
                     <tr><td>Leftovers</td><td>The archive of past days</td></tr>
@@ -1567,12 +1566,12 @@
             </div>
 
             <div class="card stack stack--tight">
-              <h3>The share card was specified first</h3>
+              <h3>I specified the share card first</h3>
               <p style="color: var(--ink-soft); font-size: 0.97rem">
-                Before the feedback system and before the schema. A daily game with no shareable
-                result has no distribution, and what the emoji grid can express is a hard constraint
-                on what the feedback is permitted to be: four tiles per row, one pantry count, no
-                dish names, and nothing that spoils the answer.
+                Before the feedback system, and before the schema. A daily game with no shareable
+                result has no distribution, so the limits of an emoji grid are a hard constraint on
+                what the feedback is permitted to be: four tiles per row, one pantry count, no dish
+                names, and nothing that spoils the answer.
               </p>
               <div class="receipt receipt--print"><span class="receipt__line">Lunch Special #4 — 3/6</span><span class="receipt__line">⬜🟩🟩⬜ 1/6🥄</span><span class="receipt__line">🟨🟩🟩🟩 3/6🥄</span><span class="receipt__line">🟩🟩🟩🟩 🛎️</span></div>
               <p class="footnote">
@@ -1658,7 +1657,7 @@
                     <tr>
                       <td>Leftovers</td>
                       <td>Any past day</td>
-                      <td>No — saved per date</td>
+                      <td>No, saved per date</td>
                     </tr>
                     <tr>
                       <td>Chef's Choice</td>
@@ -1694,8 +1693,8 @@
           <div class="takeaway">
             <span class="takeaway__k">Takeaway</span>
             <p>
-              Three modes share one resolver and one clock. What varies between them is only what
-              gets written down afterwards.
+              Three modes share one resolver and one clock, and differ only in what gets written
+              down afterwards.
             </p>
           </div>
         </section>
@@ -1713,10 +1712,10 @@
           </h2>
 
           <p class="col">
-            The game engine took a few days. Everything since has been the apparatus around it, on
-            the principle that a daily game is not something you finish but something you operate.
-            Each station below was built because the one before it started raising questions I had
-            no way to answer.
+            The game engine took a few days. Everything since has been the apparatus around it,
+            because a daily game is something you operate rather than something you finish. I built
+            each station below once the one before it started raising questions I had no way to
+            answer.
           </p>
 
           <div class="card stack">
@@ -1810,7 +1809,7 @@
                   <td>
                     A clue has to be read in the ticket it will appear in, not in a text field.
                     Player suggestions from the end-of-round receipt promote to a prefilled editor in
-                    one click — five dishes on the menu arrived that way, and get credited on the
+                    one click. Five dishes on the menu arrived that way, and get credited on the
                     check when they come up.
                   </td>
                 </tr>
@@ -1833,7 +1832,7 @@
                   <td>Four anonymous beacons; a six-tab dashboard</td>
                   <td>
                     Arrival, first guess, game over, share. Every tab holds one <em>question</em>
-                    rather than one data source — what's live, what the menu is doing, who's playing,
+                    rather than one data source: what's live, what the menu is doing, who's playing,
                     what's changing, did I cause it, and the raw feed.
                   </td>
                 </tr>
@@ -1872,8 +1871,8 @@
           <div class="takeaway">
             <span class="takeaway__k">Takeaway</span>
             <p>
-              The deliverable is not only the game but the loop around it, which can carry a change
-              from an initial hypothesis to a measured verdict without a second person involved.
+              The deliverable is the loop around the game, which carries a change from hypothesis to
+              measured verdict with no second person involved.
             </p>
           </div>
         </section>
@@ -1893,7 +1892,7 @@
           <p class="col">
             One Cloudflare Worker serves the React bundle, answers the API, and queries a SQLite
             database on the same platform. No second service, nothing to keep warm, one deploy that
-            can't half-succeed. Every choice below was made to keep the distance between "I have an
+            can't half-succeed. I made every choice below to keep the distance between "I have an
             idea" and "it's live and being measured" as short as one person can make it.
           </p>
 
@@ -1956,11 +1955,11 @@
                   <td>D1 (SQLite) with real constraints</td>
                   <td>
                     Every enum is a column-level check, so a mistyped region is a failed insert
-                    rather than a tile that silently never matches anything.
+                    rather than a tile that quietly never matches anything.
                   </td>
                 </tr>
                 <tr>
-                  <td>No accounts — player state in local storage</td>
+                  <td>No accounts, player state in local storage</td>
                   <td>
                     No sign-up friction, no personal data, no auth surface to defend. The costs are
                     real: stats do not follow a player between devices, and every audience figure on
@@ -1981,7 +1980,7 @@
 
           <p class="col">
             Releases are cut by pushing a version tag. CI re-runs the tests and typecheck, applies
-            pending database migrations, then deploys — migrations first, so the schema is never
+            pending database migrations, then deploys. Migrations run first, so the schema is never
             behind the code expecting it. The tests cover the pure logic: feedback scoring, date
             validation, and every analytics fold on this page. Keeping those folds free of I/O is
             what makes them testable, since the queries need a database and the arithmetic does not.
@@ -2000,8 +1999,8 @@
           <div class="takeaway">
             <span class="takeaway__k">Takeaway</span>
             <p>
-              Four runtime dependencies and one deployable artefact, kept deliberately unambitious so
-              that the time goes into the menu instead.
+              Four runtime dependencies and one deployable artefact, kept unambitious on purpose so
+              the time goes into the menu instead.
             </p>
           </div>
         </section>
@@ -2019,9 +2018,9 @@
           </h2>
 
           <p class="col">
-            A daily puzzle has one main tuning knob — difficulty — and no way to judge it from the
-            inside, so the game was instrumented before launch. The hard part was never collecting
-            the data. It was building an instrument that admits what it doesn't know.
+            A daily puzzle has one main tuning knob, difficulty, and no way to judge it from the
+            inside, so I instrumented the game before launch. Collecting the data took an afternoon.
+            Most of the work went into an instrument that admits what it doesn't know.
           </p>
 
           <div class="card stack">
@@ -2070,9 +2069,9 @@
               <h3>Thin numbers carry their uncertainty</h3>
               <p style="color: var(--ink-soft); font-size: 0.97rem">
                 At tens of rounds a day, a 67% win rate drawn from 3 completions and one drawn from
-                300 render identically and mean very different things. Any rate quoted from fewer
-                than 30 observations shows its 95% interval beside it, and nothing else does — an
-                interval on every number would simply train the reader to ignore them.
+                300 render identically and mean different things. Any rate quoted from fewer than 30
+                observations shows its 95% interval beside it, and nothing else does, because an
+                interval on every number would train the reader to ignore them.
               </p>
               <p class="footnote">
                 Wilson intervals rather than the normal approximation, because this game sits where
@@ -2086,7 +2085,7 @@
             <span class="takeaway__k">Takeaway</span>
             <p>
               An instrument with no way to report "I don't know" will report something else instead,
-              and that answer is very hard to distinguish from a real one.
+              and that answer is hard to tell apart from a real one.
             </p>
           </div>
         </section>
@@ -2105,9 +2104,9 @@
 
           <p class="col">
             Everything in this section is read live from the production database when the page
-            loads. The audience is small and self-selected — <span data-fill="rounds">745</span>
-            rounds from <span data-fill="devices">242</span> devices — so these are best read as a
-            method and a first result rather than a conclusion.
+            loads. The audience is small and self-selected (<span data-fill="rounds">745</span>
+            rounds from <span data-fill="devices">242</span> devices), so read these as a method and
+            a first result rather than a conclusion.
           </p>
 
           <!-- ---------- guess distribution ---------- -->
@@ -2129,31 +2128,31 @@
               <text class="ax y-tick" x="38" y="116" text-anchor="end">100</text>
               <text class="ax y-tick" x="38" y="73" text-anchor="end">150</text>
 
-              <rect class="bar" x="60" y="180.9" width="72" height="19.1" rx="4" fill="var(--cat-2)"><title>Solved in 1 guess — 22 rounds</title></rect>
+              <rect class="bar" x="60" y="180.9" width="72" height="19.1" rx="4" fill="var(--cat-2)"><title>Solved in 1 guess: 22 rounds</title></rect>
               <text class="val" x="96" y="173" text-anchor="middle">22</text>
               <text class="ax" x="96" y="220" text-anchor="middle">1</text>
 
-              <rect class="bar" x="148" y="39.5" width="72" height="160.5" rx="4" fill="var(--cat-2)"><title>Solved in 2 guesses — 184 rounds</title></rect>
+              <rect class="bar" x="148" y="39.5" width="72" height="160.5" rx="4" fill="var(--cat-2)"><title>Solved in 2 guesses: 184 rounds</title></rect>
               <text class="val val--em" x="184" y="31" text-anchor="middle">184</text>
               <text class="ax" x="184" y="220" text-anchor="middle">2</text>
 
-              <rect class="bar" x="236" y="74.4" width="72" height="125.6" rx="4" fill="var(--cat-2)"><title>Solved in 3 guesses — 144 rounds</title></rect>
+              <rect class="bar" x="236" y="74.4" width="72" height="125.6" rx="4" fill="var(--cat-2)"><title>Solved in 3 guesses: 144 rounds</title></rect>
               <text class="val" x="272" y="66" text-anchor="middle">144</text>
               <text class="ax" x="272" y="220" text-anchor="middle">3</text>
 
-              <rect class="bar" x="324" y="115.4" width="72" height="84.6" rx="4" fill="var(--cat-2)"><title>Solved in 4 guesses — 97 rounds</title></rect>
+              <rect class="bar" x="324" y="115.4" width="72" height="84.6" rx="4" fill="var(--cat-2)"><title>Solved in 4 guesses: 97 rounds</title></rect>
               <text class="val" x="360" y="107" text-anchor="middle">97</text>
               <text class="ax" x="360" y="220" text-anchor="middle">4</text>
 
-              <rect class="bar" x="412" y="149.4" width="72" height="50.6" rx="4" fill="var(--cat-2)"><title>Solved in 5 guesses — 58 rounds</title></rect>
+              <rect class="bar" x="412" y="149.4" width="72" height="50.6" rx="4" fill="var(--cat-2)"><title>Solved in 5 guesses: 58 rounds</title></rect>
               <text class="val" x="448" y="141" text-anchor="middle">58</text>
               <text class="ax" x="448" y="220" text-anchor="middle">5</text>
 
-              <rect class="bar" x="500" y="172.1" width="72" height="27.9" rx="4" fill="var(--cat-2)"><title>Solved in 6 guesses — 32 rounds, the last of the budget</title></rect>
+              <rect class="bar" x="500" y="172.1" width="72" height="27.9" rx="4" fill="var(--cat-2)"><title>Solved in 6 guesses: 32 rounds, the last of the budget</title></rect>
               <text class="val" x="536" y="164" text-anchor="middle">32</text>
               <text class="ax" x="536" y="220" text-anchor="middle">6</text>
 
-              <rect class="bar" x="600" y="101.4" width="72" height="98.6" rx="4" fill="var(--cat-1)"><title>Ran out of guesses — 113 rounds</title></rect>
+              <rect class="bar" x="600" y="101.4" width="72" height="98.6" rx="4" fill="var(--cat-1)"><title>Ran out of guesses: 113 rounds</title></rect>
               <text class="val" x="636" y="93" text-anchor="middle">113</text>
               <text class="ax" x="636" y="220" text-anchor="middle">✗</text>
 
@@ -2176,7 +2175,7 @@
               booking the schedule against the menu-mix panel. The mean is now
               <span data-fill="avgGuesses">3.2</span>, the full guess budget is used, and
               <span data-fill="unsolvedRate">17%</span> of finished rounds end unsolved, which gives
-              the game a genuine loss rate.
+              the game a loss rate.
             </p>
           </div>
 
@@ -2212,8 +2211,8 @@
               </svg>
               <p class="footnote" id="funnel-note">
                 Every stage counts devices rather than rounds, which is the only reason this is
-                allowed to be a funnel at all. A player who does the Special plus three Leftovers is
-                one arrival and four starts, and stacked as stages those numbers would grow as they
+                allowed to be a funnel. A player who does the Special plus three Leftovers is one
+                arrival and four starts, and stacked as stages those numbers would grow as they
                 descend.
               </p>
             </div>
@@ -2221,7 +2220,7 @@
             <div class="card chart" id="chart-modes">
               <div>
                 <div class="chart__title">Rounds by mode</div>
-                <div class="chart__sub">Which entrance players actually use</div>
+                <div class="chart__sub">Which entrance players use</div>
               </div>
               <svg viewBox="0 0 480 230" role="img" aria-label="Rounds by mode: Today's Special, Leftovers, and Chef's Choice.">
                 <text class="ax md-label" x="0" y="14">TODAY'S SPECIAL</text>
@@ -2240,7 +2239,7 @@
                 <text class="ax md-note" x="0" y="212">and 94% of them are played to the end.</text>
               </svg>
               <p class="footnote">
-                The archive was built as a courtesy for latecomers and became a third of all play.
+                I built the archive as a courtesy for latecomers, and it became a third of all play.
               </p>
             </div>
           </div>
@@ -2352,8 +2351,8 @@
               <p style="color: var(--ink-soft); font-size: 0.95rem">
                 An earlier version of this page described the Discord numbers as tiny and the
                 Activity as days old. It is now half the audience by device count, from one
-                dynamically-imported file and no second build. The surface was recorded on every
-                beacon from the first day, so nothing had to be retrofitted when it grew.
+                dynamically-imported file and no second build. Every beacon has recorded its surface
+                since the first day, so I had nothing to retrofit when that half grew.
               </p>
               <p class="footnote">
                 Web devices play more rounds each and Discord brings more first-time players, which
@@ -2385,8 +2384,8 @@
 
           <p class="col">
             Every chart above answers what is happening. None of them answers whether I caused it.
-            So the database also holds a change log: one row per deliberate change, recording what I
-            expected and — set before shipping, not after — which metric it was meant to move. The
+            The database therefore also holds a change log: one row per deliberate change, recording
+            what I expected and which metric it was meant to move, both set before shipping. The
             dashboard splits the daily series at the ship date and compares the two halves. At this
             volume the correct answer is often <strong>"not enough data yet"</strong>, and a
             comparison with no way to return that will return something else instead. Making it a
@@ -2405,9 +2404,9 @@
               <span class="chip chip--up">Moved up</span>
             </div>
             <p style="color: var(--ink-soft); font-size: 0.97rem">
-              The schedule had always been picked for variety, but by instinct. This is the day I
-              began booking it against the menu-mix panel, which compares the region, course, protein
-              and temperature ratios of what has been served against the pool it is drawn from.
+              I had always picked the schedule for variety, but by instinct. This is the day I began
+              booking it against the menu-mix panel, which compares the region, course, protein and
+              temperature ratios of what has been served against the pool it is drawn from.
             </p>
             <svg viewBox="0 0 660 132" role="img" aria-label="Finish rate before: 81 percent, interval 76 to 85. After: 91 percent, interval 88 to 94. The intervals do not overlap.">
               <line class="gridline" x1="120" y1="18" x2="120" y2="104" />
@@ -2431,10 +2430,9 @@
             </svg>
             <p class="footnote">
               81% to 91% of started rounds reaching game over, across 312 rounds before and 404
-              after. The bars are 95% intervals, and the test is simply whether they overlap. That is
-              stricter than a difference-of-proportions test, deliberately: the more expensive
-              mistake for a project this size is being convinced by noise, not missing a small
-              effect.
+              after. The bars are 95% intervals, and the test is whether they overlap. That is
+              stricter than a difference-of-proportions test, on purpose: for a project this size,
+              being convinced by noise costs more than missing a small effect.
             </p>
           </div>
 
@@ -2460,7 +2458,7 @@
                 </tr>
                 <tr>
                   <td>Rates are pooled, never averaged</td>
-                  <td>Total solved over total completed. Averaging daily percentages lets a one-round Tuesday outvote a whole weekend — which is why the series ships raw counts.</td>
+                  <td>Total solved over total completed. Averaging daily percentages lets a one-round Tuesday outvote a whole weekend, which is why the series ships raw counts.</td>
                 </tr>
                 <tr>
                   <td>Counts and rates get different tests</td>
@@ -2477,8 +2475,8 @@
           <div class="takeaway">
             <span class="takeaway__k">Takeaway</span>
             <p>
-              A change is worth claiming only once it can be separated from ordinary variation, and
-              the system is built to say when it cannot be.
+              I claim a change only once it separates from ordinary variation, and the system says
+              so when it cannot.
             </p>
           </div>
         </section>
@@ -2500,8 +2498,7 @@
             was a deliberate decision, on the grounds that opening a page is not playing a game, and
             it had a cost I did not anticipate: everyone who arrived and never guessed was invisible.
             The widest number on the dashboard was games started, with nothing above it, so a change
-            that doubled interest while halving conversion would have looked identical to no change
-            at all.
+            that doubled interest while halving conversion would have looked identical to no change.
           </p>
 
           <div class="card stack">
@@ -2537,7 +2534,8 @@
                   <span class="pipe__d">
                     At tens of rounds a day, one person testing is a visible fraction of every rate
                     on this page. A morning of reloading to check a change writes arrival rows and
-                    nothing else, which reads as pure bounce in the funnel I had just built. The
+                    nothing else, which reads as pure bounce in the funnel from the release before.
+                    The
                     admin panel reviews what this browser has recorded across all three tables and
                     then deletes it.
                   </span>
@@ -2558,7 +2556,7 @@
               </p>
               <p class="footnote">
                 A ratio above 100% remains possible, since a round begun at 11:58pm files its start
-                on the following day. The number is left as measured and only the bar is clamped.
+                on the following day. I leave the number as measured and clamp only the bar.
               </p>
             </div>
 
@@ -2621,8 +2619,8 @@
                   <td><strong>Find where the arrivals who never guess get stuck</strong></td>
                   <td>Play rate (played ÷ arrived)</td>
                   <td>
-                    Whether they leave at the how-to, the typeahead, or the first empty board changes
-                    the fix entirely, and telling those apart is a small instrumentation job.
+                    The fix depends on whether they leave at the how-to, the typeahead, or the first
+                    empty board, and telling those apart is a small instrumentation job.
                   </td>
                 </tr>
                 <tr>
@@ -2651,8 +2649,8 @@
           <div class="takeaway">
             <span class="takeaway__k">Takeaway</span>
             <p>
-              The roadmap is ordered by what the measurements identify as the constraint, which is
-              currently retention rather than anything about the puzzle itself.
+              I order the roadmap by whatever the measurements name as the constraint, which today
+              is retention rather than anything about the puzzle itself.
             </p>
           </div>
         </section>
@@ -2663,7 +2661,7 @@
       <div class="field">
         <p class="wordmark">Lunch Special</p>
         <p style="margin: 0; color: #cbdcd6">
-          Design, narrative, engineering, and art direction by <strong>Jacob Poteet</strong> —
+          Design, narrative, engineering, and art direction by <strong>Jacob Poteet</strong>,
           narrative technical game designer.
         </p>
         <p style="margin: 0">
@@ -2676,10 +2674,10 @@
           The headline figures, the guess distribution, the drop-off funnel, the mode split, the
           growth curve, the days-played curve and the surface table are read live from the
           production database each visit (edge-cached, so page traffic doesn't re-query on every
-          load). The three experiment verdicts are a dated snapshot — a verdict is a judgement made
-          on a day, and one that silently recomputed under its own prose would be worse than one
-          that's honestly dated. Artwork is AI-generated placeholder pending commission. Typefaces
-          are Alfa Slab One, Bitter and Yellowtail, all OFL.
+          load). The experiment verdict is a dated snapshot instead: a verdict is a judgement made
+          on a day, and one that recomputed unannounced under its own prose would be worse than one
+          carrying the date it was made. Artwork is AI-generated placeholder pending commission.
+          Typefaces are Alfa Slab One, Bitter and Yellowtail, all OFL.
         </p>
       </div>
     </footer>
