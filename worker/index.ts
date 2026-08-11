@@ -4,6 +4,7 @@
 import { Hono } from "hono";
 import adminRoutes from "./routes/admin";
 import analyticsRoutes from "./routes/analytics";
+import discordRoutes from "./routes/discord";
 import publicRoutes from "./routes/public";
 import statsRoutes from "./routes/stats";
 
@@ -16,6 +17,8 @@ app.route("/api/admin", adminRoutes);
 // players silently vanished from every count. The data is anonymous and
 // device-scoped, never tied to a person. See routes/analytics.ts.
 app.route("/api/rounds", analyticsRoutes);
+// OAuth token exchange for the Discord Activity's Rich Presence. See routes/discord.ts.
+app.route("/api/discord", discordRoutes);
 app.route("/api/stats", statsRoutes);
 app.route("/api", publicRoutes);
 

@@ -21,6 +21,8 @@ import AnnouncementModal from "./AnnouncementModal";
 import ArchiveModal from "./ArchiveModal";
 import { dateLabel, isPastPuzzleDate } from "./archive";
 import { currentSurface, surfaceUrl } from "../discord/bootstrap";
+import { setPresence } from "../discord/presence";
+import { buildPresence } from "../../shared/presence";
 import { playSfx } from "./sfx";
 import { buildShareText, copyShareText, SHARE_URL } from "./share";
 import {
@@ -553,6 +555,10 @@ export default function GamePage() {
   // localStorage, or an archive day you've played) was celebrated on the day it
   // was played — reopening it should be instant, not a victory lap.
   const restoredFinished = useRef(round.status !== "playing");
+  // When this sitting started, for the elapsed timer on a Discord profile. This
+  // sitting, not the round: a board restored from localStorage was begun on a
+  // page load we no longer have, and dating the timer to it would report hours.
+  const openedAt = useRef(Date.now());
 
   // Persist a round to the right place: daily → today's slot; archive → its
   // dated slot; preview/random → nowhere.
@@ -638,6 +644,7 @@ export default function GamePage() {
   const newGame = useCallback(() => {
     setSeed(newSeed());
     setRound(emptyRound(date));
+    openedAt.current = Date.now(); // a fresh dish is a fresh sitting
     setReveal(null);
     setError(null);
     setShowResult(false);
@@ -728,6 +735,27 @@ export default function GamePage() {
     if (!markSeated(localToday())) return;
     beaconSeated({ playerId: getPlayerId(), surface: SURFACE });
   }, [daily, tracked]);
+
+  // Discord Rich Presence: which mode they're in and how they're doing, on their
+  // own Discord profile. A no-op everywhere else — on the open web there's no
+  // SDK to hand it to, so this costs a function call and nothing more.
+  //
+  // Gated on `tracked` for the same reason the beacons are: admin preview and
+  // playtest aren't rounds anyone is playing. Note that the copy never names the
+  // dish (shared/presence.ts) — a profile is read by people who haven't played
+  // today, and the answer is exactly what they'd be reading.
+  useEffect(() => {
+    if (!tracked || !daily) return;
+    setPresence(
+      buildPresence({
+        kind: analyticsKind,
+        puzzleNumber: daily.puzzleNumber,
+        status: round.status,
+        guesses: round.guesses.length,
+        startedAt: openedAt.current,
+      }),
+    );
+  }, [tracked, daily, analyticsKind, round.status, round.guesses.length]);
 
   // The ticket waits out the whole guess sequence — row drop, tile flips, chip
   // pops — plus a beat of stillness, so the clue reads as a separate event

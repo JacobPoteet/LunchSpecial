@@ -7,13 +7,15 @@
 // Discord's iframe. On the plain web, `initDiscord()` returns immediately and
 // the Embedded App SDK is never even downloaded (it's behind a dynamic import).
 //
-// Scope: "minimal embed" — we complete the SDK handshake so the Activity loads
-// and then let the existing game run anonymously, exactly as it does on the web
-// (localStorage state, no accounts). OAuth / per-user identity is intentionally
-// not wired up yet; see CLAUDE.md.
+// Scope: still anonymous — the game runs inside Discord exactly as it does on
+// the web (localStorage state, no accounts). The one thing the SDK is used for
+// is Rich Presence (src/discord/presence.ts), which takes a single OAuth scope
+// (`rpc.activities.write`) and deliberately no identifying one, so nothing here
+// ever learns who the player is.
 
 import type { DiscordSDK } from "@discord/embedded-app-sdk";
 import type { Surface } from "../../shared/types";
+import { attachPresence } from "./presence";
 
 /**
  * The query params Discord adds to the Activity iframe URL. `frame_id` is the
@@ -116,10 +118,10 @@ const READY_TIMEOUT_MS = 5000;
  *
  * Awaited once in main.tsx before React mounts.
  *
- * Note: nothing in the game currently *uses* the SDK — sharing a result inside
- * the Activity copies the score card to the clipboard for the player to paste
- * (the SDK's `shareLink` modal kept failing). The handshake still has to happen
- * or Discord never shows the Activity at all.
+ * Note: sharing a result inside the Activity does NOT go through the SDK — it
+ * copies the score card to the clipboard for the player to paste (the SDK's
+ * `shareLink` modal kept failing). Rich Presence does: the instance is handed
+ * to attachPresence() below the moment the handshake resolves.
  */
 export async function initDiscord(): Promise<DiscordSDK | null> {
   if (!isDiscordActivity()) return null;
@@ -139,7 +141,15 @@ export async function initDiscord(): Promise<DiscordSDK | null> {
     const sdk = new DiscordSDK(clientId);
     const handshake = sdk
       .ready()
-      .then(() => sdk)
+      .then(() => {
+        // Registered here, on the handshake's own resolution — deliberately not
+        // on the winning branch of the race below. The 5s cap decides only when
+        // React mounts; a handshake that lands at 5.1s is still a perfectly good
+        // SDK, and tying features to that timer is how the Discord share button
+        // silently died on every slow Activity start. See CLAUDE.md.
+        attachPresence(sdk);
+        return sdk;
+      })
       .catch((err: unknown) => {
         console.error("[discord] SDK ready() failed:", err);
         return null;

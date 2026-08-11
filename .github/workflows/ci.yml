@@ -53,10 +53,11 @@ jobs:
 
       - run: npm ci
 
-      # wrangler types derives Env's secret members (ADMIN_PASSWORD, SESSION_SECRET)
-      # from .dev.vars, which is gitignored. Give CI a placeholder so the generated
-      # Env includes them.
-      - run: printf 'ADMIN_PASSWORD=placeholder\nSESSION_SECRET=placeholder\n' > .dev.vars
+      # wrangler types derives Env's secret members (ADMIN_PASSWORD, SESSION_SECRET,
+      # DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET) from .dev.vars, which is gitignored.
+      # Give CI a placeholder so the generated Env includes them. Keep this list in
+      # sync with the identical line in deploy.yml.
+      - run: printf 'ADMIN_PASSWORD=placeholder\nSESSION_SECRET=placeholder\nDISCORD_CLIENT_ID=placeholder\nDISCORD_CLIENT_SECRET=placeholder\n' > .dev.vars
 
       # worker-configuration.d.ts (Cloudflare runtime types + Env) is gitignored
       # and generated, so CI must regenerate it before typecheck/build.
