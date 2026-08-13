@@ -1,5 +1,5 @@
 -- Lunch Special — seed data
--- 353 dishes with canonical ingredients + 5 clues each, and a 30-day schedule.
+-- 366 dishes with canonical ingredients + 5 clues each, and a 30-day schedule.
 -- Safe to re-run LOCALLY: clears existing content first.
 -- Clue order: 1 broad hint → 2 origin/history → 3 fame/pop culture → 4 key ingredients/technique → 5 near-giveaway.
 --
@@ -2164,11 +2164,98 @@ INSERT INTO clues (dish_id, order_index, text) VALUES
 (353,5,'Smoked, hand-shredded pork heaped on a soft bun and crowned with coleslaw.');
 
 
+INSERT INTO dishes (id, name, slug, country, region, course, temperature, protein, ingredients) VALUES
+(354,'Dolmades','dolmades','Greece','europe','appetizer','cold','vegetarian','["grape leaves","rice","onion","dill","mint","lemon","olive oil"]'),
+(355,'Loukoumades','loukoumades','Greece','europe','dessert','hot','vegetarian','["flour","yeast","honey","cinnamon","walnuts","sugar"]'),
+(356,'Sugar Cookies','sugar-cookies','United States','north-america','dessert','cold','vegetarian','["flour","butter","sugar","egg","vanilla","baking powder"]'),
+(357,'Snickerdoodles','snickerdoodles','United States','north-america','dessert','cold','vegetarian','["flour","butter","sugar","egg","cinnamon","cream of tartar"]'),
+(358,'Oatmeal Raisin Cookies','oatmeal-raisin-cookies','United States','north-america','dessert','cold','vegetarian','["oats","raisins","flour","butter","brown sugar","egg","cinnamon"]'),
+(359,'Buffalo Chicken Dip','buffalo-chicken-dip','United States','north-america','appetizer','hot','poultry','["chicken","cream cheese","hot sauce","cheddar","sour cream","celery"]'),
+(360,'Spinach and Artichoke Dip','spinach-and-artichoke-dip','United States','north-america','appetizer','hot','vegetarian','["spinach","artichoke","cream cheese","sour cream","parmesan","mozzarella","garlic"]'),
+(361,'Seven Layer Dip','seven-layer-dip','United States','north-america','appetizer','cold','vegetarian','["beans","avocado","sour cream","cheddar","tomato","olives","scallion"]'),
+(362,'Bread Pudding','bread-pudding','United Kingdom','europe','dessert','hot','vegetarian','["bread","milk","egg","sugar","butter","vanilla","cinnamon","raisins"]'),
+(363,'Dal Baati','dal-baati','India','south-asia','entree','hot','vegetarian','["lentils","flour","ghee","onion","tomato","cumin","turmeric","chili"]'),
+(364,'Pelmeni','pelmeni','Russia','europe','entree','hot','beef','["flour","egg","beef","pork","onion","black pepper","sour cream"]'),
+(365,'Apple Fritter','apple-fritter','United States','north-america','dessert','hot','vegetarian','["apple","flour","sugar","cinnamon","egg","milk","powdered sugar"]'),
+(366,'Zeppole','zeppole','Italy','europe','dessert','hot','vegetarian','["flour","egg","butter","sugar","powdered sugar","vanilla","cherry"]');
+
+INSERT INTO clues (dish_id, order_index, text) VALUES
+(354,1,'A cold starter from the Mediterranean country at the southern end of the Balkans, where a meal often arrives as a table of small plates.'),
+(354,2,'Cooks across the old Ottoman world have wrapped food in leaves this way for centuries, and the whole family of dishes takes its name from a Turkish verb meaning "to be stuffed".'),
+(354,3,'Every Greek taverna keeps a tray of them in the cold case, and for a great many Americans the tinned version was their first taste of the country.'),
+(354,4,'Grape leaves are blanched until pliable, rolled tight around rice seasoned with onion, dill and mint, then simmered under a plate with lemon and olive oil.'),
+(354,5,'Little green cylinders of vine leaf wrapped around lemony herbed rice, served cold with a wedge of lemon.'),
+(355,1,'A hot dessert from the European country that gave us the marathon, the Olympic games and a great deal of honey.'),
+(355,2,'Fried dough soaked in honey appears in ancient Greek writing as "honey tokens", reportedly handed to the winners at the earliest Olympic games.'),
+(355,3,'Athens has shops that have sold nothing else since the 1920s, and the paper cones draw long queues at Greek street festivals around the world.'),
+(355,4,'A loose yeasted batter is dropped by the spoonful into hot oil until the balls puff and brown, then drenched in warm honey syrup and showered with cinnamon and crushed walnuts.'),
+(355,5,'Golden puffs of fried dough drowned in honey syrup and dusted with cinnamon and walnuts, eaten hot with a fork.'),
+(356,1,'North American, and the plainest thing in the whole bakery case.'),
+(356,2,'German settlers in Nazareth, Pennsylvania were baking the round version in the 1700s, and their town''s name is still attached to it.'),
+(356,3,'It is the one children decorate with colored icing at Christmas and leave on a plate for a visitor coming down the chimney.'),
+(356,4,'Butter and sugar are creamed with egg and vanilla into a pale dough, rolled flat, and cut into shapes before baking until barely colored.'),
+(356,5,'The plain, pale rolled cookie tasting mostly of butter and vanilla, usually cut into shapes and covered in icing.'),
+(357,1,'North American, though the ridiculous name probably crossed the Atlantic with German or Dutch settlers.'),
+(357,2,'New England cookbooks were printing the recipe by the late 1800s, and the name has been traced both to a German word for a snail-shaped noodle and to plain Yankee nonsense, with no agreement between them.'),
+(357,3,'It is the bake sale cookie that gets picked off the table first on the strength of its name alone.'),
+(357,4,'The dough is leavened with cream of tartar for a distinct tang, rolled in cinnamon sugar, and baked until it puffs and falls into a crackled top.'),
+(357,5,'The tangy, chewy cookie rolled in cinnamon sugar and baked until the top cracks.'),
+(358,1,'North American, and the item in the bakery case most likely to disappoint a child.'),
+(358,2,'A breakfast cereal company printed a version on the side of its canister around 1900, borrowing from Scottish oatcakes, and it has stayed on the box ever since.'),
+(358,3,'It is the internet''s favorite cruel prank, sitting on the tray looking exactly like something else until you take a bite.'),
+(358,4,'Rolled oats and dried grapes are folded through a brown sugar and cinnamon dough that bakes chewy rather than crisp.'),
+(358,5,'The chewy brown cookie packed with rolled oats and dried grapes.'),
+(359,1,'North American, served hot, and it never turns up except in front of a crowd.'),
+(359,2,'A bar in western New York state is credited with it in the 1990s, built from the same cayenne and butter sauce that made that city''s wings famous.'),
+(359,3,'It is the first thing gone at a Super Bowl party, usually before kickoff.'),
+(359,4,'Shredded poultry is stirred into softened cream cheese with cayenne pepper sauce and shredded cheddar, then baked until it bubbles at the edge of the dish.'),
+(359,5,'The bubbling orange party dip of shredded chicken, cream cheese and wing sauce, scooped up with celery sticks and chips.'),
+(360,1,'North American, arrives hot in a small skillet, and is ordered for the table rather than for one person.'),
+(360,2,'American chain restaurants put it on their starter menus in the 1980s, borrowing the idea from older French and Italian ways of creaming greens.'),
+(360,3,'It is the default first order at a casual restaurant, and the copycat recipes for one chain''s version are among the most searched appetizers online.'),
+(360,4,'A leafy green and the tender heart of a thistle are chopped into a base of cream cheese, sour cream and parmesan, then baked until brown on top.'),
+(360,5,'The hot, creamy green dip of chopped leaves and thistle hearts, served bubbling with tortilla chips.'),
+(361,1,'North American, served cold, and not one thing in it is cooked.'),
+(361,2,'Texas cooks assembled it in the 1970s out of the Tex-Mex pantry, and a clear glass dish made it famous because the stripes show through the side.'),
+(361,3,'It is standard potluck and tailgate furniture, and whoever carries it in also carries the biggest bag of chips.'),
+(361,4,'Refried beans go down first, then mashed avocado, sour cream, shredded cheese, tomato, black olives and scallion, each spread flat over the last.'),
+(361,5,'The cold, striped Tex-Mex party dip built in a glass dish and counted off from beans at the bottom to olives on top.'),
+(362,1,'From an island nation in northwestern Europe, where the word "pudding" covers a great deal more than it should.'),
+(362,2,'English cooks were soaking stale loaves like this by the 1200s and called it the poor man''s pudding, since it was built entirely out of what was about to be thrown away.'),
+(362,3,'New Orleans adopted it so completely that half the city''s restaurants finish it with a whiskey sauce.'),
+(362,4,'Torn stale bread is soaked in a custard of milk, egg, sugar and vanilla with cinnamon and raisins, then baked until the top crisps and the middle still wobbles.'),
+(362,5,'Stale bread baked in sweet custard until it sets, cut into a square and served warm under a pour of sauce.'),
+(363,1,'From a very large South Asian country, out of a desert state where food had to keep without spoiling.'),
+(363,2,'Rajasthan tells it as a soldier''s meal: dough balls buried in the hot sand at dawn and dug up baked at the end of the day.'),
+(363,3,'It is the centerpiece of Rajasthani weddings and festivals, served on a leaf plate with a bowl of clarified butter poured over the top.'),
+(363,4,'Hard wheat-flour balls are baked until they crack open, then crushed, soaked in ghee, and eaten with a spiced stew of lentils.'),
+(363,5,'Cracked, ghee-soaked wheat balls dunked into a spiced lentil stew from the Indian desert.'),
+(364,1,'From the largest country on earth, and traditionally made in enormous batches once winter arrives.'),
+(364,2,'Cooks in Siberia and the Urals took the idea from their eastern neighbours, and the name comes from a Finno-Ugric phrase meaning "ear bread", which is roughly the shape.'),
+(364,3,'Families would make hundreds at a time and leave them outside to freeze in the snow, which is why nobody there thinks less of you for buying the frozen bag.'),
+(364,4,'Thin unleavened dough is pinched around raw minced beef and pork with onion and pepper, then boiled and served with sour cream, butter or vinegar.'),
+(364,5,'Small boiled dumplings of thin dough around minced meat and onion, eaten by the bowlful with sour cream, from Siberia.'),
+(365,1,'North American in its current form, and it sits in the doughnut case looking like something went wrong.'),
+(365,2,'Frying fruit in batter is old European practice; Dutch settlers brought it to New York, where the bakery counter turned it into the craggy glazed slab sold today.'),
+(365,3,'It is the item people argue is not really a doughnut, and reliably the largest thing on the tray.'),
+(365,4,'Chopped orchard fruit and cinnamon are folded through a wet dough, dropped into hot oil in an untidy lump, and dipped in a thin sugar glaze while still hot.'),
+(365,5,'A craggy, glazed slab of fried dough shot through with cinnamon and chopped apple.'),
+(366,1,'From the boot-shaped country in southern Europe, and it belongs to one particular day on the calendar.'),
+(366,2,'Naples claims it and ties it to the feast of Saint Joseph on the 19th of March, which is also Italy''s Father''s Day; convent kitchens are usually credited with the recipe.'),
+(366,3,'Bakery lines run down the block in Italian-American neighborhoods every March, and the same fried dough turns up at every summer street feast.'),
+(366,4,'Choux pastry is piped into a ring, fried or baked until hollow, then filled with vanilla cream and topped with a candied sour cherry and a snow of powdered sugar.'),
+(366,5,'A fried ring of choux pastry piped full of cream and crowned with a candied cherry, sold for Saint Joseph''s Day.');
+
+
 -- Dishes that came in through the player suggestion form. Flagged here rather
 -- than in the INSERT above so the column list stays as it was; the rest of the
 -- catalogue keeps the 0 default. See migrations/0017.
 UPDATE dishes SET is_fan_submission = 1
- WHERE slug IN ('fairy-bread', 'german-chocolate-cake', 'funnel-cake', 'scrambled-eggs');
+ WHERE slug IN ('fairy-bread', 'german-chocolate-cake', 'funnel-cake', 'scrambled-eggs',
+                'dolmades', 'loukoumades', 'sugar-cookies', 'snickerdoodles',
+                'oatmeal-raisin-cookies', 'buffalo-chicken-dip',
+                'spinach-and-artichoke-dip', 'seven-layer-dip', 'bread-pudding',
+                'dal-baati', 'pelmeni', 'apple-fritter', 'zeppole');
 
 
 INSERT INTO schedule (date, dish_id) VALUES
