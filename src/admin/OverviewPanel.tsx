@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { AdminDashboard, AnalyticsSummary, DashboardSpecial } from "../../shared/types";
+import { PLAYTIME_CAP_MINUTES } from "../../shared/types";
 import { gameHour, hms, msUntilGameMidnight } from "../../shared/time";
 import type { AdminView } from "./AdminApp";
 import { AUDIENCE_LABEL } from "./AnnouncementsPanel";
@@ -16,8 +17,10 @@ import {
   noRoundsNote,
   paceNote,
   pct,
+  playTimeNote,
   shortDate,
   sumKinds,
+  totalTimeLabel,
   type SurfaceFilter,
 } from "./analyticsUi";
 
@@ -105,7 +108,7 @@ function AtAGlance({
     );
   }
 
-  const { day, today, totals, guessDistribution } = analytics;
+  const { day, today, totals, guessDistribution, playTime } = analytics;
   // The Players tab can point the shared fetch at an earlier service; say so
   // rather than mislabeling someone else's day as "today".
   const isToday = day.date === today;
@@ -233,20 +236,44 @@ function AtAGlance({
             </>
           )}
 
-          {/* The all-time strip that used to sit here was the Players tab's
-              opening row, rendered twice. One line and a link instead. */}
-          <p className="dash-note" style={{ marginBottom: 0 }}>
-            <strong>{totals.started.toLocaleString()}</strong> games played all time
-            {analytics.rhythm.since && ` since ${shortDate(analytics.rhythm.since)}`}.{" "}
-            <button className="link-btn" onClick={() => onOpenTab("players")}>
-              Players
-            </button>{" "}
-            has the breakdown;{" "}
-            <button className="link-btn" onClick={() => onOpenTab("trends")}>
-              Trends
-            </button>{" "}
-            has where it's heading.
-          </p>
+          {/* The all-time footer. The four-tile strip that used to sit here was
+              the Players tab's opening row rendered twice, and every figure in it
+              only ever crept between two visits — so it's a sentence now, with
+              the tab that owns those numbers one click away.
+
+              Total play time is the exception that earns the big type: it's the
+              only all-time figure on this dashboard that isn't drawn anywhere
+              else, and unlike a count it answers a question of scale — how much
+              of people's day this game has taken up. Deliberately not a daily
+              read: a day's total is that day's round count wearing a different
+              unit, where the running one is a fact about the game itself. */}
+          <div className="alltime">
+            {playTime.rounds > 0 && (
+              <div className="alltime__stat" title={playTimeNote(playTime)}>
+                <span className="alltime__num">{totalTimeLabel(playTime.minutes)}</span>
+                <span className="alltime__label">Time at the counter</span>
+                {/* The cap is the reason a *sum* is allowed here at all, so it's
+                    on the face of it rather than only in the hover — but small,
+                    because it's a footnote to the number, not a second number. */}
+                <span className="alltime__foot">
+                  all time · {playTime.rounds.toLocaleString()} rounds timed, capped at{" "}
+                  {PLAYTIME_CAP_MINUTES}m each
+                </span>
+              </div>
+            )}
+            <p className="dash-note alltime__note">
+              <strong>{totals.started.toLocaleString()}</strong> games played all time
+              {analytics.rhythm.since && ` since ${shortDate(analytics.rhythm.since)}`}.{" "}
+              <button className="link-btn" onClick={() => onOpenTab("players")}>
+                Players
+              </button>{" "}
+              has the breakdown;{" "}
+              <button className="link-btn" onClick={() => onOpenTab("trends")}>
+                Trends
+              </button>{" "}
+              has where it's heading.
+            </p>
+          </div>
         </>
       )}
     </section>

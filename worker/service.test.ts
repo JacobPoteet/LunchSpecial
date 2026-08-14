@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { foldDayService, foldPace, foldSolveTimes, type DayHourRow, type PaceRow } from "./service";
+import {
+  foldDayService,
+  foldPace,
+  foldPlayTime,
+  foldSolveTimes,
+  type DayHourRow,
+  type PaceRow,
+  type SolveTimeRow,
+} from "./service";
 import { DNF_GRACE_MINUTES, type RoundKind } from "../shared/types";
 
 /**
@@ -176,16 +184,15 @@ describe("foldDayService", () => {
 });
 
 describe("foldSolveTimes", () => {
+  /** A group of solved rounds that each took `minutes` — the fold's own subject. */
+  const won = (minutes: number | null, n: number): SolveTimeRow => ({ minutes, solved: 1, n });
+
   it("reports nothing when no round has been timed", () => {
     expect(foldSolveTimes([])).toEqual({ count: 0, medianMinutes: null, p90Minutes: null });
   });
 
   it("takes the median and p90 off the distribution", () => {
-    const s = foldSolveTimes([
-      { minutes: 1, n: 2 },
-      { minutes: 3, n: 5 },
-      { minutes: 9, n: 3 },
-    ]);
+    const s = foldSolveTimes([won(1, 2), won(3, 5), won(9, 3)]);
     expect(s.count).toBe(10);
     expect(s.medianMinutes).toBe(3);
     expect(s.p90Minutes).toBe(9);
@@ -194,22 +201,75 @@ describe("foldSolveTimes", () => {
   // A tab left open at breakfast and finished at lunch is a real row, and the
   // reason none of this is a mean.
   it("is not moved by a round left open for hours", () => {
-    const s = foldSolveTimes([
-      { minutes: 2, n: 40 },
-      { minutes: 400, n: 1 },
-    ]);
+    const s = foldSolveTimes([won(2, 40), won(400, 1)]);
     expect(s.medianMinutes).toBe(2);
     expect(s.count).toBe(41);
   });
 
   it("drops rows that aren't a measurement", () => {
-    const s = foldSolveTimes([
-      { minutes: null, n: 4 },
-      { minutes: -3, n: 2 },
-      { minutes: 5, n: 1 },
-    ]);
+    const s = foldSolveTimes([won(null, 4), won(-3, 2), won(5, 1)]);
     expect(s.count).toBe(1);
     expect(s.medianMinutes).toBe(5);
+  });
+
+  // The query behind this now returns every finished round so total play time
+  // can share it. A loss is not a solve, so it must not reach this distribution.
+  it("ignores rounds that ran out of guesses", () => {
+    const s = foldSolveTimes([won(2, 3), { minutes: 40, solved: 0, n: 9 }]);
+    expect(s.count).toBe(3);
+    expect(s.medianMinutes).toBe(2);
+    expect(s.p90Minutes).toBe(2);
+  });
+});
+
+describe("foldPlayTime", () => {
+  const round = (minutes: number | null, n: number, solved = 1): SolveTimeRow => ({ minutes, solved, n });
+
+  it("reports nothing when no round has been timed", () => {
+    expect(foldPlayTime([])).toEqual({ minutes: 0, rounds: 0, capped: 0 });
+  });
+
+  it("sums durations across the rounds in each group", () => {
+    const t = foldPlayTime([round(2, 3), round(5, 1)]);
+    expect(t.minutes).toBe(11);
+    expect(t.rounds).toBe(4);
+    expect(t.capped).toBe(0);
+  });
+
+  // The whole reason a total is allowed here: one abandoned tab must not outweigh
+  // a day of real games.
+  it("counts a round left open all afternoon at the cap", () => {
+    const t = foldPlayTime([round(240, 1)], 15);
+    expect(t.minutes).toBe(15);
+    expect(t.capped).toBe(1);
+  });
+
+  it("counts every round in an over-cap group as capped", () => {
+    const t = foldPlayTime([round(60, 4), round(3, 2)], 15);
+    expect(t.minutes).toBe(66); // 4 × 15 + 2 × 3
+    expect(t.rounds).toBe(6);
+    expect(t.capped).toBe(4);
+  });
+
+  // Exactly at the cap is a measurement that happens to equal it, not a trim.
+  it("does not call a round at the cap capped", () => {
+    const t = foldPlayTime([round(15, 2)], 15);
+    expect(t.minutes).toBe(30);
+    expect(t.capped).toBe(0);
+  });
+
+  // Running out of guesses is still time spent playing — unlike the solve-time
+  // read, this one wants the losses.
+  it("counts lost rounds too", () => {
+    const t = foldPlayTime([round(4, 1, 1), round(6, 1, 0)]);
+    expect(t.minutes).toBe(10);
+    expect(t.rounds).toBe(2);
+  });
+
+  it("drops rows that aren't a measurement", () => {
+    const t = foldPlayTime([round(null, 4), round(-3, 2), round(5, 1)]);
+    expect(t.minutes).toBe(5);
+    expect(t.rounds).toBe(1);
   });
 });
 

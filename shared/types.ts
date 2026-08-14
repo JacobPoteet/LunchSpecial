@@ -539,6 +539,36 @@ export interface SolveTimes {
 }
 
 /**
+ * The longest a single round is allowed to contribute to total play time.
+ *
+ * A round is a browser tab. `completed_at - started_at` measures how long the tab
+ * was open, not how long anyone was thinking about the dish, and the tail of that
+ * distribution is people who wandered off mid-round and came back — the longest
+ * round in prod is nearly two hours. Nobody spent two hours on a six-guess game,
+ * so a round is counted at whatever it measured or fifteen minutes, whichever is
+ * less. The cap only ever *reduces* the number, which is the direction a total
+ * assembled from browser tabs should be wrong in.
+ */
+export const PLAYTIME_CAP_MINUTES = 15;
+
+/**
+ * How much time the game has taken up, all time — the one figure that answers
+ * "how much of people's day is this" rather than "how many people".
+ *
+ * A sum, unlike {@link SolveTimes}, and therefore only defensible with the cap:
+ * an average survives one four-hour tab because it divides it away, a total
+ * doesn't. `capped` travels with it so the trim is stated rather than hidden.
+ */
+export interface PlayTime {
+  /** Total minutes played, every round clamped to {@link PLAYTIME_CAP_MINUTES}. */
+  minutes: number;
+  /** Rounds counted — finished, with both timestamps. */
+  rounds: number;
+  /** How many of those ran past the cap and were counted at it. */
+  capped: number;
+}
+
+/**
  * Devices that opened a playable board, and what became of them — the top of the
  * funnel (migrations/0020).
  *
@@ -1164,6 +1194,13 @@ export interface AnalyticsSummary extends AnalyticsPeriod {
    * the difficulty signal guess count can't give. See {@link SolveTimes}.
    */
   solveTimes: SolveTimes;
+  /**
+   * Total time spent playing, all time and surface-filtered, off the same rows
+   * as `solveTimes` — no extra query. Deliberately all-time only: a day's total
+   * is just its round count wearing a different unit, where the accumulated
+   * figure is the one nothing else on the dashboard says. See {@link PlayTime}.
+   */
+  playTime: PlayTime;
   /**
    * All-time devices that opened a board, and when that started being counted.
    * The funnel's top — see {@link VisitCounts}.
