@@ -10,12 +10,13 @@ import type {
   DayServiceTotals,
   OpenRounds,
   PlayerSplit,
+  PlayTime,
   RoundKind,
   SolveTimes,
   StartedByKind,
   Surface,
 } from "../../shared/types";
-import { DNF_GRACE_MINUTES } from "../../shared/types";
+import { DNF_GRACE_MINUTES, PLAYTIME_CAP_MINUTES } from "../../shared/types";
 import { rangeLabel, rate, SMALL_SAMPLE_MIN } from "../../shared/sample";
 
 export const pct = (n: number, of: number) => (of === 0 ? 0 : Math.round((n / of) * 100));
@@ -243,6 +244,42 @@ export function minutesLabel(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
+
+/**
+ * The same, for a total that accumulates forever — "18h 32m", then "3d 4h".
+ *
+ * Rolls to days past two of them rather than printing a three-digit hour count,
+ * and drops to one unit of precision when it does: nobody reads "4d 7h 12m", and
+ * the minutes stopped being a measurement of anything at that scale anyway.
+ */
+export function totalTimeLabel(minutes: number): string {
+  const DAY = 60 * 24;
+  if (minutes < DAY * 2) return minutesLabel(minutes);
+  let d = Math.floor(minutes / DAY);
+  let h = Math.round((minutes % DAY) / 60);
+  if (h === 24) {
+    // Rounding the remainder can carry: 3d 23h 45m must not print as "3d 24h".
+    d += 1;
+    h = 0;
+  }
+  return h === 0 ? `${d}d` : `${d}d ${h}h`;
+}
+
+/**
+ * What the total is and isn't, for the hover on it.
+ *
+ * Both caveats are stated rather than buried: the cap (and how many rounds it
+ * actually trimmed, so the trim can be judged) and the unfinished rounds that
+ * can't be counted at all. It's a floor on time played, and a reader who knows
+ * that can use it.
+ */
+export function playTimeNote(t: PlayTime): string {
+  const trimmed =
+    t.capped === 0
+      ? `No round has run past the ${PLAYTIME_CAP_MINUTES}-minute cap yet.`
+      : `${t.capped} ran past the ${PLAYTIME_CAP_MINUTES}-minute cap and count at it — the timer measures how long the tab was open, not how long anyone was playing.`;
+  return `Across ${t.rounds.toLocaleString()} finished round${t.rounds === 1 ? "" : "s"}, first guess to game over. ${trimmed} Rounds nobody finished aren't timed at all, so this is a floor.`;
 }
 
 /**

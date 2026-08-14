@@ -740,6 +740,65 @@
   font-size: 0.86rem;
 }
 
+/* The all-time footer under the day slice: total play time in big type, with the
+   games-played sentence and its links beside it.
+
+   Ruled off along the top, because everything above it is one day and everything
+   in it is the whole run — the band is where the panel changes scope. The stat
+   keeps its own left rule in mustard so it reads as a plaque rather than another
+   metric tile: the tiles above are today's, and this is not. It wraps to a stack
+   under ~520px, where a side-by-side would squeeze the sentence into a column. */
+.alltime {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 22px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px dashed rgba(27, 79, 74, 0.22);
+}
+
+.alltime__stat {
+  border-left: 3px solid var(--mustard);
+  padding-left: 12px;
+  /* Enough that a long "3d 4h · 604 rounds timed" footnote doesn't set the
+     column width and starve the sentence beside it. */
+  flex: 0 1 auto;
+}
+
+.alltime__num {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  line-height: 1;
+  color: var(--teal);
+}
+
+.alltime__label {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.alltime__foot {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+/* Takes the rest of the row, but never squeezes below a readable measure. */
+.alltime__note { flex: 1 1 260px; margin-bottom: 0; }
+
+@media (max-width: 520px) {
+  .alltime { gap: 14px; }
+  .alltime__note { flex-basis: 100%; }
+}
+
 /* Finish + share rates. Each track IS its denominator (games started, then games
    finished) and the fill is the answer — so neither row is the always-full first
    bar of a funnel. Fills use the Activity feed's EVENT colours (complete =

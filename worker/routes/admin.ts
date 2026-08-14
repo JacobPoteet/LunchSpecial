@@ -41,7 +41,15 @@ import {
   TEMPERATURES,
 } from "../../shared/types";
 import { announcementStatus, parseAnnouncementInput } from "../announcements";
-import { foldDayService, foldPace, foldSolveTimes, type DayHourRow, type PaceRow, type SolveTimeRow } from "../service";
+import {
+  foldDayService,
+  foldPace,
+  foldPlayTime,
+  foldSolveTimes,
+  type DayHourRow,
+  type PaceRow,
+  type SolveTimeRow,
+} from "../service";
 import { foldGrowth, type GrowthRow } from "../growth";
 import { foldCountries, type CountryRow } from "../countries";
 import { foldDeviceData, type DeviceRoundRow, type DeviceVisitRow } from "../device";
@@ -869,17 +877,22 @@ app.get("/analytics", async (c) => {
            FROM analytics_rounds WHERE started_at IS NOT NULL${surfAnd}
            GROUP BY country, player_id`,
       ),
-      // How long a solved round took, in whole minutes (migrations/0011 gave
-      // completions their own timestamp; nothing has read it until now). Grouped
-      // rather than returned per row, and folded to a median/p90 in JS — SQLite
-      // has no percentile function, and a mean here would follow the one round
-      // somebody left open in a background tab all morning.
+      // How long a finished round took, in whole minutes (migrations/0011 gave
+      // completions their own timestamp; nothing had read it until the solve-time
+      // read). Grouped rather than returned per row, and folded to a median/p90
+      // in JS — SQLite has no percentile function, and a mean here would follow
+      // the one round somebody left open in a background tab all morning.
+      //
+      // Every finished round, with `solved` alongside, because two folds read
+      // this: the solve-time distribution wants the wins only (a loss isn't a
+      // solve), and total play time wants both (six wrong guesses is still time
+      // spent playing). One query, since the grouping is the same shape.
       c.env.DB.prepare(
         `SELECT CAST((julianday(completed_at) - julianday(started_at)) * 1440 AS INTEGER) AS minutes,
-           COUNT(*) AS n
+           solved, COUNT(*) AS n
            FROM analytics_rounds
-           WHERE solved = 1 AND completed_at IS NOT NULL AND started_at IS NOT NULL${surfAnd}
-           GROUP BY minutes`,
+           WHERE completed = 1 AND completed_at IS NOT NULL AND started_at IS NOT NULL${surfAnd}
+           GROUP BY minutes, solved`,
       ),
       // The funnel's top (migrations/0020). visit_day is already an ET day —
       // the beacon handler stamps it — so unlike everything else here it needs
@@ -1055,6 +1068,10 @@ app.get("/analytics", async (c) => {
     // `hourly` array; the weekday axis is the cycle that array couldn't show.
     rhythm: foldRhythm(hourlyRes.results as RhythmRow[], today),
     solveTimes: foldSolveTimes(solveTimeRes.results as SolveTimeRow[]),
+    // Total time at the counter, off those same duration rows — no extra query.
+    // Capped per round, because a sum can't shrug off an abandoned tab the way
+    // the median above does. See foldPlayTime in worker/service.ts.
+    playTime: foldPlayTime(solveTimeRes.results as SolveTimeRow[]),
     visits: { visited: visitsSince === null ? null : visitsAllTime, since: visitsSince },
     // Where players fall out, in devices at every stage — off the same
     // (player, hour) rows as the new-vs-returning fold above, so it costs no

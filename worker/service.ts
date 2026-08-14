@@ -12,10 +12,12 @@ import { gameHour, gameToday } from "../shared/time";
 import {
   DNF_GRACE_MINUTES,
   PACE_LOOKBACK_DAYS,
+  PLAYTIME_CAP_MINUTES,
   type AnalyticsHour,
   type AnalyticsPace,
   type DayServiceTotals,
   type OpenRounds,
+  type PlayTime,
   type RoundKind,
   type SolveTimes,
   type StartedByKind,
@@ -125,9 +127,17 @@ export function foldDayService(rows: Iterable<DayHourRow>, day: string, now: Dat
   };
 }
 
-/** One grouped row of solve durations: how many rounds took `minutes`. */
+/**
+ * One grouped row of round durations: how many finished rounds took `minutes`.
+ *
+ * Covers every finished round, won or lost — `solved` is what narrows it back to
+ * the solve-time read. One query, two folds: how long a *solve* takes is a
+ * difficulty signal and a loss would flatter it, while total play time is time
+ * spent at the counter and six wrong guesses is exactly that.
+ */
 export interface SolveTimeRow {
   minutes: number | null;
+  solved: number;
   n: number;
 }
 
@@ -148,8 +158,8 @@ export function foldSolveTimes(rows: Iterable<SolveTimeRow>): SolveTimes {
   const pairs: [number, number][] = [];
   let count = 0;
   for (const r of rows) {
-    if (r.minutes === null || !Number.isFinite(r.minutes) || r.minutes < 0 || r.n <= 0) continue;
-    pairs.push([r.minutes, r.n]);
+    if (!timed(r) || r.solved !== 1) continue;
+    pairs.push([r.minutes as number, r.n]);
     count += r.n;
   }
   return {
@@ -157,6 +167,39 @@ export function foldSolveTimes(rows: Iterable<SolveTimeRow>): SolveTimes {
     medianMinutes: medianOf(pairs),
     p90Minutes: percentileOf(pairs, 0.9),
   };
+}
+
+/** A row that measured something: a real, non-negative duration over ≥1 round. */
+function timed(r: SolveTimeRow): boolean {
+  return r.minutes !== null && Number.isFinite(r.minutes) && r.minutes >= 0 && r.n > 0;
+}
+
+/**
+ * Fold the same durations into one total — how much time the game has taken up.
+ *
+ * Every round counts at no more than {@link PLAYTIME_CAP_MINUTES}, and that cap
+ * is the only thing making a sum honest here. `completed_at - started_at`
+ * measures a browser tab, so the tail of the distribution is people who wandered
+ * off mid-round: the median round in prod is a couple of minutes and the longest
+ * is nearly two hours. A median shrugs that off by dividing it away; a total
+ * would hand a single abandoned tab more weight than fifty real games.
+ *
+ * Won and lost rounds both count — running out of guesses is time spent playing.
+ * Rounds that never finished can't be counted at all, since only a completion
+ * writes the second timestamp, so this is a floor on time played, never a ceiling.
+ */
+export function foldPlayTime(rows: Iterable<SolveTimeRow>, cap: number = PLAYTIME_CAP_MINUTES): PlayTime {
+  let minutes = 0;
+  let rounds = 0;
+  let capped = 0;
+  for (const r of rows) {
+    if (!timed(r)) continue;
+    const m = r.minutes as number;
+    rounds += r.n;
+    minutes += Math.min(m, cap) * r.n;
+    if (m > cap) capped += r.n;
+  }
+  return { minutes, rounds, capped };
 }
 
 /**
