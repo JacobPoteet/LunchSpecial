@@ -6,7 +6,7 @@
     <title>Lunch Special — Project Breakdown</title>
     <meta
       name="description"
-      content="How I designed and shipped Lunch Special, a daily dish-guessing game: the feedback grammar, the clue ladder, the single-Worker stack, and the experiment that moved finish rate from 81% to 91%."
+      content="How I designed and shipped Lunch Special, a daily dish-guessing game: the feedback system, the clue ladder, the single-Worker stack, and the experiment that moved finish rate from 81% to 91%."
     />
     <meta name="robots" content="index, follow" />
     <link rel="icon" href="https://lunchspecial.app/favicon.svg" type="image/svg+xml" />
@@ -1362,6 +1362,199 @@
         margin-top: 3px;
       }
 
+      /* ---- a note from the kitchen ----
+         A working copy of the game's notice modal, keyframes included, because
+         the claim in the prose is about how it MOVES and a screenshot cannot
+         make that argument.
+
+         Its colours are hard-coded from the game's base.css rather than taken
+         from this page's tokens. The game has one palette and no dark mode, so
+         a themed copy would misrepresent it in half of all visits. Same reason
+         the shareable score card hard-codes its own tile colours. */
+      .notice-fig {
+        display: grid;
+        grid-template-columns: 1fr 250px;
+        gap: 18px;
+        align-items: start;
+        margin: 24px 0 10px;
+      }
+      .notice-stage {
+        background: #123833;
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        padding: 30px 20px 22px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        /* the card arrives from above the frame */
+        overflow: hidden;
+      }
+      .notice-card {
+        width: 100%;
+        max-width: 330px;
+        background: #fbf4e0;
+        border-top: 7px solid #e8a53a;
+        border-radius: 6px;
+        transform-origin: top center;
+        box-shadow: 0 18px 50px rgba(10, 20, 18, 0.45);
+        overflow: hidden;
+      }
+      .notice-card__in {
+        padding: 15px 17px 14px;
+      }
+      .notice-card__eyebrow {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin: 0 0 6px;
+        font-family: var(--font-slab);
+        font-size: 0.63rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #5b4f45;
+        max-width: none;
+      }
+      .notice-card__count {
+        font-variant-numeric: tabular-nums;
+        opacity: 0.75;
+      }
+      .notice-card__count::before {
+        content: "·";
+        margin-right: 7px;
+      }
+      .notice-card__title {
+        margin: 0 0 10px;
+        font-family: var(--font-body);
+        font-size: 1.12rem;
+        font-weight: 700;
+        line-height: 1.25;
+        color: #1b4f4a;
+        max-width: none;
+      }
+      .notice-card__body {
+        margin: 0;
+        font-size: 0.88rem;
+        line-height: 1.6;
+        color: #2b2320;
+        max-width: none;
+      }
+      .notice-card__body a {
+        color: #8f1f2e;
+      }
+      .notice-card__foot {
+        border-top: 2px dashed #e6d9b8;
+        padding: 12px 17px 15px;
+      }
+      .notice-card__ok {
+        width: 100%;
+        font-family: var(--font-slab);
+        font-weight: 600;
+        font-size: 0.85rem;
+        background: #c9354a;
+        color: #fff;
+        border: 0;
+        border-radius: 999px;
+        padding: 9px 14px;
+        cursor: default;
+      }
+
+      /* The game's own keyframes, copied rather than approximated. */
+      @keyframes notice-drop-in {
+        0% { opacity: 0; transform: translateY(-70px) scale(0.9); }
+        45% { opacity: 1; transform: translateY(12px) scale(1.035); }
+        66% { transform: translateY(-6px) scale(0.99); }
+        82% { transform: translateY(3px) scale(1.005); }
+        93% { transform: translateY(-1px) scale(0.999); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      @keyframes notice-line-in {
+        from { opacity: 0; transform: translateY(9px); }
+        to { opacity: 1; transform: none; }
+      }
+      @keyframes notice-foot-rise {
+        from { transform: translateY(10px); }
+        to { transform: none; }
+      }
+      .notice-fig .notice-card { opacity: 0; }
+      .notice-fig.is-in .notice-card {
+        animation: notice-drop-in 0.54s cubic-bezier(0.25, 0.6, 0.3, 1) both;
+      }
+      /* The card lands first, then its lines rise into it a beat apart, so the
+         eye is walked eyebrow → headline → message. */
+      .notice-fig.is-in .notice-card__eyebrow { animation: notice-line-in 0.32s ease 0.2s both; }
+      .notice-fig.is-in .notice-card__title { animation: notice-line-in 0.34s ease 0.27s both; }
+      .notice-fig.is-in .notice-card__body { animation: notice-line-in 0.34s ease 0.35s both; }
+      .notice-fig.is-in .notice-card__foot { animation: notice-foot-rise 0.32s ease 0.42s both; }
+
+      .notice-replay {
+        margin-top: 16px;
+        font-family: var(--font-mono);
+        font-size: 0.71rem;
+        letter-spacing: 0.04em;
+        background: none;
+        border: 1px solid rgba(246, 237, 217, 0.3);
+        color: #f6edd9;
+        border-radius: 999px;
+        padding: 6px 14px;
+        cursor: pointer;
+        opacity: 0.8;
+      }
+      .notice-replay:hover {
+        opacity: 1;
+        border-color: var(--mustard);
+        color: var(--mustard);
+      }
+
+      .notice-where {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        padding: 16px 17px 17px;
+        box-shadow: var(--shadow);
+      }
+      .notice-where__k {
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 11px;
+        max-width: none;
+      }
+      .notice-where ul {
+        list-style: none;
+        margin: 0 0 12px;
+        padding: 0;
+      }
+      .notice-where li {
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+        font-family: var(--font-slab);
+        font-size: 0.87rem;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--rule-soft);
+      }
+      .notice-where li:last-child { border-bottom: 0; }
+      .notice-where li::before {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        font-weight: 700;
+        flex: none;
+      }
+      .notice-where li.yes::before { content: "✓"; color: var(--hit); }
+      .notice-where li.no::before { content: "✗"; color: var(--ink-mute); }
+      .notice-where li.no { color: var(--ink-mute); }
+      .notice-where__note {
+        font-size: 0.8rem;
+        color: var(--ink-soft);
+        margin: 0;
+        max-width: none;
+        line-height: 1.5;
+        border-top: 1px dashed var(--rule);
+        padding-top: 11px;
+      }
+
       /* ---- the share card ---- */
       .receipt {
         background: var(--surface);
@@ -1409,6 +1602,8 @@
       .split > *,
       .charts2 > *,
       .demo > *,
+      .notice-fig > *,
+      .reach > *,
       .cards > *,
       .tiles > *,
       .rules > * {
@@ -1682,6 +1877,122 @@
         vertical-align: 3px;
       }
 
+      /* ==========================================================
+         REACH MAP
+         Equirectangular, cropped to 84°N–56°S the way web maps are.
+         The land is a deliberately coarse silhouette sitting at low
+         opacity: it exists to tell you which part of the world a dot
+         is in, and every fact on this graphic is carried by the dots
+         and the list beside it.
+         ========================================================== */
+      .reach {
+        display: grid;
+        grid-template-columns: 1fr 232px;
+        gap: 18px;
+        align-items: start;
+      }
+      .reach__map {
+        background: linear-gradient(180deg, var(--surface-2), var(--surface));
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        padding: 10px;
+        overflow: hidden;
+      }
+      .reach__map svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .land {
+        fill: var(--ink);
+        opacity: 0.13;
+      }
+      .grat {
+        stroke: var(--ink);
+        opacity: 0.09;
+        stroke-width: 1;
+        fill: none;
+      }
+      .dot {
+        fill: var(--accent);
+        fill-opacity: 0.72;
+        stroke: var(--surface);
+        stroke-width: 1.2;
+      }
+      .dot--top {
+        fill: var(--mustard);
+        fill-opacity: 0.95;
+      }
+      /* Dots arrive one after another, so the eye reads the spread as it
+         fills rather than meeting a finished scatter. */
+      .reach.is-in .dot {
+        animation: dot-in 0.42s cubic-bezier(0.2, 0.9, 0.3, 1) backwards;
+        animation-delay: calc(var(--i, 0) * 42ms);
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+      @keyframes dot-in {
+        from { transform: scale(0); opacity: 0; }
+      }
+
+      .reach__list {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        padding: 13px 14px 14px;
+      }
+      .reach__k {
+        font-family: var(--font-mono);
+        font-size: 0.64rem;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 9px;
+        max-width: none;
+      }
+      .reach__row {
+        display: grid;
+        grid-template-columns: 20px 1fr auto;
+        gap: 8px;
+        align-items: baseline;
+        padding: 5px 0;
+        border-bottom: 1px solid var(--rule-soft);
+        font-size: 0.84rem;
+      }
+      .reach__row:last-of-type { border-bottom: 0; }
+      .reach__flag { font-size: 0.95rem; line-height: 1; }
+      .reach__name {
+        font-family: var(--font-slab);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .reach__n {
+        font-family: var(--font-mono);
+        font-size: 0.76rem;
+        color: var(--ink-soft);
+        font-variant-numeric: tabular-nums;
+      }
+      .reach__more {
+        font-family: var(--font-mono);
+        font-size: 0.71rem;
+        color: var(--ink-mute);
+        margin: 9px 0 0;
+        max-width: none;
+        border-top: 1px dashed var(--rule);
+        padding-top: 9px;
+      }
+      .reach__head {
+        font-family: var(--font-slab);
+        font-weight: 700;
+        font-size: 1.02rem;
+        margin: 0 0 4px;
+        max-width: none;
+      }
+      .reach__head b {
+        color: var(--accent-ink);
+      }
+
       /* findings */
       .finding {
         background: var(--surface);
@@ -1941,7 +2252,9 @@
       @media (max-width: 860px) {
         .demo,
         .split,
-        .charts2 {
+        .charts2,
+        .notice-fig,
+        .reach {
           grid-template-columns: 1fr;
         }
         .picker {
@@ -1968,10 +2281,16 @@
         .reveal,
         .deal .card,
         .pipe__step,
-        .ladder .ticket {
+        .ladder .ticket,
+        .notice-fig .notice-card,
+        .reach .dot {
           opacity: 1;
           transform: none;
           clip-path: none;
+        }
+        /* The replay button promises motion this reader has opted out of. */
+        .notice-replay {
+          display: none;
         }
         .gline {
           stroke-dashoffset: 0;
@@ -2026,18 +2345,19 @@
         </button>
         <p class="hero__eyebrow">Project breakdown · 2026</p>
         <h1 class="neon">Lunch Spe<i>c</i>ial</h1>
-        <p class="hero__script">Guess the day&rsquo;s dish in six.</p>
+        <p class="hero__script">Guess the day&rsquo;s dish.</p>
 
         <p class="hero__role">
           <b>Jacob Poteet</b>
-          <span>Narrative technical game designer. Designed, built, instrumented and operated solo.</span>
+          <span>Senior Technical Narrative Designer. Solo creator of Lunch Special.</span>
         </p>
 
         <p class="hero__lede">
           Every guess is a real dish, and the kitchen tells you what that dish shares with the
-          Special. I designed the feedback grammar, wrote the clue ladder behind
-          <b class="js-dishes">364</b> dishes, and built the CMS that authors them, the telemetry
-          underneath, and the experiment log I hold a change up against.
+          Special. 
+          I designed and implemented the gameplay loop, the CMS for the menu of 
+          <b class="js-dishes">364</b> dishes, the telemetry
+          underneath, and the experiment log.
         </p>
 
         <p class="serving" id="serving" title="Computed from the game's epoch and its America/New_York rollover">
@@ -2078,8 +2398,7 @@
           </div>
         </div>
         <p class="tiles__foot">
-          Read live from the production database when this page loads. Anonymous and aggregate:
-          no accounts exist to count.
+          Read live from the production database when this page loads.
         </p>
       </div>
     </header>
@@ -2095,7 +2414,7 @@
             <span class="claim__n">01</span>
             <p class="claim__t">
               A dish has no letter slots, so Wordle&rsquo;s colours mean nothing here. I designed
-              <em>a feedback grammar for food</em> and ran two channels at once, one for the player
+              <em>a feedback system for food</em> and ran two channels at once, one for the player
               who knows the dish and one for the player who has never heard of it.
             </p>
             <span class="claim__go">Design →</span>
@@ -2103,8 +2422,8 @@
           <a class="claim" href="#design">
             <span class="claim__n">02</span>
             <p class="claim__t">
-              One ladder writes every clue. The same five rungs, <em>1,820 clues deep</em>, which is
-              what keeps a dish a day writable by one person in month six.
+              One ladder specifies every clue. The same five rungs, <em>1,820 clues deep</em>, so a
+              dish a day stays a defined job instead of a blank page.
             </p>
             <span class="claim__go">Design →</span>
           </a>
@@ -2145,12 +2464,15 @@
         <div class="shead reveal">
           <span class="shead__n">01</span>
           <h2 class="shead__t">What I set out to make</h2>
-          <span class="shead__k">goals &amp; constraints</span>
+          <span class="shead__k">goals</span>
         </div>
 
         <p>
-          Cooking is my hobby, and I wanted a game that taught people something about food they
-          already eat. Wordle was the obvious shape to borrow and the wrong thing to copy. A word is
+          Cooking is my favorite hobby, and I wanted a game that taught people something about food they
+          already eat. Like a lot of couples, my wife and I love to play daily guessing games
+          together so combining that formate with a food theme seemed like a promising idea.
+          Initially I was inspired by the Wordle loop but major changes would need to made to 
+          give the player a chance at guessing the daily dish. A word is
           an ordered list of letters, so green can mean right letter, right slot. A dish has no
           slots. Pad Thai and Bibimbap do not line up character by character in any way a player
           would care about.
@@ -2159,7 +2481,7 @@
 
         <div class="cards deal reveal">
           <div class="card" style="--i: 0">
-            <span class="card__k">Constraint 01</span>
+            <span class="card__k">Goal 01</span>
             <p class="card__t">Readable at a glance</p>
             <p>
               A player reads the board mid-round, between guesses. Anything needing a paragraph to
@@ -2167,53 +2489,51 @@
             </p>
           </div>
           <div class="card" style="--i: 1">
-            <span class="card__k">Constraint 02</span>
-            <p class="card__t">Postable as emoji</p>
+            <span class="card__k">Goal 02</span>
+            <p class="card__t">Effortlessly sharable</p>
             <p>
               A result nobody can paste into a group chat gives the game no distribution. The grid
               is the entire marketing budget.
             </p>
           </div>
           <div class="card" style="--i: 2">
-            <span class="card__k">Constraint 03</span>
+            <span class="card__k">Goal 03</span>
             <p class="card__t">Narrowing enough to finish</p>
             <p>
-              A pool of <span class="js-dishes">364</span> dishes has to collapse to one inside six
-              guesses, or the round is a lottery with extra steps.
-            </p>
-          </div>
-          <div class="card" style="--i: 3">
-            <span class="card__k">Constraint 04</span>
-            <p class="card__t">Fair to a stranger</p>
-            <p>
-              Someone who has never heard of the answer needs a route to it that does not run
-              through already knowing it.
-            </p>
-          </div>
-          <div class="card" style="--i: 4">
-            <span class="card__k">Constraint 05</span>
-            <p class="card__t">Writable forever, by one person</p>
-            <p>
-              One dish a day with no end date. A format costing an afternoon per dish dies in month
-              two, and I would be the one to kill it.
+              A pool of uncountable dishes in someone's mind has to filter down to one after six
+              guesses.
             </p>
           </div>
         </div>
 
-        <h3>Fairness drove everything after it</h3>
+        <h3>I left the unfairness in</h3>
         <p>
-          Wordle runs on pure deduction because every English speaker already owns the answer space.
-          Food knowledge sits differently. A player in Ohio and a player in Lagos open a round on
-          Shakshuka from different places, and a game paying out only on what you walked in with
-          hands one of them the win before the first guess. So the game had to give ground as you
-          failed, without turning the puzzle into a quiz nobody could lose.
+          The game asks you to know things about food, and that knowledge is not handed out evenly.
+          A player in Ohio and a player in Lagos open a round on Shakshuka from different places. I
+          could have designed that away by scoring nothing except what the tiles hand you, and I
+          kept it, because the gap is the part worth playing for.
+        </p>
+        <p>
+          Wordle can be played well without knowing the word. Letter frequency, position and
+          elimination will carry you to answers you have never used in your life, which is a real
+          skill and a skill at <em>Wordle</em>. Naming the Special is a skill at food. It draws on
+          what you have eaten, what you have read, and what you can infer from a Tunisian breakfast
+          sharing a pantry with a French summer stew.
+        </p>
+        <p>
+          Culinary knowledge also improves, which is what makes the unfairness survivable. Nobody
+          takes every Special, and I would miss plenty myself if I were not the one booking the
+          menu. A round you lose still ends with you knowing the dish, where it came from and what
+          goes in it, so the next one starts further along. That is the deal the clue ladder makes:
+          every miss buys information, and the information keeps working after the round is over.
         </p>
 
         <div class="takeaway reveal">
           <span class="takeaway__k">Takeaway</span>
           <p>
-            I was designing a feedback language for a domain where players share no vocabulary,
-            which is a different job from reskinning Wordle with food.
+            An even start would have cost the game the thing that makes solving it feel like
+            anything. I owed players a route from wherever they began instead, and that is what the
+            clue ladder is for.
           </p>
         </div>
       </div>
@@ -2267,12 +2587,14 @@
           found. Five of eight tells you three remain without telling you what they are.
         </p>
 
-        <h3>One ladder writes every clue</h3>
+        <h3>One ladder specifies every clue</h3>
         <p>
           A daily game eats a piece of authored content every 24 hours and never stops. Treating
           <span class="js-dishes">364</span> dishes as <span class="js-dishes">364</span> separate
-          creative problems collapses around week eight. I fixed the dramatic order instead: five
-          rungs, the same sequence for every dish, descending from a map to a near-giveaway.
+          creative problems collapses around week eight, so I specified the dramatic order once
+          instead: five rungs, the same sequence for every dish, descending from a map to a
+          near-giveaway. Each rung states what its clue has to accomplish and what it must not give
+          away, which is the difference between a brief and a blank page.
         </p>
 
         <div class="ladder reveal">
@@ -2324,15 +2646,17 @@
         </div>
 
         <p>
-          Writing clue 3 for Pierogi is the same job as writing clue 3 for Ceviche, and that sameness
-          is the point. The ladder also fixes pacing: rung 3 lands on the third miss, when a player
-          needs a reason to stay, and rung 5 arrives when losing would otherwise feel arbitrary.
+          Clue 3 for Pierogi and clue 3 for Ceviche are the same job, and that sameness is what makes
+          the pool extensible: the brief holds still while the subject changes. The ladder also fixes
+          pacing, which is the part players feel. Rung 3 lands on the third miss, when someone needs
+          a reason to stay in the round, and rung 5 arrives at the point where losing would otherwise
+          feel arbitrary.
         </p>
 
         <div class="worked reveal">
           <p class="worked__h">
             <span class="worked__dish">Margherita Pizza</span>
-            <span class="worked__meta">the ladder, filled in</span>
+            <span class="worked__meta">one dish against the spec</span>
           </p>
           <div class="worked__row">
             <span class="worked__n">1</span>
@@ -2372,10 +2696,12 @@
         </div>
 
         <p>
-          Rung 3 does the heaviest lifting and it is the one I write first. A player who loses the
-          round should still walk away with the queen and the flag, because that is the part they
-          repeat to somebody at lunch. Rungs 1 and 5 are constraints more than they are writing: one
-          must not narrow too far, the other must not leave anything but the name.
+          Rung 3 carries the heaviest load, so it is the rung the spec is strictest about. A player
+          who loses the round should still come away with the queen and the flag, because that is the
+          part they repeat to somebody at lunch. Rungs 1 and 5 read as constraints more than as
+          prose: one must not narrow the map too far, the other must leave nothing but the name.
+          Judging whether a clue belongs on its rung takes about ten seconds, and that is the
+          property I was after.
         </p>
 
         <h3>The fiction carries the interface</h3>
@@ -2440,7 +2766,7 @@
           <span class="takeaway__k">Takeaway</span>
           <p>
             Narrative design here is a production system. A fixed dramatic order keeps
-            <span class="js-clues">1,820</span> clues writable at a steady rate, and the fiction
+            <span class="js-clues">1,820</span> clues consistent with each other, and the fiction
             absorbs most of the tutorial.
           </p>
         </div>
@@ -2459,7 +2785,7 @@
         </div>
 
         <p>
-          A ladder that makes a dish a day writable is worth nothing if shipping that dish takes a
+          A ladder that makes a dish a day routine is worth nothing if shipping that dish takes a
           week. So every choice below buys the same thing: the shortest distance one person can
           manage between having an idea and watching it get measured. One Cloudflare Worker serves
           the React bundle, answers the API and queries a SQLite database on the same platform.
@@ -2578,15 +2904,16 @@
         <div class="shead reveal">
           <span class="shead__n">04</span>
           <h2 class="shead__t">How it was engineered</h2>
-          <span class="shead__k">301 tests · 20 files</span>
+          <span class="shead__k">302 tests · 20 files</span>
         </div>
 
         <p>
           The game engine took a few days. Everything since has been the apparatus around it,
           because you operate a daily game rather than finish it. I built each station once the one
-          before it started asking questions I could not answer. Authoring got a CMS when the SQL
-          got long. Scheduling got a panel when I lost track of what was booked. Measurement arrived
-          the week I admitted I had no idea whether the puzzles were too easy.
+          before it started asking questions I could not answer. Authoring got a CMS once writing
+          dishes as raw SQL stopped being funny, and that same panel took over the schedule when I
+          lost track of what was booked. Measurement arrived the week I admitted I had no idea
+          whether the puzzles were too easy.
         </p>
 
         <div class="diagram reveal">
@@ -2653,7 +2980,7 @@
             <div class="pipe__step" style="--i: 1">
               <span class="pipe__n">Gate 1</span>
               <span class="pipe__t">Tests</span>
-              <span class="pipe__d">301 across 20 files</span>
+              <span class="pipe__d">302 across 20 files</span>
             </div>
             <div class="pipe__step" style="--i: 2">
               <span class="pipe__n">Gate 2</span>
@@ -2693,8 +3020,15 @@
 
         <h3>The tool I built for the writer, who happens to be me</h3>
         <p>
-          The admin panel is the piece I would point at if you asked what I would bring to a content
-          team. It authors a dish against a live preview of the real board, so I see the tiles a
+          What I keep calling the admin panel is one page behind a password, and it has two halves.
+          One is a <strong>CMS</strong>, a content management system: the place a dish and its five
+          clues get written, validated and booked onto a date, doing the job for a menu that a
+          newsroom tool does for articles. The other half is the dashboard that measures what
+          players then do with them. Everything in the section above comes off that second half;
+          the first is the one I would point at if you asked what I would bring to a content team.
+        </p>
+        <p>
+          The CMS authors a dish against a live preview of the real board, so I see the tiles a
           player will see before the dish is ever scheduled. It refuses to book a dish carrying
           fewer than three ingredients or anything other than five clues, which turns the ladder
           from a rule I have to remember into a rule the tool enforces. It books the calendar 30
@@ -2708,10 +3042,63 @@
           explain to every new writer.
         </p>
 
+        <h3>Talking to players without shipping a build</h3>
+        <p>
+          The same panel posts notices. A note from the kitchen gets written, dated and aimed at an
+          audience from the admin side, and putting one up is not a release. That is the difference
+          between a game I operate and a game I redeploy.
+        </p>
+        <p>
+          One rule governs where they land. A notice appears on Today&rsquo;s Special and nowhere
+          else, never on a Leftover, a Chef&rsquo;s Choice or a playtest, because those are side
+          doors and somebody replaying a Thursday from three weeks ago did not come for an
+          announcement. A first-timer gets the how-to first and the notice behind it. The card also
+          drops in from above and bounces, where every other modal in the game rises from the
+          bottom, so a player can tell a notice from their check before reading either. Afterwards
+          the panel reports how many devices saw it, split by surface, which is the only way to
+          find out whether a notice was read or merely posted.
+        </p>
+
+        <div class="notice-fig">
+          <div class="notice-stage">
+            <div class="notice-card">
+              <div class="notice-card__in">
+                <p class="notice-card__eyebrow">
+                  A note from the kitchen<span class="notice-card__count">1 of 2</span>
+                </p>
+                <h4 class="notice-card__title">Thirteen new dishes on the menu</h4>
+                <p class="notice-card__body">
+                  Every one of them arrived through the <strong>suggest a dish</strong> form on your
+                  check, and each gets <a href="#numbers">credited</a> when it comes up as the
+                  Special. Keep them coming.
+                </p>
+              </div>
+              <div class="notice-card__foot">
+                <button class="notice-card__ok" type="button" tabindex="-1">Back to the Special</button>
+              </div>
+            </div>
+            <button class="notice-replay" id="notice-replay" type="button">↻ Play it again</button>
+          </div>
+
+          <div class="notice-where">
+            <p class="notice-where__k">Where a notice appears</p>
+            <ul>
+              <li class="yes">Today&rsquo;s Special</li>
+              <li class="no">Leftovers</li>
+              <li class="no">Chef&rsquo;s Choice</li>
+              <li class="no">Preview &amp; playtest</li>
+            </ul>
+            <p class="notice-where__note">
+              The bottom three are side doors, and a notice waiting behind one of them would
+              interrupt somebody who came for a different reason.
+            </p>
+          </div>
+        </div>
+
         <h3>The arithmetic is separated from the database</h3>
         <p>
           Queries need a database. Arithmetic does not. Every number on this page comes out of a
-          pure function that takes rows and returns a shape, which is why 301 tests sit behind them
+          pure function that takes rows and returns a shape, which is why 302 tests sit behind them
           and why I trust a chart I have never eyeballed. The public endpoint this page reads runs
           <strong>the same folds</strong> as my private dashboard, so the two cannot drift into
           quoting different numbers at each other.
@@ -2762,6 +3149,40 @@
           returns an interval of zero width. The most confident thing a small dashboard can print is
           usually the most wrong.
         </p>
+
+        <div class="chart">
+          <div class="chart__h"><p class="chart__t" id="reach-head">Where the counter reaches</p></div>
+          <p class="chart__sub" id="reach-sub">one country per device, all time</p>
+          <div class="reach">
+            <div class="reach__map">
+              <svg viewBox="0 0 1000 389" role="img" aria-labelledby="reach-head">
+                <g class="grat">
+                  <line x1="0" y1="94.4" x2="1000" y2="94.4" />
+                  <line x1="0" y1="233.3" x2="1000" y2="233.3" />
+                  <line x1="333.3" y1="0" x2="333.3" y2="389" />
+                  <line x1="666.7" y1="0" x2="666.7" y2="389" />
+                </g>
+                <g>
+                  <path class="land" d="M33.3 50.0 L66.7 36.1 L138.9 38.9 L194.4 41.7 L236.1 33.3 L277.8 27.8 L322.2 61.1 L352.8 94.4 L316.7 111.1 L291.7 133.3 L275.0 161.1 L250.0 152.8 L230.6 161.1 L247.2 188.9 L266.7 205.6 L283.3 211.1 L255.6 194.4 L208.3 177.8 L183.3 155.6 L163.9 136.1 L152.8 108.3 L130.6 80.6 L88.9 66.7 L55.6 77.8 L38.9 66.7 Z" />
+                  <path class="land" d="M275.0 211.1 L302.8 200.0 L333.3 205.6 L358.3 222.2 L377.8 238.9 L402.8 250.0 L391.7 280.6 L366.7 302.8 L344.4 327.8 L327.8 344.4 L316.7 361.1 L305.6 383.3 L291.7 372.2 L297.2 350.0 L302.8 316.7 L305.6 283.3 L288.9 250.0 L277.8 233.3 Z" />
+                  <path class="land" d="M452.8 191.7 L466.7 161.1 L488.9 136.1 L527.8 130.6 L555.6 144.4 L588.9 147.2 L597.2 169.4 L619.4 200.0 L641.7 200.0 L625.0 233.3 L611.1 263.9 L597.2 294.4 L577.8 325.0 L552.8 330.6 L536.1 297.2 L525.0 250.0 L505.6 222.2 L477.8 222.2 L463.9 211.1 Z" />
+                  <path class="land" d="M472.2 133.3 L475.0 111.1 L488.9 100.0 L505.6 91.7 L519.4 86.1 L525.0 75.0 L513.9 66.7 L533.3 52.8 L555.6 38.9 L583.3 36.1 L613.9 47.2 L625.0 72.2 L616.7 94.4 L600.0 105.6 L580.6 108.3 L566.7 119.4 L544.4 119.4 L533.3 127.8 L525.0 111.1 L508.3 116.7 L491.7 133.3 Z" />
+                  <path class="land" d="M625.0 72.2 L661.1 38.9 L700.0 30.6 L750.0 22.2 L791.7 19.4 L833.3 30.6 L875.0 33.3 L916.7 38.9 L958.3 47.2 L1000.0 50.0 L1000.0 66.7 L952.8 72.2 L922.2 94.4 L894.4 111.1 L866.7 136.1 L838.9 150.0 L830.6 172.2 L805.6 180.6 L791.7 205.6 L780.6 227.8 L769.4 211.1 L755.6 186.1 L741.7 175.0 L722.2 200.0 L702.8 180.6 L683.3 169.4 L666.7 166.7 L655.6 161.1 L638.9 152.8 L627.8 133.3 L613.9 116.7 L625.0 100.0 Z" />
+                  <path class="land" d="M763.9 219.4 L791.7 230.6 L811.1 241.7 L833.3 250.0 L861.1 244.4 L891.7 241.7 L916.7 250.0 L891.7 258.3 L861.1 255.6 L827.8 258.3 L800.0 252.8 L777.8 233.3 Z" />
+                  <path class="land" d="M813.9 294.4 L819.4 325.0 L838.9 327.8 L863.9 322.2 L883.3 330.6 L908.3 338.9 L916.7 327.8 L925.0 311.1 L905.6 286.1 L894.4 263.9 L875.0 266.7 L858.3 275.0 L838.9 283.3 Z" />
+                  <path class="land" d="M375.0 66.7 L355.6 50.0 L347.2 33.3 L375.0 16.7 L416.7 5.6 L444.4 19.4 L430.6 38.9 L394.4 58.3 Z" />
+                </g>
+                <g id="reach-dots"></g>
+              </svg>
+            </div>
+            <div class="reach__list">
+              <p class="reach__k">Most players first</p>
+              <div id="reach-rows"></div>
+              <p class="reach__more" id="reach-more"></p>
+            </div>
+          </div>
+          <p class="chart__note" id="reach-note"></p>
+        </div>
 
         <div class="chart reveal">
           <div class="chart__h">
@@ -3034,8 +3455,8 @@
             <p>
               The five rungs exist so that a dish is a repeatable job rather than an inspiration. On
               a bigger game the same artefact is what keeps six writers on one voice, and what lets
-              you cost a content month instead of guessing at it. I built the authoring tool to
-              enforce it rather than trusting anyone to remember it, and that includes me.
+              you cost a content month instead of guessing at it. I built the CMS to enforce it
+              rather than trusting anyone to remember it, and that includes me.
             </p>
           </div>
           <div class="card">
@@ -3134,7 +3555,12 @@
               return { date: d.toISOString().slice(0, 10), cumulative: c };
             }),
             trend: { slope: 28.49, first: 90.54, last: 859.67, days: 28, recentPerDay: 18.71, recentDays: 7 }
-          }
+          },
+          /* Empty on purpose. Every other figure here is a real snapshot taken
+             from production; this one has no snapshot to take, because the
+             endpoint did not carry countries when this page was written. An
+             invented one would be the only false number on the page. */
+          countries: { entries: [], rounds: 0, players: 0, untracked: 0 }
         };
 
         var DATA = FALLBACK;
@@ -3357,7 +3783,124 @@
             "</svg>";
         }
 
+        /* ---- the reach map ----
+           Centroids only, projected at draw time with the same formula the
+           land paths were generated with. Codes with no centroid still count
+           toward the country total; they just have nowhere to sit. T1 (Tor)
+           and XX (unresolved) are Cloudflare's two non-countries and are
+           excluded from both, because neither is a place. */
+        var CENTROID = {
+          US: [-98, 39], CA: [-106, 56], MX: [-102, 23], GT: [-90, 15], CR: [-84, 10], PA: [-80, 9],
+          CU: [-78, 22], DO: [-70, 19], JM: [-77, 18], PR: [-66, 18],
+          BR: [-52, -12], AR: [-64, -35], CL: [-71, -33], CO: [-74, 4], PE: [-76, -10],
+          VE: [-66, 7], EC: [-78, -2], BO: [-64, -17], UY: [-56, -33], PY: [-58, -23],
+          GB: [-2, 54], IE: [-8, 53], FR: [2, 47], ES: [-4, 40], PT: [-8, 39], DE: [10, 51],
+          IT: [12, 43], NL: [5, 52], BE: [4, 51], CH: [8, 47], AT: [14, 47], PL: [19, 52],
+          CZ: [15, 50], SK: [19, 49], HU: [19, 47], RO: [25, 46], BG: [25, 43], GR: [22, 39],
+          SE: [15, 62], NO: [9, 61], FI: [26, 64], DK: [10, 56], IS: [-18, 65], EE: [26, 59],
+          LV: [25, 57], LT: [24, 55], UA: [31, 49], BY: [28, 53], RU: [90, 61], TR: [35, 39],
+          HR: [16, 45], RS: [21, 44], SI: [15, 46], BA: [18, 44], AL: [20, 41], MK: [22, 42],
+          MT: [14, 36], CY: [33, 35], LU: [6, 50],
+          CN: [104, 35], JP: [138, 36], KR: [128, 36], TW: [121, 24], HK: [114, 22], SG: [104, 1],
+          IN: [79, 22], PK: [70, 30], BD: [90, 24], LK: [81, 7], NP: [84, 28],
+          TH: [101, 15], VN: [108, 16], PH: [122, 12], ID: [113, -1], MY: [102, 4], KH: [105, 12],
+          MM: [96, 21], AE: [54, 24], SA: [45, 24], IL: [35, 31], JO: [36, 31], QA: [51, 25],
+          KW: [48, 29], LB: [36, 34], IQ: [44, 33], IR: [53, 32], KZ: [67, 48], UZ: [64, 41],
+          GE: [43, 42], AM: [45, 40], AZ: [48, 40],
+          ZA: [24, -29], NG: [8, 10], KE: [38, 0], EG: [30, 27], MA: [-6, 32], DZ: [3, 28],
+          TN: [9, 34], GH: [-1, 8], ET: [40, 8], TZ: [35, -6], UG: [32, 1], SN: [-14, 14],
+          CI: [-5, 8], CM: [12, 6], ZW: [30, -19], ZM: [28, -13], MU: [57, -20],
+          AU: [134, -25], NZ: [174, -41], FJ: [178, -18], PG: [144, -6]
+        };
+        var MAP_W = 1000, LAT_TOP = 84, LAT_BOT = -56;
+        var MAP_H = MAP_W * (LAT_TOP - LAT_BOT) / 360;
+        var NON_PLACES = { T1: 1, XX: 1 };
+
+        function flagOf(code) {
+          if (NON_PLACES[code]) return "🏳";
+          return String.fromCodePoint.apply(null, code.split("").map(function (ch) {
+            return 0x1f1e6 + ch.charCodeAt(0) - 65;
+          }));
+        }
+        var regionNames = (function () {
+          try { return new Intl.DisplayNames(["en"], { type: "region" }); } catch (e) { return null; }
+        })();
+        function nameOf(code) {
+          if (code === "T1") return "Tor network";
+          if (code === "XX") return "Unresolved";
+          try { return (regionNames && regionNames.of(code)) || code; } catch (e) { return code; }
+        }
+
+        function drawReach() {
+          var mix = DATA.countries;
+          var host = $("#reach-dots"), rows = $("#reach-rows");
+          if (!host) return;
+          var panel = host.closest(".chart");
+          /* No country data means the endpoint carrying it has not shipped yet.
+             Hide the whole panel rather than draw an empty world: a map is a
+             claim about reach, and there is no honest version of it built from
+             a placeholder. It appears on its own once the field is live. */
+          if (!mix || !mix.entries || !mix.entries.length) {
+            if (panel) panel.hidden = true;
+            return;
+          }
+          if (panel) panel.hidden = false;
+
+          var places = mix.entries.filter(function (e) { return !NON_PLACES[e.code]; });
+          var maxPlayers = places.reduce(function (m, e) { return Math.max(m, e.players); }, 0) || 1;
+          var top = places.slice(0, 3).map(function (e) { return e.code; });
+
+          var dots = "";
+          var plotted = 0;
+          places.forEach(function (e, i) {
+            var c = CENTROID[e.code];
+            if (!c) return;
+            var x = (c[0] + 180) / 360 * MAP_W;
+            var y = (LAT_TOP - c[1]) / (LAT_TOP - LAT_BOT) * MAP_H;
+            /* Area, not radius, tracks the count, and a floor keeps a country
+               whose device was attributed elsewhere from vanishing. */
+            var r = 4 + Math.sqrt(e.players / maxPlayers) * 13;
+            dots += '<circle class="dot' + (top.indexOf(e.code) > -1 ? " dot--top" : "") +
+              '" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + r.toFixed(1) +
+              '" style="--i:' + i + '"><title>' + nameOf(e.code) + ": " + e.players +
+              (e.players === 1 ? " device, " : " devices, ") + e.rounds + " rounds</title></circle>";
+            plotted++;
+          });
+          host.innerHTML = dots;
+
+          /* A country can contribute rounds and still hold no devices: a device
+             that played from two places is attributed to the one it played from
+             most, so the slices sum to the audience instead of exceeding it. It
+             keeps its dot, but a list of players is the wrong place to print a
+             zero, so the tail carries it. */
+          var listed = places.filter(function (e) { return e.players > 0; }).slice(0, 7);
+          rows.innerHTML = listed.map(function (e) {
+            return '<div class="reach__row"><span class="reach__flag">' + flagOf(e.code) +
+              '</span><span class="reach__name">' + nameOf(e.code) +
+              '</span><span class="reach__n">' + e.players + "</span></div>";
+          }).join("");
+
+          var rest = places.length - listed.length;
+          $("#reach-more").textContent = rest > 0
+            ? "+ " + rest + " more " + (rest === 1 ? "country" : "countries")
+            : "Devices, one country each.";
+
+          /* The brag, and it has to be computed rather than asserted: a page
+             that says "worldwide" over a US-only map is worse than silent. */
+          var us = places.filter(function (e) { return e.code === "US"; })[0];
+          var elsewhere = mix.players - (us ? us.players : 0);
+          $("#reach-head").innerHTML = "Played in <b>" + places.length + " countries</b>";
+          $("#reach-sub").textContent =
+            "one country per device, all time · " + plotted + " of " + places.length + " mapped";
+          $("#reach-note").textContent =
+            elsewhere + " of " + mix.players + " devices (" + pct(elsewhere, mix.players) +
+            "%) played from outside the United States. The country is stamped at the edge when a " +
+            "round starts, so nothing is self-reported and no address is stored." +
+            (mix.untracked ? " " + fmt(mix.untracked) + " early rounds predate the country field and are counted nowhere." : "");
+        }
+
         function drawAll() {
+          drawReach();
           drawDistribution();
           drawModes();
           drawFunnel();
@@ -3382,6 +3925,9 @@
             .then(function (json) {
               if (!json || !json.headline || !json.headline.rounds) return;
               DATA = json;
+              /* A deployment that predates the countries field leaves the map
+                 hidden rather than half-drawn. Nothing else on the page cares. */
+              if (!DATA.countries) DATA.countries = FALLBACK.countries;
               paintTiles(true);
               drawAll();
             })
@@ -3514,7 +4060,25 @@
         }
 
         /* ==========================================================
-           7. THEME
+           7. THE NOTICE FIGURE
+           Replays the drop-and-bounce. Stripping the class and forcing a
+           reflow before re-adding it is what makes the animation restart;
+           without the reflow the browser coalesces both changes and nothing
+           moves.
+           ========================================================== */
+        function noticeFigure() {
+          var fig = $(".notice-fig");
+          var btn = $("#notice-replay");
+          if (!fig || !btn) return;
+          btn.addEventListener("click", function () {
+            fig.classList.remove("is-in");
+            void fig.offsetWidth;
+            fig.classList.add("is-in");
+          });
+        }
+
+        /* ==========================================================
+           8. THEME
            The attribute is already set by the inline head script; this only
            handles the click and keeps the label honest. "Effective" theme
            means: the reader's choice if they made one, otherwise the OS.
@@ -3557,24 +4121,55 @@
         }
 
         /* ==========================================================
-           8. SCROLL: reveals, top bar, progress, active section
+           9. SCROLL: reveals, top bar, progress, active section
            ========================================================== */
+        /* Everything that reveals rests at opacity 0, so a reveal that never
+           arrives is content the reader never sees. Two independent mechanisms
+           therefore drive it: the observer, and a plain geometry check on
+           scroll. The second exists because "IntersectionObserver is missing"
+           is not the only failure -- it can be present and still deliver
+           nothing (a background tab that never composites, for one), and a
+           feature-detect cannot catch that. Either path is enough on its own. */
+        var REVEAL_SEL = ".reveal, .chart, .diagram, .ladder, .cards, .notice-fig, .reach";
+        var pending = [];
+
+        function markIn(el) {
+          if (el.classList.contains("is-in")) return;
+          el.classList.add("is-in");
+          fillBars(el);
+        }
+
+        function revealVisible() {
+          if (!pending.length) return;
+          var h = window.innerHeight || document.documentElement.clientHeight;
+          pending = pending.filter(function (el) {
+            var r = el.getBoundingClientRect();
+            if (r.top < h * 0.92 && r.bottom > 0) {
+              markIn(el);
+              return false;
+            }
+            return true;
+          });
+        }
+
         function observe() {
-          var targets = $$(".reveal, .chart, .diagram, .ladder, .cards");
+          pending = $$(REVEAL_SEL);
           if (!("IntersectionObserver" in window)) {
-            targets.forEach(function (t) { t.classList.add("is-in"); });
-            fillBars(document);
+            pending.forEach(markIn);
+            pending = [];
             return;
           }
           var io = new IntersectionObserver(function (entries) {
             entries.forEach(function (en) {
               if (!en.isIntersecting) return;
-              en.target.classList.add("is-in");
-              fillBars(en.target);
+              markIn(en.target);
+              pending = pending.filter(function (p) { return p !== en.target; });
               io.unobserve(en.target);
             });
           }, { rootMargin: "0px 0px -12% 0px", threshold: 0.12 });
-          targets.forEach(function (t) { io.observe(t); });
+          pending.forEach(function (t) { io.observe(t); });
+          /* Whatever is already on screen at load, before a scroll happens. */
+          revealVisible();
         }
 
         function scrollChrome() {
@@ -3600,6 +4195,12 @@
             });
           }
           window.addEventListener("scroll", function () {
+            /* Reveals run straight off the scroll event rather than inside the
+               rAF gate below. The gate is there to throttle the top bar and the
+               progress line, which are cosmetic; content becoming visible is
+               not, and should not inherit a dependency on rAF firing. The call
+               returns immediately once nothing is left to reveal. */
+            revealVisible();
             if (!ticking) { ticking = true; requestAnimationFrame(update); }
           }, { passive: true });
           window.addEventListener("resize", update, { passive: true });
@@ -3610,6 +4211,7 @@
         paintTiles(false);
         drawAll();
         buildPicker();
+        noticeFigure();
         themeToggle();
         observe();
         scrollChrome();
