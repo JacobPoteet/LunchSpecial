@@ -4,6 +4,7 @@
 
 import { Hono } from "hono";
 import { MAX_GUESSES, type PublicBreakdown, type PublicStats } from "../../shared/types";
+import type { CountryRow } from "../countries";
 import type { FunnelBucketRow } from "../funnel";
 import type { GrowthRow } from "../growth";
 import {
@@ -46,7 +47,8 @@ async function loadStats(env: Env): Promise<PublicStats> {
 // mirror the admin `/analytics` aggregates (fails = completed and not solved;
 // distribution = solved rounds bucketed by guesses) so the two never disagree.
 async function loadBreakdown(env: Env): Promise<PublicBreakdown> {
-  const [scalarRes, distRes, surfaceDevicesRes, hourRes, funnelRes, visitRes] = await env.DB.batch([
+  const [scalarRes, distRes, surfaceDevicesRes, hourRes, funnelRes, visitRes, countryRes] =
+    await env.DB.batch([
     env.DB.prepare(
       `SELECT
          (SELECT COUNT(*) FROM dishes) AS dishes,
@@ -104,6 +106,16 @@ async function loadBreakdown(env: Env): Promise<PublicBreakdown> {
     env.DB.prepare(
       `SELECT visit_day, COUNT(*) AS visitors FROM analytics_visits GROUP BY visit_day`,
     ),
+    // Country mix (migrations/0018), for the reach map. Grouped by
+    // (country, player) rather than by country alone for the reason the admin
+    // query gives: a device that played from two countries has to land in
+    // exactly one of them or the totals exceed the audience, and SQL can't make
+    // that choice. NULL countries come back too and are reported as untracked.
+    env.DB.prepare(
+      `SELECT country, player_id, COUNT(*) AS n
+         FROM analytics_rounds WHERE started_at IS NOT NULL
+         GROUP BY country, player_id`,
+    ),
   ]);
 
   return {
@@ -116,6 +128,7 @@ async function loadBreakdown(env: Env): Promise<PublicBreakdown> {
       hourRes.results as GrowthRow[],
       funnelRes.results as FunnelBucketRow[],
       visitRes.results as PublicVisitRow[],
+      countryRes.results as CountryRow[],
     ),
   };
 }

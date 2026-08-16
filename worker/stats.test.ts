@@ -131,16 +131,42 @@ describe("assemblePublicEngagement", () => {
   const now = new Date("2026-08-10T16:00:00Z");
 
   it("returns an empty shape for an empty database", () => {
-    const e = assemblePublicEngagement([], [], [], now);
+    const e = assemblePublicEngagement([], [], [], [], now);
     expect(e.funnel).toBeNull();
     expect(e.daysPlayed).toEqual([]);
     expect(e.growth).toEqual({ days: [], trend: null });
+    expect(e.countries).toEqual({ entries: [], rounds: 0, players: 0, untracked: 0 });
+  });
+
+  it("carries the country mix, one device to one country", () => {
+    // Device "a" played from two countries. It has to land in exactly one of
+    // them, or the public map would claim more players than the game has —
+    // the same rule the admin pie follows, because it is the same fold.
+    const e = assemblePublicEngagement(
+      [],
+      [],
+      [],
+      [
+        { country: "US", player_id: "a", n: 5 },
+        { country: "GB", player_id: "a", n: 1 },
+        { country: "GB", player_id: "b", n: 3 },
+        { country: "JP", player_id: "c", n: 2 },
+        // Pre-0018 rows carry no country. Not a place, so not a dot.
+        { country: null, player_id: "d", n: 4 },
+      ],
+      now,
+    );
+    expect(e.countries.players).toBe(3);
+    expect(e.countries.untracked).toBe(4);
+    expect(e.countries.entries.map((c) => c.code)).toEqual(["US", "GB", "JP"]);
+    // Every device counted once, so the slices sum to the audience.
+    expect(e.countries.entries.reduce((n, c) => n + c.players, 0)).toBe(e.countries.players);
   });
 
   it("reports the funnel as null while arrivals are unmeasured", () => {
     // Rounds exist, so the lower stages could be drawn — but a funnel with an
     // unmeasured top would read as a 0% bounce rate rather than as no data.
-    const e = assemblePublicEngagement([], [round("a", "2026-08-09")], [], now);
+    const e = assemblePublicEngagement([], [round("a", "2026-08-09")], [], [], now);
     expect(e.funnel).toBeNull();
     expect(e.daysPlayed).toEqual([1]);
   });
@@ -155,6 +181,7 @@ describe("assemblePublicEngagement", () => {
         round("c", "2026-08-09", { completed: 0, first_completed: null }),
       ],
       [{ visit_day: "2026-08-09", visitors: 7 }],
+      [],
       now,
     );
     expect(e.funnel).toEqual({
@@ -173,6 +200,7 @@ describe("assemblePublicEngagement", () => {
       [],
       [round("a", "2026-08-10", { completed: 0, first_completed: null })],
       [{ visit_day: "2026-08-10", visitors: 1 }],
+      [],
       now,
     );
     expect(e.funnel).not.toBeNull();
@@ -190,6 +218,7 @@ describe("assemblePublicEngagement", () => {
         round("c", "2026-08-07"),
       ],
       [],
+      [],
       now,
     );
     // 3 devices played ≥1 day, 1 played ≥2, 1 played ≥3 — monotonically falling.
@@ -200,6 +229,7 @@ describe("assemblePublicEngagement", () => {
     const e = assemblePublicEngagement(
       [],
       [round("a", "2026-08-07", { bucket: "2026-08-07 14" }), round("a", "2026-08-07", { bucket: "2026-08-07 16" })],
+      [],
       [],
       now,
     );
@@ -212,6 +242,7 @@ describe("assemblePublicEngagement", () => {
         { bucket: "2026-08-08 16", n: 3 },
         { bucket: "2026-08-09 16", n: 2 },
       ],
+      [],
       [],
       [],
       now,

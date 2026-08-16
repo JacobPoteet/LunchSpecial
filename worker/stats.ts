@@ -6,11 +6,13 @@
 import { gameToday } from "../shared/time";
 import {
   MAX_GUESSES,
+  type CountryMix,
   type GameGrowth,
   type PublicBreakdown,
   type PublicFunnel,
   type PublicStats,
 } from "../shared/types";
+import { foldCountries, type CountryRow } from "./countries";
 import { foldFunnel, type FunnelBucketRow } from "./funnel";
 import { foldGrowth, type GrowthRow } from "./growth";
 
@@ -114,8 +116,11 @@ export interface PublicVisitRow {
   visitors: number;
 }
 
-/** The three engagement reads the public breakdown carries beyond the totals. */
-export type PublicEngagement = Pick<PublicBreakdown, "funnel" | "daysPlayed" | "growth">;
+/** The engagement reads the public breakdown carries beyond the totals. */
+export type PublicEngagement = Pick<
+  PublicBreakdown,
+  "funnel" | "daysPlayed" | "growth" | "countries"
+>;
 
 /**
  * `daysPlayed[i]` = devices active on at least i+1 distinct ET days.
@@ -161,6 +166,7 @@ export function assemblePublicEngagement(
   hourRows: GrowthRow[],
   funnelRows: FunnelBucketRow[],
   visitRows: PublicVisitRow[],
+  countryRows: CountryRow[],
   now: Date = new Date(),
 ): PublicEngagement {
   const today = gameToday(now);
@@ -177,6 +183,10 @@ export function assemblePublicEngagement(
     funnel: pooled.visited === null ? null : (pooled satisfies PublicFunnel),
     daysPlayed: foldDaysPlayed(funnelRows),
     growth: foldGrowth(hourRows, today) satisfies GameGrowth,
+    // The admin pie's fold, unchanged. One device lands in exactly one country
+    // (see worker/countries.ts), so the entries sum to the audience rather than
+    // to something larger than it.
+    countries: foldCountries(countryRows) satisfies CountryMix,
   };
 }
 

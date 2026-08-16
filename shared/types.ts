@@ -878,6 +878,16 @@ export interface PublicBreakdown {
   daysPlayed: number[];
   /** Running total of rounds per ET day + the constant-pace reference line. */
   growth: GameGrowth;
+  /**
+   * Where the audience is, all time: one country per device, most players first.
+   *
+   * The same {@link CountryMix} the admin dashboard's pie reads, from the same
+   * `foldCountries`, so the public map and the private pie cannot drift into
+   * disagreeing about how many countries have played. Aggregate-only, like every
+   * other field here: a country code and two counts, never a round, a device id
+   * or anything that could be tied back to a person.
+   */
+  countries: CountryMix;
 }
 
 /**

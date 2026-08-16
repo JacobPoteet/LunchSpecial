@@ -1,0 +1,4224 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lunch Special — Project Breakdown</title>
+    <meta
+      name="description"
+      content="How I designed and shipped Lunch Special, a daily dish-guessing game: the feedback system, the clue ladder, the single-Worker stack, and the experiment that moved finish rate from 81% to 91%."
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="icon" href="https://lunchspecial.app/favicon.svg" type="image/svg+xml" />
+
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Lunch Special" />
+    <meta property="og:title" content="Lunch Special — Project Breakdown" />
+    <meta
+      property="og:description"
+      content="A daily dish-guessing game, and the apparatus I built to design, ship and measure it. Live production numbers throughout."
+    />
+    <meta property="og:image" content="https://lunchspecial.app/press/key-art.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preload" href="fonts/bitter.woff2" as="font" type="font/woff2" crossorigin />
+
+    <style>
+      /* ==========================================================
+         FONTS — self-hosted OFL faces, served from this directory.
+         ========================================================== */
+      @font-face {
+        font-family: "Alfa Slab One";
+        src: url("fonts/alfa-slab-one.ttf") format("truetype");
+        font-weight: 400;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Yellowtail";
+        src: url("fonts/yellowtail.ttf") format("truetype");
+        font-weight: 400;
+        font-display: swap;
+      }
+      /* Variable, latin subset. One 34KB file covers 400–700, so headings sit
+         at 600 without a second download. */
+      @font-face {
+        font-family: "Bitter";
+        src: url("fonts/bitter.woff2") format("woff2");
+        font-weight: 400 700;
+        font-display: swap;
+      }
+
+      /* ==========================================================
+         TOKENS — derived from the game's own src/styles/base.css.
+         The dark set is chosen per-token, not an inversion.
+         ========================================================== */
+      :root {
+        color-scheme: light dark;
+
+        --cherry: #c9354a;
+        --cherry-deep: #8f1f2e;
+        --mustard: #e8a53a;
+        --teal: #123833;
+        --teal-mid: #1b4f4a;
+        --neon: #ff5f7a;
+
+        --bg: #eee4c9;
+        --surface: #fbf4e0;
+        --surface-2: #f5ebd2;
+        --rule: #dccdaa;
+        --rule-soft: #e9ddbf;
+        --ink: #2b2320;
+        --ink-soft: #56493f;
+        --ink-mute: #8a7c6b;
+        --accent: #c9354a;
+        --accent-ink: #8f1f2e;
+
+        /* the deep band: hero, experiment, footer */
+        --band: #123833;
+        --band-2: #0d2a26;
+        --band-ink: #f6edd9;
+        --band-mute: #9dbab2;
+        --band-rule: rgba(246, 237, 217, 0.18);
+
+        --hit: #2e7d4f;
+        --near: #b8761a;
+        --miss: #a99e8f;
+        --hit-soft: #dcefe2;
+        --miss-soft: #ece5d5;
+
+        /* chart series: kind palette (mode) and event palette, kept apart the
+           way the game's own dashboard keeps them apart. */
+        --k-daily: #c9922a;
+        --k-leftover: #1b7d74;
+        --k-random: #c9354a;
+        --ev-start: #1b7d74;
+        --ev-finish: #c9354a;
+        --ev-share: #c9922a;
+        --grid: rgba(43, 35, 32, 0.14);
+
+        --shadow: 0 10px 28px rgba(18, 40, 36, 0.14);
+        --shadow-lift: 0 18px 44px rgba(18, 40, 36, 0.2);
+
+        /* Two slabs on purpose. Alfa Slab One is the sign: the wordmark and the
+           headline numbers, short strings you glance at. At heading sizes it
+           closes its counters and a title reads as a block, so headings take
+           Bitter instead: same Clarendon lineage, drawn for screens. */
+        --font-display: "Alfa Slab One", "Arial Black", sans-serif;
+        --font-slab: "Bitter", Georgia, "Times New Roman", serif;
+        --font-script: "Yellowtail", "Brush Script MT", cursive;
+        --font-body: Georgia, "Iowan Old Style", "Times New Roman", serif;
+        --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+
+        --field: 1080px;
+        --col: 66ch;
+        --pad: clamp(18px, 5vw, 40px);
+      }
+
+      /* ==========================================================
+         DARK PALETTE — three states.
+         No attribute: follow the OS. data-theme="dark"/"light": the
+         reader has chosen, and their choice outranks the OS in both
+         directions. The two dark blocks below are identical on purpose
+         and must be edited together; CSS has no way to hand one
+         declaration list to both a media query and a selector.
+         ========================================================== */
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+      }
+      :root[data-theme="light"] {
+        color-scheme: light;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #0f2b27;
+          --surface: #16403a;
+          --surface-2: #1a4842;
+          --rule: #2d6259;
+          --rule-soft: #23554e;
+          --ink: #f2e8d2;
+          --ink-soft: #cec3ab;
+          --ink-mute: #9aada4;
+          --accent: #f26374;
+          --accent-ink: #ff8f9b;
+
+          --band: #0a211e;
+          --band-2: #071917;
+          --band-ink: #f6edd9;
+          --band-mute: #93b0a8;
+          --band-rule: rgba(246, 237, 217, 0.16);
+
+          --hit: #55b481;
+          --near: #cf9128;
+          --miss: #8b8375;
+          --hit-soft: #1d5340;
+          --miss-soft: #24544c;
+
+          /* chart series, re-picked for the dark ground rather than inverted */
+          --k-daily: #d9a33c;
+          --k-leftover: #2ba79c;
+          --k-random: #f26374;
+          --ev-start: #2ba79c;
+          --ev-finish: #f26374;
+          --ev-share: #d9a33c;
+          --grid: rgba(246, 237, 217, 0.13);
+
+          --shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+          --shadow-lift: 0 18px 44px rgba(0, 0, 0, 0.5);
+        }
+      }
+
+      /* Same palette, chosen rather than inherited. Keep in sync with above. */
+      :root[data-theme="dark"] {
+        --bg: #0f2b27;
+        --surface: #16403a;
+        --surface-2: #1a4842;
+        --rule: #2d6259;
+        --rule-soft: #23554e;
+        --ink: #f2e8d2;
+        --ink-soft: #cec3ab;
+        --ink-mute: #9aada4;
+        --accent: #f26374;
+        --accent-ink: #ff8f9b;
+
+        --band: #0a211e;
+        --band-2: #071917;
+        --band-ink: #f6edd9;
+        --band-mute: #93b0a8;
+        --band-rule: rgba(246, 237, 217, 0.16);
+
+        --hit: #55b481;
+        --near: #cf9128;
+        --miss: #8b8375;
+        --hit-soft: #1d5340;
+        --miss-soft: #24544c;
+
+        --k-daily: #d9a33c;
+        --k-leftover: #2ba79c;
+        --k-random: #f26374;
+        --ev-start: #2ba79c;
+        --ev-finish: #f26374;
+        --ev-share: #d9a33c;
+        --grid: rgba(246, 237, 217, 0.13);
+
+        --shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+        --shadow-lift: 0 18px 44px rgba(0, 0, 0, 0.5);
+      }
+
+      /* ==========================================================
+         BASE
+         ========================================================== */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 76px;
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--font-body);
+        font-size: 17px;
+        line-height: 1.62;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      p {
+        margin: 0 0 1.05em;
+        max-width: var(--col);
+      }
+
+      a {
+        color: var(--accent-ink);
+        text-underline-offset: 3px;
+        text-decoration-thickness: 1px;
+      }
+      a:hover {
+        color: var(--accent);
+      }
+
+      strong {
+        font-weight: 700;
+        color: var(--ink);
+      }
+
+      code,
+      .mono {
+        font-family: var(--font-mono);
+        font-size: 0.86em;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      .wrap {
+        width: 100%;
+        max-width: var(--field);
+        margin-inline: auto;
+        padding-inline: var(--pad);
+      }
+
+      /* ==========================================================
+         TOP BAR — appears once the hero clears, carries progress
+         ========================================================== */
+      .topbar {
+        position: fixed;
+        inset: 0 0 auto;
+        z-index: 60;
+        background: color-mix(in srgb, var(--surface) 92%, transparent);
+        backdrop-filter: blur(9px);
+        border-bottom: 1px solid var(--rule);
+        transform: translateY(-104%);
+        transition: transform 0.32s ease;
+      }
+      .topbar.is-up {
+        transform: none;
+      }
+      .topbar__in {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        height: 56px;
+        max-width: var(--field);
+        margin-inline: auto;
+        padding-inline: var(--pad);
+      }
+      .topbar__mark {
+        font-family: var(--font-display);
+        font-size: 0.94rem;
+        color: var(--ink);
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .topbar__nav {
+        display: flex;
+        gap: 4px;
+        margin-left: auto;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .topbar__nav::-webkit-scrollbar {
+        display: none;
+      }
+      .topbar__nav a {
+        font-family: var(--font-slab);
+        font-size: 0.79rem;
+        letter-spacing: 0.03em;
+        color: var(--ink-soft);
+        text-decoration: none;
+        padding: 6px 9px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .topbar__nav a:hover {
+        background: var(--surface-2);
+        color: var(--ink);
+      }
+      .topbar__nav a[aria-current="true"] {
+        background: var(--accent);
+        color: #fff;
+      }
+      .topbar__play {
+        font-family: var(--font-slab);
+        font-weight: 600;
+        font-size: 0.79rem;
+        background: var(--mustard);
+        color: #2b2320;
+        text-decoration: none;
+        padding: 7px 13px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      /* ---- theme toggle ----
+         Two instances of one control: the hero carries one (the top bar is
+         hidden up there), the bar carries the other. Both take their colour
+         from the surface they sit on via currentColor, so one rule covers a
+         cream bar and a teal hero. */
+      .theme-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: 34px;
+        height: 34px;
+        flex: none;
+        padding: 0;
+        border-radius: 999px;
+        border: 1px solid currentColor;
+        background: none;
+        color: inherit;
+        cursor: pointer;
+        opacity: 0.72;
+        transition: opacity 0.18s ease, transform 0.18s ease, background 0.18s ease;
+      }
+      .theme-btn:hover {
+        opacity: 1;
+        transform: rotate(-18deg);
+        background: color-mix(in srgb, currentColor 12%, transparent);
+      }
+      .theme-btn:focus-visible {
+        outline: 2px solid var(--mustard);
+        outline-offset: 2px;
+        opacity: 1;
+      }
+      .theme-btn svg {
+        width: 16px;
+        height: 16px;
+        display: block;
+      }
+      /* Two glyphs in one button, and the visible one is the mode you would
+         switch TO rather than the one you are in: a moon on the light page, a
+         sun on the dark one. Driven by the same three states as the palette, so
+         the icon cannot disagree with the theme. */
+      .theme-btn .i-sun { display: none; }
+      .theme-btn .i-moon { display: block; }
+      :root[data-theme="dark"] .theme-btn .i-sun { display: block; }
+      :root[data-theme="dark"] .theme-btn .i-moon { display: none; }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) .theme-btn .i-sun { display: block; }
+        :root:not([data-theme="light"]) .theme-btn .i-moon { display: none; }
+      }
+
+      .topbar .theme-btn {
+        color: var(--ink-soft);
+      }
+      .hero .theme-btn {
+        position: absolute;
+        top: 2px;
+        /* .wrap's own padding, so the button lines up with the right edge of
+           the stat tiles rather than floating past them. */
+        right: var(--pad);
+        color: var(--band-ink);
+        z-index: 3;
+      }
+
+      .progress {
+        height: 2px;
+        background: var(--accent);
+        width: var(--p, 0%);
+        transition: width 0.1s linear;
+      }
+
+      /* ==========================================================
+         HERO — the deep band
+         ========================================================== */
+      .hero {
+        position: relative;
+        background: var(--band);
+        color: var(--band-ink);
+        overflow: hidden;
+        padding: clamp(56px, 11vw, 104px) 0 clamp(40px, 7vw, 66px);
+      }
+      /* The game's own diner art, given the same treatment the game gives it:
+         cover, framed at center 30%, then pushed out of focus so it reads as
+         the room behind the card rather than a photo the text sits on. The
+         negative inset exists because the blur samples past the layer's edges
+         and would otherwise show a soft fringe down each side. */
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: -24px;
+        background-color: var(--band);
+        background-image: url("art/diner-backdrop.png");
+        background-size: cover;
+        background-position: center 30%;
+        filter: blur(2px) brightness(0.62) saturate(0.78);
+        pointer-events: none;
+      }
+      /* Vignette over the art, teal-tinted rather than black so it stays in
+         palette. Clears where the wordmark and tiles sit, deepens at the edges,
+         and fades to solid at the bottom so the section below starts clean. */
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse 120% 85% at 50% 30%,
+            rgba(18, 56, 51, 0.15) 30%,
+            rgba(10, 32, 29, 0.6) 72%,
+            rgba(7, 22, 20, 0.82) 100%
+          ),
+          linear-gradient(to bottom, rgba(18, 56, 51, 0) 62%, var(--band) 100%);
+        pointer-events: none;
+      }
+      .hero__in {
+        position: relative;
+        z-index: 1;
+      }
+
+      .hero__eyebrow {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--mustard);
+        margin: 0 0 16px;
+      }
+
+      .neon {
+        font-family: var(--font-display);
+        font-size: clamp(2.7rem, 9.6vw, 6.1rem);
+        line-height: 0.94;
+        letter-spacing: 0.005em;
+        margin: 0 0 10px;
+        color: #fff5f7;
+        text-shadow:
+          0 0 4px rgba(255, 255, 255, 0.85),
+          0 0 12px var(--neon),
+          0 0 30px rgba(255, 95, 122, 0.75),
+          0 0 62px rgba(255, 95, 122, 0.45);
+      }
+      .neon i {
+        font-style: normal;
+        animation: flicker 6.5s infinite steps(1, end);
+      }
+      @keyframes flicker {
+        0%, 41%, 43%, 46%, 100% { opacity: 1; }
+        42%, 44.5% { opacity: 0.32; }
+      }
+
+      .hero__script {
+        font-family: var(--font-script);
+        font-size: clamp(1.35rem, 3.6vw, 2.05rem);
+        color: var(--mustard);
+        margin: 0 0 22px;
+        max-width: none;
+      }
+
+      .hero__role {
+        font-family: var(--font-slab);
+        font-size: 0.9rem;
+        color: var(--band-ink);
+        border-left: 3px solid var(--mustard);
+        padding-left: 13px;
+        margin: 0 0 22px;
+        max-width: 56ch;
+      }
+      .hero__role b {
+        display: block;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .hero__role span {
+        color: var(--band-mute);
+      }
+
+      .hero__lede {
+        font-size: 1.03rem;
+        color: #e6dcc6;
+        max-width: 62ch;
+        margin-bottom: 26px;
+      }
+      .hero__lede b {
+        color: #fff;
+      }
+
+      .hero__cta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 34px;
+      }
+      .btn {
+        font-family: var(--font-slab);
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        padding: 11px 20px;
+        border-radius: 999px;
+        border: 1.5px solid transparent;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: transform 0.16s ease, box-shadow 0.16s ease;
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+      }
+      .btn--primary {
+        background: var(--cherry);
+        color: #fff;
+        box-shadow: 0 6px 20px rgba(201, 53, 74, 0.42);
+      }
+      .btn--primary:hover {
+        color: #fff;
+        box-shadow: 0 10px 28px rgba(201, 53, 74, 0.55);
+      }
+      .btn--mustard {
+        background: var(--mustard);
+        color: #2b2320;
+      }
+      .btn--mustard:hover {
+        color: #2b2320;
+      }
+      .btn--ghost {
+        border-color: var(--band-rule);
+        color: var(--band-ink);
+      }
+      .btn--ghost:hover {
+        border-color: var(--mustard);
+        color: var(--mustard);
+      }
+
+      /* live "being served now" strip */
+      .serving {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--font-mono);
+        font-size: 0.76rem;
+        letter-spacing: 0.06em;
+        color: var(--band-mute);
+        border: 1px solid var(--band-rule);
+        border-radius: 999px;
+        padding: 7px 15px 7px 12px;
+        margin-bottom: 30px;
+      }
+      .serving b {
+        color: var(--band-ink);
+        font-weight: 700;
+      }
+      .pulse {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--mustard);
+        box-shadow: 0 0 0 0 rgba(232, 165, 58, 0.7);
+        animation: pulse 2.4s infinite;
+        flex: none;
+      }
+      @keyframes pulse {
+        70% { box-shadow: 0 0 0 9px rgba(232, 165, 58, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(232, 165, 58, 0); }
+      }
+
+      /* ---- the four live tiles ---- */
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+      .tile {
+        background: var(--surface);
+        color: var(--ink);
+        border-radius: 12px;
+        padding: 18px 16px 15px;
+        box-shadow: var(--shadow-lift);
+        position: relative;
+        overflow: hidden;
+      }
+      .tile::before {
+        content: "";
+        position: absolute;
+        inset: 0 0 auto;
+        height: 4px;
+        background: var(--mustard);
+      }
+      .tile:nth-child(2)::before { background: var(--cherry); }
+      .tile:nth-child(3)::before { background: var(--k-leftover); }
+      .tile:nth-child(4)::before { background: var(--teal-mid); }
+
+      .tile__n {
+        font-family: var(--font-display);
+        font-size: clamp(1.85rem, 4.6vw, 2.7rem);
+        line-height: 1.02;
+        color: var(--ink);
+        display: block;
+        letter-spacing: -0.01em;
+        font-variant-numeric: tabular-nums;
+      }
+      .tile__label {
+        font-family: var(--font-slab);
+        font-weight: 600;
+        font-size: 0.76rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        display: block;
+        margin-top: 7px;
+      }
+      .tile__sub {
+        font-size: 0.76rem;
+        color: var(--ink-mute);
+        display: block;
+        margin-top: 3px;
+        line-height: 1.4;
+      }
+      .tile__live {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--hit);
+        opacity: 0;
+        transition: opacity 0.5s ease;
+      }
+      .tile.is-live .tile__live {
+        opacity: 1;
+        animation: pulse-live 2.6s infinite;
+      }
+      @keyframes pulse-live {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.35; }
+      }
+      .tiles__foot {
+        font-family: var(--font-mono);
+        font-size: 0.71rem;
+        color: var(--band-mute);
+        margin: 14px 0 0;
+        max-width: none;
+      }
+
+      /* ==========================================================
+         SECTION FURNITURE
+         ========================================================== */
+      section[id] {
+        padding: clamp(52px, 8vw, 88px) 0;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .shead {
+        display: flex;
+        align-items: baseline;
+        gap: 16px;
+        margin-bottom: 30px;
+        border-bottom: 3px double var(--rule);
+        padding-bottom: 14px;
+      }
+      .shead__n {
+        font-family: var(--font-display);
+        font-size: clamp(1.6rem, 4vw, 2.3rem);
+        color: var(--accent);
+        line-height: 1;
+        flex: none;
+      }
+      .shead__t {
+        font-family: var(--font-slab);
+        font-weight: 700;
+        font-size: clamp(1.35rem, 3.4vw, 2rem);
+        line-height: 1.14;
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+      .shead__k {
+        font-family: var(--font-mono);
+        font-size: 0.71rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin-left: auto;
+        flex: none;
+        white-space: nowrap;
+      }
+
+      h3 {
+        font-family: var(--font-slab);
+        font-weight: 700;
+        font-size: 1.13rem;
+        margin: 2.1em 0 0.55em;
+        letter-spacing: -0.005em;
+      }
+      h3:first-child {
+        margin-top: 0;
+      }
+
+      .takeaway {
+        margin-top: 34px;
+        border-top: 3px solid var(--mustard);
+        padding-top: 14px;
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+      }
+      .takeaway__k {
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--mustard);
+        padding-top: 3px;
+        flex: none;
+      }
+      .takeaway p {
+        font-family: var(--font-slab);
+        font-size: 1.03rem;
+        font-weight: 600;
+        margin: 0;
+        max-width: 62ch;
+        line-height: 1.5;
+      }
+
+      .note {
+        font-size: 0.88rem;
+        color: var(--ink-soft);
+        border-left: 2px solid var(--rule);
+        padding-left: 14px;
+        max-width: 62ch;
+      }
+
+      /* ==========================================================
+         SKIM LAYER — the five claims
+         ========================================================== */
+      .skim {
+        background: var(--surface);
+        border-bottom: 1px solid var(--rule);
+        padding: clamp(38px, 6vw, 58px) 0;
+      }
+      .skim__k {
+        font-family: var(--font-mono);
+        font-size: 0.71rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 20px;
+      }
+      .claims {
+        display: grid;
+        gap: 0;
+        counter-reset: claim;
+      }
+      .claim {
+        display: grid;
+        grid-template-columns: 62px 1fr auto;
+        gap: 18px;
+        align-items: baseline;
+        padding: 17px 0;
+        border-top: 1px solid var(--rule-soft);
+        text-decoration: none;
+        color: inherit;
+        transition: background 0.18s ease, padding-inline 0.18s ease;
+      }
+      .claim:last-child {
+        border-bottom: 1px solid var(--rule-soft);
+      }
+      .claim:hover {
+        background: var(--surface-2);
+        padding-inline: 12px;
+        color: inherit;
+      }
+      .claim__n {
+        font-family: var(--font-display);
+        font-size: 1.5rem;
+        color: var(--rule);
+        line-height: 1;
+        transition: color 0.18s ease;
+      }
+      .claim:hover .claim__n {
+        color: var(--accent);
+      }
+      .claim__t {
+        font-family: var(--font-slab);
+        font-size: 1.06rem;
+        font-weight: 600;
+        line-height: 1.42;
+        margin: 0;
+        max-width: none;
+      }
+      .claim__t em {
+        font-style: normal;
+        color: var(--accent-ink);
+        font-weight: 700;
+      }
+      .claim__go {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        white-space: nowrap;
+      }
+      .claim:hover .claim__go {
+        color: var(--accent);
+      }
+
+      /* ==========================================================
+         CARDS / GRIDS
+         ========================================================== */
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(228px, 1fr));
+        gap: 14px;
+        margin: 24px 0 8px;
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 11px;
+        padding: 17px 17px 18px;
+        box-shadow: var(--shadow);
+      }
+      .card__k {
+        font-family: var(--font-mono);
+        font-size: 0.67rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+        display: block;
+        margin-bottom: 8px;
+      }
+      .card__t {
+        font-family: var(--font-slab);
+        font-weight: 700;
+        font-size: 1rem;
+        margin: 0 0 6px;
+        line-height: 1.34;
+        max-width: none;
+      }
+      .card p {
+        font-size: 0.9rem;
+        color: var(--ink-soft);
+        margin: 0;
+        max-width: none;
+        line-height: 1.55;
+      }
+
+      /* constraint cards deal in */
+      .deal .card {
+        opacity: 0;
+        transform: translateY(14px) rotate(var(--r, 0deg));
+      }
+      .is-in.deal .card {
+        animation: deal 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+        animation-delay: calc(var(--i, 0) * 90ms);
+      }
+      @keyframes deal {
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      /* ==========================================================
+         TABLES
+         ========================================================== */
+      .tablewrap {
+        overflow-x: auto;
+        margin: 22px 0;
+        border: 1px solid var(--rule);
+        border-radius: 11px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        min-width: 520px;
+        font-size: 0.91rem;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 12px 15px;
+        border-bottom: 1px solid var(--rule-soft);
+        vertical-align: top;
+        line-height: 1.5;
+      }
+      thead th {
+        font-family: var(--font-mono);
+        font-size: 0.67rem;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        background: var(--surface-2);
+        border-bottom: 2px solid var(--rule);
+        white-space: nowrap;
+      }
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      tbody tr:hover {
+        background: var(--surface-2);
+      }
+      td b,
+      td strong {
+        font-family: var(--font-slab);
+      }
+      .t-goal {
+        font-family: var(--font-slab);
+        font-weight: 600;
+        color: var(--ink);
+        width: 27%;
+      }
+      .t-choice {
+        width: 30%;
+      }
+
+      /* ==========================================================
+         RESPONSIVE
+         ========================================================== */
+      @media (max-width: 860px) {
+        .tiles {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      @media (max-width: 620px) {
+        body {
+          font-size: 16px;
+        }
+        .claim {
+          grid-template-columns: 40px 1fr;
+        }
+        .claim__go {
+          display: none;
+        }
+        .shead {
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+        .shead__k {
+          margin-left: 0;
+          width: 100%;
+        }
+      }
+
+      /* ==========================================================
+         MOTION
+         ========================================================== */
+      .reveal {
+        opacity: 0;
+        transform: translateY(18px);
+        transition: opacity 0.55s ease, transform 0.55s cubic-bezier(0.2, 0.7, 0.3, 1);
+      }
+      .reveal.is-in {
+        opacity: 1;
+        transform: none;
+      }
+
+      /* ==========================================================
+         THE FEEDBACK DEMO — a rebuild of the game's own board
+         ========================================================== */
+      .demo {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 18px;
+        margin: 26px 0 10px;
+        align-items: start;
+      }
+      .board {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 13px;
+        box-shadow: var(--shadow-lift);
+        padding: 18px;
+        min-height: 260px;
+      }
+      .board__head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        border-bottom: 2px dashed var(--rule);
+        padding-bottom: 11px;
+        margin-bottom: 14px;
+      }
+      .board__title {
+        font-family: var(--font-display);
+        font-size: 1rem;
+        margin: 0;
+        max-width: none;
+      }
+      .board__count {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        color: var(--ink-mute);
+        margin-left: auto;
+        white-space: nowrap;
+      }
+      .board__empty {
+        font-size: 0.92rem;
+        color: var(--ink-mute);
+        font-style: italic;
+        margin: 26px 0;
+        text-align: center;
+        max-width: none;
+      }
+
+      .grow {
+        border: 1px solid var(--rule);
+        background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+        border-radius: 8px;
+        padding: 11px 12px 12px;
+        margin-bottom: 9px;
+        animation: rowin 0.34s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+      }
+      .grow--win {
+        border-color: var(--hit);
+        background: var(--hit-soft);
+      }
+      @keyframes rowin {
+        from { opacity: 0; transform: translateY(-8px); }
+      }
+      .grow__name {
+        font-family: var(--font-display);
+        font-size: 0.93rem;
+        margin: 0 0 9px;
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        max-width: none;
+      }
+      .grow__ct {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        font-weight: 400;
+        color: var(--ink-soft);
+        margin-left: auto;
+        white-space: nowrap;
+      }
+      .tiles4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        margin-bottom: 9px;
+      }
+      .at {
+        border-radius: 7px;
+        padding: 5px 4px 6px;
+        text-align: center;
+        border: 1.5px solid transparent;
+        animation: flip 0.42s ease backwards;
+        animation-delay: calc(var(--i, 0) * 130ms + 60ms);
+      }
+      @keyframes flip {
+        from { transform: rotateX(-88deg); opacity: 0.2; }
+      }
+      .at--hit { background: var(--hit); color: #fff; }
+      .at--near { background: var(--near); color: #221c18; }
+      .at--miss { background: var(--miss-soft); color: var(--ink-soft); border-color: var(--rule); }
+      .at__l {
+        display: block;
+        font-family: var(--font-slab);
+        font-size: 0.56rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        opacity: 0.88;
+      }
+      .at__v {
+        display: block;
+        font-family: var(--font-slab);
+        font-size: 0.79rem;
+        font-weight: 700;
+        text-transform: capitalize;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+      .chip {
+        font-family: var(--font-slab);
+        font-size: 0.75rem;
+        border-radius: 999px;
+        padding: 2.5px 10px;
+        border: 1px solid var(--rule);
+        color: var(--ink-soft);
+        background: var(--surface);
+        animation: chipin 0.3s ease backwards;
+        animation-delay: calc(var(--i, 0) * 45ms + 340ms);
+      }
+      .chip--yes {
+        background: var(--hit-soft);
+        border-color: var(--hit);
+        color: var(--hit);
+        font-weight: 600;
+      }
+      @keyframes chipin {
+        from { opacity: 0; transform: scale(0.82); }
+      }
+
+      .picker {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 13px;
+        padding: 16px;
+        box-shadow: var(--shadow);
+        position: sticky;
+        top: 74px;
+      }
+      .picker__k {
+        font-family: var(--font-mono);
+        font-size: 0.67rem;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 11px;
+        max-width: none;
+      }
+      .picker__list {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+      .gbtn {
+        font-family: var(--font-slab);
+        font-weight: 600;
+        font-size: 0.88rem;
+        text-align: left;
+        background: var(--surface-2);
+        color: var(--ink);
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        padding: 9px 12px;
+        cursor: pointer;
+        transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+      }
+      .gbtn:hover:not(:disabled) {
+        transform: translateX(3px);
+        border-color: var(--accent);
+        background: var(--surface);
+      }
+      .gbtn:disabled {
+        opacity: 0.4;
+        cursor: default;
+        text-decoration: line-through;
+      }
+      .gbtn small {
+        display: block;
+        font-family: var(--font-body);
+        font-weight: 400;
+        font-size: 0.75rem;
+        color: var(--ink-mute);
+        text-decoration: none;
+      }
+      .picker__reset {
+        margin-top: 12px;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        background: none;
+        border: 0;
+        color: var(--accent-ink);
+        cursor: pointer;
+        padding: 4px 0;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      /* ---- clue tickets ---- */
+      /* The tickets are their own stack under the guesses, the way the real
+         board separates them, so a new guess landing on top never pushes the
+         clue you are mid-way through reading. */
+      .board .tickets {
+        margin-top: 15px;
+        padding-top: 14px;
+        border-top: 2px dashed var(--rule);
+      }
+      .board .tickets .ticket:last-child {
+        margin-bottom: 0;
+      }
+      .ticket {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-left: 4px solid var(--mustard);
+        border-radius: 4px;
+        padding: 10px 13px 11px;
+        margin-bottom: 9px;
+        box-shadow: 0 2px 8px rgba(18, 40, 36, 0.09);
+        /* the game prints these in mechanical steps; same feel here */
+        animation: print 0.44s steps(9, end) backwards;
+      }
+      @keyframes print {
+        from { clip-path: inset(0 0 100% 0); }
+        to { clip-path: inset(0 0 0 0); }
+      }
+      .ticket__h {
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        color: var(--mustard);
+        margin: 0 0 4px;
+        max-width: none;
+      }
+      .ticket__t {
+        font-size: 0.9rem;
+        margin: 0;
+        max-width: none;
+        line-height: 1.5;
+      }
+
+      .ladder {
+        display: grid;
+        gap: 9px;
+        margin: 22px 0 8px;
+      }
+      .ladder .ticket {
+        margin: 0;
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        gap: 13px;
+        align-items: start;
+        opacity: 0;
+      }
+      /* The observer stamps is-in on the .ladder itself, so this stays a
+         compound selector rather than a descendant one. */
+      .ladder.is-in .ticket {
+        animation: print-in 0.5s ease forwards;
+        animation-delay: calc(var(--i, 0) * 130ms);
+      }
+      @keyframes print-in {
+        from { opacity: 0; clip-path: inset(0 0 100% 0); }
+        to { opacity: 1; clip-path: inset(0 0 0 0); }
+      }
+      .ladder__n {
+        font-family: var(--font-display);
+        font-size: 1.35rem;
+        color: var(--mustard);
+        line-height: 1;
+      }
+      .ladder__t {
+        font-family: var(--font-slab);
+        font-weight: 700;
+        font-size: 0.97rem;
+        margin: 0 0 2px;
+        max-width: none;
+      }
+      .ladder__d {
+        font-size: 0.88rem;
+        color: var(--ink-soft);
+        margin: 0;
+        max-width: none;
+        line-height: 1.5;
+      }
+
+      /* ---- the ladder, filled in: the writing sample ---- */
+      .worked {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 11px;
+        padding: 17px 20px 19px;
+        box-shadow: var(--shadow);
+        margin: 22px 0 10px;
+      }
+      .worked__h {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        border-bottom: 2px dashed var(--rule);
+        padding-bottom: 11px;
+        margin: 0 0 4px;
+        max-width: none;
+      }
+      .worked__dish {
+        font-family: var(--font-display);
+        font-size: 1rem;
+      }
+      .worked__meta {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--ink-mute);
+        margin-left: auto;
+        white-space: nowrap;
+      }
+      .worked__row {
+        display: grid;
+        grid-template-columns: 26px 1fr;
+        gap: 13px;
+        align-items: baseline;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--rule-soft);
+      }
+      .worked__row:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+      .worked__n {
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        color: var(--mustard);
+      }
+      .worked__c {
+        margin: 0;
+        max-width: none;
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+      .worked__why {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--ink-mute);
+        margin-top: 3px;
+      }
+
+      /* ---- a note from the kitchen ----
+         A working copy of the game's notice modal, keyframes included, because
+         the claim in the prose is about how it MOVES and a screenshot cannot
+         make that argument.
+
+         Its colours are hard-coded from the game's base.css rather than taken
+         from this page's tokens. The game has one palette and no dark mode, so
+         a themed copy would misrepresent it in half of all visits. Same reason
+         the shareable score card hard-codes its own tile colours. */
+      .notice-fig {
+        display: grid;
+        grid-template-columns: 1fr 250px;
+        gap: 18px;
+        align-items: start;
+        margin: 24px 0 10px;
+      }
+      .notice-stage {
+        background: #123833;
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        padding: 30px 20px 22px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        /* the card arrives from above the frame */
+        overflow: hidden;
+      }
+      .notice-card {
+        width: 100%;
+        max-width: 330px;
+        background: #fbf4e0;
+        border-top: 7px solid #e8a53a;
+        border-radius: 6px;
+        transform-origin: top center;
+        box-shadow: 0 18px 50px rgba(10, 20, 18, 0.45);
+        overflow: hidden;
+      }
+      .notice-card__in {
+        padding: 15px 17px 14px;
+      }
+      .notice-card__eyebrow {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        margin: 0 0 6px;
+        font-family: var(--font-slab);
+        font-size: 0.63rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #5b4f45;
+        max-width: none;
+      }
+      .notice-card__count {
+        font-variant-numeric: tabular-nums;
+        opacity: 0.75;
+      }
+      .notice-card__count::before {
+        content: "·";
+        margin-right: 7px;
+      }
+      .notice-card__title {
+        margin: 0 0 10px;
+        font-family: var(--font-body);
+        font-size: 1.12rem;
+        font-weight: 700;
+        line-height: 1.25;
+        color: #1b4f4a;
+        max-width: none;
+      }
+      .notice-card__body {
+        margin: 0;
+        font-size: 0.88rem;
+        line-height: 1.6;
+        color: #2b2320;
+        max-width: none;
+      }
+      .notice-card__body a {
+        color: #8f1f2e;
+      }
+      .notice-card__foot {
+        border-top: 2px dashed #e6d9b8;
+        padding: 12px 17px 15px;
+      }
+      .notice-card__ok {
+        width: 100%;
+        font-family: var(--font-slab);
+        font-weight: 600;
+        font-size: 0.85rem;
+        background: #c9354a;
+        color: #fff;
+        border: 0;
+        border-radius: 999px;
+        padding: 9px 14px;
+        cursor: default;
+      }
+
+      /* The game's own keyframes, copied rather than approximated. */
+      @keyframes notice-drop-in {
+        0% { opacity: 0; transform: translateY(-70px) scale(0.9); }
+        45% { opacity: 1; transform: translateY(12px) scale(1.035); }
+        66% { transform: translateY(-6px) scale(0.99); }
+        82% { transform: translateY(3px) scale(1.005); }
+        93% { transform: translateY(-1px) scale(0.999); }
+        100% { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      @keyframes notice-line-in {
+        from { opacity: 0; transform: translateY(9px); }
+        to { opacity: 1; transform: none; }
+      }
+      @keyframes notice-foot-rise {
+        from { transform: translateY(10px); }
+        to { transform: none; }
+      }
+      .notice-fig .notice-card { opacity: 0; }
+      .notice-fig.is-in .notice-card {
+        animation: notice-drop-in 0.54s cubic-bezier(0.25, 0.6, 0.3, 1) both;
+      }
+      /* The card lands first, then its lines rise into it a beat apart, so the
+         eye is walked eyebrow → headline → message. */
+      .notice-fig.is-in .notice-card__eyebrow { animation: notice-line-in 0.32s ease 0.2s both; }
+      .notice-fig.is-in .notice-card__title { animation: notice-line-in 0.34s ease 0.27s both; }
+      .notice-fig.is-in .notice-card__body { animation: notice-line-in 0.34s ease 0.35s both; }
+      .notice-fig.is-in .notice-card__foot { animation: notice-foot-rise 0.32s ease 0.42s both; }
+
+      .notice-replay {
+        margin-top: 16px;
+        font-family: var(--font-mono);
+        font-size: 0.71rem;
+        letter-spacing: 0.04em;
+        background: none;
+        border: 1px solid rgba(246, 237, 217, 0.3);
+        color: #f6edd9;
+        border-radius: 999px;
+        padding: 6px 14px;
+        cursor: pointer;
+        opacity: 0.8;
+      }
+      .notice-replay:hover {
+        opacity: 1;
+        border-color: var(--mustard);
+        color: var(--mustard);
+      }
+
+      .notice-where {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        padding: 16px 17px 17px;
+        box-shadow: var(--shadow);
+      }
+      .notice-where__k {
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 11px;
+        max-width: none;
+      }
+      .notice-where ul {
+        list-style: none;
+        margin: 0 0 12px;
+        padding: 0;
+      }
+      .notice-where li {
+        display: flex;
+        align-items: baseline;
+        gap: 9px;
+        font-family: var(--font-slab);
+        font-size: 0.87rem;
+        padding: 6px 0;
+        border-bottom: 1px solid var(--rule-soft);
+      }
+      .notice-where li:last-child { border-bottom: 0; }
+      .notice-where li::before {
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        font-weight: 700;
+        flex: none;
+      }
+      .notice-where li.yes::before { content: "✓"; color: var(--hit); }
+      .notice-where li.no::before { content: "✗"; color: var(--ink-mute); }
+      .notice-where li.no { color: var(--ink-mute); }
+      .notice-where__note {
+        font-size: 0.8rem;
+        color: var(--ink-soft);
+        margin: 0;
+        max-width: none;
+        line-height: 1.5;
+        border-top: 1px dashed var(--rule);
+        padding-top: 11px;
+      }
+
+      /* ---- the share card ---- */
+      .receipt {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        padding: 20px 22px 22px;
+        box-shadow: var(--shadow);
+        max-width: 330px;
+        font-family: var(--font-mono);
+        font-size: 0.82rem;
+        line-height: 1.75;
+        /* torn bottom edge */
+        clip-path: polygon(0 0, 100% 0, 100% calc(100% - 7px), 96% 100%, 92% calc(100% - 7px), 88% 100%, 84% calc(100% - 7px), 80% 100%, 76% calc(100% - 7px), 72% 100%, 68% calc(100% - 7px), 64% 100%, 60% calc(100% - 7px), 56% 100%, 52% calc(100% - 7px), 48% 100%, 44% calc(100% - 7px), 40% 100%, 36% calc(100% - 7px), 32% 100%, 28% calc(100% - 7px), 24% 100%, 20% calc(100% - 7px), 16% 100%, 12% calc(100% - 7px), 8% 100%, 4% calc(100% - 7px), 0 100%);
+      }
+      .receipt__h {
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+        text-align: center;
+        margin: 0 0 4px;
+        max-width: none;
+      }
+      .receipt__r {
+        border-top: 1px dashed var(--rule);
+        margin: 10px 0;
+      }
+      .receipt__g {
+        font-size: 1.02rem;
+        letter-spacing: 0.06em;
+        line-height: 1.6;
+        margin: 0;
+        max-width: none;
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 28px;
+        align-items: start;
+        margin: 22px 0;
+      }
+
+      /* Grid items default to min-width:auto, so a wide child (the min-width'd
+         table, a diagram) pushes its track past the viewport instead of
+         scrolling inside its own container. This is what keeps 375px honest. */
+      .split > *,
+      .charts2 > *,
+      .demo > *,
+      .notice-fig > *,
+      .reach > *,
+      .cards > *,
+      .tiles > *,
+      .rules > * {
+        min-width: 0;
+      }
+
+      /* ==========================================================
+         DIAGRAMS
+         ========================================================== */
+      .diagram {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        padding: 20px 18px;
+        margin: 24px 0;
+        box-shadow: var(--shadow);
+        overflow-x: auto;
+      }
+      .diagram__k {
+        font-family: var(--font-mono);
+        font-size: 0.67rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 16px;
+        max-width: none;
+      }
+      .diagram svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        min-width: 460px;
+      }
+      .d-box { fill: var(--surface-2); stroke: var(--rule); stroke-width: 1.5; }
+      .d-box--band { fill: var(--band); stroke: var(--band); }
+      .d-t { font-family: var(--font-slab); font-size: 12px; font-weight: 700; fill: var(--ink); }
+      .d-t--inv { fill: var(--band-ink); }
+      .d-s { font-family: var(--font-mono); font-size: 9.4px; fill: var(--ink-mute); letter-spacing: 0.04em; }
+      .d-s--inv { fill: var(--band-mute); }
+      .d-line { stroke: var(--rule); stroke-width: 1.6; fill: none; }
+      .d-arrow { fill: var(--ink-mute); }
+      .d-dot { fill: var(--cherry); }
+
+      .is-in .d-flow {
+        animation: flow 3.4s linear infinite;
+      }
+      @keyframes flow {
+        to { stroke-dashoffset: -34; }
+      }
+
+      /* the loop ring */
+      .ring-station circle { fill: var(--surface); stroke: var(--rule); stroke-width: 2; }
+      .ring-station text { font-family: var(--font-slab); font-weight: 700; font-size: 11.5px; fill: var(--ink); }
+      .ring-station .ring-n { font-family: var(--font-display); font-size: 11px; fill: var(--accent); }
+      .ring-station .ring-d { font-family: var(--font-mono); font-size: 8.6px; fill: var(--ink-mute); }
+      .ring-path { fill: none; stroke: var(--rule); stroke-width: 2; }
+
+      /* the CI pipeline */
+      .pipe {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        flex-wrap: nowrap;
+        min-width: 620px;
+      }
+      .pipe__step {
+        flex: 1;
+        background: var(--surface-2);
+        border: 1px solid var(--rule);
+        border-radius: 9px;
+        padding: 12px 11px;
+        position: relative;
+        opacity: 0;
+        transform: translateY(9px);
+      }
+      .is-in .pipe__step {
+        animation: deal 0.42s ease forwards;
+        animation-delay: calc(var(--i, 0) * 140ms);
+      }
+      .pipe__step + .pipe__step {
+        margin-left: 16px;
+      }
+      .pipe__step + .pipe__step::before {
+        content: "";
+        position: absolute;
+        left: -16px;
+        top: 50%;
+        width: 16px;
+        height: 2px;
+        background: var(--rule);
+      }
+      .pipe__step--go {
+        background: var(--band);
+        border-color: var(--band);
+      }
+      .pipe__step--go .pipe__t { color: var(--band-ink); }
+      .pipe__step--go .pipe__d { color: var(--band-mute); }
+      .pipe__n {
+        font-family: var(--font-mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+        display: block;
+        margin-bottom: 5px;
+      }
+      .pipe__t {
+        font-family: var(--font-slab);
+        font-weight: 700;
+        font-size: 0.86rem;
+        display: block;
+        line-height: 1.28;
+      }
+      .pipe__d {
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        color: var(--ink-mute);
+        display: block;
+        margin-top: 4px;
+        line-height: 1.4;
+      }
+      .surfaces {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-top: 16px;
+        min-width: 620px;
+      }
+      .surface {
+        border: 1.5px solid var(--mustard);
+        border-radius: 9px;
+        padding: 12px 14px;
+        background: color-mix(in srgb, var(--mustard) 11%, transparent);
+      }
+      .surface b {
+        font-family: var(--font-slab);
+        display: block;
+        font-size: 0.9rem;
+      }
+      .surface span {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--ink-soft);
+      }
+
+      /* ==========================================================
+         CHARTS
+         ========================================================== */
+      .chart {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        padding: 18px 18px 16px;
+        box-shadow: var(--shadow);
+        margin: 20px 0;
+      }
+      .chart__h {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 4px;
+        flex-wrap: wrap;
+      }
+      .chart__t {
+        font-family: var(--font-slab);
+        font-weight: 700;
+        font-size: 1rem;
+        margin: 0;
+        max-width: none;
+      }
+      .chart__sub {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--ink-mute);
+        margin: 0 0 15px;
+        max-width: none;
+        line-height: 1.5;
+      }
+      .chart__note {
+        font-size: 0.85rem;
+        color: var(--ink-soft);
+        margin: 14px 0 0;
+        max-width: 62ch;
+        line-height: 1.55;
+      }
+      .charts2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+
+      /* horizontal bar rows */
+      .bars {
+        display: grid;
+        gap: 7px;
+      }
+      .bar {
+        display: grid;
+        grid-template-columns: 74px 1fr 62px;
+        gap: 10px;
+        align-items: center;
+        font-size: 0.83rem;
+      }
+      .bar__l {
+        font-family: var(--font-mono);
+        font-size: 0.71rem;
+        color: var(--ink-soft);
+        text-align: right;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .bar__track {
+        background: var(--miss-soft);
+        border-radius: 4px;
+        height: 19px;
+        overflow: hidden;
+        position: relative;
+      }
+      .bar__fill {
+        height: 100%;
+        border-radius: 4px;
+        width: 0;
+        transition: width 0.95s cubic-bezier(0.2, 0.8, 0.3, 1);
+        transition-delay: calc(var(--i, 0) * 65ms);
+      }
+      .bar__v {
+        font-family: var(--font-mono);
+        font-size: 0.74rem;
+        color: var(--ink);
+        font-variant-numeric: tabular-nums;
+      }
+      .bar__v small {
+        color: var(--ink-mute);
+        font-size: 0.92em;
+      }
+
+      /* The growth line draws itself in. pathLength="1" lets the dash length be
+         declared here without measuring the path in JS. */
+      .gline {
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+      }
+      .chart.is-in .gline {
+        stroke-dashoffset: 0;
+        transition: stroke-dashoffset 1.7s cubic-bezier(0.3, 0.7, 0.3, 1) 0.15s;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-top: 13px;
+        font-family: var(--font-mono);
+        font-size: 0.69rem;
+        color: var(--ink-soft);
+      }
+      .legend i {
+        width: 11px;
+        height: 11px;
+        border-radius: 3px;
+        display: inline-block;
+        margin-right: 5px;
+        vertical-align: -1px;
+      }
+      .legend i.dash {
+        border-radius: 0;
+        height: 0;
+        border-top: 2px dashed var(--ink-mute);
+        width: 15px;
+        vertical-align: 3px;
+      }
+
+      /* ==========================================================
+         REACH MAP
+         Equirectangular, cropped to 84°N–56°S the way web maps are.
+         The land is a deliberately coarse silhouette sitting at low
+         opacity: it exists to tell you which part of the world a dot
+         is in, and every fact on this graphic is carried by the dots
+         and the list beside it.
+         ========================================================== */
+      .reach {
+        display: grid;
+        grid-template-columns: 1fr 232px;
+        gap: 18px;
+        align-items: start;
+      }
+      .reach__map {
+        background: linear-gradient(180deg, var(--surface-2), var(--surface));
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        padding: 10px;
+        overflow: hidden;
+      }
+      .reach__map svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .land {
+        fill: var(--ink);
+        opacity: 0.13;
+      }
+      .grat {
+        stroke: var(--ink);
+        opacity: 0.09;
+        stroke-width: 1;
+        fill: none;
+      }
+      .dot {
+        fill: var(--accent);
+        fill-opacity: 0.72;
+        stroke: var(--surface);
+        stroke-width: 1.2;
+      }
+      .dot--top {
+        fill: var(--mustard);
+        fill-opacity: 0.95;
+      }
+      /* Dots arrive one after another, so the eye reads the spread as it
+         fills rather than meeting a finished scatter. */
+      .reach.is-in .dot {
+        animation: dot-in 0.42s cubic-bezier(0.2, 0.9, 0.3, 1) backwards;
+        animation-delay: calc(var(--i, 0) * 42ms);
+        transform-box: fill-box;
+        transform-origin: center;
+      }
+      @keyframes dot-in {
+        from { transform: scale(0); opacity: 0; }
+      }
+
+      .reach__list {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        padding: 13px 14px 14px;
+      }
+      .reach__k {
+        font-family: var(--font-mono);
+        font-size: 0.64rem;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        margin: 0 0 9px;
+        max-width: none;
+      }
+      .reach__row {
+        display: grid;
+        grid-template-columns: 20px 1fr auto;
+        gap: 8px;
+        align-items: baseline;
+        padding: 5px 0;
+        border-bottom: 1px solid var(--rule-soft);
+        font-size: 0.84rem;
+      }
+      .reach__row:last-of-type { border-bottom: 0; }
+      .reach__flag { font-size: 0.95rem; line-height: 1; }
+      .reach__name {
+        font-family: var(--font-slab);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .reach__n {
+        font-family: var(--font-mono);
+        font-size: 0.76rem;
+        color: var(--ink-soft);
+        font-variant-numeric: tabular-nums;
+      }
+      .reach__more {
+        font-family: var(--font-mono);
+        font-size: 0.71rem;
+        color: var(--ink-mute);
+        margin: 9px 0 0;
+        max-width: none;
+        border-top: 1px dashed var(--rule);
+        padding-top: 9px;
+      }
+      .reach__head {
+        font-family: var(--font-slab);
+        font-weight: 700;
+        font-size: 1.02rem;
+        margin: 0 0 4px;
+        max-width: none;
+      }
+      .reach__head b {
+        color: var(--accent-ink);
+      }
+
+      /* findings */
+      .finding {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-left: 4px solid var(--accent);
+        border-radius: 9px;
+        padding: 16px 18px 17px;
+      }
+      .finding__k {
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        display: block;
+        margin-bottom: 7px;
+      }
+      .finding__t {
+        font-family: var(--font-slab);
+        font-weight: 700;
+        font-size: 1.02rem;
+        margin: 0 0 7px;
+        max-width: none;
+        line-height: 1.34;
+      }
+      .finding p {
+        font-size: 0.9rem;
+        color: var(--ink-soft);
+        margin: 0;
+        max-width: none;
+      }
+      .finding b {
+        font-family: var(--font-mono);
+        font-size: 0.92em;
+        color: var(--accent-ink);
+      }
+
+      /* ==========================================================
+         THE EXPERIMENT — the check
+         ========================================================== */
+      .exp {
+        background: var(--band);
+        color: var(--band-ink);
+        border-bottom: 0;
+      }
+      .exp .shead {
+        border-bottom-color: var(--band-rule);
+      }
+      .exp .shead__n { color: var(--mustard); }
+      .exp .shead__k { color: var(--band-mute); }
+      .exp p { color: #e3d9c3; }
+      .exp strong { color: #fff; }
+      .exp h3 { color: var(--band-ink); }
+      .exp .note {
+        color: var(--band-mute);
+        border-left-color: var(--band-rule);
+      }
+      .exp .takeaway {
+        border-top-color: var(--mustard);
+      }
+      .exp .takeaway p {
+        color: var(--band-ink);
+      }
+
+      .check {
+        background: var(--surface);
+        color: var(--ink);
+        border-radius: 4px;
+        padding: 26px 26px 30px;
+        box-shadow: var(--shadow-lift);
+        margin: 26px 0;
+        max-width: 640px;
+      }
+      .check__h {
+        font-family: var(--font-display);
+        font-size: 1.15rem;
+        text-align: center;
+        margin: 0 0 3px;
+        max-width: none;
+      }
+      .check__sub {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        text-align: center;
+        margin: 0 0 18px;
+        max-width: none;
+      }
+      .check__rule {
+        border-top: 2px dashed var(--rule);
+        margin: 18px 0;
+      }
+      .check__line {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        font-family: var(--font-mono);
+        font-size: 0.82rem;
+        margin-bottom: 7px;
+        color: var(--ink-soft);
+      }
+      .check__line b {
+        color: var(--ink);
+        font-family: var(--font-slab);
+        white-space: nowrap;
+      }
+      .check__leader {
+        flex: 1;
+        border-bottom: 1px dotted var(--rule);
+        transform: translateY(-3px);
+      }
+      .verdict {
+        text-align: center;
+        font-family: var(--font-display);
+        font-size: 1.5rem;
+        color: var(--hit);
+        margin: 6px 0 2px;
+        max-width: none;
+      }
+
+      /* before / after bars with intervals */
+      .ba {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin: 20px 0 6px;
+      }
+      .ba__side {
+        text-align: center;
+      }
+      .ba__k {
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+        display: block;
+        margin-bottom: 8px;
+      }
+      .ba__n {
+        font-family: var(--font-display);
+        font-size: clamp(2rem, 6vw, 2.9rem);
+        line-height: 1;
+        display: block;
+      }
+      .ba__side--before .ba__n { color: var(--ink-mute); }
+      .ba__side--after .ba__n { color: var(--hit); }
+      .ba__d {
+        font-family: var(--font-mono);
+        font-size: 0.71rem;
+        color: var(--ink-mute);
+        display: block;
+        margin-top: 6px;
+      }
+      .ba__meter {
+        height: 12px;
+        background: var(--miss-soft);
+        border-radius: 3px;
+        margin-top: 11px;
+        position: relative;
+        overflow: hidden;
+      }
+      .ba__fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 0;
+        border-radius: 3px;
+        transition: width 1.05s cubic-bezier(0.2, 0.8, 0.3, 1) 0.2s;
+      }
+      .ba__side--before .ba__fill { background: var(--miss); }
+      .ba__side--after .ba__fill { background: var(--hit); }
+      .ba__ci {
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        color: var(--ink-mute);
+        margin-top: 7px;
+        display: block;
+      }
+
+      .rules {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
+        gap: 13px;
+        margin: 22px 0 8px;
+      }
+      .rule-c {
+        border: 1px solid var(--band-rule);
+        border-radius: 9px;
+        padding: 14px 15px 15px;
+        background: rgba(246, 237, 217, 0.045);
+      }
+      .rule-c b {
+        font-family: var(--font-slab);
+        font-size: 0.9rem;
+        display: block;
+        margin-bottom: 5px;
+        color: var(--mustard);
+      }
+      .rule-c span {
+        font-size: 0.85rem;
+        color: #d6cbb4;
+        line-height: 1.5;
+        display: block;
+      }
+
+      /* ==========================================================
+         FOOTER
+         ========================================================== */
+      footer {
+        background: var(--band-2);
+        color: var(--band-mute);
+        padding: 46px 0 54px;
+      }
+      .foot {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 26px;
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+      .foot__mark {
+        font-family: var(--font-display);
+        font-size: 1.25rem;
+        color: var(--band-ink);
+        margin: 0 0 6px;
+        max-width: none;
+      }
+      .foot p {
+        font-size: 0.87rem;
+        margin: 0;
+        color: var(--band-mute);
+        max-width: 42ch;
+      }
+      .foot__links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+      }
+      .foot a {
+        color: var(--band-ink);
+      }
+      .foot__links a {
+        font-family: var(--font-slab);
+        font-size: 0.85rem;
+        text-decoration: none;
+        border: 1px solid var(--band-rule);
+        border-radius: 999px;
+        padding: 8px 15px;
+      }
+      .foot__links a:hover {
+        border-color: var(--mustard);
+        color: var(--mustard);
+      }
+
+      @media (max-width: 860px) {
+        .demo,
+        .split,
+        .charts2,
+        .notice-fig,
+        .reach {
+          grid-template-columns: 1fr;
+        }
+        .picker {
+          position: static;
+        }
+        .receipt {
+          max-width: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.001ms !important;
+        }
+        /* Anything whose resting state is invisible must be forced back on:
+           killing the animation would otherwise leave it hidden forever. */
+        .reveal,
+        .deal .card,
+        .pipe__step,
+        .ladder .ticket,
+        .notice-fig .notice-card,
+        .reach .dot {
+          opacity: 1;
+          transform: none;
+          clip-path: none;
+        }
+        /* The replay button promises motion this reader has opted out of. */
+        .notice-replay {
+          display: none;
+        }
+        .gline {
+          stroke-dashoffset: 0;
+        }
+      }
+    </style>
+    <!-- Runs before the body paints, so a reader who chose dark never sees a
+         frame of cream first. Wrapped because Safari throws on localStorage in
+         private browsing, and a theme preference is not worth a broken page. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("ls-theme");
+          if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <!-- ==========================================================
+         TOP BAR
+         ========================================================== -->
+    <div class="topbar" id="topbar">
+      <div class="topbar__in">
+        <a class="topbar__mark" href="#top">🛎️ Lunch Special</a>
+        <nav class="topbar__nav" aria-label="Sections">
+          <a href="#goals">Goals</a>
+          <a href="#design">Design</a>
+          <a href="#stack">Stack</a>
+          <a href="#engineering">Engineering</a>
+          <a href="#numbers">Numbers</a>
+          <a href="#experiment">Experiment</a>
+          <a href="#transfers">What transfers</a>
+        </nav>
+        <button class="theme-btn" type="button" data-theme-toggle>
+          <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+          <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" /></svg>
+        </button>
+        <a class="topbar__play" href="https://lunchspecial.app">Play it</a>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- ==========================================================
+         HERO
+         ========================================================== -->
+    <header class="hero" id="top">
+      <div class="wrap hero__in">
+        <button class="theme-btn" type="button" data-theme-toggle>
+          <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+          <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" /></svg>
+        </button>
+        <p class="hero__eyebrow">Project breakdown · 2026</p>
+        <h1 class="neon">Lunch Spe<i>c</i>ial</h1>
+        <p class="hero__script">Guess the day&rsquo;s dish.</p>
+
+        <p class="hero__role">
+          <b>Jacob Poteet</b>
+          <span>Senior Technical Narrative Designer. Solo creator of Lunch Special.</span>
+        </p>
+
+        <p class="hero__lede">
+          Every guess is a real dish, and the kitchen tells you what that dish shares with the
+          Special. 
+          I designed and implemented the gameplay loop, the CMS for the menu of 
+          <b class="js-dishes">364</b> dishes, the telemetry
+          underneath, and the experiment log.
+        </p>
+
+        <p class="serving" id="serving" title="Computed from the game's epoch and its America/New_York rollover">
+          <span class="pulse" aria-hidden="true"></span>
+          <span>Serving <b id="serving-no">Special No. &mdash;</b> · next one in <b id="serving-in">&mdash;</b></span>
+        </p>
+
+        <div class="hero__cta">
+          <a class="btn btn--primary" href="https://lunchspecial.app">Play today&rsquo;s Special</a>
+          <a class="btn btn--mustard" href="#experiment">See the experiment result</a>
+          <a class="btn btn--ghost" href="https://github.com/JacobPoteet/LunchSpecial">Source</a>
+        </div>
+
+        <div class="tiles" id="tiles">
+          <div class="tile" data-tile="rounds">
+            <span class="tile__live" aria-hidden="true"></span>
+            <span class="tile__n" data-n="836">836</span>
+            <span class="tile__label">Games played</span>
+            <span class="tile__sub">across three modes, two surfaces</span>
+          </div>
+          <div class="tile" data-tile="dishes">
+            <span class="tile__live" aria-hidden="true"></span>
+            <span class="tile__n" data-n="364">364</span>
+            <span class="tile__label">Dishes written</span>
+            <span class="tile__sub"><span class="js-clues">1,820</span> clues, five to a dish</span>
+          </div>
+          <div class="tile" data-tile="shared">
+            <span class="tile__live" aria-hidden="true"></span>
+            <span class="tile__n" data-n="121">121</span>
+            <span class="tile__label">Results shared</span>
+            <span class="tile__sub">emoji grids posted out of the game</span>
+          </div>
+          <div class="tile" data-tile="returning">
+            <span class="tile__live" aria-hidden="true"></span>
+            <span class="tile__n" data-n="20" data-suffix="%">20%</span>
+            <span class="tile__label">Came back another day</span>
+            <span class="tile__sub"><span class="js-ret">54 of 270</span> devices, no accounts</span>
+          </div>
+        </div>
+        <p class="tiles__foot">
+          Read live from the production database when this page loads.
+        </p>
+      </div>
+    </header>
+
+    <!-- ==========================================================
+         SKIM LAYER — five claims
+         ========================================================== -->
+    <div class="skim">
+      <div class="wrap">
+        <p class="skim__k">The short version</p>
+        <div class="claims">
+          <a class="claim" href="#design">
+            <span class="claim__n">01</span>
+            <p class="claim__t">
+              A dish has no letter slots, so Wordle&rsquo;s colours mean nothing here. I designed
+              <em>a feedback system for food</em> and ran two channels at once, one for the player
+              who knows the dish and one for the player who has never heard of it.
+            </p>
+            <span class="claim__go">Design →</span>
+          </a>
+          <a class="claim" href="#design">
+            <span class="claim__n">02</span>
+            <p class="claim__t">
+              One ladder specifies every clue. The same five rungs, <em>1,820 clues deep</em>, so a
+              dish a day stays a defined job instead of a blank page.
+            </p>
+            <span class="claim__go">Design →</span>
+          </a>
+          <a class="claim" href="#stack">
+            <span class="claim__n">03</span>
+            <p class="claim__t">
+              <em>One Worker</em> serves the game, the API and the database. It also serves the
+              Discord Activity, so a single pushed tag ships both audiences.
+            </p>
+            <span class="claim__go">Stack →</span>
+          </a>
+          <a class="claim" href="#engineering">
+            <span class="claim__n">04</span>
+            <p class="claim__t">
+              The instrument reports its own limits. Thin rates carry <em>95% intervals</em>,
+              unmeasured days stay blank instead of reading as zero, and &ldquo;too early to
+              tell&rdquo; is a verdict the dashboard can return.
+            </p>
+            <span class="claim__go">Engineering →</span>
+          </a>
+          <a class="claim" href="#experiment">
+            <span class="claim__n">05</span>
+            <p class="claim__t">
+              I logged a scheduling change, shipped it, then measured it. Finish rate moved from
+              <em>81% to 91%</em>. Read over a shorter window, the same change reports nothing.
+            </p>
+            <span class="claim__go">Experiment →</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================================
+         01 · GOALS
+         ========================================================== -->
+    <section id="goals">
+      <div class="wrap">
+        <div class="shead reveal">
+          <span class="shead__n">01</span>
+          <h2 class="shead__t">What I set out to make</h2>
+          <span class="shead__k">goals</span>
+        </div>
+
+        <p>
+          Cooking is my favorite hobby, and I wanted a game that taught people something about food they
+          already eat. Like a lot of couples, my wife and I love to play daily guessing games
+          together so combining that formate with a food theme seemed like a promising idea.
+          Initially I was inspired by the Wordle loop but major changes would need to made to 
+          give the player a chance at guessing the daily dish. A word is
+          an ordered list of letters, so green can mean right letter, right slot. A dish has no
+          slots. Pad Thai and Bibimbap do not line up character by character in any way a player
+          would care about.
+        </p>
+        <p>I wrote down what the game had to do before I built any of it.</p>
+
+        <div class="cards deal reveal">
+          <div class="card" style="--i: 0">
+            <span class="card__k">Goal 01</span>
+            <p class="card__t">Readable at a glance</p>
+            <p>
+              A player reads the board mid-round, between guesses. Anything needing a paragraph to
+              interpret has already failed.
+            </p>
+          </div>
+          <div class="card" style="--i: 1">
+            <span class="card__k">Goal 02</span>
+            <p class="card__t">Effortlessly sharable</p>
+            <p>
+              A result nobody can paste into a group chat gives the game no distribution. The grid
+              is the entire marketing budget.
+            </p>
+          </div>
+          <div class="card" style="--i: 2">
+            <span class="card__k">Goal 03</span>
+            <p class="card__t">Narrowing enough to finish</p>
+            <p>
+              A pool of uncountable dishes in someone's mind has to filter down to one after six
+              guesses.
+            </p>
+          </div>
+        </div>
+
+        <h3>I left the unfairness in</h3>
+        <p>
+          The game asks you to know things about food, and that knowledge is not handed out evenly.
+          A player in Ohio and a player in Lagos open a round on Shakshuka from different places. I
+          could have designed that away by scoring nothing except what the tiles hand you, and I
+          kept it, because the gap is the part worth playing for.
+        </p>
+        <p>
+          Wordle can be played well without knowing the word. Letter frequency, position and
+          elimination will carry you to answers you have never used in your life, which is a real
+          skill and a skill at <em>Wordle</em>. Naming the Special is a skill at food. It draws on
+          what you have eaten, what you have read, and what you can infer from a Tunisian breakfast
+          sharing a pantry with a French summer stew.
+        </p>
+        <p>
+          Culinary knowledge also improves, which is what makes the unfairness survivable. Nobody
+          takes every Special, and I would miss plenty myself if I were not the one booking the
+          menu. A round you lose still ends with you knowing the dish, where it came from and what
+          goes in it, so the next one starts further along. That is the deal the clue ladder makes:
+          every miss buys information, and the information keeps working after the round is over.
+        </p>
+
+        <div class="takeaway reveal">
+          <span class="takeaway__k">Takeaway</span>
+          <p>
+            An even start would have cost the game the thing that makes solving it feel like
+            anything. I owed players a route from wherever they began instead, and that is what the
+            clue ladder is for.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================
+         02 · DESIGN
+         ========================================================== -->
+    <section id="design">
+      <div class="wrap">
+        <div class="shead reveal">
+          <span class="shead__n">02</span>
+          <h2 class="shead__t">How I designed it</h2>
+          <span class="shead__k">feedback · clues · fiction</span>
+        </div>
+
+        <h3>Two channels, running at once</h3>
+        <p>
+          The first channel rewards deduction. The second concedes information as you fail. Together
+          they let a player who knows Tunisian food and a player who does not both reach the same
+          answer, at different speeds.
+        </p>
+        <p>
+          Channel one scores your guess on four attributes and on how its ingredients overlap the
+          Special&rsquo;s. Country carries the only middle state: the same country turns green, and a
+          different country in the same region turns amber. That single warm signal is what makes
+          triangulating across a map possible. Channel two is the clue ticket. Miss, and the kitchen
+          slides the next rung across the counter.
+        </p>
+
+        <div class="demo reveal">
+          <div class="board" id="demo-board">
+            <div class="board__head">
+              <p class="board__title">Today&rsquo;s Special</p>
+              <span class="board__count" id="demo-count">0 of 6 guesses</span>
+            </div>
+            <div id="demo-rows">
+              <p class="board__empty">Order something from the menu and the kitchen answers.</p>
+            </div>
+          </div>
+          <div class="picker">
+            <p class="picker__k">The menu (a fixed demo dish, not today&rsquo;s answer)</p>
+            <div class="picker__list" id="demo-picker"></div>
+            <button class="picker__reset" id="demo-reset" type="button">Clear the board</button>
+          </div>
+        </div>
+
+        <p class="note">
+          The ingredient line reports which of your guess&rsquo;s ingredients the Special also uses,
+          and how many of the Special&rsquo;s total that covers. It never lists the ones you have not
+          found. Five of eight tells you three remain without telling you what they are.
+        </p>
+
+        <h3>One ladder specifies every clue</h3>
+        <p>
+          A daily game eats a piece of authored content every 24 hours and never stops. Treating
+          <span class="js-dishes">364</span> dishes as <span class="js-dishes">364</span> separate
+          creative problems collapses around week eight, so I specified the dramatic order once
+          instead: five rungs, the same sequence for every dish, descending from a map to a
+          near-giveaway. Each rung states what its clue has to accomplish and what it must not give
+          away, which is the difference between a brief and a blank page.
+        </p>
+
+        <div class="ladder reveal">
+          <div class="ticket" style="--i: 0">
+            <span class="ladder__n">1</span>
+            <div>
+              <p class="ladder__t">Broad geography</p>
+              <p class="ladder__d">Narrows the map without naming a country.</p>
+            </div>
+          </div>
+          <div class="ticket" style="--i: 1">
+            <span class="ladder__n">2</span>
+            <div>
+              <p class="ladder__t">Origin and history</p>
+              <p class="ladder__d">
+                The first rung with a voice, where the dish becomes a place rather than a puzzle
+                token.
+              </p>
+            </div>
+          </div>
+          <div class="ticket" style="--i: 2">
+            <span class="ladder__n">3</span>
+            <div>
+              <p class="ladder__t">What made it famous</p>
+              <p class="ladder__d">
+                The film, the street cart, the argument over who invented it. The rung people repeat
+                to someone else afterwards.
+              </p>
+            </div>
+          </div>
+          <div class="ticket" style="--i: 3">
+            <span class="ladder__n">4</span>
+            <div>
+              <p class="ladder__t">A key ingredient or technique</p>
+              <p class="ladder__d">
+                Turns knowing about the dish into being able to name it.
+              </p>
+            </div>
+          </div>
+          <div class="ticket" style="--i: 4">
+            <span class="ladder__n">5</span>
+            <div>
+              <p class="ladder__t">Near-giveaway</p>
+              <p class="ladder__d">
+                Everything but the name. Missing here should feel unlucky, never unfair.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p>
+          Clue 3 for Pierogi and clue 3 for Ceviche are the same job, and that sameness is what makes
+          the pool extensible: the brief holds still while the subject changes. The ladder also fixes
+          pacing, which is the part players feel. Rung 3 lands on the third miss, when someone needs
+          a reason to stay in the round, and rung 5 arrives at the point where losing would otherwise
+          feel arbitrary.
+        </p>
+
+        <div class="worked reveal">
+          <p class="worked__h">
+            <span class="worked__dish">Margherita Pizza</span>
+            <span class="worked__meta">one dish against the spec</span>
+          </p>
+          <div class="worked__row">
+            <span class="worked__n">1</span>
+            <p class="worked__c">
+              A southern European classic, from a city in the shadow of a volcano.
+              <span class="worked__why">Gives the region and one image. Names nothing.</span>
+            </p>
+          </div>
+          <div class="worked__row">
+            <span class="worked__n">2</span>
+            <p class="worked__c">
+              Born in Naples, where street ovens fed the working class for centuries.
+              <span class="worked__why">Country spent. The dish acquires a class and a century.</span>
+            </p>
+          </div>
+          <div class="worked__row">
+            <span class="worked__n">3</span>
+            <p class="worked__c">
+              Named for a queen who visited in 1889 and picked the patriotic option.
+              <span class="worked__why">The rung that survives the round, and still not the answer.</span>
+            </p>
+          </div>
+          <div class="worked__row">
+            <span class="worked__n">4</span>
+            <p class="worked__c">
+              Its three toppings, tomato, mozzarella and basil, mirror a national flag.
+              <span class="worked__why">Trades the story for the ingredients. Solvable from here.</span>
+            </p>
+          </div>
+          <div class="worked__row">
+            <span class="worked__n">5</span>
+            <p class="worked__c">
+              The world&rsquo;s most famous flatbread, best from a wood-fired oven.
+              <span class="worked__why">Everything but the name.</span>
+            </p>
+          </div>
+        </div>
+
+        <p>
+          Rung 3 carries the heaviest load, so it is the rung the spec is strictest about. A player
+          who loses the round should still come away with the queen and the flag, because that is the
+          part they repeat to somebody at lunch. Rungs 1 and 5 read as constraints more than as
+          prose: one must not narrow the map too far, the other must leave nothing but the name.
+          Judging whether a clue belongs on its rung takes about ten seconds, and that is the
+          property I was after.
+        </p>
+
+        <h3>The fiction carries the interface</h3>
+        <div class="split">
+          <div>
+            <p>
+              Each piece of interface takes the name it would have in a diner, and those names do
+              work a tutorial would otherwise have to do. Nobody needs telling what a receipt is for.
+            </p>
+            <div class="tablewrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>In the fiction</th>
+                    <th>What it is</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td><b>The Special</b></td><td>Today&rsquo;s puzzle. One dish, every player, worldwide.</td></tr>
+                  <tr><td><b>A clue ticket</b></td><td>The rung the kitchen hands you after a miss.</td></tr>
+                  <tr><td><b>The check</b></td><td>End of round: result, streak, share.</td></tr>
+                  <tr><td><b>Leftovers</b></td><td>The archive of days you missed.</td></tr>
+                  <tr><td><b>Chef&rsquo;s Choice</b></td><td>A random dish, no stakes, no streak.</td></tr>
+                  <tr><td><b>A note from the kitchen</b></td><td>An announcement from me to players.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <div class="receipt reveal">
+              <p class="receipt__h">🛎️ LUNCH SPECIAL</p>
+              <p class="receipt__sub" style="text-align: center; margin: 0; color: var(--ink-mute); font-size: 0.72rem">
+                No. 29 &middot; solved in 5
+              </p>
+              <div class="receipt__r"></div>
+              <p class="receipt__g">
+                Lunch Special #29 — 5/6<br />
+                ⬜⬜🟩🟩 5/8🥄<br />
+                ⬜⬜🟩⬜ 1/8🥄<br />
+                ⬜🟩🟩⬜ 2/8🥄<br />
+                🟨⬜🟩🟩 3/8🥄<br />
+                🟩🟩🟩🟩 🛎️
+              </p>
+              <div class="receipt__r"></div>
+              <p style="margin: 0; font-size: 0.72rem; color: var(--ink-mute); max-width: none">
+                lunchspecial.app
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p>
+          I specified that card before the feedback system and before the schema. A daily game with
+          no shareable result has no distribution, so the shape of an emoji grid became a hard
+          constraint on what the feedback was allowed to be: four tiles to a row, one pantry count,
+          no dish names, and nothing that spoils the answer for whoever reads it over breakfast. For
+          most people the card is the only part of this game they will see, which is a decent
+          argument for designing it first.
+        </p>
+
+        <div class="takeaway reveal">
+          <span class="takeaway__k">Takeaway</span>
+          <p>
+            Narrative design here is a production system. A fixed dramatic order keeps
+            <span class="js-clues">1,820</span> clues consistent with each other, and the fiction
+            absorbs most of the tutorial.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================
+         03 · STACK
+         ========================================================== -->
+    <section id="stack">
+      <div class="wrap">
+        <div class="shead reveal">
+          <span class="shead__n">03</span>
+          <h2 class="shead__t">The stack, and what each choice bought</h2>
+          <span class="shead__k">hono · react · react-dom · discord sdk</span>
+        </div>
+
+        <p>
+          A ladder that makes a dish a day routine is worth nothing if shipping that dish takes a
+          week. So every choice below buys the same thing: the shortest distance one person can
+          manage between having an idea and watching it get measured. One Cloudflare Worker serves
+          the React bundle, answers the API and queries a SQLite database on the same platform.
+          There is no second service to keep warm and no deploy that half succeeds. The whole game
+          runs on four runtime dependencies, listed above.
+        </p>
+
+        <div class="tablewrap reveal">
+          <table>
+            <thead>
+              <tr>
+                <th>The goal it serves</th>
+                <th>Choice</th>
+                <th>What it bought</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="t-goal">Idea to live in an evening</td>
+                <td class="t-choice">One Worker: React SPA, Hono API, D1</td>
+                <td>One deployable artefact. Nothing to orchestrate between two services, and no state where half the release landed.</td>
+              </tr>
+              <tr>
+                <td class="t-goal">Playtesting that is not lying to me</td>
+                <td class="t-choice"><code>@cloudflare/vite-plugin</code>, worker in workerd locally</td>
+                <td>My laptop and production run the same engine. No mock API to drift out of sync, so what I feel in a playtest is what players get.</td>
+              </tr>
+              <tr>
+                <td class="t-goal">A mistyped region must fail loudly</td>
+                <td class="t-choice">D1 with column-level CHECK constraints</td>
+                <td>A bad enum becomes a failed insert instead of a tile that never matches anything again and never says why.</td>
+              </tr>
+              <tr>
+                <td class="t-goal">No sign-up between a player and the game</td>
+                <td class="t-choice">No accounts. Player state in localStorage</td>
+                <td>Nothing personal to defend. The cost is real and I state it throughout: every audience figure here counts devices, not people.</td>
+              </tr>
+              <tr>
+                <td class="t-goal">A second audience without a second product</td>
+                <td class="t-choice">Discord Activity on the same deploy</td>
+                <td>One dynamically-imported file, loaded only inside the iframe. Web visitors never download the SDK.</td>
+              </tr>
+              <tr>
+                <td class="t-goal">Shipping without babysitting</td>
+                <td class="t-choice"><b>CI/CD</b>: GitHub Actions, CodeQL, Dependabot</td>
+                <td>A pushed tag runs the tests, the typecheck, the migrations and the deploy. Releasing on a weeknight is a five-minute decision.</td>
+              </tr>
+              <tr>
+                <td class="t-goal">Knowing whether the change worked</td>
+                <td class="t-choice"><b>Analytics and an experiment log</b>, in the admin panel</td>
+                <td>Measurement ships as part of the product. A daily game without it is one you tune by feel, which is how I got the difficulty wrong the first time.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="diagram reveal">
+          <p class="diagram__k">Request path</p>
+          <svg viewBox="0 0 920 240" role="img" aria-label="A browser or Discord iframe calls one Cloudflare Worker, which serves static assets, a Hono API and stateless HMAC auth, and queries a D1 database.">
+            <rect class="d-box" x="8" y="80" width="152" height="82" rx="9" />
+            <text class="d-t" x="84" y="112" text-anchor="middle">Browser</text>
+            <text class="d-s" x="84" y="130" text-anchor="middle">lunchspecial.app</text>
+            <text class="d-s" x="84" y="144" text-anchor="middle">or a Discord iframe</text>
+
+            <path class="d-line d-flow" d="M164 121 H 196" stroke-dasharray="7 5" />
+            <path class="d-arrow" d="M196 116 l 9 5 l -9 5 z" />
+
+            <rect x="206" y="44" width="470" height="154" rx="13" fill="none" stroke="var(--mustard)" stroke-width="1.5" stroke-dasharray="6 5" />
+            <text class="d-s" x="222" y="66" fill="var(--mustard)">ONE WORKER, AT THE EDGE</text>
+
+            <rect class="d-box" x="220" y="80" width="140" height="102" rx="9" />
+            <text class="d-t" x="290" y="118" text-anchor="middle">Static assets</text>
+            <text class="d-s" x="290" y="136" text-anchor="middle">SPA, fonts, art</text>
+            <text class="d-s" x="290" y="150" text-anchor="middle">no Worker wake</text>
+
+            <rect class="d-box" x="370" y="80" width="140" height="102" rx="9" />
+            <text class="d-t" x="440" y="118" text-anchor="middle">Hono API</text>
+            <text class="d-s" x="440" y="136" text-anchor="middle">/api/* only</text>
+            <text class="d-s" x="440" y="150" text-anchor="middle">guesses, beacons</text>
+
+            <rect class="d-box" x="520" y="80" width="140" height="102" rx="9" />
+            <text class="d-t" x="590" y="118" text-anchor="middle">HMAC auth</text>
+            <text class="d-s" x="590" y="136" text-anchor="middle">stateless cookie</text>
+            <text class="d-s" x="590" y="150" text-anchor="middle">admin + preview</text>
+
+            <path class="d-line d-flow" d="M682 121 H 714" stroke-dasharray="7 5" />
+            <path class="d-arrow" d="M714 116 l 9 5 l -9 5 z" />
+
+            <rect class="d-box d-box--band" x="728" y="80" width="184" height="82" rx="9" />
+            <text class="d-t d-t--inv" x="820" y="108" text-anchor="middle">D1 (SQLite)</text>
+            <text class="d-s d-s--inv" x="820" y="126" text-anchor="middle">dishes, clues, schedule,</text>
+            <text class="d-s d-s--inv" x="820" y="140" text-anchor="middle">telemetry, experiments</text>
+          </svg>
+        </div>
+
+        <p class="note">
+          Only <code>/api/*</code> wakes the Worker. The board itself is a static file, so loading
+          the game costs nothing and only a guess spends compute.
+        </p>
+
+        <div class="takeaway reveal">
+          <span class="takeaway__k">Takeaway</span>
+          <p>
+            Four runtime dependencies and one deployable artefact. I kept the stack unambitious so
+            the time could go into the menu.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================
+         04 · ENGINEERING
+         ========================================================== -->
+    <section id="engineering">
+      <div class="wrap">
+        <div class="shead reveal">
+          <span class="shead__n">04</span>
+          <h2 class="shead__t">How it was engineered</h2>
+          <span class="shead__k">302 tests · 20 files</span>
+        </div>
+
+        <p>
+          The game engine took a few days. Everything since has been the apparatus around it,
+          because you operate a daily game rather than finish it. I built each station once the one
+          before it started asking questions I could not answer. Authoring got a CMS once writing
+          dishes as raw SQL stopped being funny, and that same panel took over the schedule when I
+          lost track of what was booked. Measurement arrived the week I admitted I had no idea
+          whether the puzzles were too easy.
+        </p>
+
+        <div class="diagram reveal">
+          <p class="diagram__k">One turn of the loop</p>
+          <svg viewBox="0 0 520 420" role="img" aria-label="A closed six-station loop: author, schedule, play, measure, hypothesise, ship, returning to author.">
+            <circle class="ring-path d-flow" cx="260" cy="200" r="150" stroke-dasharray="9 7" />
+
+            <text x="260" y="192" text-anchor="middle" class="d-s" style="font-size: 10px; letter-spacing: 0.18em">ONE TURN</text>
+            <text x="260" y="210" text-anchor="middle" class="d-s" style="font-size: 10px; letter-spacing: 0.18em">OF THE LOOP</text>
+
+            <g class="ring-station">
+              <circle cx="260" cy="50" r="47" />
+              <text class="ring-n" x="260" y="38" text-anchor="middle">01</text>
+              <text x="260" y="54" text-anchor="middle">Author</text>
+              <text class="ring-d" x="260" y="68" text-anchor="middle">dish + 5 clues</text>
+            </g>
+            <g class="ring-station">
+              <circle cx="390" cy="125" r="47" />
+              <text class="ring-n" x="390" y="113" text-anchor="middle">02</text>
+              <text x="390" y="129" text-anchor="middle">Schedule</text>
+              <text class="ring-d" x="390" y="143" text-anchor="middle">30 days out</text>
+            </g>
+            <g class="ring-station">
+              <circle cx="390" cy="275" r="47" />
+              <text class="ring-n" x="390" y="263" text-anchor="middle">03</text>
+              <text x="390" y="279" text-anchor="middle">Play</text>
+              <text class="ring-d" x="390" y="293" text-anchor="middle">web + Discord</text>
+            </g>
+            <g class="ring-station">
+              <circle cx="260" cy="350" r="47" />
+              <text class="ring-n" x="260" y="338" text-anchor="middle">04</text>
+              <text x="260" y="354" text-anchor="middle">Measure</text>
+              <text class="ring-d" x="260" y="368" text-anchor="middle">4 beacons</text>
+            </g>
+            <g class="ring-station">
+              <circle cx="130" cy="275" r="47" />
+              <text class="ring-n" x="130" y="263" text-anchor="middle">05</text>
+              <text x="130" y="279" text-anchor="middle">Hypothesise</text>
+              <text class="ring-d" x="130" y="293" text-anchor="middle">metric first</text>
+            </g>
+            <g class="ring-station">
+              <circle cx="130" cy="125" r="47" />
+              <text class="ring-n" x="130" y="113" text-anchor="middle">06</text>
+              <text x="130" y="129" text-anchor="middle">Ship</text>
+              <text class="ring-d" x="130" y="143" text-anchor="middle">tag → live</text>
+            </g>
+          </svg>
+        </div>
+
+        <h3>A release starts with a tag</h3>
+        <p>
+          Everything after the tag runs without me. Migrations go before the deploy, so the schema is
+          never behind the code expecting it.
+        </p>
+
+        <div class="diagram reveal">
+          <p class="diagram__k">CI/CD · git tag v1.1.0 &amp;&amp; git push origin v1.1.0</p>
+          <div class="pipe">
+            <div class="pipe__step" style="--i: 0">
+              <span class="pipe__n">Trigger</span>
+              <span class="pipe__t">Push a v* tag</span>
+              <span class="pipe__d">deploy.yml</span>
+            </div>
+            <div class="pipe__step" style="--i: 1">
+              <span class="pipe__n">Gate 1</span>
+              <span class="pipe__t">Tests</span>
+              <span class="pipe__d">302 across 20 files</span>
+            </div>
+            <div class="pipe__step" style="--i: 2">
+              <span class="pipe__n">Gate 2</span>
+              <span class="pipe__t">Typecheck</span>
+              <span class="pipe__d">tsc -b, 3 projects</span>
+            </div>
+            <div class="pipe__step" style="--i: 3">
+              <span class="pipe__n">Schema</span>
+              <span class="pipe__t">Migrate D1</span>
+              <span class="pipe__d">additive, idempotent</span>
+            </div>
+            <div class="pipe__step pipe__step--go" style="--i: 4">
+              <span class="pipe__n">Release</span>
+              <span class="pipe__t">Deploy the Worker</span>
+              <span class="pipe__d">one artefact</span>
+            </div>
+          </div>
+          <div class="surfaces">
+            <div class="surface">
+              <b>🌐 lunchspecial.app</b>
+              <span>the public game</span>
+            </div>
+            <div class="surface">
+              <b>🎮 The Discord Activity</b>
+              <span>same build, framed through Discord&rsquo;s proxy</span>
+            </div>
+          </div>
+        </div>
+
+        <p>
+          The Activity rides that same artefact. Discord does not host the code. It frames
+          lunchspecial.app through its proxy under a URL mapping, so the tag that ships the website
+          ships the Activity, and the only Discord-specific code is one file the browser fetches
+          after it spots the iframe. Two more workflows carry the routine load: tests and typecheck
+          on every pull request, and a weekly security scan across the repository.
+        </p>
+
+        <h3>The tool I built for the writer, who happens to be me</h3>
+        <p>
+          What I keep calling the admin panel is one page behind a password, and it has two halves.
+          One is a <strong>CMS</strong>, a content management system: the place a dish and its five
+          clues get written, validated and booked onto a date, doing the job for a menu that a
+          newsroom tool does for articles. The other half is the dashboard that measures what
+          players then do with them. Everything in the section above comes off that second half;
+          the first is the one I would point at if you asked what I would bring to a content team.
+        </p>
+        <p>
+          The CMS authors a dish against a live preview of the real board, so I see the tiles a
+          player will see before the dish is ever scheduled. It refuses to book a dish carrying
+          fewer than three ingredients or anything other than five clues, which turns the ladder
+          from a rule I have to remember into a rule the tool enforces. It books the calendar 30
+          days out, by hand or by an autofill that skips whatever has been served in the last 60
+          days.
+        </p>
+        <p>
+          None of that was necessary for one author. I built it as though somebody else would use
+          it, because a schedule I keep in my head stops working the moment there are two of us, and
+          because the constraints worth encoding are exactly the ones I would otherwise have to
+          explain to every new writer.
+        </p>
+
+        <h3>Talking to players without shipping a build</h3>
+        <p>
+          The same panel posts notices. A note from the kitchen gets written, dated and aimed at an
+          audience from the admin side, and putting one up is not a release. That is the difference
+          between a game I operate and a game I redeploy.
+        </p>
+        <p>
+          One rule governs where they land. A notice appears on Today&rsquo;s Special and nowhere
+          else, never on a Leftover, a Chef&rsquo;s Choice or a playtest, because those are side
+          doors and somebody replaying a Thursday from three weeks ago did not come for an
+          announcement. A first-timer gets the how-to first and the notice behind it. The card also
+          drops in from above and bounces, where every other modal in the game rises from the
+          bottom, so a player can tell a notice from their check before reading either. Afterwards
+          the panel reports how many devices saw it, split by surface, which is the only way to
+          find out whether a notice was read or merely posted.
+        </p>
+
+        <div class="notice-fig">
+          <div class="notice-stage">
+            <div class="notice-card">
+              <div class="notice-card__in">
+                <p class="notice-card__eyebrow">
+                  A note from the kitchen<span class="notice-card__count">1 of 2</span>
+                </p>
+                <h4 class="notice-card__title">Thirteen new dishes on the menu</h4>
+                <p class="notice-card__body">
+                  Every one of them arrived through the <strong>suggest a dish</strong> form on your
+                  check, and each gets <a href="#numbers">credited</a> when it comes up as the
+                  Special. Keep them coming.
+                </p>
+              </div>
+              <div class="notice-card__foot">
+                <button class="notice-card__ok" type="button" tabindex="-1">Back to the Special</button>
+              </div>
+            </div>
+            <button class="notice-replay" id="notice-replay" type="button">↻ Play it again</button>
+          </div>
+
+          <div class="notice-where">
+            <p class="notice-where__k">Where a notice appears</p>
+            <ul>
+              <li class="yes">Today&rsquo;s Special</li>
+              <li class="no">Leftovers</li>
+              <li class="no">Chef&rsquo;s Choice</li>
+              <li class="no">Preview &amp; playtest</li>
+            </ul>
+            <p class="notice-where__note">
+              The bottom three are side doors, and a notice waiting behind one of them would
+              interrupt somebody who came for a different reason.
+            </p>
+          </div>
+        </div>
+
+        <h3>The arithmetic is separated from the database</h3>
+        <p>
+          Queries need a database. Arithmetic does not. Every number on this page comes out of a
+          pure function that takes rows and returns a shape, which is why 302 tests sit behind them
+          and why I trust a chart I have never eyeballed. The public endpoint this page reads runs
+          <strong>the same folds</strong> as my private dashboard, so the two cannot drift into
+          quoting different numbers at each other.
+        </p>
+
+        <h3>One trade-off, made with my eyes open</h3>
+        <p>
+          The client keeps the round&rsquo;s bookkeeping and asks for the reveal after game over, the
+          way Wordle does. Anyone determined can read the answer out of a network tab. Closing that
+          needs server-side sessions, and therefore accounts. The cheat costs one player their own
+          round; the account system would cost every player a sign-up.
+        </p>
+
+        <div class="takeaway reveal">
+          <span class="takeaway__k">Takeaway</span>
+          <p>
+            A daily game is an operation rather than a launch. I built the stations in the order the
+            game demanded them.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================
+         05 · THE NUMBERS
+         ========================================================== -->
+    <section id="numbers">
+      <div class="wrap">
+        <div class="shead reveal">
+          <span class="shead__n">05</span>
+          <h2 class="shead__t">What the numbers say</h2>
+          <span class="shead__k">read live</span>
+        </div>
+
+        <p>
+          Everything below comes out of production the moment you load this page. The audience is
+          small and self-selected: <span class="js-rounds">836</span> rounds from
+          <span class="js-devices">270</span> devices, of whom
+          <span class="js-ret2">54</span> came back on a second day. Read it as a method and a first
+          result rather than a finding about daily games in general.
+        </p>
+        <p>
+          At this size the honest problem is that a rate off 12 completions and a rate off 400 look
+          identical printed. So any rate I quote from fewer than 30 observations carries its 95%
+          interval, and nothing else does, because an interval on every number teaches you to skip
+          them. The intervals are Wilson rather than the textbook formula, because this game lives
+          exactly where the textbook one fails: tiny samples, and rates pinned near 0 or 1, where it
+          returns an interval of zero width. The most confident thing a small dashboard can print is
+          usually the most wrong.
+        </p>
+
+        <div class="chart">
+          <div class="chart__h"><p class="chart__t" id="reach-head">Where the counter reaches</p></div>
+          <p class="chart__sub" id="reach-sub">one country per device, all time</p>
+          <div class="reach">
+            <div class="reach__map">
+              <svg viewBox="0 0 1000 389" role="img" aria-labelledby="reach-head">
+                <g class="grat">
+                  <line x1="0" y1="94.4" x2="1000" y2="94.4" />
+                  <line x1="0" y1="233.3" x2="1000" y2="233.3" />
+                  <line x1="333.3" y1="0" x2="333.3" y2="389" />
+                  <line x1="666.7" y1="0" x2="666.7" y2="389" />
+                </g>
+                <g>
+                  <path class="land" d="M33.3 50.0 L66.7 36.1 L138.9 38.9 L194.4 41.7 L236.1 33.3 L277.8 27.8 L322.2 61.1 L352.8 94.4 L316.7 111.1 L291.7 133.3 L275.0 161.1 L250.0 152.8 L230.6 161.1 L247.2 188.9 L266.7 205.6 L283.3 211.1 L255.6 194.4 L208.3 177.8 L183.3 155.6 L163.9 136.1 L152.8 108.3 L130.6 80.6 L88.9 66.7 L55.6 77.8 L38.9 66.7 Z" />
+                  <path class="land" d="M275.0 211.1 L302.8 200.0 L333.3 205.6 L358.3 222.2 L377.8 238.9 L402.8 250.0 L391.7 280.6 L366.7 302.8 L344.4 327.8 L327.8 344.4 L316.7 361.1 L305.6 383.3 L291.7 372.2 L297.2 350.0 L302.8 316.7 L305.6 283.3 L288.9 250.0 L277.8 233.3 Z" />
+                  <path class="land" d="M452.8 191.7 L466.7 161.1 L488.9 136.1 L527.8 130.6 L555.6 144.4 L588.9 147.2 L597.2 169.4 L619.4 200.0 L641.7 200.0 L625.0 233.3 L611.1 263.9 L597.2 294.4 L577.8 325.0 L552.8 330.6 L536.1 297.2 L525.0 250.0 L505.6 222.2 L477.8 222.2 L463.9 211.1 Z" />
+                  <path class="land" d="M472.2 133.3 L475.0 111.1 L488.9 100.0 L505.6 91.7 L519.4 86.1 L525.0 75.0 L513.9 66.7 L533.3 52.8 L555.6 38.9 L583.3 36.1 L613.9 47.2 L625.0 72.2 L616.7 94.4 L600.0 105.6 L580.6 108.3 L566.7 119.4 L544.4 119.4 L533.3 127.8 L525.0 111.1 L508.3 116.7 L491.7 133.3 Z" />
+                  <path class="land" d="M625.0 72.2 L661.1 38.9 L700.0 30.6 L750.0 22.2 L791.7 19.4 L833.3 30.6 L875.0 33.3 L916.7 38.9 L958.3 47.2 L1000.0 50.0 L1000.0 66.7 L952.8 72.2 L922.2 94.4 L894.4 111.1 L866.7 136.1 L838.9 150.0 L830.6 172.2 L805.6 180.6 L791.7 205.6 L780.6 227.8 L769.4 211.1 L755.6 186.1 L741.7 175.0 L722.2 200.0 L702.8 180.6 L683.3 169.4 L666.7 166.7 L655.6 161.1 L638.9 152.8 L627.8 133.3 L613.9 116.7 L625.0 100.0 Z" />
+                  <path class="land" d="M763.9 219.4 L791.7 230.6 L811.1 241.7 L833.3 250.0 L861.1 244.4 L891.7 241.7 L916.7 250.0 L891.7 258.3 L861.1 255.6 L827.8 258.3 L800.0 252.8 L777.8 233.3 Z" />
+                  <path class="land" d="M813.9 294.4 L819.4 325.0 L838.9 327.8 L863.9 322.2 L883.3 330.6 L908.3 338.9 L916.7 327.8 L925.0 311.1 L905.6 286.1 L894.4 263.9 L875.0 266.7 L858.3 275.0 L838.9 283.3 Z" />
+                  <path class="land" d="M375.0 66.7 L355.6 50.0 L347.2 33.3 L375.0 16.7 L416.7 5.6 L444.4 19.4 L430.6 38.9 L394.4 58.3 Z" />
+                </g>
+                <g id="reach-dots"></g>
+              </svg>
+            </div>
+            <div class="reach__list">
+              <p class="reach__k">Most players first</p>
+              <div id="reach-rows"></div>
+              <p class="reach__more" id="reach-more"></p>
+            </div>
+          </div>
+          <p class="chart__note" id="reach-note"></p>
+        </div>
+
+        <div class="chart reveal">
+          <div class="chart__h">
+            <p class="chart__t">Guesses needed to solve</p>
+          </div>
+          <p class="chart__sub" id="dist-sub">610 solved rounds · 124 more ran out of guesses</p>
+          <div class="bars" id="chart-dist"></div>
+          <div class="legend">
+            <span><i style="background: var(--ev-start)"></i>Solved</span>
+            <span><i style="background: var(--ev-finish)"></i>Ran out of guesses</span>
+          </div>
+          <p class="chart__note">
+            The full six-guess budget gets used and a real share of rounds end unsolved, which is
+            the shape I wanted and did not have at launch. See the third finding below.
+          </p>
+        </div>
+
+        <div class="charts2">
+          <div class="chart reveal">
+            <div class="chart__h"><p class="chart__t">Which entrance players use</p></div>
+            <p class="chart__sub">rounds started, by mode</p>
+            <div class="bars" id="chart-modes"></div>
+            <p class="chart__note" id="modes-note"></p>
+          </div>
+
+          <div class="chart reveal">
+            <div class="chart__h"><p class="chart__t">Where players drop off</p></div>
+            <p class="chart__sub" id="funnel-sub">devices, pooled over the days arrivals have been measured</p>
+            <div class="bars" id="chart-funnel"></div>
+            <p class="chart__note">
+              Every stage counts devices rather than rounds, which is the only reason this is allowed
+              to be a funnel. One player doing the Special plus three Leftovers is one arrival and
+              four starts, and stacked as stages those numbers would grow as they descend.
+            </p>
+          </div>
+        </div>
+
+        <h3>That top row cost me a release, and I had the definition right</h3>
+        <p>
+          A round counts as started on the player&rsquo;s first submitted guess. Opening a page is
+          not playing a game, and I still think that is the correct definition. It also meant that
+          everyone who arrived and never guessed was invisible to me. Games started was the widest
+          number I had, with nothing above it, so a change that doubled interest while halving
+          conversion would have looked identical to no change at all.
+        </p>
+        <p>
+          One row per device per ET day closed it, and the <em>Arrived</em> row above is what that
+          bought. The rows underneath it changed meaning at the same time: the first row counts
+          people and every row below counts games, so dividing one straight into the other reports
+          play rates over 100%. Both rows name their unit for that reason. I also had to give the
+          admin panel a way to delete its own play-testing, because at tens of rounds a day one
+          person reloading the game to check a change writes arrival rows and nothing else, and
+          those rows read as pure bounce in the funnel I had built the week before.
+        </p>
+
+        <div class="chart reveal">
+          <div class="chart__h"><p class="chart__t">Games played, running total</p></div>
+          <p class="chart__sub">every mode together, since the first recorded round</p>
+          <div id="chart-growth"></div>
+          <div class="legend">
+            <span><i style="background: var(--ev-start)"></i>Running total</span>
+            <span><i class="dash"></i>Constant-pace reference</span>
+          </div>
+          <p class="chart__note">
+            A cumulative curve can only rise, so the fact it goes up carries no information. The bend
+            does. The dashed line is the same run at one constant pace, fitted by least squares, and
+            the curve pulling above it means the game is gaining. Without that reference every
+            cumulative chart looks like success.
+          </p>
+        </div>
+
+        <h3>Three things I did not expect</h3>
+        <div class="cards reveal">
+          <div class="finding">
+            <span class="finding__k">Finding 01</span>
+            <p class="finding__t">The archive became a third of all play</p>
+            <p>
+              I built Leftovers as a courtesy for anyone who found the game late. Together with
+              Chef&rsquo;s Choice it now accounts for <b class="js-optional">37%</b> of every round
+              played, and <b class="js-optfinish">94%</b> of those rounds run to the end, against
+              <b class="js-dailyfinish">84%</b> for the Special itself.
+            </p>
+            <p style="margin-top: 9px">
+              <b>So:</b> I stopped treating the archive as an accessory. It now unlocks the moment
+              today&rsquo;s check is settled rather than sitting behind a menu, and the dish report
+              in my dashboard counts a Leftover as a genuine first attempt at that dish, which
+              tripled the sample behind every per-dish difficulty read.
+            </p>
+          </div>
+          <div class="finding">
+            <span class="finding__k">Finding 02</span>
+            <p class="finding__t">The Discord Activity out-recruits the website</p>
+            <p>
+              Discord reaches <b class="js-dc-dev">145</b> devices against the web&rsquo;s
+              <b class="js-web-dev">126</b>, off <b class="js-dc-rounds">323</b> rounds against
+              <b class="js-web-rounds">513</b>. More people, each playing less. The embed recruits
+              and the website is where the habit forms.
+            </p>
+            <p style="margin-top: 9px">
+              <b>So:</b> I built the loop that suits recruiting rather than the one that suits
+              retention. A player&rsquo;s first guess posts one message into the channel they
+              launched from, showing their board and a button to play; every later guess edits that
+              same message, so a whole round costs the channel one post. I am watching whether it
+              converts, and it is the next thing I will log as an experiment.
+            </p>
+          </div>
+          <div class="finding">
+            <span class="finding__k">Finding 03</span>
+            <p class="finding__t">The menu was too easy, and the data said so before I did</p>
+            <p>
+              Mean solve sat at 2.8 guesses. The sixth guess went unused and the last two clue rungs
+              went unread, which meant I had written content nobody reached. The pool skewed toward
+              globally famous dishes, good for a launch and wrong by week four. I added 60 dishes
+              chosen to close the gaps. Mean is now <b class="js-avg">3.2</b>, the budget gets spent,
+              and <b class="js-loss">17%</b> of finished rounds end unsolved.
+            </p>
+          </div>
+        </div>
+
+        <div class="takeaway reveal">
+          <span class="takeaway__k">Takeaway</span>
+          <p>
+            The instrument told me the game was too easy and that my courtesy feature was carrying a
+            third of the play. Neither was visible from inside the design.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================
+         06 · THE EXPERIMENT
+         ========================================================== -->
+    <section id="experiment" class="exp">
+      <div class="wrap">
+        <div class="shead reveal">
+          <span class="shead__n">06</span>
+          <h2 class="shead__t">One change, logged before I shipped it</h2>
+          <span class="shead__k">verdict · 14-day window</span>
+        </div>
+
+        <p>
+          Every chart above says what happened. None of them says whether I caused it. So the
+          database also holds a change log: one row per deliberate change, carrying what I expected
+          and which metric it was meant to move, both written down before the change went out. The
+          dashboard splits the daily series at the ship date and compares the halves.
+        </p>
+
+        <div class="check reveal" id="check">
+          <p class="check__h">🛎️ THE CHECK</p>
+          <p class="check__sub">Experiment log &middot; shipped 26 Jul 2026</p>
+
+          <div class="check__line">
+            <b>Change</b><span class="check__leader"></span><span>Schedule the menu from the mix panel, not by feel</span>
+          </div>
+          <div class="check__line">
+            <b>Metric, named up front</b><span class="check__leader"></span><span>Finish rate</span>
+          </div>
+          <div class="check__line">
+            <b>Window, fixed in advance</b><span class="check__leader"></span><span>14 days after the ship date</span>
+          </div>
+          <div class="check__line">
+            <b>Before period</b><span class="check__leader"></span><span>8 days: everything the game had</span>
+          </div>
+
+          <div class="check__rule"></div>
+
+          <div class="ba">
+            <div class="ba__side ba__side--before">
+              <span class="ba__k">Before · 8 days</span>
+              <span class="ba__n">81%</span>
+              <div class="ba__meter"><span class="ba__fill" data-w="81"></span></div>
+              <span class="ba__ci">95% CI 76–85% · 312 rounds</span>
+            </div>
+            <div class="ba__side ba__side--after">
+              <span class="ba__k">After · 14 days</span>
+              <span class="ba__n">91%</span>
+              <div class="ba__meter"><span class="ba__fill" data-w="91"></span></div>
+              <span class="ba__ci">95% CI 88–93% · 404 rounds</span>
+            </div>
+          </div>
+
+          <div class="check__rule"></div>
+          <p class="verdict">MOVED UP</p>
+          <p style="text-align: center; margin: 0; font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-mute); max-width: none">
+            intervals do not overlap
+          </p>
+        </div>
+
+        <p>
+          I had picked the schedule for variety by instinct until this day. From here I booked it
+          against the menu-mix panel, which compares the region, course, protein and temperature
+          ratios of what I have served against the pool those dishes are drawn from. More of the
+          board became guessable from the tiles alone, and more players reached the end.
+        </p>
+
+        <h3>The two windows are not the same length, and that is not a choice</h3>
+        <p>
+          The fixed 14 days applies to the after period, which is the half I could have gamed by
+          stopping on a good week. The before period is 8 days because the game was 8 days old when
+          I shipped the change, so that is the entire history that existed. An asymmetry I picked
+          would be a problem. This one is a ceiling, and the smaller sample sits on the side that
+          makes the result harder to claim rather than easier: the before period&rsquo;s interval is
+          the wider of the two, and the verdict still needed them not to overlap.
+        </p>
+
+        <h3>Why the after window gets fixed before the change ships</h3>
+        <p>
+          Read at 7 days instead of 14, the same comparison returns <strong>no change</strong>: 84%
+          against 89%, with intervals that overlap. Nothing about the game differs between those two
+          readings, only how much of the surrounding variation each window swallows. Choosing the
+          window after seeing the data means choosing the answer.
+        </p>
+
+        <div class="rules reveal">
+          <div class="rule-c">
+            <b>The metric is named first</b>
+            <span>Picked afterwards, it is whichever of the eight moved most. Reading a different one than the change was logged against prints a warning.</span>
+          </div>
+          <div class="rule-c">
+            <b>Rates are pooled, never averaged</b>
+            <span>Total solved over total completed. Averaging daily percentages lets a one-round Tuesday outvote a whole weekend.</span>
+          </div>
+          <div class="rule-c">
+            <b>Counts and rates get different tests</b>
+            <span>A count&rsquo;s noise is day-to-day spread. A rate&rsquo;s is binomial. Judging a share rate by how much traffic wobbled answers the wrong question.</span>
+          </div>
+          <div class="rule-c">
+            <b>&ldquo;Too early to tell&rdquo; is a verdict</b>
+            <span>At this volume it is the honest answer for a fortnight, and it arrives with an estimate of how many more days the change needs.</span>
+          </div>
+        </div>
+
+        <p class="note">
+          Finish rate was the metric because the arrivals beacon in the section above had made it
+          readable. Naming a metric up front only works when you can already measure the thing you
+          are about to name.
+        </p>
+
+        <div class="takeaway reveal">
+          <span class="takeaway__k">Takeaway</span>
+          <p>
+            I claim a change once it separates from ordinary variation, and the system tells me when
+            it cannot.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================
+         07 · WHAT TRANSFERS
+         ========================================================== -->
+    <section id="transfers">
+      <div class="wrap">
+        <div class="shead reveal">
+          <span class="shead__n">07</span>
+          <h2 class="shead__t">What of this transfers to a bigger game</h2>
+          <span class="shead__k">the honest version</span>
+        </div>
+
+        <p>
+          Lunch Special is one designer, one database and a few hundred players. I am not going to
+          pretend that is a shipped title. Three of the habits behind it are the reason I built it
+          this way, and those are what I would bring to a team.
+        </p>
+
+        <div class="cards reveal">
+          <div class="card">
+            <span class="card__k">Transfers 01</span>
+            <p class="card__t">A ladder is a content pipeline</p>
+            <p>
+              The five rungs exist so that a dish is a repeatable job rather than an inspiration. On
+              a bigger game the same artefact is what keeps six writers on one voice, and what lets
+              you cost a content month instead of guessing at it. I built the CMS to enforce it
+              rather than trusting anyone to remember it, and that includes me.
+            </p>
+          </div>
+          <div class="card">
+            <span class="card__k">Transfers 02</span>
+            <p class="card__t">A named metric settles an argument that seniority would otherwise settle</p>
+            <p>
+              Writing down the metric and the window before shipping costs ten minutes and removes
+              the move where everyone reads whichever number happened to move. On a team that is
+              worth more than it is solo, because solo the only person I can fool is me.
+            </p>
+          </div>
+          <div class="card">
+            <span class="card__k">Transfers 03</span>
+            <p class="card__t">An instrument that cannot say &ldquo;I don&rsquo;t know&rdquo; will say something else</p>
+            <p>
+              Unmeasured days stay blank, thin rates carry their intervals, and &ldquo;too early to
+              tell&rdquo; is a verdict with a date attached. The failure this prevents scales up
+              rather than down: a telemetry gap read as a player collapse is an expensive mistake
+              with a publisher in the room.
+            </p>
+          </div>
+        </div>
+
+        <h3>What this project does not show you</h3>
+        <p>
+          It does not show me working with other people, because there were none. I have never had
+          to defend a pre-registered metric to a producer who needs the number to move by Friday, or
+          hand this ladder to a writer whose instincts differ from mine and find out which parts of
+          it were load-bearing and which were just my taste. Those are the parts I want next, and
+          they are the reason I am looking at studios rather than at another solo project.
+        </p>
+
+        <div class="takeaway reveal">
+          <span class="takeaway__k">Takeaway</span>
+          <p>
+            The scale is small and the habits are not: write the rules down, build the tool that
+            enforces them, and measure the change you claimed you were making.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================
+         FOOTER
+         ========================================================== -->
+    <footer>
+      <div class="wrap foot">
+        <div>
+          <p class="foot__mark">🛎️ Lunch Special</p>
+          <p>
+            Designed, built, instrumented and run by Jacob Poteet. Art placeholders are
+            AI-generated and marked as such in the repository; the fonts are OFL.
+          </p>
+        </div>
+        <div class="foot__links">
+          <a href="https://lunchspecial.app">Play</a>
+          <a href="https://github.com/JacobPoteet/LunchSpecial">Source</a>
+          <a href="https://lunchspecial.app/press.html">Press kit</a>
+          <a href="mailto:jacobwilliampoteet@gmail.com">Contact</a>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        "use strict";
+
+        var REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var $ = function (s, r) { return (r || document).querySelector(s); };
+        var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+        var fmt = function (n) { return new Intl.NumberFormat("en-US").format(Math.round(n)); };
+        var pct = function (a, b) { return b > 0 ? Math.round((a / b) * 100) : 0; };
+
+        /* ==========================================================
+           1. DATA
+           The baked payload is a real snapshot, so the page still
+           states true numbers with the network off or blocked. The
+           fetch replaces it and marks which tiles moved.
+           ========================================================== */
+        var FALLBACK = {
+          headline: { dishes: 364, rounds: 836, completed: 734, solved: 610, shared: 121, avgGuesses: 3.239 },
+          devices: 270,
+          guessDistribution: [22, 199, 159, 114, 73, 43],
+          fails: 124,
+          modes: {
+            daily: { started: 527, completed: 445 },
+            leftover: { started: 209, completed: 195 },
+            random: { started: 100, completed: 94 }
+          },
+          surfaces: { web: { rounds: 513, devices: 126 }, discord: { rounds: 323, devices: 145 } },
+          funnel: { visited: 105, played: 82, finished: 77, shared: 28, playedAgain: 11, days: 7, since: "2026-08-08" },
+          daysPlayed: [270, 54, 31, 20, 12, 9, 8, 8, 7, 6, 5, 3, 3, 2, 1, 1, 1],
+          growth: {
+            days: [20, 85, 152, 177, 229, 262, 296, 312, 355, 365, 387, 408, 417, 449, 463, 483, 510,
+                   566, 592, 666, 705, 716, 726, 746, 765, 802, 813, 836].map(function (c, i) {
+              var d = new Date(Date.UTC(2026, 6, 18 + i));
+              return { date: d.toISOString().slice(0, 10), cumulative: c };
+            }),
+            trend: { slope: 28.49, first: 90.54, last: 859.67, days: 28, recentPerDay: 18.71, recentDays: 7 }
+          },
+          /* Empty on purpose. Every other figure here is a real snapshot taken
+             from production; this one has no snapshot to take, because the
+             endpoint did not carry countries when this page was written. An
+             invented one would be the only false number on the page. */
+          countries: { entries: [], rounds: 0, players: 0, untracked: 0 }
+        };
+
+        var DATA = FALLBACK;
+
+        /* ==========================================================
+           2. "BEING SERVED NOW" — no API, pure date arithmetic.
+           Mirrors shared/time.ts: the puzzle day rolls at midnight
+           in America/New_York for everyone, not at local midnight.
+           ========================================================== */
+        var EPOCH = "2026-07-17";
+        var etParts = function (d) {
+          var f = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit",
+            hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+          });
+          var o = {};
+          f.formatToParts(d).forEach(function (p) { o[p.type] = p.value; });
+          return o;
+        };
+        function tickServing() {
+          try {
+            var p = etParts(new Date());
+            var today = Date.UTC(+p.year, +p.month - 1, +p.day);
+            var e = EPOCH.split("-");
+            var no = Math.round((today - Date.UTC(+e[0], +e[1] - 1, +e[2])) / 86400000) + 1;
+            if (no < 1) return;
+            /* "24" is a legal hour24 value at midnight in some engines */
+            var h = +p.hour % 24, m = +p.minute, s = +p.second;
+            var left = (23 - h) * 3600 + (59 - m) * 60 + (60 - s);
+            var hh = Math.floor(left / 3600), mm = Math.floor((left % 3600) / 60);
+            $("#serving-no").textContent = "Special No. " + no;
+            $("#serving-in").textContent = hh > 0 ? hh + "h " + mm + "m" : mm + "m " + (left % 60) + "s";
+          } catch (err) {
+            var strip = $("#serving");
+            if (strip) strip.style.display = "none";
+          }
+        }
+
+        /* ==========================================================
+           3. HERO TILES
+           ========================================================== */
+        function countUp(el, to, suffix) {
+          if (REDUCED) { el.textContent = fmt(to) + (suffix || ""); return; }
+          var from = 0, start = null, dur = 1100;
+          function step(ts) {
+            if (start === null) start = ts;
+            var t = Math.min((ts - start) / dur, 1);
+            var eased = 1 - Math.pow(1 - t, 3);
+            el.textContent = fmt(from + (to - from) * eased) + (suffix || "");
+            if (t < 1) requestAnimationFrame(step);
+          }
+          requestAnimationFrame(step);
+        }
+
+        function returningRate(d) {
+          var dp = d.daysPlayed || [];
+          if (!dp.length || !dp[0]) return null;
+          return { rate: pct(dp[1] || 0, dp[0]), of: (dp[1] || 0), total: dp[0] };
+        }
+
+        function paintTiles(live) {
+          var h = DATA.headline, r = returningRate(DATA);
+          var vals = {
+            rounds: h.rounds,
+            dishes: h.dishes,
+            shared: h.shared,
+            returning: r ? r.rate : null
+          };
+          $$("#tiles .tile").forEach(function (tile) {
+            var key = tile.getAttribute("data-tile");
+            var v = vals[key];
+            if (v === null || v === undefined) return;
+            var n = $(".tile__n", tile);
+            countUp(n, v, n.getAttribute("data-suffix") || "");
+            if (live) tile.classList.add("is-live");
+          });
+
+          var set = function (sel, text) {
+            $$(sel).forEach(function (el) { el.textContent = text; });
+          };
+          set(".js-dishes", fmt(h.dishes));
+          set(".js-clues", fmt(h.dishes * 5));
+          set(".js-rounds", fmt(h.rounds));
+          set(".js-devices", fmt(DATA.devices));
+          if (r) {
+            set(".js-ret", fmt(r.of) + " of " + fmt(r.total));
+            set(".js-ret2", fmt(r.of));
+          }
+
+          set(".js-avg", (h.avgGuesses || 0).toFixed(1));
+          set(".js-loss", pct(DATA.fails, h.completed) + "%");
+
+          var m = DATA.modes;
+          var optional = m.leftover.started + m.random.started;
+          var optDone = m.leftover.completed + m.random.completed;
+          var all = m.daily.started + optional;
+          set(".js-optional", pct(optional, all) + "%");
+          set(".js-optfinish", pct(optDone, optional) + "%");
+          set(".js-dailyfinish", pct(m.daily.completed, m.daily.started) + "%");
+
+          var s = DATA.surfaces;
+          set(".js-dc-dev", fmt(s.discord.devices));
+          set(".js-web-dev", fmt(s.web.devices));
+          set(".js-dc-rounds", fmt(s.discord.rounds));
+          set(".js-web-rounds", fmt(s.web.rounds));
+        }
+
+        /* ==========================================================
+           4. CHARTS
+           ========================================================== */
+        function barRow(label, value, max, colour, sub, i) {
+          var w = max > 0 ? (value / max) * 100 : 0;
+          return '<div class="bar">' +
+            '<span class="bar__l">' + label + "</span>" +
+            '<div class="bar__track"><span class="bar__fill" style="--i:' + i + ";background:" + colour +
+            '" data-w="' + w.toFixed(1) + '"></span></div>' +
+            '<span class="bar__v">' + fmt(value) + (sub ? " <small>" + sub + "</small>" : "") + "</span>" +
+            "</div>";
+        }
+
+        function drawDistribution() {
+          var d = DATA.guessDistribution || [];
+          var max = Math.max.apply(null, d.concat([DATA.fails || 0]));
+          var html = "";
+          d.forEach(function (n, i) {
+            html += barRow((i + 1) + (i === 0 ? " guess" : " guesses"), n, max, "var(--ev-start)", "", i);
+          });
+          html += barRow("out of guesses", DATA.fails || 0, max, "var(--ev-finish)", "", 6);
+          $("#chart-dist").innerHTML = html;
+          $("#dist-sub").textContent =
+            fmt(DATA.headline.solved) + " solved rounds · " + fmt(DATA.fails) +
+            " more ran out of guesses · mean " + (DATA.headline.avgGuesses || 0).toFixed(1);
+        }
+
+        function drawModes() {
+          var m = DATA.modes;
+          var rows = [
+            ["Today's Special", m.daily, "var(--k-daily)"],
+            ["Leftovers", m.leftover, "var(--k-leftover)"],
+            ["Chef's Choice", m.random, "var(--k-random)"]
+          ];
+          var max = Math.max.apply(null, rows.map(function (r) { return r[1].started; }));
+          $("#chart-modes").innerHTML = rows.map(function (r, i) {
+            return barRow(r[0], r[1].started, max, r[2], pct(r[1].completed, r[1].started) + "% done", i);
+          }).join("");
+          var optional = m.leftover.started + m.random.started;
+          var all = m.daily.started + optional;
+          $("#modes-note").textContent =
+            "The two optional modes are " + pct(optional, all) +
+            "% of all rounds. I built the archive as a courtesy and it became a third of the game.";
+        }
+
+        function drawFunnel() {
+          var f = DATA.funnel;
+          var host = $("#chart-funnel");
+          if (!f || f.visited === null) {
+            /* An unmeasured top is not a funnel. Say so instead of drawing a zero. */
+            host.innerHTML = '<p class="chart__note" style="margin:0">Arrivals were not measured over this window, so the funnel has no top row to draw.</p>';
+            return;
+          }
+          var rows = [
+            ["Arrived", f.visited, "var(--ink-mute)"],
+            ["Played", f.played, "var(--ev-start)"],
+            ["Finished", f.finished, "var(--ev-finish)"],
+            ["Shared", f.shared, "var(--ev-share)"],
+            ["Played again", f.playedAgain, "var(--ev-start)"]
+          ];
+          host.innerHTML = rows.map(function (r, i) {
+            return barRow(r[0], r[1], f.visited, r[2], pct(r[1], f.visited) + "%", i);
+          }).join("");
+          $("#funnel-sub").textContent =
+            "devices, pooled over the " + f.days + " days arrivals have been measured (since " + f.since + ")";
+        }
+
+        function drawGrowth() {
+          var g = DATA.growth;
+          if (!g || !g.days || g.days.length < 2) return;
+          var days = g.days, n = days.length;
+          var W = 900, H = 250, L = 46, R = 14, T = 14, B = 30;
+          var pw = W - L - R, ph = H - T - B;
+          var max = days[n - 1].cumulative || 1;
+          var x = function (i) { return L + (i / (n - 1)) * pw; };
+          var y = function (v) { return T + ph - (v / max) * ph; };
+
+          var pts = days.map(function (d, i) { return x(i) + "," + y(d.cumulative); });
+          var line = "M" + pts.join(" L");
+          var area = line + " L" + x(n - 1) + "," + (T + ph) + " L" + L + "," + (T + ph) + " Z";
+
+          /* The least-squares fit through a rising curve routinely starts below
+             zero, so it is clipped to the plot rather than clamped to the axis:
+             pinning it would flatten the pace it exists to state. */
+          var t = g.trend || {};
+          var trend = "";
+          if (typeof t.first === "number" && typeof t.last === "number") {
+            trend = '<path d="M' + x(0) + "," + y(t.first) + " L" + x(n - 1) + "," + y(t.last) +
+              '" fill="none" stroke="var(--ink-mute)" stroke-width="1.6" stroke-dasharray="6 5" clip-path="url(#gclip)"/>';
+          }
+
+          var ticks = "";
+          [0, 0.5, 1].forEach(function (f) {
+            var v = Math.round(max * f), yy = y(v);
+            ticks += '<line x1="' + L + '" y1="' + yy + '" x2="' + (W - R) + '" y2="' + yy +
+              '" stroke="var(--grid)" stroke-width="1"/>' +
+              '<text x="' + (L - 8) + '" y="' + (yy + 4) + '" text-anchor="end" class="d-s">' + fmt(v) + "</text>";
+          });
+
+          $("#chart-growth").innerHTML =
+            '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Cumulative games played rising to ' +
+            fmt(max) + ' over ' + n + ' days, with a constant-pace reference line.">' +
+            '<defs><clipPath id="gclip"><rect x="' + L + '" y="' + T + '" width="' + pw + '" height="' + ph + '"/></clipPath>' +
+            '<linearGradient id="gfill" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="var(--ev-start)" stop-opacity="0.28"/>' +
+            '<stop offset="1" stop-color="var(--ev-start)" stop-opacity="0.02"/></linearGradient></defs>' +
+            ticks +
+            '<path d="' + area + '" fill="url(#gfill)"/>' +
+            trend +
+            '<path class="gline" d="' + line + '" pathLength="1" fill="none" stroke="var(--ev-start)" stroke-width="2.6" stroke-linejoin="round"/>' +
+            '<text x="' + L + '" y="' + (H - 8) + '" class="d-s">' + days[0].date.slice(5) + "</text>" +
+            '<text x="' + (W - R) + '" y="' + (H - 8) + '" text-anchor="end" class="d-s">' + days[n - 1].date.slice(5) + "</text>" +
+            "</svg>";
+        }
+
+        /* ---- the reach map ----
+           Centroids only, projected at draw time with the same formula the
+           land paths were generated with. Codes with no centroid still count
+           toward the country total; they just have nowhere to sit. T1 (Tor)
+           and XX (unresolved) are Cloudflare's two non-countries and are
+           excluded from both, because neither is a place. */
+        var CENTROID = {
+          US: [-98, 39], CA: [-106, 56], MX: [-102, 23], GT: [-90, 15], CR: [-84, 10], PA: [-80, 9],
+          CU: [-78, 22], DO: [-70, 19], JM: [-77, 18], PR: [-66, 18],
+          BR: [-52, -12], AR: [-64, -35], CL: [-71, -33], CO: [-74, 4], PE: [-76, -10],
+          VE: [-66, 7], EC: [-78, -2], BO: [-64, -17], UY: [-56, -33], PY: [-58, -23],
+          GB: [-2, 54], IE: [-8, 53], FR: [2, 47], ES: [-4, 40], PT: [-8, 39], DE: [10, 51],
+          IT: [12, 43], NL: [5, 52], BE: [4, 51], CH: [8, 47], AT: [14, 47], PL: [19, 52],
+          CZ: [15, 50], SK: [19, 49], HU: [19, 47], RO: [25, 46], BG: [25, 43], GR: [22, 39],
+          SE: [15, 62], NO: [9, 61], FI: [26, 64], DK: [10, 56], IS: [-18, 65], EE: [26, 59],
+          LV: [25, 57], LT: [24, 55], UA: [31, 49], BY: [28, 53], RU: [90, 61], TR: [35, 39],
+          HR: [16, 45], RS: [21, 44], SI: [15, 46], BA: [18, 44], AL: [20, 41], MK: [22, 42],
+          MT: [14, 36], CY: [33, 35], LU: [6, 50],
+          CN: [104, 35], JP: [138, 36], KR: [128, 36], TW: [121, 24], HK: [114, 22], SG: [104, 1],
+          IN: [79, 22], PK: [70, 30], BD: [90, 24], LK: [81, 7], NP: [84, 28],
+          TH: [101, 15], VN: [108, 16], PH: [122, 12], ID: [113, -1], MY: [102, 4], KH: [105, 12],
+          MM: [96, 21], AE: [54, 24], SA: [45, 24], IL: [35, 31], JO: [36, 31], QA: [51, 25],
+          KW: [48, 29], LB: [36, 34], IQ: [44, 33], IR: [53, 32], KZ: [67, 48], UZ: [64, 41],
+          GE: [43, 42], AM: [45, 40], AZ: [48, 40],
+          ZA: [24, -29], NG: [8, 10], KE: [38, 0], EG: [30, 27], MA: [-6, 32], DZ: [3, 28],
+          TN: [9, 34], GH: [-1, 8], ET: [40, 8], TZ: [35, -6], UG: [32, 1], SN: [-14, 14],
+          CI: [-5, 8], CM: [12, 6], ZW: [30, -19], ZM: [28, -13], MU: [57, -20],
+          AU: [134, -25], NZ: [174, -41], FJ: [178, -18], PG: [144, -6]
+        };
+        var MAP_W = 1000, LAT_TOP = 84, LAT_BOT = -56;
+        var MAP_H = MAP_W * (LAT_TOP - LAT_BOT) / 360;
+        var NON_PLACES = { T1: 1, XX: 1 };
+
+        function flagOf(code) {
+          if (NON_PLACES[code]) return "🏳";
+          return String.fromCodePoint.apply(null, code.split("").map(function (ch) {
+            return 0x1f1e6 + ch.charCodeAt(0) - 65;
+          }));
+        }
+        var regionNames = (function () {
+          try { return new Intl.DisplayNames(["en"], { type: "region" }); } catch (e) { return null; }
+        })();
+        function nameOf(code) {
+          if (code === "T1") return "Tor network";
+          if (code === "XX") return "Unresolved";
+          try { return (regionNames && regionNames.of(code)) || code; } catch (e) { return code; }
+        }
+
+        function drawReach() {
+          var mix = DATA.countries;
+          var host = $("#reach-dots"), rows = $("#reach-rows");
+          if (!host) return;
+          var panel = host.closest(".chart");
+          /* No country data means the endpoint carrying it has not shipped yet.
+             Hide the whole panel rather than draw an empty world: a map is a
+             claim about reach, and there is no honest version of it built from
+             a placeholder. It appears on its own once the field is live. */
+          if (!mix || !mix.entries || !mix.entries.length) {
+            if (panel) panel.hidden = true;
+            return;
+          }
+          if (panel) panel.hidden = false;
+
+          var places = mix.entries.filter(function (e) { return !NON_PLACES[e.code]; });
+          var maxPlayers = places.reduce(function (m, e) { return Math.max(m, e.players); }, 0) || 1;
+          var top = places.slice(0, 3).map(function (e) { return e.code; });
+
+          var dots = "";
+          var plotted = 0;
+          places.forEach(function (e, i) {
+            var c = CENTROID[e.code];
+            if (!c) return;
+            var x = (c[0] + 180) / 360 * MAP_W;
+            var y = (LAT_TOP - c[1]) / (LAT_TOP - LAT_BOT) * MAP_H;
+            /* Area, not radius, tracks the count, and a floor keeps a country
+               whose device was attributed elsewhere from vanishing. */
+            var r = 4 + Math.sqrt(e.players / maxPlayers) * 13;
+            dots += '<circle class="dot' + (top.indexOf(e.code) > -1 ? " dot--top" : "") +
+              '" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + r.toFixed(1) +
+              '" style="--i:' + i + '"><title>' + nameOf(e.code) + ": " + e.players +
+              (e.players === 1 ? " device, " : " devices, ") + e.rounds + " rounds</title></circle>";
+            plotted++;
+          });
+          host.innerHTML = dots;
+
+          /* A country can contribute rounds and still hold no devices: a device
+             that played from two places is attributed to the one it played from
+             most, so the slices sum to the audience instead of exceeding it. It
+             keeps its dot, but a list of players is the wrong place to print a
+             zero, so the tail carries it. */
+          var listed = places.filter(function (e) { return e.players > 0; }).slice(0, 7);
+          rows.innerHTML = listed.map(function (e) {
+            return '<div class="reach__row"><span class="reach__flag">' + flagOf(e.code) +
+              '</span><span class="reach__name">' + nameOf(e.code) +
+              '</span><span class="reach__n">' + e.players + "</span></div>";
+          }).join("");
+
+          var rest = places.length - listed.length;
+          $("#reach-more").textContent = rest > 0
+            ? "+ " + rest + " more " + (rest === 1 ? "country" : "countries")
+            : "Devices, one country each.";
+
+          /* The brag, and it has to be computed rather than asserted: a page
+             that says "worldwide" over a US-only map is worse than silent. */
+          var us = places.filter(function (e) { return e.code === "US"; })[0];
+          var elsewhere = mix.players - (us ? us.players : 0);
+          $("#reach-head").innerHTML = "Played in <b>" + places.length + " countries</b>";
+          $("#reach-sub").textContent =
+            "one country per device, all time · " + plotted + " of " + places.length + " mapped";
+          $("#reach-note").textContent =
+            elsewhere + " of " + mix.players + " devices (" + pct(elsewhere, mix.players) +
+            "%) played from outside the United States. The country is stamped at the edge when a " +
+            "round starts, so nothing is self-reported and no address is stored." +
+            (mix.untracked ? " " + fmt(mix.untracked) + " early rounds predate the country field and are counted nowhere." : "");
+        }
+
+        function drawAll() {
+          drawReach();
+          drawDistribution();
+          drawModes();
+          drawFunnel();
+          drawGrowth();
+          /* Charts built after their section already scrolled into view would
+             sit at width 0 forever, so fill anything already revealed. */
+          $$(".chart.is-in").forEach(fillBars);
+        }
+
+        function fillBars(scope) {
+          $$(".bar__fill, .ba__fill", scope).forEach(function (el) {
+            el.style.width = (el.getAttribute("data-w") || 0) + "%";
+          });
+        }
+
+        /* ==========================================================
+           5. LIVE FETCH
+           ========================================================== */
+        function goLive() {
+          fetch("https://lunchspecial.app/api/stats/breakdown", { mode: "cors" })
+            .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+            .then(function (json) {
+              if (!json || !json.headline || !json.headline.rounds) return;
+              DATA = json;
+              /* A deployment that predates the countries field leaves the map
+                 hidden rather than half-drawn. Nothing else on the page cares. */
+              if (!DATA.countries) DATA.countries = FALLBACK.countries;
+              paintTiles(true);
+              drawAll();
+            })
+            .catch(function () {
+              /* Keep the baked snapshot on screen. A portfolio page that shows an
+                 error where its numbers were is worse than one showing last
+                 week's true numbers. */
+            });
+        }
+
+        /* ==========================================================
+           6. THE FEEDBACK DEMO
+           A rebuild of the real board against one fixed dish, so it
+           spoils nothing and needs no API.
+           ========================================================== */
+        var ANSWER = {
+          name: "Shakshuka", country: "Tunisia", region: "middle-east",
+          course: "breakfast", temperature: "hot", protein: "vegetarian",
+          ingredients: ["egg", "tomato", "bell pepper", "onion", "garlic", "paprika", "cumin", "olive oil"]
+        };
+        var CLUES = [
+          "A one-pan meal eaten across North Africa and the Middle East.",
+          'Its name means "all mixed up" in Maghrebi Arabic; Tunisia and Libya both claim it.',
+          "It conquered the world's weekend brunch menus in the 2010s.",
+          "Eggs poached directly in a spiced tomato-pepper sauce.",
+          "The skillet of eggs in red sauce, mopped up with bread."
+        ];
+        var MENU = [
+          { name: "Ratatouille", country: "France", region: "europe", course: "entree", temperature: "hot", protein: "vegetarian",
+            ingredients: ["eggplant", "zucchini", "tomato", "bell pepper", "onion", "garlic", "olive oil", "thyme"] },
+          { name: "Pad Thai", country: "Thailand", region: "southeast-asia", course: "entree", temperature: "hot", protein: "seafood",
+            ingredients: ["noodles", "shrimp", "egg", "peanuts", "bean sprouts", "tamarind", "fish sauce", "lime"] },
+          { name: "Full English Breakfast", country: "United Kingdom", region: "europe", course: "breakfast", temperature: "hot", protein: "pork",
+            ingredients: ["egg", "bacon", "sausage", "tomato", "bread", "baked beans"] },
+          { name: "Falafel", country: "Egypt", region: "middle-east", course: "appetizer", temperature: "hot", protein: "vegetarian",
+            ingredients: ["chickpeas", "parsley", "cilantro", "garlic", "onion", "cumin", "coriander"] },
+          { name: "Shakshuka", country: "Tunisia", region: "middle-east", course: "breakfast", temperature: "hot", protein: "vegetarian",
+            ingredients: ["egg", "tomato", "bell pepper", "onion", "garlic", "paprika", "cumin", "olive oil"] }
+        ];
+
+        var played = [];
+
+        function score(g) {
+          var country = g.country === ANSWER.country ? "hit" : (g.region === ANSWER.region ? "near" : "miss");
+          var matched = g.ingredients.filter(function (i) { return ANSWER.ingredients.indexOf(i) > -1; });
+          return {
+            country: { v: g.country, m: country },
+            course: { v: g.course, m: g.course === ANSWER.course ? "hit" : "miss" },
+            served: { v: g.temperature, m: g.temperature === ANSWER.temperature ? "hit" : "miss" },
+            protein: { v: g.protein, m: g.protein === ANSWER.protein ? "hit" : "miss" },
+            matched: matched,
+            missed: g.ingredients.filter(function (i) { return matched.indexOf(i) < 0; }),
+            correct: g.name === ANSWER.name
+          };
+        }
+
+        function tile(label, o, i) {
+          return '<div class="at at--' + o.m + '" style="--i:' + i + '">' +
+            '<span class="at__l">' + label + "</span>" +
+            '<span class="at__v">' + o.v.replace(/-/g, " ") + "</span></div>";
+        }
+
+        function renderDemo() {
+          var rows = $("#demo-rows");
+          if (!played.length) {
+            rows.innerHTML = '<p class="board__empty">Order something from the menu and the kitchen answers.</p>';
+          } else {
+            /* Newest guess on top, and the clue tickets in their own stack
+               underneath, newest rung first. Both orderings match the real
+               board (GamePage renders .guesses and .tickets each reversed). */
+            var guessHtml = played
+              .slice()
+              .reverse()
+              .map(function (p) {
+                var f = p.f;
+                return '<div class="grow' + (f.correct ? " grow--win" : "") + '">' +
+                  '<p class="grow__name"><span>' + (f.correct ? "🛎️ " : "") + p.g.name + "</span>" +
+                  '<span class="grow__ct">' + f.matched.length + "/" + ANSWER.ingredients.length + " ingredients</span></p>" +
+                  '<div class="tiles4">' + tile("Country", f.country, 0) + tile("Course", f.course, 1) +
+                  tile("Served", f.served, 2) + tile("Protein", f.protein, 3) + "</div>" +
+                  '<div class="chips">' +
+                  f.matched.map(function (c, i) { return '<span class="chip chip--yes" style="--i:' + i + '">✓ ' + c + "</span>"; }).join("") +
+                  f.missed.map(function (c, i) { return '<span class="chip" style="--i:' + (f.matched.length + i) + '">' + c + "</span>"; }).join("") +
+                  "</div></div>";
+              })
+              .join("");
+
+            var clues = [];
+            played.forEach(function (p, idx) {
+              if (!p.f.correct && CLUES[idx]) clues.push({ rung: idx + 1, text: CLUES[idx] });
+            });
+            var ticketHtml = clues.length
+              ? '<div class="tickets">' + clues.reverse().map(function (c) {
+                  return '<div class="ticket"><p class="ticket__h">Order up &mdash; clue #' + c.rung +
+                    '</p><p class="ticket__t">' + c.text + "</p></div>";
+                }).join("") + "</div>"
+              : "";
+
+            rows.innerHTML = guessHtml + ticketHtml;
+          }
+          $("#demo-count").textContent = played.length + " of 6 guesses";
+
+          var solved = played.some(function (p) { return p.f.correct; });
+          $$("#demo-picker .gbtn").forEach(function (b) {
+            var used = played.some(function (p) { return p.g.name === b.getAttribute("data-dish"); });
+            b.disabled = used || solved;
+          });
+        }
+
+        function buildPicker() {
+          var host = $("#demo-picker");
+          if (!host) return;
+          host.innerHTML = MENU.map(function (d) {
+            return '<button class="gbtn" type="button" data-dish="' + d.name + '">' + d.name +
+              "<small>" + d.country + " · " + d.course.replace(/-/g, " ") + "</small></button>";
+          }).join("");
+          host.addEventListener("click", function (e) {
+            var btn = e.target.closest(".gbtn");
+            if (!btn || btn.disabled) return;
+            var dish = MENU.filter(function (d) { return d.name === btn.getAttribute("data-dish"); })[0];
+            if (!dish) return;
+            played.push({ g: dish, f: score(dish) });
+            renderDemo();
+          });
+          $("#demo-reset").addEventListener("click", function () {
+            played = [];
+            renderDemo();
+          });
+          renderDemo();
+        }
+
+        /* ==========================================================
+           7. THE NOTICE FIGURE
+           Replays the drop-and-bounce. Stripping the class and forcing a
+           reflow before re-adding it is what makes the animation restart;
+           without the reflow the browser coalesces both changes and nothing
+           moves.
+           ========================================================== */
+        function noticeFigure() {
+          var fig = $(".notice-fig");
+          var btn = $("#notice-replay");
+          if (!fig || !btn) return;
+          btn.addEventListener("click", function () {
+            fig.classList.remove("is-in");
+            void fig.offsetWidth;
+            fig.classList.add("is-in");
+          });
+        }
+
+        /* ==========================================================
+           8. THEME
+           The attribute is already set by the inline head script; this only
+           handles the click and keeps the label honest. "Effective" theme
+           means: the reader's choice if they made one, otherwise the OS.
+           ========================================================== */
+        function effectiveTheme() {
+          var chosen = document.documentElement.getAttribute("data-theme");
+          if (chosen === "dark" || chosen === "light") return chosen;
+          return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+
+        function labelToggles() {
+          var next = effectiveTheme() === "dark" ? "light" : "dark";
+          $$("[data-theme-toggle]").forEach(function (b) {
+            b.setAttribute("aria-label", "Switch to the " + next + " theme");
+            b.setAttribute("title", "Switch to the " + next + " theme");
+          });
+        }
+
+        function themeToggle() {
+          $$("[data-theme-toggle]").forEach(function (b) {
+            b.addEventListener("click", function () {
+              var next = effectiveTheme() === "dark" ? "light" : "dark";
+              document.documentElement.setAttribute("data-theme", next);
+              try { localStorage.setItem("ls-theme", next); } catch (e) {}
+              labelToggles();
+              /* No redraw: every colour the charts use is a var(), including
+                 the SVG strokes, so the palette swap reaches them on its own.
+                 Rebuilding here would also replay every bar's grow animation. */
+            });
+          });
+          /* Follow the OS while the reader has expressed no preference. */
+          var mq = window.matchMedia("(prefers-color-scheme: dark)");
+          var onChange = function () {
+            if (document.documentElement.hasAttribute("data-theme")) return;
+            labelToggles();
+          };
+          if (mq.addEventListener) mq.addEventListener("change", onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+          labelToggles();
+        }
+
+        /* ==========================================================
+           9. SCROLL: reveals, top bar, progress, active section
+           ========================================================== */
+        /* Everything that reveals rests at opacity 0, so a reveal that never
+           arrives is content the reader never sees. Two independent mechanisms
+           therefore drive it: the observer, and a plain geometry check on
+           scroll. The second exists because "IntersectionObserver is missing"
+           is not the only failure -- it can be present and still deliver
+           nothing (a background tab that never composites, for one), and a
+           feature-detect cannot catch that. Either path is enough on its own. */
+        var REVEAL_SEL = ".reveal, .chart, .diagram, .ladder, .cards, .notice-fig, .reach";
+        var pending = [];
+
+        function markIn(el) {
+          if (el.classList.contains("is-in")) return;
+          el.classList.add("is-in");
+          fillBars(el);
+        }
+
+        function revealVisible() {
+          if (!pending.length) return;
+          var h = window.innerHeight || document.documentElement.clientHeight;
+          pending = pending.filter(function (el) {
+            var r = el.getBoundingClientRect();
+            if (r.top < h * 0.92 && r.bottom > 0) {
+              markIn(el);
+              return false;
+            }
+            return true;
+          });
+        }
+
+        function observe() {
+          pending = $$(REVEAL_SEL);
+          if (!("IntersectionObserver" in window)) {
+            pending.forEach(markIn);
+            pending = [];
+            return;
+          }
+          var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (en) {
+              if (!en.isIntersecting) return;
+              markIn(en.target);
+              pending = pending.filter(function (p) { return p !== en.target; });
+              io.unobserve(en.target);
+            });
+          }, { rootMargin: "0px 0px -12% 0px", threshold: 0.12 });
+          pending.forEach(function (t) { io.observe(t); });
+          /* Whatever is already on screen at load, before a scroll happens. */
+          revealVisible();
+        }
+
+        function scrollChrome() {
+          var bar = $("#topbar"), prog = $("#progress"), hero = $("#top");
+          var links = $$("#topbar .topbar__nav a");
+          var sections = links.map(function (a) { return $(a.getAttribute("href")); }).filter(Boolean);
+          var ticking = false;
+
+          function update() {
+            ticking = false;
+            var y = window.scrollY || document.documentElement.scrollTop;
+            bar.classList.toggle("is-up", y > hero.offsetHeight - 90);
+
+            var max = document.documentElement.scrollHeight - window.innerHeight;
+            prog.style.setProperty("--p", (max > 0 ? (y / max) * 100 : 0) + "%");
+
+            var current = null;
+            sections.forEach(function (s) {
+              if (s.getBoundingClientRect().top <= 120) current = s.id;
+            });
+            links.forEach(function (a) {
+              a.setAttribute("aria-current", a.getAttribute("href") === "#" + current ? "true" : "false");
+            });
+          }
+          window.addEventListener("scroll", function () {
+            /* Reveals run straight off the scroll event rather than inside the
+               rAF gate below. The gate is there to throttle the top bar and the
+               progress line, which are cosmetic; content becoming visible is
+               not, and should not inherit a dependency on rAF firing. The call
+               returns immediately once nothing is left to reveal. */
+            revealVisible();
+            if (!ticking) { ticking = true; requestAnimationFrame(update); }
+          }, { passive: true });
+          window.addEventListener("resize", update, { passive: true });
+          update();
+        }
+
+        /* ========================================================== */
+        paintTiles(false);
+        drawAll();
+        buildPicker();
+        noticeFigure();
+        themeToggle();
+        observe();
+        scrollChrome();
+        tickServing();
+        setInterval(tickServing, 30000);
+        goLive();
+      })();
+    </script>
+  </body>
+</html>
