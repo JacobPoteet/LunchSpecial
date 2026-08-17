@@ -52,6 +52,7 @@ import {
 } from "../service";
 import { foldGrowth, type GrowthRow } from "../growth";
 import { foldCountries, type CountryRow } from "../countries";
+import { foldSources, type VisitSourceRow } from "../attribution";
 import { foldDeviceData, type DeviceRoundRow, type DeviceVisitRow } from "../device";
 import { foldDishStats, type DishMetaRow, type DishStatRow } from "../dishstats";
 import { foldExperimentSeries, type ExperimentHourRow } from "../experiments";
@@ -784,6 +785,7 @@ app.get("/analytics", async (c) => {
     countryRes,
     solveTimeRes,
     visitRes,
+    sourceRes,
   ] = await c.env.DB.batch([
       c.env.DB.prepare(allTimeTotalsSql),
       c.env.DB.prepare(distSql("")).bind(MAX_GUESSES),
@@ -900,6 +902,14 @@ app.get("/analytics", async (c) => {
       // visitor count.
       c.env.DB.prepare(
         `SELECT visit_day, COUNT(*) AS n FROM analytics_visits${surfWhere} GROUP BY visit_day`,
+      ),
+      // How the audience arrived (migrations/0024). Ungrouped on purpose: the
+      // table is already one row per device per ET day, and the fold needs each
+      // device's *earliest* day together with the source recorded on that day —
+      // which is a per-device argmin SQL can't express in one pass and this
+      // volume doesn't justify a window function for.
+      c.env.DB.prepare(
+        `SELECT player_id, visit_day, source FROM analytics_visits${surfWhere}`,
       ),
     ]);
 
@@ -1063,6 +1073,10 @@ app.get("/analytics", async (c) => {
     // Where the rounds came from (GitHub #92) — see worker/countries.ts for why
     // the device-per-country attribution has to happen outside SQL.
     countries: foldCountries(countryRes.results as CountryRow[]),
+    // How they arrived, and whether they came back (migrations/0024). Folded
+    // against the *real* today for the same reason as `retention` above — the
+    // return window asks whether enough time has passed by now.
+    sources: foldSources(sourceRes.results as VisitSourceRow[], today),
     // Weekday × hour, off the same all-time buckets as `growth` and `activeDates`
     // — no extra query. Its `byHour` marginal is what used to be the bare
     // `hourly` array; the weekday axis is the cycle that array couldn't show.

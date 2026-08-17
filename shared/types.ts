@@ -459,6 +459,58 @@ export interface CountryMix {
 }
 
 /**
+ * One arrival source in the all-time mix (migrations/0024) — a `utm_source` off
+ * the landing URL, or `direct` for an arrival that carried no tag.
+ *
+ * Every count here is **devices, not visits**: a source is credited with the
+ * people it brought, once each, on the day it brought them.
+ */
+export interface SourceUsage {
+  /** Normalised `utm_source`, or `direct`. See shared/attribution.ts. */
+  source: string;
+  /** Devices whose earliest recorded visit carried this source. */
+  arrivals: number;
+  /**
+   * Of those, how many have had a full return window to come back in. The
+   * denominator for the return rate — `arrivals` is not, because a device that
+   * arrived this morning cannot yet have returned.
+   */
+  atRisk: number;
+  /** Devices that came back within the window. The numerator. */
+  returned: number;
+  /** Came back, but after the window closed. Reported, never silently discarded. */
+  lateReturned: number;
+  /** Arrived too recently to judge. Held out of `atRisk` rather than scored as gone. */
+  pending: number;
+  /** ET day this source first brought anyone, and most recently did. */
+  firstDay: string;
+  lastDay: string;
+}
+
+/**
+ * Where the audience came from, all time — the Players tab's arrival table.
+ *
+ * The question it exists for is not "how many clicks did the ad get" (the ad
+ * platform says that, and says it better) but "did the people it sent come
+ * back", which nothing outside this app can answer.
+ */
+export interface SourceMix {
+  /** Every source that brought someone, most arrivals first. */
+  entries: SourceUsage[];
+  /** Devices with any recorded visit — the denominator for a source's share. */
+  devices: number;
+  /**
+   * Devices whose earliest visit predates migrations/0024, so there is no
+   * knowing how they arrived. Reported beside the table, never folded into
+   * `direct` — "not measured" and "arrived untagged" are different facts, and
+   * merging them would claim the game's whole history as organic traffic.
+   */
+  untracked: number;
+  /** Days a device is given to come back before it counts as gone. */
+  windowDays: number;
+}
+
+/**
  * How one dish actually played, folded from the rounds that were played on it.
  *
  * The catalogue half of the dashboard (menu mix) says what the kitchen served;
@@ -1191,6 +1243,13 @@ export interface AnalyticsSummary extends AnalyticsPeriod {
    * country tracking ships. See {@link CountryMix}.
    */
   countries: CountryMix;
+  /**
+   * How the audience arrived, all time and surface-filtered — and whether each
+   * source's arrivals came back. Every entry `untracked` with none in `entries`
+   * is the expected state right after source tracking ships, the same as
+   * `countries` above. See {@link SourceMix}.
+   */
+  sources: SourceMix;
   /**
    * When people play, all time and surface-filtered: the weekday × hour grid and
    * both its marginals. Replaces the bare `hourly: number[]` this used to carry —

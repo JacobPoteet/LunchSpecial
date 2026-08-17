@@ -9,8 +9,11 @@ import type {
   PlayerFunnel,
   PlayerRetention,
   RetentionStep,
+  SourceMix,
 } from "../../shared/types";
 import { DNF_GRACE_MINUTES, MAX_GUESSES } from "../../shared/types";
+import { SOURCE_DIRECT } from "../../shared/attribution";
+import { rate, separated } from "../../shared/sample";
 import DayPicker from "./DayPicker";
 import {
   GuessBars,
@@ -564,6 +567,126 @@ function countryUntrackedNote(mix: CountryMix): string {
     : `${rounds} predate country tracking and carry none; they're left out of the shares rather than counted as an unknown country.`;
 }
 
+/** `direct` reads as jargon in a column of ad networks; say what it means. */
+const sourceLabel = (source: string) => (source === SOURCE_DIRECT ? "Direct / untagged" : source);
+
+/**
+ * The one wording for devices whose first visit predates source tracking. Said
+ * out loud for the same reason the country note is: "we weren't measuring" and
+ * "they arrived on their own" are different facts, and a table that quietly
+ * merged them would report the game's entire history as organic traffic.
+ */
+function sourceUntrackedNote(mix: SourceMix): string {
+  if (mix.untracked === 0) return "No arrivals recorded yet.";
+  const devices = `${mix.untracked.toLocaleString()} device${mix.untracked === 1 ? "" : "s"}`;
+  return mix.entries.length === 0
+    ? `Arrival sources start with visits recorded after this release — the ${devices} so far predate it, so there's nothing to attribute yet.`
+    : `${devices} first visited before arrival tracking and carry no source; they're left out rather than counted as direct.`;
+}
+
+/**
+ * The headline. It answers the only question worth buying traffic to ask —
+ * whether the people a source sent behaved differently from the people who
+ * turned up on their own — and refuses to answer it when the numbers can't.
+ *
+ * `separated()` is the gate, exactly as in the dish report: at a few dozen
+ * arrivals a campaign and the baseline are usually the same rate wearing
+ * different luck, and saying so is more useful than a number that will reverse
+ * itself next week.
+ */
+function sourceNote(mix: SourceMix): string | null {
+  const tagged = mix.entries.filter((e) => e.source !== SOURCE_DIRECT);
+  if (tagged.length === 0) return null;
+  const top = tagged[0];
+  const arrivals = `${top.arrivals} device${top.arrivals === 1 ? "" : "s"}`;
+  if (top.atRisk === 0) {
+    return `${sourceLabel(top.source)} has brought ${arrivals}, all too recently to say whether they came back — give it ${mix.windowDays} days from each arrival.`;
+  }
+  const theirs = rate(top.returned, top.atRisk);
+  const base = mix.entries.find((e) => e.source === SOURCE_DIRECT);
+  const baseline = base ? rate(base.returned, base.atRisk) : null;
+  const came = `${top.returned} of ${top.atRisk} came back within ${mix.windowDays} days`;
+  if (!separated(theirs, baseline)) {
+    return baseline === null
+      ? `${sourceLabel(top.source)} brought ${arrivals}; ${came}. Nothing to compare it against yet.`
+      : `${sourceLabel(top.source)} brought ${arrivals}, and ${came} — not tellably different from the people who arrived on their own.`;
+  }
+  const better = (theirs?.pct ?? 0) > (baseline?.pct ?? 0);
+  return `${sourceLabel(top.source)} brought ${arrivals}, and ${came} — ${better ? "better" : "worse"} than the people who arrived on their own.`;
+}
+
+/**
+ * How the audience arrived, and whether it stuck (migrations/0024).
+ *
+ * **A table, not a chart**, and deliberately the plainest thing on this tab. The
+ * useful comparison here is one rate against one other rate, both with wide
+ * intervals; a bar chart would give that comparison a precision the numbers
+ * don't have, and there will only ever be a handful of rows.
+ *
+ * Three things are load-bearing:
+ *
+ * 1. **Every count is devices.** A source brought people, once each — the same
+ *    unit as the funnel and for the same reason. Counting visits would credit a
+ *    campaign again every time somebody it acquired came back, which is exactly
+ *    the quantity the next column is trying to measure.
+ * 2. **The return rate's denominator is `atRisk`, not `arrivals`.** Anyone who
+ *    arrived inside the last {@link SourceMix.windowDays} days hasn't had time to
+ *    come back, so they're shown as pending beside the rate rather than counted
+ *    as gone. Without this, a campaign running right now drags its own number
+ *    down with every click it buys.
+ * 3. **`direct` is a row, not a footnote.** It's the baseline every campaign is
+ *    read against, and burying it would leave the ad's return rate looking like
+ *    an absolute score instead of a comparison.
+ */
+function SourceTable({ mix }: { mix: SourceMix }) {
+  return (
+    <div className="day-table-wrap">
+      <table className="day-table dish-table">
+        <thead>
+          <tr>
+            <th>Came from</th>
+            <th title="Anonymous devices whose first recorded visit carried this source">Arrivals</th>
+            <th title={`Devices that visited again within ${mix.windowDays} days of arriving`}>Came back</th>
+            <th title="Arrived too recently to have had a full return window">Still early</th>
+            <th title="First and most recent day this source brought someone">Active</th>
+          </tr>
+        </thead>
+        <tbody>
+          {mix.entries.map((e) => (
+            <tr key={e.source} className={e.source === SOURCE_DIRECT ? "src-table__row--base" : undefined}>
+              <td>
+                <span className="ev-when">{sourceLabel(e.source)}</span>
+                {e.lateReturned > 0 && <span className="ev-sub">+{e.lateReturned} came back later</span>}
+              </td>
+              <td>{e.arrivals}</td>
+              <td>
+                {e.atRisk === 0 ? (
+                  "—"
+                ) : (
+                  <>
+                    {pct(e.returned, e.atRisk)}%
+                    <RangeHint n={e.returned} of={e.atRisk} />
+                    <span className="ev-sub">
+                      {e.returned} of {e.atRisk}
+                    </span>
+                  </>
+                )}
+              </td>
+              <td>{e.pending > 0 ? e.pending : "—"}</td>
+              <td>
+                <span className="ev-sub">
+                  {shortDate(e.firstDay)}
+                  {e.lastDay !== e.firstDay && ` – ${shortDate(e.lastDay)}`}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /**
  * Where the audience is, all time (GitHub #92).
  *
@@ -840,6 +963,7 @@ export default function PlayersPanel({
     players,
     retention,
     countries,
+    sources,
     solveTimes,
     funnel,
     visits,
@@ -877,6 +1001,7 @@ export default function PlayersPanel({
   const dayStartedAny = sumKinds(day.startedByKind);
   const span = `last ${daily.length} day${daily.length === 1 ? "" : "s"}`;
   const headline = retention && retentionNote(retention.steps, retention.windowDays);
+  const sourceHeadline = sourceNote(sources);
   const countrySlices = toSlices(countries.entries);
 
   return (
@@ -1055,6 +1180,31 @@ export default function PlayersPanel({
           <>
             {headline && <p className="retention__headline">{headline}</p>}
             <RetentionCurve retention={retention} />
+          </>
+        )}
+      </section>
+
+      <section className="panel">
+        <h2>How they got here · all time</h2>
+        {sources.entries.length === 0 ? (
+          <p className="dash-note">{sourceUntrackedNote(sources)}</p>
+        ) : (
+          <>
+            {sourceHeadline && <p className="retention__headline">{sourceHeadline}</p>}
+            <SourceTable mix={sources} />
+            <details className="dash-details">
+              <summary>What this counts</summary>
+              <p className="dash-note">
+                The source is the <code>utm_source</code> on the URL a device first arrived at — so tag your
+                links (<code>?utm_source=reddit</code>) and anything untagged lands in Direct. Counts are
+                anonymous devices, attributed once, on the day they first showed up: a device that arrives
+                from an ad and comes back for a fortnight is one arrival and a return, never fourteen.
+                "Came back" only counts devices that have had a full {sources.windowDays} days to do it —
+                everyone newer sits in Still early, because a campaign running right now would otherwise
+                lower its own score with every visitor it brings.
+                {sources.untracked > 0 && ` ${sourceUntrackedNote(sources)}`}
+              </p>
+            </details>
           </>
         )}
       </section>

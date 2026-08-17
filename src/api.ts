@@ -137,8 +137,15 @@ function beacon(path: string, body: unknown): void {
  * started" means the first guess and everyone who loads and never plays was
  * otherwise invisible. Deliberately carries no date: a visit belongs to the ET
  * day it happened on, which the server stamps.
+ *
+ * `source` is the arrival's `utm_source` (migrations/0024) and is the one field
+ * on any beacon that the client can't be trusted on — it starts in the URL — so
+ * the Worker re-validates it and stores `direct` for anything absent or
+ * malformed. Sent in the body rather than on the path: `?utm_source=` in a
+ * request URL is a shape content blockers strip, and a stripped param here would
+ * quietly re-label paid traffic as organic.
  */
-export function beaconSeated(b: { playerId: string; surface: Surface }): void {
+export function beaconSeated(b: { playerId: string; surface: Surface; source?: string }): void {
   beacon("/api/rounds/seated", b);
 }
 
