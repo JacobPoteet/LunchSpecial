@@ -6,7 +6,7 @@
     <title>Lunch Special — Project Breakdown</title>
     <meta
       name="description"
-      content="How I designed and shipped Lunch Special, a daily dish-guessing game: the feedback system, the clue ladder, the single-Worker stack, and the experiment that moved finish rate from 81% to 91%."
+      content="How I designed and shipped Lunch Special, a daily dish-guessing game: the feedback system, the clue beat sheet, the single-Worker stack, and the experiment that moved finish rate from 81% to 91%."
     />
     <meta name="robots" content="index, follow" />
     <link rel="icon" href="https://lunchspecial.app/favicon.svg" type="image/svg+xml" />
@@ -1258,12 +1258,12 @@
         line-height: 1.5;
       }
 
-      .ladder {
+      .beats {
         display: grid;
         gap: 9px;
         margin: 22px 0 8px;
       }
-      .ladder .ticket {
+      .beats .ticket {
         margin: 0;
         display: grid;
         grid-template-columns: 34px 1fr;
@@ -1271,9 +1271,9 @@
         align-items: start;
         opacity: 0;
       }
-      /* The observer stamps is-in on the .ladder itself, so this stays a
+      /* The observer stamps is-in on the .beats itself, so this stays a
          compound selector rather than a descendant one. */
-      .ladder.is-in .ticket {
+      .beats.is-in .ticket {
         animation: print-in 0.5s ease forwards;
         animation-delay: calc(var(--i, 0) * 130ms);
       }
@@ -1281,20 +1281,20 @@
         from { opacity: 0; clip-path: inset(0 0 100% 0); }
         to { opacity: 1; clip-path: inset(0 0 0 0); }
       }
-      .ladder__n {
+      .beat__n {
         font-family: var(--font-display);
         font-size: 1.35rem;
         color: var(--mustard);
         line-height: 1;
       }
-      .ladder__t {
+      .beat__t {
         font-family: var(--font-slab);
         font-weight: 700;
         font-size: 0.97rem;
         margin: 0 0 2px;
         max-width: none;
       }
-      .ladder__d {
+      .beat__d {
         font-size: 0.88rem;
         color: var(--ink-soft);
         margin: 0;
@@ -1302,7 +1302,7 @@
         line-height: 1.5;
       }
 
-      /* ---- the ladder, filled in: the writing sample ---- */
+      /* ---- the beat sheet, filled in against one dish ---- */
       .worked {
         background: var(--surface);
         border: 1px solid var(--rule);
@@ -2298,7 +2298,7 @@
         .reveal,
         .deal .card,
         .pipe__step,
-        .ladder .ticket,
+        .beats .ticket,
         .notice-fig .notice-card {
           opacity: 1;
           transform: none;
@@ -2438,8 +2438,8 @@
           <a class="claim" href="#design">
             <span class="claim__n">02</span>
             <p class="claim__t">
-              One ladder specifies every clue. The same five rungs, <em>1,820 clues deep</em>, so a
-              dish a day stays a defined job instead of a blank page.
+              One beat sheet specifies every clue. The same five beats, <em>1,820 clues deep</em>, so
+              a dish a day stays a defined job instead of a blank page.
             </p>
             <span class="claim__go">Design →</span>
           </a>
@@ -2540,7 +2540,7 @@
           Culinary knowledge also improves, which is what makes the unfairness survivable. Nobody
           takes every Special, and I would miss plenty myself if I were not the one booking the
           menu. A round you lose still ends with you knowing the dish, where it came from and what
-          goes in it, so the next one starts further along. That is the deal the clue ladder makes:
+          goes in it, so the next one starts further along. That is the deal the beat sheet makes:
           every miss buys information, and the information keeps working after the round is over.
         </p>
 
@@ -2549,7 +2549,7 @@
           <p>
             An even start would have cost the game the thing that makes solving it feel like
             anything. I owed players a route from wherever they began instead, and that is what the
-            clue ladder is for.
+            beat sheet is for.
           </p>
         </div>
       </div>
@@ -2577,7 +2577,7 @@
           Special&rsquo;s. Country carries the only middle state: the same country turns green, and a
           different country in the same region turns amber. That single warm signal is what makes
           triangulating across a map possible. Channel two is the clue ticket. Miss, and the kitchen
-          slides the next rung across the counter.
+          slides the next one across the counter.
         </p>
 
         <div class="demo reveal">
@@ -2603,58 +2603,58 @@
           found. Five of eight tells you three remain without telling you what they are.
         </p>
 
-        <h3>One ladder specifies every clue</h3>
+        <h3>One beat sheet specifies every clue</h3>
         <p>
           A daily game eats a piece of authored content every 24 hours and never stops. Treating
           <span class="js-dishes">364</span> dishes as <span class="js-dishes">364</span> separate
           creative problems collapses around week eight, so I specified the dramatic order once
-          instead: five rungs, the same sequence for every dish, descending from a map to a
-          near-giveaway. Each rung states what its clue has to accomplish and what it must not give
+          instead: five beats, the same sequence for every dish, running from a map to a
+          near-giveaway. Each beat states what its clue has to accomplish and what it must not give
           away, which is the difference between a brief and a blank page.
         </p>
 
-        <div class="ladder reveal">
+        <div class="beats reveal">
           <div class="ticket" style="--i: 0">
-            <span class="ladder__n">1</span>
+            <span class="beat__n">1</span>
             <div>
-              <p class="ladder__t">Broad geography</p>
-              <p class="ladder__d">Narrows the map without naming a country.</p>
+              <p class="beat__t">Broad geography</p>
+              <p class="beat__d">Narrows the map without naming a country.</p>
             </div>
           </div>
           <div class="ticket" style="--i: 1">
-            <span class="ladder__n">2</span>
+            <span class="beat__n">2</span>
             <div>
-              <p class="ladder__t">Origin and history</p>
-              <p class="ladder__d">
-                The first rung with a voice, where the dish becomes a place rather than a puzzle
+              <p class="beat__t">Origin and history</p>
+              <p class="beat__d">
+                The first beat with a voice, where the dish becomes a place rather than a puzzle
                 token.
               </p>
             </div>
           </div>
           <div class="ticket" style="--i: 2">
-            <span class="ladder__n">3</span>
+            <span class="beat__n">3</span>
             <div>
-              <p class="ladder__t">What made it famous</p>
-              <p class="ladder__d">
-                The film, the street cart, the argument over who invented it. The rung people repeat
+              <p class="beat__t">What made it famous</p>
+              <p class="beat__d">
+                The film, the street cart, the argument over who invented it. The beat people repeat
                 to someone else afterwards.
               </p>
             </div>
           </div>
           <div class="ticket" style="--i: 3">
-            <span class="ladder__n">4</span>
+            <span class="beat__n">4</span>
             <div>
-              <p class="ladder__t">A key ingredient or technique</p>
-              <p class="ladder__d">
+              <p class="beat__t">A key ingredient or technique</p>
+              <p class="beat__d">
                 Turns knowing about the dish into being able to name it.
               </p>
             </div>
           </div>
           <div class="ticket" style="--i: 4">
-            <span class="ladder__n">5</span>
+            <span class="beat__n">5</span>
             <div>
-              <p class="ladder__t">Near-giveaway</p>
-              <p class="ladder__d">
+              <p class="beat__t">Near-giveaway</p>
+              <p class="beat__d">
                 Everything but the name. Missing here should feel unlucky, never unfair.
               </p>
             </div>
@@ -2663,10 +2663,10 @@
 
         <p>
           Clue 3 for Pierogi and clue 3 for Ceviche are the same job, and that sameness is what makes
-          the pool extensible: the brief holds still while the subject changes. The ladder also fixes
-          pacing, which is the part players feel. Rung 3 lands on the third miss, when someone needs
-          a reason to stay in the round, and rung 5 arrives at the point where losing would otherwise
-          feel arbitrary.
+          the pool extensible: the brief holds still while the subject changes. The beat sheet also
+          fixes pacing, which is the part players feel. Beat 3 lands on the third miss, when someone
+          needs a reason to stay in the round, and beat 5 arrives at the point where losing would
+          otherwise feel arbitrary.
         </p>
 
         <div class="worked reveal">
@@ -2692,7 +2692,7 @@
             <span class="worked__n">3</span>
             <p class="worked__c">
               Named for a queen who visited in 1889 and picked the patriotic option.
-              <span class="worked__why">The rung that survives the round, and still not the answer.</span>
+              <span class="worked__why">The beat that survives the round, and still not the answer.</span>
             </p>
           </div>
           <div class="worked__row">
@@ -2712,11 +2712,11 @@
         </div>
 
         <p>
-          Rung 3 carries the heaviest load, so it is the rung the spec is strictest about. A player
+          Beat 3 carries the heaviest load, so it is the beat the spec is strictest about. A player
           who loses the round should still come away with the queen and the flag, because that is the
-          part they repeat to somebody at lunch. Rungs 1 and 5 read as constraints more than as
+          part they repeat to somebody at lunch. Beats 1 and 5 read as constraints more than as
           prose: one must not narrow the map too far, the other must leave nothing but the name.
-          Judging whether a clue belongs on its rung takes about ten seconds, and that is the
+          Judging whether a clue belongs on its beat takes about ten seconds, and that is the
           property I was after.
         </p>
 
@@ -2737,7 +2737,7 @@
                 </thead>
                 <tbody>
                   <tr><td><b>The Special</b></td><td>Today&rsquo;s puzzle. One dish, every player, worldwide.</td></tr>
-                  <tr><td><b>A clue ticket</b></td><td>The rung the kitchen hands you after a miss.</td></tr>
+                  <tr><td><b>A clue ticket</b></td><td>The beat the kitchen hands you after a miss.</td></tr>
                   <tr><td><b>The check</b></td><td>End of round: result, streak, share.</td></tr>
                   <tr><td><b>Leftovers</b></td><td>The archive of days you missed.</td></tr>
                   <tr><td><b>Chef&rsquo;s Choice</b></td><td>A random dish, no stakes, no streak.</td></tr>
@@ -2801,7 +2801,7 @@
         </div>
 
         <p>
-          A ladder that makes a dish a day routine is worth nothing if shipping that dish takes a
+          A spec that makes a dish a day routine is worth nothing if shipping that dish takes a
           week. So every choice below buys the same thing: the shortest distance one person can
           manage between having an idea and watching it get measured. One Cloudflare Worker serves
           the React bundle, answers the API and queries a SQLite database on the same platform.
@@ -2822,7 +2822,7 @@
               <tr>
                 <td class="t-goal">Idea to live in an evening</td>
                 <td class="t-choice">One Worker: React SPA, Hono API, D1</td>
-                <td>One deployable artefact. Nothing to orchestrate between two services, and no state where half the release landed.</td>
+                <td>One thing to deploy. Nothing to orchestrate between two services, and no state where half the release landed.</td>
               </tr>
               <tr>
                 <td class="t-goal">Playtesting that is not lying to me</td>
@@ -2905,7 +2905,7 @@
         <div class="takeaway reveal">
           <span class="takeaway__k">Takeaway</span>
           <p>
-            Four runtime dependencies and one deployable artefact. I kept the stack unambitious so
+            Four runtime dependencies and one thing to deploy. I kept the stack unambitious so
             the time could go into the menu.
           </p>
         </div>
@@ -3011,7 +3011,7 @@
             <div class="pipe__step pipe__step--go" style="--i: 4">
               <span class="pipe__n">Release</span>
               <span class="pipe__t">Deploy the Worker</span>
-              <span class="pipe__d">one artefact</span>
+              <span class="pipe__d">one build</span>
             </div>
           </div>
           <div class="surfaces">
@@ -3027,7 +3027,7 @@
         </div>
 
         <p>
-          The Activity rides that same artefact. Discord does not host the code. It frames
+          The Activity rides that same build. Discord does not host the code. It frames
           lunchspecial.app through its proxy under a URL mapping, so the tag that ships the website
           ships the Activity, and the only Discord-specific code is one file the browser fetches
           after it spots the iframe. Two more workflows carry the routine load: tests and typecheck
@@ -3046,7 +3046,7 @@
         <p>
           The CMS authors a dish against a live preview of the real board, so I see the tiles a
           player will see before the dish is ever scheduled. It refuses to book a dish carrying
-          fewer than three ingredients or anything other than five clues, which turns the ladder
+          fewer than three ingredients or anything other than five clues, which turns the beat sheet
           from a rule I have to remember into a rule the tool enforces. It books the calendar 30
           days out, by hand or by an autofill that skips whatever has been served in the last 60
           days.
@@ -3478,7 +3478,7 @@
             <span class="finding__k">Finding 03</span>
             <p class="finding__t">The menu was too easy, and the data said so before I did</p>
             <p>
-              Mean solve sat at 2.8 guesses. The sixth guess went unused and the last two clue rungs
+              Mean solve sat at 2.8 guesses. The sixth guess went unused and the last two clue beats
               went unread, which meant I had written content nobody reached. The pool skewed toward
               globally famous dishes, good for a launch and wrong by week four. I added 60 dishes
               chosen to close the gaps. Mean is now <b class="js-avg">3.2</b>, the budget gets spent,
@@ -3636,12 +3636,12 @@
         <div class="cards reveal">
           <div class="card">
             <span class="card__k">Transfers 01</span>
-            <p class="card__t">A ladder is a content pipeline</p>
+            <p class="card__t">A beat sheet is a content pipeline</p>
             <p>
-              The five rungs exist so that a dish is a repeatable job rather than an inspiration. On
-              a bigger game the same artefact is what keeps six writers on one voice, and what lets
-              you cost a content month instead of guessing at it. I built the CMS to enforce it
-              rather than trusting anyone to remember it, and that includes me.
+              The five beats exist so that a dish is a repeatable job rather than an inspiration. On
+              a bigger game the same spec is what keeps six writers on one voice, and what lets you
+              cost a content month instead of guessing at it. I built the CMS to enforce it rather
+              than trusting anyone to remember it, and that includes me.
             </p>
           </div>
           <div class="card">
@@ -3669,7 +3669,7 @@
         <p>
           It does not show me working with other people, because there were none. I have never had
           to defend a pre-registered metric to a producer who needs the number to move by Friday, or
-          hand this ladder to a writer whose instincts differ from mine and find out which parts of
+          hand this spec to a writer whose instincts differ from mine and find out which parts of
           it were load-bearing and which were just my taste. Those are the parts I want next, and
           they are the reason I am looking at studios rather than at another solo project.
         </p>
@@ -4187,7 +4187,7 @@
             rows.innerHTML = '<p class="board__empty">Order something from the menu and the kitchen answers.</p>';
           } else {
             /* Newest guess on top, and the clue tickets in their own stack
-               underneath, newest rung first. Both orderings match the real
+               underneath, newest beat first. Both orderings match the real
                board (GamePage renders .guesses and .tickets each reversed). */
             var guessHtml = played
               .slice()
@@ -4208,11 +4208,11 @@
 
             var clues = [];
             played.forEach(function (p, idx) {
-              if (!p.f.correct && CLUES[idx]) clues.push({ rung: idx + 1, text: CLUES[idx] });
+              if (!p.f.correct && CLUES[idx]) clues.push({ beat: idx + 1, text: CLUES[idx] });
             });
             var ticketHtml = clues.length
               ? '<div class="tickets">' + clues.reverse().map(function (c) {
-                  return '<div class="ticket"><p class="ticket__h">Order up &mdash; clue #' + c.rung +
+                  return '<div class="ticket"><p class="ticket__h">Order up &mdash; clue #' + c.beat +
                     '</p><p class="ticket__t">' + c.text + "</p></div>";
                 }).join("") + "</div>"
               : "";
@@ -4321,7 +4321,7 @@
            is not the only failure -- it can be present and still deliver
            nothing (a background tab that never composites, for one), and a
            feature-detect cannot catch that. Either path is enough on its own. */
-        var REVEAL_SEL = ".reveal, .chart, .diagram, .ladder, .cards, .notice-fig, .reach";
+        var REVEAL_SEL = ".reveal, .chart, .diagram, .beats, .cards, .notice-fig, .reach";
         var pending = [];
 
         function markIn(el) {
