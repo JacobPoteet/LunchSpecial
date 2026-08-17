@@ -19,6 +19,7 @@
     "assets:discord": "node discord-assets/build.mjs",
     "discord:register": "node scripts/discord-register-command.mjs",
     "assets:icons": "node scripts/build-icons.mjs",
+    "assets:keyart": "node scripts/build-keyart.mjs",
     "assets:press": "node scripts/build-press-kit.mjs",
     "db:migrate": "wrangler d1 migrations apply lunch-special-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply lunch-special-db --remote",

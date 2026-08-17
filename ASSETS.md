@@ -91,6 +91,31 @@ and the tail of `Special`. The 16:9 hero is the placement that matters and it is
 fixing the square crop would mean redrawing the type smaller, i.e. no longer shipping the
 og-image.
 
+## Ad key art (`marketing/`)
+
+The key art at every aspect ratio an ad platform asks for, generated with
+`npm run assets:keyart` ([`scripts/build-keyart.mjs`](scripts/build-keyart.mjs)).
+**Not served by the Worker and not in the bundle** — upload-by-hand campaign
+assets, which is why they aren't in `public/press/` (that ships on every deploy).
+See [`marketing/README.md`](marketing/README.md) for the full reasoning.
+
+| File | Spec | Where it goes |
+|---|---|---|
+| `marketing/keyart-1.91x1.jpg` | 1200×628 | Reddit + Meta link ads |
+| `marketing/keyart-16x9.jpg` | 1280×720 | X, LinkedIn, YouTube |
+| `marketing/keyart-4x3.jpg` | 1200×900 | older feed placements |
+| `marketing/keyart-1x1.jpg` | 1080×1080 | square feed |
+| `marketing/keyart-4x5.jpg` | 1080×1350 | Meta feed |
+| `marketing/keyart-9x16.jpg` | 1080×1920 | Stories / Reels |
+
+These are **composed, not cropped**. og-image.jpg can't be reframed — its type
+runs nearly edge to edge — so the builder rebuilds the card from the untyped
+backdrop plus vector type at each ratio, matching og-image's crop bias (0.33),
+its grade (fitted to 6.1/255 mean error) and its neon bloom (halo-to-core 1.28
+against the real 1.36). Two traps are documented in that README and worth reading
+before touching the rendering: **`feDropShadow` silently doesn't render** through
+sharp's librsvg, and **Alfa Slab One has no `★`**.
+
 ## Press kit (`public/press/`)
 
 Served by the Worker at `/press` ([`public/press.html`](public/press.html)) — unlike the
