@@ -1823,12 +1823,23 @@
         overflow: hidden;
         position: relative;
       }
+      /* The width is written into the markup when the bar is built, so the
+         resting state is the true value. Growing it is an animation over that
+         resting state rather than the thing that supplies it: a bar whose
+         reveal never fires reads as a real zero, which is a wrong number
+         rather than a missing flourish. A keyframe with only a from-state
+         ends at whatever width the element already has, so the two never
+         need to know each other's value. */
       .bar__fill {
         height: 100%;
         border-radius: 4px;
-        width: 0;
-        transition: width 0.95s cubic-bezier(0.2, 0.8, 0.3, 1);
-        transition-delay: calc(var(--i, 0) * 65ms);
+      }
+      .is-in .bar__fill {
+        animation: bar-grow 0.95s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+        animation-delay: calc(var(--i, 0) * 65ms);
+      }
+      @keyframes bar-grow {
+        from { width: 0; }
       }
       .bar__v {
         font-family: var(--font-mono);
@@ -2172,9 +2183,10 @@
       .ba__fill {
         position: absolute;
         inset: 0 auto 0 0;
-        width: 0;
         border-radius: 3px;
-        transition: width 1.05s cubic-bezier(0.2, 0.8, 0.3, 1) 0.2s;
+      }
+      .is-in .ba__fill {
+        animation: bar-grow 1.05s cubic-bezier(0.2, 0.8, 0.3, 1) 0.2s backwards;
       }
       .ba__side--before .ba__fill { background: var(--miss); }
       .ba__side--after .ba__fill { background: var(--hit); }
@@ -3538,13 +3550,13 @@
             <div class="ba__side ba__side--before">
               <span class="ba__k">Before · 8 days</span>
               <span class="ba__n">81%</span>
-              <div class="ba__meter"><span class="ba__fill" data-w="81"></span></div>
+              <div class="ba__meter"><span class="ba__fill" style="width: 81%"></span></div>
               <span class="ba__ci">95% CI 76–85% · 312 rounds</span>
             </div>
             <div class="ba__side ba__side--after">
               <span class="ba__k">After · 14 days</span>
               <span class="ba__n">91%</span>
-              <div class="ba__meter"><span class="ba__fill" data-w="91"></span></div>
+              <div class="ba__meter"><span class="ba__fill" style="width: 91%"></span></div>
               <span class="ba__ci">95% CI 88–93% · 404 rounds</span>
             </div>
           </div>
@@ -3861,7 +3873,7 @@
           return '<div class="bar">' +
             '<span class="bar__l">' + label + "</span>" +
             '<div class="bar__track"><span class="bar__fill" style="--i:' + i + ";background:" + colour +
-            '" data-w="' + w.toFixed(1) + '"></span></div>' +
+            ";width:" + w.toFixed(1) + '%"></span></div>' +
             '<span class="bar__v">' + fmt(value) + (sub ? " <small>" + sub + "</small>" : "") + "</span>" +
             "</div>";
         }
@@ -4085,15 +4097,6 @@
           drawModes();
           drawFunnel();
           drawGrowth();
-          /* Charts built after their section already scrolled into view would
-             sit at width 0 forever, so fill anything already revealed. */
-          $$(".chart.is-in").forEach(fillBars);
-        }
-
-        function fillBars(scope) {
-          $$(".bar__fill, .ba__fill", scope).forEach(function (el) {
-            el.style.width = (el.getAttribute("data-w") || 0) + "%";
-          });
         }
 
         /* ==========================================================
@@ -4325,9 +4328,7 @@
         var pending = [];
 
         function markIn(el) {
-          if (el.classList.contains("is-in")) return;
           el.classList.add("is-in");
-          fillBars(el);
         }
 
         function revealVisible() {
