@@ -1830,7 +1830,10 @@
          rather than a missing flourish. A keyframe with only a from-state
          ends at whatever width the element already has, so the two never
          need to know each other's value. */
+      /* block, because this is a span: width and height do not apply to an
+         inline box, so without it the fill is 0x0 whatever width it is given. */
       .bar__fill {
+        display: block;
         height: 100%;
         border-radius: 4px;
       }
