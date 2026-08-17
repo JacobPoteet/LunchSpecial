@@ -2024,6 +2024,12 @@
    worse than a quiet one. */
 .dish-table__row--thin td { opacity: 0.62; }
 
+/* The Direct row in the arrivals table. It is the baseline every tagged source
+   is read against, not another campaign, so it's ruled off rather than coloured
+   — a hue here would put it in the running with the rows it's the yardstick for. */
+.src-table__row--base td { border-bottom: 1px solid var(--ink-soft); }
+.src-table__row--base .ev-when { font-style: italic; }
+
 /* One dish's guess spread, inline: six win buckets then the losses. Small enough
    to sit in a table cell, which is the point — the shape of a distribution is
    recognisable long before its numbers are readable. */

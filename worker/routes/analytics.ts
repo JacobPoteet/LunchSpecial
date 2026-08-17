@@ -3,6 +3,7 @@
 // by a client-generated round_id. Never records guess content.
 
 import { Hono, type Context } from "hono";
+import { normalizeSource, SOURCE_DIRECT } from "../../shared/attribution";
 import { MAX_GUESSES, ROUND_KINDS, SURFACES, type RoundKind, type Surface } from "../../shared/types";
 import { getSeededDish, getTargetDish, serverToday } from "../db";
 import { isValidDateString } from "../game";
@@ -96,7 +97,11 @@ function base(body: unknown): Base | null {
  * from a delivered one — those players would simply never appear.
  */
 app.post("/seated", async (c) => {
-  const raw = (await c.req.json().catch(() => null)) as { playerId?: unknown; surface?: unknown } | null;
+  const raw = (await c.req.json().catch(() => null)) as {
+    playerId?: unknown;
+    surface?: unknown;
+    source?: unknown;
+  } | null;
   const playerId = raw?.playerId;
   // No usable device id means nothing to dedupe on, and a row per page load
   // would overcount visitors rather than undercount them. Drop it.
@@ -104,12 +109,22 @@ app.post("/seated", async (c) => {
     return c.json({ error: "Invalid payload" }, 400);
   }
   const surface = SURFACES.includes(raw?.surface as never) ? (raw!.surface as Surface) : "web";
+  // Where they came from (migrations/0024). Unlike every other field on every
+  // other beacon, this one originates in a URL the player controls, so it is
+  // re-normalised here regardless of what the client did with it — the client's
+  // pass exists to survive an in-app navigation, not to be trusted. Absent or
+  // malformed becomes `direct` rather than NULL, which is reserved for rows
+  // written before the column existed.
+  const source = normalizeSource(raw?.source) ?? SOURCE_DIRECT;
+  // DO NOTHING, so the day's FIRST touch wins: a device that opened the game
+  // directly this morning and clicked an ad at lunch keeps `direct`, because the
+  // ad did not bring them here today.
   await c.env.DB.prepare(
-    `INSERT INTO analytics_visits (visit_day, player_id, surface, country, first_seen_at)
-     VALUES (?, ?, ?, ?, datetime('now'))
+    `INSERT INTO analytics_visits (visit_day, player_id, surface, country, source, first_seen_at)
+     VALUES (?, ?, ?, ?, ?, datetime('now'))
      ON CONFLICT(visit_day, player_id) DO NOTHING`,
   )
-    .bind(serverToday(), playerId, surface, countryOf(c))
+    .bind(serverToday(), playerId, surface, countryOf(c), source)
     .run();
   return c.json({ ok: true });
 });

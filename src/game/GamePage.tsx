@@ -20,6 +20,7 @@ import { ClueTicket, Countdown, GuessInput, GuessRow, Modal, useNewDayAvailable 
 import AnnouncementModal from "./AnnouncementModal";
 import ArchiveModal from "./ArchiveModal";
 import { dateLabel, isPastPuzzleDate } from "./archive";
+import { visitSource } from "./attribution";
 import { currentSurface, surfaceUrl } from "../discord/bootstrap";
 import { setPresence } from "../discord/presence";
 import { publishProgress, resetProgress } from "../discord/progress";
@@ -788,10 +789,14 @@ export default function GamePage() {
   // deduplicates by (day, device) on top of that, so mode switches — which
   // navigate by assigning a URL and remount this whole page — cost nothing. The
   // test modes are excluded by the same `tracked` flag as every other beacon.
+  //
+  // It also carries where the arrival came from (migrations/0024) — the only
+  // beacon that does, because a visit is the arrival and a round isn't.
   useEffect(() => {
     if (!tracked || !daily) return;
     if (!markSeated(localToday())) return;
-    beaconSeated({ playerId: getPlayerId(), surface: SURFACE });
+    const source = visitSource();
+    beaconSeated({ playerId: getPlayerId(), surface: SURFACE, ...(source ? { source } : {}) });
   }, [daily, tracked]);
 
   // Discord Rich Presence: which mode they're in and how they're doing, on their
