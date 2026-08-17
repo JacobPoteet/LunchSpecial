@@ -1,8 +1,10 @@
 // Builds Discord Activity art assets from existing game art.
 // Run: node discord-assets/build.mjs   (from repo root)
 //
-// The neon wordmark uses the real OFL fonts (Yellowtail / Alfa Slab One). sharp's
-// librsvg finds them via fontconfig — but fontconfig (a native lib) reads
+// The SVG rasterizing here resolves fonts against the repo's own font folder and
+// nothing else, so the icon renders the same on any machine regardless of what is
+// installed on it. sharp's librsvg finds them via fontconfig — but fontconfig (a
+// native lib) reads
 // FONTCONFIG_FILE from the OS environment at *process start*, and on Windows a
 // process.env assignment made after startup is NOT visible to native libs. So we
 // write a fonts.conf pointing at the repo font folder and re-exec ourselves once
@@ -51,36 +53,34 @@ await sharp('src/assets/art/diner-backdrop.png')
   .png()
   .toFile(`${OUT}/embedded-background.png`);
 
-// ---- 3. Cover art: backdrop (16:9) + neon wordmark overlay, 1280x720 ----
-const W = 1280, H = 720;
-const overlay = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-  <defs>
-    <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#0b1f1c" stop-opacity="0"/>
-      <stop offset="0.5" stop-color="#0b1f1c" stop-opacity="0.15"/>
-      <stop offset="1" stop-color="#0b1f1c" stop-opacity="0.8"/>
-    </linearGradient>
-    <!-- matches the in-game .marquee__script neon: #ffd9e0 core + 3-layer
-         neon-pink glow (game.css uses 6/18/42px shadows; scaled ~3x here). -->
-    <filter id="neon" x="-70%" y="-70%" width="240%" height="240%">
-      <feDropShadow dx="0" dy="0" stdDeviation="9" flood-color="#ff5f7a" flood-opacity="0.9"/>
-      <feDropShadow dx="0" dy="0" stdDeviation="26" flood-color="#ff5f7a" flood-opacity="0.75"/>
-      <feDropShadow dx="0" dy="0" stdDeviation="60" flood-color="#ff5f7a" flood-opacity="0.6"/>
-    </filter>
-  </defs>
-  <rect width="${W}" height="${H}" fill="url(#scrim)"/>
-  <!-- keep the title inside the centered 13:11 crop-safe band -->
-  <g text-anchor="middle" filter="url(#neon)" fill="#ffd9e0" font-size="200">
-    <text x="${W / 2}" y="430" font-family="Yellowtail, cursive">Lunch</text>
-    <text x="${W / 2}" y="590" font-family="Yellowtail, cursive">Special</text>
-  </g>
-  <text x="${W / 2}" y="664" text-anchor="middle" font-family="'Alfa Slab One', serif" font-size="30" letter-spacing="8" fill="#f6edd9">THE DAILY DISH GUESSING GAME</text>
-</svg>`;
-
-await sharp('src/assets/art/diner-backdrop.png')
-  .resize(W, H, { fit: 'cover', position: 'attention' })
-  .composite([{ input: Buffer.from(overlay), top: 0, left: 0 }])
-  .png()
+// ---- 3. Cover art: the social card (public/og-image.jpg), fitted to 16:9 ----
+//
+// The cover used to be composed here — backdrop + a two-line Yellowtail wordmark
+// drawn in SVG. It is now the same picture the site already hands to Twitter,
+// Facebook, Discord unfurls and iMessage, so the Activity Shelf and a pasted link
+// look like one product instead of two takes on it. That card is also the better
+// piece of design: one-line wordmark, the "GUESS TODAY'S SPECIAL" star line, and
+// the URL, which the generated version never had.
+//
+// og-image.jpg is 1200x630 (1.90:1), flatter than 16:9, so something has to give:
+//   - Cropping to height (720/630) would scale the type up 14% and eat 45px off
+//     each side of a design whose type already runs nearly edge to edge.
+//   - Fitting to width lands on 1280x672 with the whole composition intact, and
+//     leaves 48px of height to find.
+// So: fit the width, then extend 24px top and bottom with `copy` (edge pixels
+// replicated). The top edge is flat ceiling and the bottom is the vignette, so
+// the band is invisible; mirroring would double the ceiling lights and a solid
+// bar would seam against the lit ceiling. Nothing in the design is cropped.
+//
+// Caveat worth knowing before you retune this: Discord also crops the cover to
+// 13:11 (the centered 851px of 1280), and the one-line wordmark is 863px wide
+// here, so that crop clips the L swash and the tail of "Special". The 16:9 hero
+// is the placement that matters and it is whole; making both fit would mean
+// redrawing the type smaller, i.e. no longer shipping the og-image.
+await sharp('public/og-image.jpg')
+  .resize(1280, 672, { fit: 'fill' })
+  .extend({ top: 24, bottom: 24, extendWith: 'copy' })
+  .png({ compressionLevel: 9 })
   .toFile(`${OUT}/cover-art.png`);
 
 // ---- report ----

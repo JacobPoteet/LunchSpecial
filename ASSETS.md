@@ -32,6 +32,18 @@ Golden-age American diner, roughly 1950s: cream + chrome + cherry-red + deep tea
 - **Where**: "Special of the day" hint line at the top of the menu card.
 - **Size**: 240×200 viewBox, displayed ~54×45px (keep it readable small).
 
+### `public/og-image.jpg`
+- **What**: The social card — the vintage diner photograph under a one-line neon "Lunch
+  Special" wordmark, the "THE DAILY DISH GUESSING GAME" tagline, a mustard
+  "★ GUESS TODAY'S SPECIAL ★" line, and the URL.
+- **Where**: `og:image` / `twitter:image` in `index.html`, so it is what Twitter, Facebook,
+  Discord unfurls, Slack and iMessage show for a pasted link. **Also the source of the
+  Discord cover art and the press-kit key art** (see both tables below) — one picture, so a
+  shared link and the Activity Shelf look like the same product.
+- **Size**: 1200×630 (1.90:1, the standard OG card ratio). The type runs nearly edge to
+  edge — the wordmark alone is 809px of the 1200 — so this crops badly to anything squarer.
+  Re-cut it at the same ratio when swapping, and re-run `npm run assets:discord`.
+
 ### `public/favicon.svg`
 - **What**: Simplified cloche on a cherry-red circle.
 - **Where**: Browser tab icon.
@@ -55,16 +67,29 @@ Generated from `public/favicon.svg` by `npm run assets:icons`
 ## Discord Activity assets (`discord-assets/`)
 
 Uploaded by hand to the Discord Developer Portal — not served by the Worker. All derived
-from the art above (backdrop + cloche mark + fonts); regenerate with `npm run assets:discord`.
+from the art above (backdrop + cloche mark + the social card); regenerate with
+`npm run assets:discord`.
 See [`discord-assets/README.md`](discord-assets/README.md) for Portal upload locations.
 
 | File | What | Spec |
 |---|---|---|
 | `discord-assets/app-icon.png` | Cloche mark on a cherry radial ground (from favicon) | 1024×1024, circular safe zone |
-| `discord-assets/cover-art.png` | Backdrop + neon "Lunch Special" wordmark — Activity Shelf hero | 1280×720 (16:9, crops to 13:11) |
+| `discord-assets/cover-art.png` | The social card, fitted to 16:9 — Activity Shelf hero | 1280×720 (16:9, crops to 13:11) |
 | `discord-assets/embedded-background.png` | Diner backdrop cropped to 16:9 — Grid-view backdrop | 1280×720 |
 | `discord-assets/preview.mp4` | Slow zoom over the cover (optional hover preview) | 640×360, <1 MB, 9s |
 | `discord-assets/app-icon.svg` | Vector source for the icon | 1024 viewBox |
+
+The cover art **is `public/og-image.jpg`**, not a separate composition. It used to be the
+backdrop plus a two-line Yellowtail wordmark drawn in SVG by `build.mjs`; using the social
+card instead means a pasted link and the Activity Shelf show the same picture, and it is
+the better design of the two (one-line wordmark, star line, URL). The builder fits it to
+**width** — 1280×672 — and extends 24px of replicated edge pixels top and bottom to reach
+720, so nothing in the composition is cropped and the added band is invisible against the
+flat ceiling and the vignette. **Known cost:** Discord also crops the cover to 13:11 (the
+centered 851px), and the one-line wordmark is 863px wide, so that crop clips the `L` swash
+and the tail of `Special`. The 16:9 hero is the placement that matters and it is whole;
+fixing the square crop would mean redrawing the type smaller, i.e. no longer shipping the
+og-image.
 
 ## Press kit (`public/press/`)
 
@@ -84,7 +109,7 @@ into a literal `fonts\alfa-slab-one.ttf` file instead of a `fonts/` directory.
 | File | What | Spec |
 |---|---|---|
 | `public/press/app-icon.png` | Cloche mark on cherry ground | 1024×1024 |
-| `public/press/key-art.png` | Backdrop + neon wordmark (= Discord cover art) | 1280×720 |
+| `public/press/key-art.png` | The social card, fitted to 16:9 (= Discord cover art) | 1280×720 |
 | `public/press/backdrop.png` | Diner backdrop (= Discord embedded background) | 1280×720 |
 | `public/press/favicon.svg` | Cloche mark | 64×64 viewBox |
 | `public/press/fonts/*.ttf` | Alfa Slab One + Yellowtail, for press use | OFL 1.1 |
