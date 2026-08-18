@@ -82,6 +82,11 @@ export default function Dashboard({
 
   const [dash, setDash] = useState<AdminDashboard | null>(null);
   const [dashError, setDashError] = useState<string | null>(null);
+  // Bumped when the Today tab books a day itself (the Tomorrow's Special
+  // shuffle). The card patches its own dish for an instant redraw; the refetch
+  // is for everything else that booking moved — schedule health's days-ahead
+  // and first-gap most of all.
+  const [dashReloads, setDashReloads] = useState(0);
 
   // One /analytics fetch feeds Overview, Players and Trends — the endpoint
   // already returns every slice, so the tabs are pure presentation.
@@ -107,7 +112,7 @@ export default function Dashboard({
 
   useEffect(() => {
     api.getDashboard().then(setDash, (e: Error) => setDashError(e.message));
-  }, []);
+  }, [dashReloads]);
 
   useEffect(() => {
     let live = true;
@@ -171,6 +176,10 @@ export default function Dashboard({
           onNavigate={onNavigate}
           onOpenDish={onOpenDish}
           onOpenTab={setTab}
+          onTomorrowChange={(tomorrow) => {
+            setDash((d) => (d ? { ...d, tomorrow } : d));
+            setDashReloads((n) => n + 1);
+          }}
         />
       )}
       {/* Menu and Activity fetch their own endpoints — mounting them only when

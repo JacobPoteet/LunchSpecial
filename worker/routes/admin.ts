@@ -58,6 +58,7 @@ import { foldDishStats, type DishMetaRow, type DishStatRow } from "../dishstats"
 import { foldExperimentSeries, type ExperimentHourRow } from "../experiments";
 import { foldFunnel, type FunnelBucketRow } from "../funnel";
 import { foldRhythm, type RhythmRow } from "../rhythm";
+import { pickUnserved, unservedDishes, type ShuffleDishRow } from "../shuffle";
 import {
   createToken,
   passwordMatches,
@@ -415,6 +416,47 @@ app.post("/schedule/autofill", async (c) => {
   }
   if (statements.length > 0) await c.env.DB.batch(statements);
   return c.json({ filled: statements.length });
+});
+
+// Roll a dish that has never been the Special onto one day — the Tomorrow's
+// Special card's shuffle. Click it until something appealing turns up, then edit
+// that dish; see worker/shuffle.ts for what "never" means and why the pool is
+// what it is. Writes the same schedule row PUT /schedule would, so a shuffled
+// day is an ordinary booking with nothing special about it afterwards.
+app.post("/schedule/shuffle", async (c) => {
+  let body: { date?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
+  if (!body.date || !isValidDateString(body.date)) return c.json({ error: "Invalid date" }, 400);
+  if (body.date < serverToday()) return c.json({ error: "Past days are locked" }, 400);
+
+  const res = await c.env.DB
+    .prepare(
+      `SELECT d.id, d.name, d.ingredients,
+         (SELECT COUNT(*) FROM clues c WHERE c.dish_id = d.id) AS clue_count,
+         EXISTS (SELECT 1 FROM schedule s WHERE s.dish_id = d.id) AS ever_scheduled
+       FROM dishes d WHERE d.is_active = 1`,
+    )
+    .all<ShuffleDishRow>();
+
+  const pool = unservedDishes(res.results);
+  const pick = pickUnserved(pool, Math.random());
+  if (!pick) {
+    return c.json(
+      { error: "Every schedulable dish has been the Special at some point — nothing left to shuffle" },
+      409,
+    );
+  }
+  await c.env.DB
+    .prepare("INSERT INTO schedule (date, dish_id) VALUES (?, ?) ON CONFLICT(date) DO UPDATE SET dish_id = excluded.dish_id")
+    .bind(body.date, pick.id)
+    .run();
+  // `remaining` counts the pool the roll came from, which still includes the dish
+  // just booked — it's what's left to try, not what's left after this one.
+  return c.json({ date: body.date, dishId: pick.id, dishName: pick.name, remaining: pool.length });
 });
 
 app.post("/preview", async (c) => {

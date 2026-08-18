@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import * as api from "./api";
 import type { AdminDashboard, AnalyticsSummary, DashboardSpecial } from "../../shared/types";
 import { PLAYTIME_CAP_MINUTES } from "../../shared/types";
 import { gameHour, hms, msUntilGameMidnight } from "../../shared/time";
@@ -284,16 +285,60 @@ function AtAGlance({
  * Tomorrow's booking. An empty day isn't fatal — the game falls back to a
  * deterministic pick and never 404s — but it's the one gap you'd want to fill
  * before it becomes today, so it warns.
+ *
+ * Shuffle rolls a dish that has never been the Special onto the day, in place —
+ * it's meant to be pressed repeatedly until something appealing turns up, which
+ * is why the button sits beside "Edit dish" rather than in the schedule view:
+ * the pair is the whole loop (roll, look, roll again, edit the one you kept).
+ * Three things follow from that:
+ *
+ * 1. **It writes on every click.** There's no "accept" step, because a roll that
+ *    only proposed would need a second button to commit and a third to discard.
+ *    Each click simply overwrites tomorrow's row, and the dish it displaces goes
+ *    back in the pool.
+ * 2. **It never lands on what's already showing.** The pool is "no schedule row
+ *    at all", and the dish on the card has one at the moment the roll is made —
+ *    so a click always visibly changes something, which is the only way a
+ *    click-until-you-like-it button reads as working.
+ * 3. **It offers itself on an empty day too**, where it's the fastest way to fill
+ *    the gap the panel is warning about — and the count it reports afterwards is
+ *    how much of the unserved catalogue is left to roll through.
  */
 function TomorrowsSpecial({
   tomorrow,
   onNavigate,
   onOpenDish,
+  onShuffled,
 }: {
   tomorrow: DashboardSpecial;
   onNavigate: (view: AdminView) => void;
   onOpenDish: (id: number | null) => void;
+  onShuffled: (special: DashboardSpecial) => void;
 }) {
+  const [rolling, setRolling] = useState(false);
+  const [shuffleError, setShuffleError] = useState<string | null>(null);
+  const [remaining, setRemaining] = useState<number | null>(null);
+
+  async function shuffle() {
+    setRolling(true);
+    setShuffleError(null);
+    try {
+      const picked = await api.shuffleSchedule(tomorrow.date);
+      setRemaining(picked.remaining);
+      onShuffled({ date: picked.date, dishId: picked.dishId, dishName: picked.dishName });
+    } catch (e) {
+      setShuffleError((e as Error).message);
+    } finally {
+      setRolling(false);
+    }
+  }
+
+  const shuffleBtn = (
+    <button className="btn btn--ghost" onClick={shuffle} disabled={rolling}>
+      {rolling ? "Rolling…" : "🎲 Shuffle"}
+    </button>
+  );
+
   return (
     <section className={tomorrow.dishName ? "panel" : "panel panel--warn"}>
       <h2>Tomorrow's Special</h2>
@@ -305,6 +350,7 @@ function TomorrowsSpecial({
             <button className="btn btn--ghost" onClick={() => onOpenDish(tomorrow.dishId)}>
               Edit dish
             </button>
+            {shuffleBtn}
           </div>
         </>
       ) : (
@@ -317,8 +363,15 @@ function TomorrowsSpecial({
             <button className="btn" onClick={() => onNavigate("schedule")}>
               Open schedule
             </button>
+            {shuffleBtn}
           </div>
         </>
+      )}
+      {shuffleError && <p className="form-error">{shuffleError}</p>}
+      {!shuffleError && remaining !== null && (
+        <p className="dash-note">
+          Rolled from {remaining} dish{remaining === 1 ? "" : "es"} that have never been the Special.
+        </p>
       )}
     </section>
   );
@@ -392,6 +445,7 @@ export default function OverviewPanel({
   onNavigate,
   onOpenDish,
   onOpenTab,
+  onTomorrowChange,
 }: {
   data: AdminDashboard | null;
   error: string | null;
@@ -401,6 +455,8 @@ export default function OverviewPanel({
   onNavigate: (view: AdminView) => void;
   onOpenDish: (id: number | null) => void;
   onOpenTab: (tab: DashboardTab) => void;
+  /** A shuffled booking, handed up so the schedule-health read re-reads too. */
+  onTomorrowChange: (special: DashboardSpecial) => void;
 }) {
   if (error) return <p className="form-error">{error}</p>;
   if (!data) return <p style={{ color: "var(--cream)" }}>Loading the front of house…</p>;
@@ -434,7 +490,12 @@ export default function OverviewPanel({
           )}
         </section>
 
-        <TomorrowsSpecial tomorrow={data.tomorrow} onNavigate={onNavigate} onOpenDish={onOpenDish} />
+        <TomorrowsSpecial
+          tomorrow={data.tomorrow}
+          onNavigate={onNavigate}
+          onOpenDish={onOpenDish}
+          onShuffled={onTomorrowChange}
+        />
 
         <section className={lowSchedule ? "panel panel--warn" : "panel"}>
           <h2>Schedule health</h2>

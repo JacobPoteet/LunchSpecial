@@ -129,6 +129,16 @@ export const getSchedule = () => request<ScheduleEntry[]>("/schedule");
 export const setSchedule = (date: string, dishId: number | null) =>
   request<{ ok: true }>("/schedule", { ...json({ date, dishId }), method: "PUT" });
 export const autofillSchedule = () => request<{ filled: number }>("/schedule/autofill", { method: "POST" });
+/**
+ * Book one day with a random dish that has never been the Special. Returns the
+ * dish it landed on plus how many were in the pool it rolled from, so the card
+ * can redraw without a second fetch. 409 when nothing is left unserved.
+ */
+export const shuffleSchedule = (date: string) =>
+  request<{ date: string; dishId: number; dishName: string; remaining: number }>(
+    "/schedule/shuffle",
+    json({ date }),
+  );
 export const createPreview = (dishId: number) => request<{ token: string; url: string }>("/preview", json({ dishId }));
 export const getRequests = () => request<DishRequest[]>("/requests");
 export const deleteRequest = (id: number) => request<{ ok: true }>(`/requests/${id}`, { method: "DELETE" });
