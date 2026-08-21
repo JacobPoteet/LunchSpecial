@@ -1556,6 +1556,118 @@
       }
 
       /* ---- the share card ---- */
+      /* ==========================================================
+         THE FAN STAMP — the last inch of a credited check
+         ==========================================================
+         Same rule as the notice card above: this is a piece of the
+         game's own UI, so it hard-codes the game's palette instead
+         of this page's tokens. The game has one palette and no dark
+         mode, and a themed copy of it would misrepresent it in half
+         of all visits. */
+      .fanfig {
+        display: grid;
+        grid-template-columns: 1fr 250px;
+        gap: 18px;
+        align-items: start;
+        margin: 24px 0 10px;
+      }
+      .check-stage {
+        background: #123833;
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        padding: 26px 20px;
+        display: flex;
+        justify-content: center;
+      }
+      .check-bot {
+        width: 100%;
+        max-width: 330px;
+        background: #fbf4e0;
+        border-radius: 6px;
+        padding: 14px 16px 16px;
+        box-shadow: 0 18px 50px rgba(10, 20, 18, 0.45);
+        font-family: var(--font-body);
+      }
+      /* The check carries on above the frame; this is its foot. */
+      .check-bot__cut {
+        border-top: 1px dashed #d9c9a4;
+        margin: 0 -16px 12px;
+      }
+      .check-bot__tail {
+        margin: 0;
+        max-width: none;
+        text-align: center;
+        font-size: 0.78rem;
+        line-height: 1.5;
+        color: #5b4f45;
+      }
+      .fan-seal {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 16px 0 0;
+        padding: 7px 11px;
+        border: 2px solid #e8a53a;
+        border-radius: 10px;
+        background: #f9ecd2;
+        /* Two rings out of one shadow: paper gap, then the outer rule. */
+        box-shadow: 0 0 0 2px #f9ecd2, 0 0 0 3.5px #e8a53a;
+      }
+      .fan-seal__star {
+        flex: 0 0 auto;
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #e8a53a;
+        color: #2b2320;
+        font-size: 0.95rem;
+        line-height: 1;
+        box-shadow: inset 0 0 0 2px #fbf4e0;
+      }
+      .fan-seal__t {
+        margin: 0;
+        max-width: none;
+        font-family: var(--font-display);
+        font-size: 0.7rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #2b2320;
+      }
+      .fan-seal__b {
+        margin: 1px 0 0;
+        max-width: none;
+        font-size: 0.78rem;
+        line-height: 1.35;
+        color: #5b4f45;
+      }
+      /* 8px and no dashed rule above it — the seal is the break. */
+      .suggest-cta {
+        display: block;
+        width: 100%;
+        margin-top: 8px;
+        padding: 9px 12px;
+        border: 2px solid #e8a53a;
+        border-radius: 10px;
+        background: #e8a53a;
+        color: #2b2320;
+        font-family: var(--font-slab);
+        font-weight: 700;
+        font-size: 0.84rem;
+        text-align: center;
+      }
+      .check-bot__gap {
+        margin: 6px 0 0;
+        max-width: none;
+        text-align: center;
+        font-family: var(--font-mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #a2907a;
+      }
+
       .receipt {
         background: var(--surface);
         border: 1px solid var(--rule);
@@ -1603,6 +1715,7 @@
       .charts2 > *,
       .demo > *,
       .notice-fig > *,
+      .fanfig > *,
       .reach > *,
       .cards > *,
       .tiles > *,
@@ -2281,6 +2394,7 @@
         .split,
         .charts2,
         .notice-fig,
+        .fanfig,
         .reach {
           grid-template-columns: 1fr;
         }
@@ -3100,7 +3214,7 @@
                 <h4 class="notice-card__title">Thirteen new dishes on the menu</h4>
                 <p class="notice-card__body">
                   Every one of them arrived through the <strong>suggest a dish</strong> form on your
-                  check, and each gets <a href="#numbers">credited</a> when it comes up as the
+                  check, and each gets <a href="#credited">credited</a> when it comes up as the
                   Special. Keep them coming.
                 </p>
               </div>
@@ -3125,6 +3239,68 @@
             </p>
           </div>
         </div>
+
+        <h3 id="credited">Players add to the menu</h3>
+        <p>
+          The loop runs the other way too. After finishing a round, a button on the bottom of the modal shows "suggest a dish
+          for the menu" that prompts for a dish to be added. Players can give the name, a country if you know it, and a note.
+        </p>
+        <p>
+          Suggestions land in an inbox on the admin side where each one is either
+          cleared or promoted, and promoting it opens the dish editor with the name and country
+          already in the fields, at which point it has to clear the same bar as everything
+          else on the menu.
+        </p>
+
+        <div class="fanfig">
+          <div class="check-stage">
+            <div class="check-bot">
+              <p class="check-bot__gap">&middot; &middot; &middot; the rest of the check &middot; &middot; &middot;</p>
+              <div class="check-bot__cut"></div>
+              <p class="check-bot__tail">Next Special in 6:12:44</p>
+              <div class="fan-seal">
+                <span class="fan-seal__star" aria-hidden="true">&#9733;</span>
+                <div>
+                  <p class="fan-seal__t">Off a customer&rsquo;s ticket</p>
+                  <p class="fan-seal__b">A regular asked for Zeppole. Yours could be next.</p>
+                </div>
+              </div>
+              <span class="suggest-cta">&#127869;&#65039; Suggest a dish for the menu</span>
+            </div>
+          </div>
+
+          <div class="notice-where">
+            <p class="notice-where__k">What the credit changes</p>
+            <ul>
+              <li class="yes">The seal on the check</li>
+              <li class="no">Which day it is served</li>
+              <li class="no">The odds in Chef&rsquo;s Choice</li>
+              <li class="no">The tiles and the clues</li>
+              <li class="no">Every figure on the dashboard</li>
+            </ul>
+            <p class="notice-where__note">
+              One flag, read in exactly one place. A dish that came in through the form is judged on
+              the same terms as the rest of the menu.
+            </p>
+          </div>
+        </div>
+
+        <p>
+          Where the seal sits is a height decision rather than a layout preference. The check is the
+          tallest card in the game on a 375px screen, so the credit goes at the very foot of it,
+          directly on top of the suggest button, instead of up beside the dish name where it would
+          read as a label on the answer. It is square rather than tilted, because a tilt reads as a
+          sticker and then demands padding on four corners to keep them off the text around it. And
+          it carries the section break itself: the dashed rule the suggest form draws above itself is
+          dropped whenever the seal is there, so crediting a dish costs the card one short band
+          rather than a separator and a seal. Mustard, not cherry, because nothing on that card is
+          allowed to outrank the verdict.
+        </p>
+        <p>
+          Whether the credit brings a player back on the day their dish runs, I do not know. It is
+          not instrumented, and the honest version of this page says so rather than assuming the
+          flattering answer.
+        </p>
 
         <h3>The arithmetic is separated from the database</h3>
         <p>
@@ -4327,7 +4503,7 @@
            is not the only failure -- it can be present and still deliver
            nothing (a background tab that never composites, for one), and a
            feature-detect cannot catch that. Either path is enough on its own. */
-        var REVEAL_SEL = ".reveal, .chart, .diagram, .beats, .cards, .notice-fig, .reach";
+        var REVEAL_SEL = ".reveal, .chart, .diagram, .beats, .cards, .notice-fig, .fanfig, .reach";
         var pending = [];
 
         function markIn(el) {
