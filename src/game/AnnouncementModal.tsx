@@ -62,6 +62,7 @@ export default function AnnouncementModal({
     <Modal
       variant="notice"
       onClose={onClose}
+      label="A note from the kitchen"
       footer={
         <button className="btn btn--red notice__ok" onClick={() => { playSfx("ui-click"); onClose(); }}>
           {remaining > 0 ? "Next note" : "Continue"}

@@ -216,7 +216,7 @@ export default function ArchiveModal({
   );
 
   return (
-    <Modal onClose={onClose} variant="archive" footer={chefsChoice}>
+    <Modal onClose={onClose} variant="archive" footer={chefsChoice} label="Menu archive">
       <h2 className="archive-cal__title">Leftovers</h2>
       <p className="archive-cal__lede">Replay any Special you missed.</p>
       <div className="archive-cal__legend">

@@ -183,7 +183,10 @@
 }
 
 .btn:hover { background: var(--teal-dark); }
-.btn--red { background: var(--cherry); }
+/* --cream on --cherry is 4.41:1 (GitHub #126). This one is player-facing —
+   it's the button in the announcement modal's footer — so it takes the same
+   text colour as the cherry buttons in game.css. */
+.btn--red { background: var(--cherry); color: var(--on-cherry); }
 .btn--red:hover { background: var(--cherry-dark); }
 .btn--ghost {
   background: transparent;
