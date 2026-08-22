@@ -31,12 +31,12 @@
   },
   "dependencies": {
     "@discord/embedded-app-sdk": "^2.5.0",
-    "hono": "^4.13.1",
+    "hono": "^4.13.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.51.3",
+    "@cloudflare/vite-plugin": "^1.53.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
@@ -46,7 +46,7 @@
     "sharp": "^0.35.3",
     "typescript": "^7.0.2",
     "vite": "^8.2.1",
-    "vitest": "^4.1.10",
+    "vitest": "^4.1.11",
     "wrangler": "^4.112.0"
   },
   "allowScripts": {
