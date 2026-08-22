@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.53.0",
-    "@types/better-sqlite3": "^7.6.13",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
@@ -50,8 +50,8 @@
     "wrangler": "^4.112.0"
   },
   "allowScripts": {
-    "better-sqlite3@13.0.1": true,
+    "better-sqlite3@13.0.3": false,
     "esbuild@0.28.1": true,
-    "workerd@1.20260722.1": true
+    "workerd@1.20260815.1": true
   }
 }
