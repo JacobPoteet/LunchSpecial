@@ -9,7 +9,7 @@
 
 import { useSyncExternalStore } from "react";
 import { beaconSound } from "../api";
-import { isMuted, playSfx, subscribe, toggleMuted } from "../audio";
+import { audioAvailable, isMuted, playSfx, subscribe, toggleMuted } from "../audio";
 import { currentSurface } from "../discord/bootstrap";
 import { peekPlayerId } from "./storage";
 
@@ -56,6 +56,13 @@ function SpeakerIcon({ muted }: { muted: boolean }) {
 
 export function SoundToggle() {
   const muted = useSyncExternalStore(subscribe, isMuted, () => false);
+
+  // No assets in this build means no sound, and a mute button for silence is
+  // worse than no button: a control that visibly does nothing. The check sits
+  // *below* the hook rather than at the top of the function because a hook can
+  // never run conditionally — and `audioAvailable()` is constant for the life
+  // of the bundle anyway, so this can't flip between renders.
+  if (!audioAvailable()) return null;
 
   const flip = () => {
     const next = toggleMuted();

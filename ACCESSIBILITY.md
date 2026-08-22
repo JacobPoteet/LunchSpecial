@@ -10,14 +10,30 @@ Target is WCAG 2.1 AA. The game does not meet it yet. Open gaps are tracked with
 
 ### Reduced motion
 
-The strongest area, and the one to protect when adding UI. `@media (prefers-reduced-motion: reduce)` in `src/styles/game.css` disables roughly forty animations, and two more places check it in JavaScript:
+The strongest area, and the one to protect when adding UI. `@media (prefers-reduced-motion: reduce)` in `src/styles/game.css` disables roughly forty animations, and one more place checks it in JavaScript:
 
 - `Modal.requestClose()` skips the exit animation and unmounts immediately, because a disabled animation never fires `animationend`.
-- `playSfx()` checks it before playing anything.
+
+> **`playSfx()` used to check it too, and deliberately no longer does.** It was the *only* thing gating audio, which was wrong in both directions: it silenced people who had asked about motion, and left everyone else with no way to turn sound off at all. Reduced motion is a statement about vestibular comfort, not about volume. Sound is now governed by an explicit control — see [Sound](#sound) below.
 
 Two things survive on purpose. Presses keep their colour change on `:active`, since that is the only confirmation a tap registered, and only the movement stops. The clue accordion still opens, it just snaps.
 
 > `src/styles/admin.css` has no reduced-motion block and does not need one. It declares no animations at all.
+
+### Sound
+
+No audio ships yet — the files are being licensed — but the system is in place and the accessibility surface it needs is already built.
+
+**There is one mute control**, in the menu card's toolbar (`SoundToggle`). It carries an `aria-label` that flips between "Mute sound" and "Unmute sound", plus `aria-pressed`, so its state is available without seeing the icon. The icon itself is a line-drawn speaker whose two states differ in **shape**, not just colour — waves versus a cross — so it is not carried by colour alone, unlike the hit/near/miss gap in #125.
+
+**This is a WCAG requirement, not a courtesy.** SC 1.4.2 (Audio Control, Level A) says that any audio playing automatically for more than three seconds must have a mechanism to pause or stop it. The ambient bed does exactly that inside the Discord Activity, where it is on by default, so the toggle is what keeps that surface conformant. If the bed is ever switched on for the web too, this control is what makes that allowed.
+
+The button hides itself when the build contains no audio files, so it never appears as a control that does nothing.
+
+Two things to hold when sound lands:
+
+- **Nothing may depend on hearing it.** Every sound marks something that is also visible — a row landing, a ticket printing, a modal opening. None of them carries information on its own.
+- **The mute state is per-device and persists**, so a player never has to turn it off twice.
 
 ### Keyboard, in the guess flow
 

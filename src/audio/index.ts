@@ -9,6 +9,7 @@
 import { guessArc, type ArcInput, type SfxName } from "../../shared/audio";
 import type { Surface } from "../../shared/types";
 import {
+  audioAvailable,
   initAudio,
   onUnlock,
   play,
@@ -22,7 +23,7 @@ import { startMusic, stopMusic } from "./music";
 import { loadPrefs, storeMuted } from "./prefs";
 
 export type { SfxName };
-export { setMuffled };
+export { setMuffled, audioAvailable };
 
 let prefs = { muted: false, music: false };
 let ready = false;
@@ -52,7 +53,10 @@ export function isMuted(): boolean {
  * that unlocked the page.
  */
 export function setupAudio(surface: Surface): void {
-  if (ready) return;
+  // A build with no licensed assets makes no sound, so it doesn't get a graph,
+  // doesn't resume a context on the player's first tap, and doesn't show a mute
+  // button. See `audioAvailable`.
+  if (ready || !audioAvailable()) return;
   ready = true;
 
   prefs = loadPrefs(surface);

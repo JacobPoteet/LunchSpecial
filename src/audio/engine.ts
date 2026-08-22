@@ -71,6 +71,26 @@ function musicUrl(file: string): string | undefined {
   return MUSIC_URLS[`../assets/music/${file}`];
 }
 
+/**
+ * Whether this build has any sound in it at all.
+ *
+ * Until the assets are licensed both globs are empty, and a game that cannot
+ * make a sound should not build an audio graph, resume a context on the
+ * player's first tap, or offer them a mute button for silence. So the whole
+ * system stands down: `setupAudio` returns immediately and `SoundToggle`
+ * renders nothing, which is what makes this safe to ship ahead of the files.
+ *
+ * Development is the exception, because that's where {@link devBlip} stands in
+ * for the missing files — it's the only way to hear whether the guess arc is
+ * timed right before there's anything to license. `import.meta.env.DEV` is
+ * statically false in a production build, so this collapses to the glob check
+ * and the dev branch is dropped along with the oscillator it exists for.
+ */
+export function audioAvailable(): boolean {
+  if (import.meta.env.DEV) return true;
+  return Object.keys(SFX_URLS).length > 0 || Object.keys(MUSIC_URLS).length > 0;
+}
+
 // ---------------------------------------------------------------------------
 // Graph
 // ---------------------------------------------------------------------------
