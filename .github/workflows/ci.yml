@@ -1,7 +1,8 @@
 name: CI
 
-# Runs the full gate — npm test (game + stats + catalog data-integrity) and
-# npm run check (tsc) — on every push/PR to main. Fires on all *code* changes,
+# Runs the full gate — npm test (game + stats + catalog data-integrity), npm run
+# check (tsc), and npm run a11y (axe over the running game) — on every push/PR to
+# main. Fires on all *code* changes,
 # not just catalog data, so a code-only PR (e.g. a Worker or React change) can't
 # land with red tests/types.
 #
@@ -40,6 +41,12 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Two jobs, in parallel. They share the trigger and the paths-ignore above
+# deliberately: the a11y scan needs a build and a browser, so it is the more
+# expensive of the two, and there is nothing in **.md / docs/ / discord-assets/
+# that could change what the game renders. Keeping it here rather than in its own
+# workflow also avoids a THIRD copy of that paths-ignore list to hold in sync by
+# hand — see the note above about Actions and YAML anchors.
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -71,3 +78,60 @@ jobs:
 
       - run: npm test
       - run: npm run check
+
+  # Automated accessibility pass (GitHub #130). Every finding in ACCESSIBILITY.md
+  # was made by reading source by hand; this catches the mechanical third of WCAG
+  # that a tool does for free, and stops those particular regressions.
+  #
+  # It plays a round before scanning, which is the whole point: the guess column,
+  # the attribute tiles and the ingredient chips don't exist on a bare page load,
+  # so a scan of an empty board is a scan that passes because there is nothing on
+  # it. See scripts/a11y-scan.mjs for what it visits and why. /admin is out of
+  # scope, per ACCESSIBILITY.md.
+  a11y:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Same two steps as the test job, and for the same reason: the Vite build
+      # runs the Worker in workerd, which needs the generated Env types, which
+      # are derived from the gitignored .dev.vars.
+      - run: grep -E '^[A-Z_]+=' .dev.vars.example | sed -E 's/=.*/=placeholder/' > .dev.vars
+      - run: npm run cf-typegen
+
+      # --only-shell is the headless shell rather than the full browser: this
+      # never takes a screenshot or opens a window, so the ~100MB the full build
+      # adds buys nothing. playwright-core (not playwright) so nothing downloads
+      # on npm ci — the browser is fetched here, explicitly.
+      - run: npx playwright-core install --with-deps --only-shell --no-progress chromium
+
+      # The game with no dishes in it is the closed-kitchen sign, which is a real
+      # screen but not the one worth scanning. Local D1 only — this never touches
+      # anything remote, so the seed's usual "never run this against prod" warning
+      # doesn't apply. -y because `d1 execute` prompts and CI has no keyboard.
+      - run: npm run db:migrate
+      - run: npm run db:seed -- -y
+
+      # Start, wait, scan, and dump the server log on the way out — all in one
+      # step, because a process backgrounded in one Actions step is not something
+      # to rely on surviving into the next.
+      - name: Scan the running game
+        run: |
+          npm run dev > dev-server.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:5173/api/dishes > /dev/null; then break; fi
+            if [ "$i" = "60" ]; then echo "::error::dev server never came up"; cat dev-server.log; exit 1; fi
+            sleep 2
+          done
+          npm run a11y
+
+      - name: Dev server log
+        if: failure()
+        run: cat dev-server.log || true

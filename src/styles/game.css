@@ -498,7 +498,11 @@
   font-size: 0.56rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  opacity: 0.85;
+  /* The label is subordinate to the value, but only just: it sits on the
+     darkest of the three fills (--hit), where white at 0.85 composites to
+     4.14:1. 0.95 is 4.73 there and 5.73 on the palest. The hierarchy is mostly
+     doing its work through size and weight anyway. */
+  opacity: 0.95;
 }
 
 .attr-tile__label-text {
@@ -1820,7 +1824,10 @@ textarea.dish-request__input {
   font-size: 0.95rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--cherry);
+  /* --cherry-dark, not --cherry: this band is the one place a cherry heading
+     lands on --cream rather than --paper, where the lighter one is 4.41:1 —
+     and at 15.2px bold it doesn't reach the large-text allowance. */
+  color: var(--cherry-dark);
   margin: 0 0 3px;
 }
 
@@ -1845,9 +1852,13 @@ textarea.dish-request__input {
   margin-bottom: 0;
 }
 
+/* 0.62 rather than the 0.55 this was written at: cream composited onto
+   --teal-dark at 0.55 lands at 4.46:1, which is the kind of miss you only find
+   by measuring the *rendered* pixel — npm run a11y did, a hand pass over the
+   tokens didn't. 0.62 reads 5.23 and is a shade nobody will notice moved. */
 .footer-note {
   margin-top: 22px;
-  color: rgba(246, 237, 217, 0.55);
+  color: rgba(246, 237, 217, 0.62);
   font-size: 0.78rem;
   text-align: center;
 }

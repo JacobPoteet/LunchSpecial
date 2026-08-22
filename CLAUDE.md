@@ -11,6 +11,8 @@ npm run ramen        # same, but pinned to one named dish (/play?special=ramen) 
 npm run admin        # vite dev + opens /admin: straight to the login, skipping the game (password below)
 npm test             # vitest — worker/**/*.test.ts + shared/**/*.test.ts (every pure fold has one)
 npm run check        # tsc -b (3 project refs: app / worker / node)
+npm run a11y         # axe over the RUNNING game (needs `npm run dev` in another terminal).
+                     # Plays a round first — the tiles and chips don't exist on an empty board
 npm run build        # tsc -b && vite build → dist/
 npm run deploy       # build + wrangler deploy
 npm run db:migrate   # apply migrations to LOCAL D1   (db:migrate:remote for prod)
@@ -49,7 +51,7 @@ Three workflows, deliberately scoped so routine pushes don't pay for the full ga
 
 | Workflow | Fires on | Does |
 |---|---|---|
-| `ci.yml` | push + PR to `main` | `npm test` → `npm run check` |
+| `ci.yml` | push + PR to `main` | **test** job: `npm test` → `npm run check`. **a11y** job (parallel): local D1 migrate + seed → start `npm run dev` → `npm run a11y` |
 | `codeql.yml` | push + PR to `main`, weekly cron (Mon 04:27 UTC) | security-and-quality scan |
 | `deploy.yml` | `v*` tag, or manual dispatch | test + check + remote D1 migrate + deploy |
 
@@ -371,4 +373,4 @@ The user will say things like **"add dishes: Pho (Vietnam), Bibimbap (South Kore
 
 ## Verify a change
 
-`npm test && npm run check`, then dev server: play a full round (guess wrong twice → clue tickets appear → guess right → receipt modal), check /admin dashboard/editor/schedule, and mobile at 375px (no horizontal scroll). For UI changes also run the keyboard-only and reduced-motion passes in `ACCESSIBILITY.md`. Seeded local answer for 2026-07-17 is Hamburger (id 51); schedule table maps the rest.
+`npm test && npm run check`, then dev server (`npm run a11y` in a second terminal while it's up), then by hand: play a full round (guess wrong twice → clue tickets appear → guess right → receipt modal), check /admin dashboard/editor/schedule, and mobile at 375px (no horizontal scroll). For UI changes also run the keyboard-only and reduced-motion passes in `ACCESSIBILITY.md`. Seeded local answer for 2026-07-17 is Hamburger (id 51); schedule table maps the rest.
