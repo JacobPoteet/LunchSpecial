@@ -129,6 +129,53 @@ app.post("/seated", async (c) => {
   return c.json({ ok: true });
 });
 
+/**
+ * The player reached for the mute button (migrations/0025).
+ *
+ * The one beacon here that isn't about a round, and the smallest thing on this
+ * router on purpose. It records a *state* per device — where they ended up, and
+ * how many times they changed their mind — because that's the whole of what's
+ * interesting, and a row per press would be an ever-growing table answering a
+ * question nobody asks twice.
+ *
+ * `toggles` is taken from the client rather than incremented here (`excluded`,
+ * not `sound_prefs.toggles + 1`) so that a device whose row is missing — wiped
+ * from the Activity tab, or never written because a beacon was blocked — comes
+ * back with its real local count instead of restarting at one. The client's
+ * localStorage is the ledger; this table is the copy. It's clamped because it's
+ * client-supplied, and it is emphatically not a number anything depends on.
+ */
+app.post("/sound", async (c) => {
+  const raw = (await c.req.json().catch(() => null)) as {
+    playerId?: unknown;
+    surface?: unknown;
+    muted?: unknown;
+    toggles?: unknown;
+  } | null;
+  const playerId = raw?.playerId;
+  if (typeof playerId !== "string" || playerId.length < 8 || playerId.length > 64) {
+    return c.json({ error: "Invalid payload" }, 400);
+  }
+  if (typeof raw?.muted !== "boolean") return c.json({ error: "Invalid payload" }, 400);
+  const surface = SURFACES.includes(raw?.surface as never) ? (raw!.surface as Surface) : "web";
+  const toggles =
+    typeof raw.toggles === "number" && Number.isFinite(raw.toggles)
+      ? Math.min(Math.max(Math.trunc(raw.toggles), 1), 100000)
+      : 1;
+
+  await c.env.DB.prepare(
+    `INSERT INTO sound_prefs (player_id, muted, toggles, surface, updated_at)
+     VALUES (?, ?, ?, ?, datetime('now'))
+     ON CONFLICT(player_id) DO UPDATE SET muted = excluded.muted,
+       toggles = MAX(sound_prefs.toggles, excluded.toggles),
+       surface = excluded.surface,
+       updated_at = excluded.updated_at`,
+  )
+    .bind(playerId, raw.muted ? 1 : 0, toggles, surface)
+    .run();
+  return c.json({ ok: true });
+});
+
 app.post("/start", async (c) => {
   const raw = (await c.req.json().catch(() => null)) as (Partial<Base> & { playerId?: unknown }) | null;
   const b = base(raw);

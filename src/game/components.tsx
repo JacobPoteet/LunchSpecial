@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DishSummary, GuessFeedback, MatchLevel } from "../../shared/types";
 import { gameToday, hms, msUntilGameMidnight } from "../../shared/time";
-import { playSfx } from "./sfx";
+import { playSfx, setMuffled } from "../audio";
 
 // Strip diacritics so accented dish names (Crème Brûlée) are searchable from an
 // English keyboard ("creme brulee"). NFD splits a letter from its combining
@@ -48,10 +48,21 @@ export function Modal({
 }) {
   const [closing, setClosing] = useState(false);
 
-  // Slides up from the bottom on mount (SFX matches the motion).
+  // Slides up from the bottom on mount, and the sound matches the motion: the
+  // check prints rather than sliding, and a notice drops in from *above* and
+  // bounces. That opposition is how a player tells the three apart at a glance
+  // (see the notice variant's note in CLAUDE.md), so the audio has to agree
+  // with it or it argues with the picture.
+  //
+  // The bed is low-passed for as long as any card is open — the music carries
+  // on in the next room. Unmuffling is the cleanup, so a modal torn down
+  // without its exit animation (a mode switch, a tab restore) still puts the
+  // music back.
   useEffect(() => {
-    playSfx("modal-open");
-  }, []);
+    playSfx(variant === "receipt" ? "receipt-print" : variant === "notice" ? "notice-drop" : "modal-open");
+    setMuffled(true);
+    return () => setMuffled(false);
+  }, [variant]);
 
   // Play the exit animation, then actually unmount. With reduced motion (or if
   // there's nothing to close to) we skip straight to unmounting so nothing gets
@@ -297,12 +308,22 @@ export function GuessInput({
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={(e) => {
-            if (e.key === "ArrowDown") {
+            // The tick is on the arrow keys and deliberately not on
+            // `onMouseEnter` below: hovering the list fires that on every
+            // mouse move across it, which is a stream of clicks nobody asked
+            // for. Keyboard navigation is discrete, so it can be sounded.
+            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
               e.preventDefault();
-              setHighlight((h) => Math.min(h + 1, options.length - 1));
-            } else if (e.key === "ArrowUp") {
-              e.preventDefault();
-              setHighlight((h) => Math.max(h - 1, 0));
+              const next =
+                e.key === "ArrowDown"
+                  ? Math.min(highlight + 1, options.length - 1)
+                  : Math.max(highlight - 1, 0);
+              // Computed out here rather than inside the updater: a state
+              // updater must stay pure, and StrictMode runs it twice in dev —
+              // which would double every tick. Silent at the ends of the list,
+              // where nothing actually moved.
+              if (next !== highlight) playSfx("option-tick");
+              setHighlight(next);
             } else if (e.key === "Enter" && options[highlight]) {
               e.preventDefault();
               pick(options[highlight]);

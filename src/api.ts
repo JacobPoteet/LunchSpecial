@@ -185,3 +185,28 @@ export function beaconShare(b: {
 }): void {
   beacon("/api/rounds/share", b);
 }
+
+/**
+ * The player reached for the mute button.
+ *
+ * The one beacon on this list that isn't about the game. It exists because it's
+ * a fun thing to know and costs a single upsert — explicitly *not* a
+ * measurement of anyone's audio experience, which is unknowable from here: a
+ * player on a muted phone, a player with the tab volume down and a player who
+ * never noticed there was sound are all indistinguishable from a device that
+ * simply never toggled. It answers "does anyone touch this button", and the
+ * repeat count answers "do they keep reaching for it". Nothing on the dashboard
+ * quotes a rate off it.
+ *
+ * Only fired for a device that already has a player id — a mute click must not
+ * be the thing that mints one, the same rule the admin feed's `peekPlayerId`
+ * follows.
+ */
+export function beaconSound(b: {
+  playerId: string;
+  surface: Surface;
+  muted: boolean;
+  toggles: number;
+}): void {
+  beacon("/api/rounds/sound", b);
+}

@@ -159,10 +159,19 @@
   justify-content: center;
   gap: 10px;
   margin-top: 8px;
+  /* A finished daily shows five controls (how-to, stats, archive, check, mute)
+     and at 375px they no longer fit on one line. Wrapping between the pills is
+     the graceful version of that; without it the row stays put and the labels
+     break *inside* their pills instead, so "Menu archive" becomes two lines in
+     a rounded box and reads as broken rather than as a second row. */
+  flex-wrap: wrap;
 }
 
 .icon-btn {
   font-family: var(--font-display);
+  /* Paired with the toolbar's flex-wrap: a pill is an atom, so the row breaks
+     between buttons and never through a label. */
+  white-space: nowrap;
   border: 1.5px solid rgba(143, 31, 46, 0.6);
   background: transparent;
   color: var(--cherry-dark);
@@ -177,6 +186,42 @@
   background: var(--cherry-dark);
   border-color: var(--cherry-dark);
   color: var(--paper);
+}
+
+/* The mute button. An icon among text pills, so it borrows .icon-btn's border,
+   colour and hover inversion but sizes itself off the icon instead of a label —
+   square padding and a 1:1 box, so it reads as a control of the same family
+   rather than a pill that lost its text. The SVG strokes `currentColor`, which
+   is what makes the hover invert come for free. */
+.sound-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(143, 31, 46, 0.6);
+  background: transparent;
+  color: var(--cherry-dark);
+  border-radius: 999px;
+  padding: 0;
+  width: 26px;
+  height: 26px;
+  /* The text pills are 0.62rem uppercase in a display face; matching their box
+     exactly would make this taller than it needs to be, so it matches their
+     optical height instead and centres on the same baseline row. */
+  align-self: center;
+  cursor: pointer;
+}
+
+.sound-btn:hover {
+  background: var(--cherry-dark);
+  border-color: var(--cherry-dark);
+  color: var(--paper);
+}
+
+.sound-btn__icon {
+  display: block;
+  /* Nudged off centre: the speaker's waves sit to the right of its cone, so a
+     geometrically centred glyph reads as leaning left inside a round button. */
+  margin-left: -1px;
 }
 
 /* Dotted leader line, as between a menu item and its price. An empty flex
@@ -1800,14 +1845,18 @@ textarea.dish-request__input {
                                            separate event, not the same one)
 
    --ticket-start is that beat, and it is the one value here that is NOT
-   self-maintaining: it's a literal, because CSS can't hand a max() back to JS,
-   and the printer SFX has to fire on the same frame (TICKET_STAGGER_MS in
-   GamePage.tsx). If you re-time the tiles or chips, recompute it as
+   self-maintaining: it's a literal, because CSS can't hand a max() back to JS.
+
+   The sound has to land on the same frame, and the whole audio arc for a guess
+   is a mirror of the four values above: TILE_FLIP_START_MS, TILE_FLIP_STEP_MS,
+   CHIP_LAND_MS and TICKET_MS in shared/audio.ts (built into a schedule by
+   `guessArc`, unit-tested in audio.test.ts). If you re-time the tiles or chips,
+   recompute this as
 
      max(tile-flip-start + 3*step + dur, chip-pop-start + cap + dur) + 0.18s
 
-   and change TICKET_STAGGER_MS to match, or the sound drifts off the print.
-   Same deal for the modal exit and MODAL_EXIT_MS in components.tsx. */
+   and change TICKET_MS to match, or the printer drifts off the print. Same deal
+   for the modal exit and MODAL_EXIT_MS in components.tsx. */
 :root {
   --tile-flip-start: 0.12s;
   --tile-flip-step: 90ms;
@@ -2043,7 +2092,7 @@ textarea.dish-request__input {
 
    It waits for the ENTIRE guess sequence — drop, tile flips, chip pops — to
    finish, then holds a beat of stillness before printing (--ticket-start,
-   mirrored by TICKET_STAGGER_MS in GamePage.tsx). Overlapping the two made the
+   mirrored by TICKET_MS in shared/audio.ts). Overlapping the two made the
    clue read as part of the guess landing; the gap is what makes it read as the
    kitchen answering back. `backwards` holds the ticket clipped through the
    delay without leaving a transform behind afterwards. */
