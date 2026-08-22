@@ -30,6 +30,7 @@ Built as a single Cloudflare Worker: React SPA served from Workers Static Assets
 | Database | Cloudflare D1: dishes, clues, schedule, analytics, visits, announcements, experiments, dish requests (`migrations/`, `seed/`) |
 | Dev/build | `@cloudflare/vite-plugin` (Worker runs in workerd during `vite dev`) |
 | Discord | `@discord/embedded-app-sdk`, dynamically imported only inside the Activity iframe (`src/discord/`) |
+| Audio | Web Audio, no library: music and effects on separate buses under one mute button (`src/audio/`). No files licensed yet, so it is inert |
 | Tests | Vitest: the pure game engine plus every analytics fold, the announcement/markdown logic, the small-sample statistics, and a catalog data-integrity check (`worker/*.test.ts`, `shared/*.test.ts`) |
 | CI/CD | GitHub Actions. A `v*` tag tests, migrates, and deploys the Worker (`deploy.yml`); `ci.yml` runs tests + typecheck on every code push/PR (prose-only changes skip it); `codeql.yml` scans every PR; Dependabot (`dependabot.yml`) keeps dependencies current |
 
@@ -155,3 +156,4 @@ The catalog ships two ways: `seed/seed.sql` is the canonical, idempotent snapsho
 - [`public/`](public/): press kit (`/press`) and the Privacy Policy / Terms pages (`/privacy`, `/terms`) required for Discord verification
 - [`discord-assets/`](discord-assets/): source + build script for the Activity's store art
 - [`ACCESSIBILITY.md`](ACCESSIBILITY.md): what the game supports, what's still broken, and the rules for new UI
+- [`ASSETS.md`](ASSETS.md): every visual asset, plus the spec and licence log for the audio still to be bought

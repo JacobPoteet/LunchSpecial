@@ -8,6 +8,7 @@
 import type { Announcement } from "../../shared/types";
 import { Modal } from "./components";
 import Markdown from "./Markdown";
+import { playSfx } from "../audio";
 
 /**
  * The card itself, without the modal around it. Exported because the admin's
@@ -62,7 +63,7 @@ export default function AnnouncementModal({
       variant="notice"
       onClose={onClose}
       footer={
-        <button className="btn btn--red notice__ok" onClick={onClose}>
+        <button className="btn btn--red notice__ok" onClick={() => { playSfx("ui-click"); onClose(); }}>
           {remaining > 0 ? "Next note" : "Continue"}
         </button>
       }

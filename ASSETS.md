@@ -162,6 +162,67 @@ Collapsing them would trade 152 KB for a cross-origin dependency between two dep
 
 The neon logo is **live text** styled with CSS glow (`.marquee__script`), not an image — a hand-lettered SVG logo would be a welcome replacement (target: ~4:1 aspect, works from 320px wide).
 
+## Audio (to be licensed — nothing shipped yet)
+
+**No audio file exists in this repo.** The system that plays them does, and it is
+built so that dropping licensed files into `src/assets/sfx/` and
+`src/assets/music/` under the names below is the *entire* installation step —
+there is no flag, no registration and no code change. A name with no file is a
+sound the game doesn't make; everything else carries on. See the READMEs in both
+directories for the filename lists, and CLAUDE.md for how the engine works.
+
+Unlike the art, these are being **bought**, so the provenance table at the bottom
+of this section is not optional bookkeeping — it is the only record of what we're
+allowed to do with each file.
+
+### What to require of the sound effects
+
+| Property | Requirement | Why |
+|---|---|---|
+| Master format | **48 kHz, 24-bit WAV, mono** | 48 kHz is what the browser's `AudioContext` runs at (verified: `sampleRate: 48000`), so nothing gets resampled on decode. Mono because the game has no spatial field. |
+| **Leading silence** | **None. Trimmed hard to the transient.** | The single biggest factor in whether the game feels snappy. Head silence is latency you cannot recover in code — a 40 ms pad makes a click feel mushy forever. |
+| Length | UI one-shots ≤ 250 ms; feedback ≤ 600 ms; the win sting ≤ 1.5 s | The guess arc fires four flips inside 400 ms; anything longer overlaps the next event. |
+| Tail | Dry. No long reverb. | Reverb tails turn the tile-flip run into mud. |
+| Level | Peak-normalised to **−1.0 dBTP** | Balance between sounds is set in code (`gain` in `shared/audio.ts`), *not* in the files. Don't ask the licensor to mix them against each other. |
+| Fades | No fade-in. Micro fade-out (≤ 5 ms) to kill clicks. | |
+
+**Ship WAV for one-shots** unless the pack gets large (~18 sounds at 300 ms mono
+48k/16-bit ≈ 500 KB, which is fine). AAC and MP3 encoders bake in 1024–2112
+samples of encoder delay — 21–44 ms — and `decodeAudioData` does not reliably
+honour the gapless metadata that would strip it, so that silence lands directly
+on the front of every sound. That is the exact defect the "no leading silence"
+row exists to prevent, reintroduced by the codec.
+
+### What to require of the ambient bed
+
+| Property | Requirement | Why |
+|---|---|---|
+| Master | 48 kHz, 24-bit WAV, stereo | |
+| **Loop** | **Seamless, with the loop points stated** | Most stock tracks sold as "loops" are not. Audition the wrap before buying. If the trim is imperfect, `MUSIC.loopStart`/`loopEnd` in `shared/audio.ts` take up the slack without re-encoding. |
+| Length | **45–90 s** | It is decoded to a Float32 buffer: 60 s stereo at 48 kHz is ~23 MB resident on the player's device. |
+| Mix | Restrained, **−20 to −18 LUFS integrated** | A bed under the effects, not a second foreground voice. The bus gain is also held low (`MUSIC.gain`), but a track mastered to −9 will fight the effects regardless. |
+| Mono compatibility | Must not collapse | Most plays are a phone speaker. |
+| Content | No sharp transients, no vocal | Anything percussive in the bed gets mistaken for game feedback. |
+
+**Ship format:** AAC `.m4a` at 96–128 kbps stereo (encoder delay doesn't matter
+for a bed the way it does for a one-shot).
+
+### Budget
+
+**Total audio ≤ 1.5 MB, of which the bed ≤ 1 MB.** For scale, the two font files
+and the backdrop PNG are currently the heaviest things the game ships. The
+effects load during idle time; the bed is not fetched at all until the player's
+first interaction, so a visitor who bounces pays nothing for it.
+
+### Licence provenance
+
+Fill one row per file as it is bought. This table is the record of what each file
+permits — keep it current, and keep the receipt.
+
+| File | Source | Licence | Attribution required? | Acquired |
+|---|---|---|---|---|
+| _(none yet)_ | | | | |
+
 ## Non-art visuals built in CSS (no files)
 
 - Menu card paper, red double-rule border (`.menu-card`)

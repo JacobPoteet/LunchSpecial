@@ -7,6 +7,7 @@ import { archiveStatuses } from "./storage";
 import type { GameStatus } from "./storage";
 import { isPuzzleDate, puzzleNumberFor } from "./archive";
 import { EPOCH_DATE } from "../../shared/types";
+import { playSfx } from "../audio";
 
 /** Status of a single puzzle date, for the calendar cells. */
 type DayStatus = GameStatus | "unplayed";
@@ -158,7 +159,7 @@ function MonthGrid({
               key={i}
               className={cls}
               style={{ "--r": Math.floor(i / 7) } as React.CSSProperties}
-              onClick={() => onPick(date)}
+              onClick={() => { playSfx("ui-click"); onPick(date); }}
               title={label}
               aria-label={label}
             >
@@ -208,7 +209,7 @@ export default function ArchiveModal({
     <div className="chefs-choice">
       <h3 className="chefs-choice__title">Chef's Choice</h3>
       <p className="chefs-choice__note">A dish at random — won't touch your streak.</p>
-      <button className="share-btn chefs-choice__btn" onClick={onRandom}>
+      <button className="share-btn chefs-choice__btn" onClick={() => { playSfx("ui-click"); onRandom(); }}>
         🎲 Cook me something
       </button>
     </div>
@@ -227,7 +228,7 @@ export default function ArchiveModal({
       <div className="archive-cal__nav">
         <button
           className="archive-cal__nav-btn"
-          onClick={() => setCursor((c) => shiftMonth(c, -1))}
+          onClick={() => { playSfx("option-tick"); setCursor((c) => shiftMonth(c, -1)); }}
           disabled={!canPrev}
           aria-label="Previous month"
         >
@@ -238,7 +239,7 @@ export default function ArchiveModal({
         </h3>
         <button
           className="archive-cal__nav-btn"
-          onClick={() => setCursor((c) => shiftMonth(c, 1))}
+          onClick={() => { playSfx("option-tick"); setCursor((c) => shiftMonth(c, 1)); }}
           disabled={!canNext}
           aria-label="Next month"
         >

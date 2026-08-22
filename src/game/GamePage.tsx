@@ -28,7 +28,8 @@ import { canShareToChannel, shareToChannel } from "../discord/share";
 import { canInvite, onParticipantCount, openInvite } from "../discord/social";
 import { buildPresence } from "../../shared/presence";
 import { buildScorecard } from "../../shared/scorecard";
-import { playSfx } from "./sfx";
+import { playGuessArc, playSfx, setupAudio } from "../audio";
+import { SoundToggle } from "./SoundToggle";
 import { buildShareText, copyShareText, SHARE_URL } from "./share";
 import {
   emptyRound,
@@ -142,6 +143,17 @@ function HowToModal({ onClose }: { onClose: () => void }) {
 function StatsPanel({ stats, highlight }: { stats: Stats; highlight?: number }) {
   const winPct = stats.played === 0 ? 0 : Math.round((stats.wins / stats.played) * 100);
   const maxDist = Math.max(1, ...stats.dist);
+
+  // One accent, on the bar that is *yours* — the row `dist__row--current`
+  // highlights after a fresh win. Sounding every bar as it grows would turn the
+  // panel into a xylophone and say nothing; there's no highlight on the "My
+  // stats" modal or after a loss, and correspondingly no sound.
+  useEffect(() => {
+    if (highlight === undefined) return;
+    // Rides the stats grid's own entrance (0.48s) plus the bars' stagger.
+    playSfx("stat-pop", { delayMs: 560 });
+  }, [highlight]);
+
   return (
     <>
       <div className="stats-grid">
@@ -218,6 +230,14 @@ function StoryDetails({ clues }: { clues: string[] }) {
  * height this modal can't spare.
  */
 function FanStamp({ dishName }: { dishName: string }) {
+  // Lands with `fan-stamp-press`, whose 0.5s delay in game.css is the beat the
+  // receipt's own lines have finished rising on. Rare enough to be a treat and
+  // cheap enough to be worth it — the whole reason it's a separate sound is
+  // that a credited dish should feel like something happened.
+  useEffect(() => {
+    playSfx("fan-stamp", { delayMs: 500 });
+  }, []);
+
   return (
     <div className="fan-stamp">
       <span className="fan-stamp__seal" aria-hidden="true">
@@ -327,6 +347,10 @@ function RequestDishForm({ promoted = false }: { promoted?: boolean }) {
  * reads as "my dish isn't in the game" rather than "the site is down".
  */
 function KitchenClosed({ detail, onRetry }: { detail: string | null; onRetry: () => void }) {
+  useEffect(() => {
+    playSfx("error");
+  }, []);
+
   return (
     <div className="closed" role="alert">
       <p className="closed__sign">Sorry — we're closed</p>
@@ -335,7 +359,7 @@ function KitchenClosed({ detail, onRetry }: { detail: string | null; onRetry: ()
         bell another ring.
       </p>
       {detail && <p className="closed__detail">{detail}</p>}
-      <button className="replay-btn" onClick={onRetry}>
+      <button className="replay-btn" onClick={() => { playSfx("ui-click"); onRetry(); }}>
         🛎️ Ring the bell again
       </button>
     </div>
@@ -450,6 +474,16 @@ function ResultModal({
   // still lists all five in order: a panel that stopped at 4 read as a bug, and
   // seeing the trail run 1 -> 5 is the part players actually come back for.
   const definition = reveal?.clues.at(-1);
+
+  // Sounded off the resulting state rather than inside `share`, which has five
+  // exits (channel, clipboard, native sheet, dismissal, failure) and would
+  // otherwise need the same two lines in each. "idle" and "working" are
+  // in-flight, and a dismissed native share sheet returns to idle — correctly
+  // silent, since nothing was shared.
+  useEffect(() => {
+    if (shareState === "shared" || shareState === "copied") playSfx("share-success");
+    else if (shareState === "failed") playSfx("error");
+  }, [shareState]);
   // Actions live in the card's pinned footer so they stay on screen no matter
   // how far the body scrolls. Countdown + share share one row (Wordle's shape).
   const actions = (
@@ -471,12 +505,12 @@ function ResultModal({
       {(isRandom || canArchive || showInvite) && (
         <div className="replay-actions">
           {isRandom && (
-            <button className="replay-btn" onClick={onNewGame}>
+            <button className="replay-btn" onClick={() => { playSfx("ui-click"); onNewGame(); }}>
               🎲 New random dish
             </button>
           )}
           {canArchive && (
-            <button className="replay-btn" onClick={onArchive}>
+            <button className="replay-btn" onClick={() => { playSfx("ui-click"); onArchive(); }}>
               📅 Play again
             </button>
           )}
@@ -618,6 +652,14 @@ export default function GamePage() {
   // page load we no longer have, and dating the timer to it would report hours.
   const openedAt = useRef(Date.now());
 
+  // Bring the audio graph up. Cheap and silent until the player interacts: the
+  // context is built suspended, the effects decode during idle time, and the
+  // bed isn't even fetched until a gesture has unlocked playback. Mounted here
+  // rather than in main.tsx so /admin never pays for any of it.
+  useEffect(() => {
+    setupAudio(SURFACE);
+  }, []);
+
   // Persist a round to the right place: daily → today's slot; archive → its
   // dated slot; preview/random → nowhere.
   const persist = useCallback(
@@ -687,6 +729,14 @@ export default function GamePage() {
   // yesterday. Suppressed in preview, which has no "today" to go stale.
   const rolledOver = useNewDayAvailable(today);
   const newDayAvailable = rolledOver && !isPreview;
+
+  // The service bell, for the one thing in the game that happens without the
+  // player doing anything. Reuses the win bell's file (see the alias in
+  // shared/audio.ts) because it is the same bell — a new Special going up is
+  // the kitchen calling the room, which is what that sound already means.
+  useEffect(() => {
+    if (newDayAvailable) playSfx("new-day-bell");
+  }, [newDayAvailable]);
   const company = useCounterCompany();
 
   // Navigation between modes is URL-driven (the app has no router). Every hop
@@ -852,13 +902,6 @@ export default function GamePage() {
     // renders that didn't add a guess, and each one would be another upload.
   }, [tracked, daily, round.status, round.guesses.length]);
 
-  // The ticket waits out the whole guess sequence — row drop, tile flips, chip
-  // pops — plus a beat of stillness, so the clue reads as a separate event
-  // rather than part of the guess landing. Its sound must wait exactly as long
-  // so it fires with the print. Mirrors --ticket-start in game.css; the timing
-  // dial there documents how to recompute both if the sequence is re-timed.
-  const TICKET_STAGGER_MS = 1140;
-
   const submitGuess = useCallback(
     async (dish: DishSummary) => {
       if (!daily || busy || round.status !== "playing") return;
@@ -886,10 +929,17 @@ export default function GamePage() {
         };
         setRound(next);
         setPending(null);
-        // The winning bell dings with the correct row; the clue's printer sound
-        // waits for the ticket's staggered print (see TICKET_STAGGER_MS).
-        if (feedback.correct) playSfx("guess-correct");
-        if (feedback.clue) setTimeout(() => playSfx("ticket-print"), TICKET_STAGGER_MS);
+        // The whole sound of this guess landing, handed over in one burst so it
+        // can be scheduled on the audio clock rather than a chain of timers:
+        // the tiles flipping, the chips settling, the bell or the sting, and
+        // the ticket printing a full 1.14s later. See guessArc in
+        // shared/audio.ts — every offset in it mirrors the animation dial at
+        // the top of game.css.
+        playGuessArc({
+          correct: feedback.correct,
+          lost: next.status === "lost",
+          hasClue: Boolean(feedback.clue),
+        });
         // Daily + leftover persist to localStorage; the throwaway modes don't.
         if (!ephemeral) persist(next);
         // Real play counts toward analytics (daily, leftover, chef) — the test
@@ -953,7 +1003,7 @@ export default function GamePage() {
         {newDayAvailable && (
           <div className="newday-bar" role="status" aria-live="polite">
             <span className="newday-bar__tag">🛎️ A new Special is up</span>
-            <button className="newday-bar__btn" onClick={goToday}>
+            <button className="newday-bar__btn" onClick={() => { playSfx("ui-click"); goToday(); }}>
               Serve it
             </button>
           </div>
@@ -961,13 +1011,13 @@ export default function GamePage() {
         {isArchive && (
           <div className="archive-bar">
             <span className="archive-bar__tag">📅 From the archive</span>
-            <button className="archive-bar__btn" onClick={goToday}>Back to today</button>
+            <button className="archive-bar__btn" onClick={() => { playSfx("ui-click"); goToday(); }}>Back to today</button>
           </div>
         )}
         {isRandom && (
           <div className="freeplay-bar">
             <span className="freeplay-bar__tag">🎲 Random recipe — nothing saved</span>
-            <button className="freeplay-bar__btn" onClick={newGame}>New random dish</button>
+            <button className="freeplay-bar__btn" onClick={() => { playSfx("ui-click"); newGame(); }}>New random dish</button>
           </div>
         )}
         {/* Last of the bars: the others are about what you're playing, this is
@@ -987,14 +1037,15 @@ export default function GamePage() {
             {dateLabel(date)}
           </p>
           <div className="menu-card__toolbar">
-            <button className="icon-btn" onClick={() => setShowHowTo(true)}>How to play</button>
-            <button className="icon-btn" onClick={() => setShowStats(true)}>My stats</button>
+            <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowHowTo(true); }}>How to play</button>
+            <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowStats(true); }}>My stats</button>
             {canArchive && (
-              <button className="icon-btn" onClick={() => setShowArchive(true)}>Menu archive</button>
+              <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowArchive(true); }}>Menu archive</button>
             )}
             {round.status !== "playing" && (
-              <button className="icon-btn" onClick={() => setShowResult(true)}>Your check</button>
+              <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowResult(true); }}>Your check</button>
             )}
+            <SoundToggle />
           </div>
         </div>
 
