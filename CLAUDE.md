@@ -134,8 +134,9 @@ The game also runs as a **Discord Activity** (embedded iframe app) — **no sepa
 
 ```
 wrangler.jsonc        assets SPA fallback + run_worker_first:["/api/*"] + D1 binding "DB"
-migrations/0001_init.sql   dishes / clues / schedule tables (0020 is the latest: experiments, visits)
-seed/seed.sql         68 dishes, 5 clues each, 30-day schedule from 2026-07-17. Idempotent (DELETEs first)
+migrations/0001_init.sql   dishes / clues / schedule tables (0025 is the latest: sound prefs)
+seed/seed.sql         366 dishes, 5 clues each, 30-day schedule from 2026-07-17. Idempotent (DELETEs first).
+                      The catalogue grows by migration, so this count moves — recount before quoting it
 shared/types.ts       ALL shared types + enums (COURSES, REGIONS…) + MAX_GUESSES + EPOCH_DATE
 worker/index.ts       Hono entry; only /api/* reaches the Worker (assets serve the rest)
 worker/game.ts        PURE game logic (feedback, puzzleNumber, date validation, fallback pick) — unit tested
@@ -155,6 +156,8 @@ worker/funnel.ts      PURE player-funnel fold (same (player, hour) rows + visits
 worker/discordsig.ts  PURE-ish Ed25519 check that an interaction really came from Discord (raw body!) — unit tested
 worker/avatar.ts      PURE Discord avatar url + display name (default faces, animated hashes) — unit tested
 worker/device.ts      PURE one-device fold (grouped rounds + visits + notice views → the review shown before a wipe) — unit tested
+worker/shuffle.ts     PURE unserved-dish pick behind the Tomorrow's Special shuffle (never-scheduled only) — unit tested
+worker/stats.ts       PURE public-badge folds (totals → shields.io endpoint payload, compact counts, breakdown) — unit tested
 shared/markdown.ts    PURE inline-markdown tokenizer for announcement bodies (bold/italic/link → tokens, never HTML) — unit tested
 shared/audio.ts       PURE sound registry + mix + the guess-arc timing table + AUDIO_DEFAULTS per surface — unit tested
 shared/presence.ts    PURE Discord Rich Presence copy (round → "Today's Special · No. 26" / "Guess 3 of 6"; never the dish) — unit tested
@@ -172,8 +175,14 @@ worker/routes/discord.ts  /api/discord/token — OAuth code→token hop for Rich
                           player's name and face never need storing)
 worker/routes/public.ts   /api/dishes, /daily, /guess, /reveal — never leak target except via /reveal
                           + /announcements (eligible notices) and /announcements/seen (reach)
+worker/routes/stats.ts    /api/stats — public, no auth, aggregate-only. Powers the README badges and the
+                          GitHub Pages breakdown page, so it sends Access-Control-Allow-Origin: *
+                          /api/stats/breakdown — one consolidated payload for that page's charts,
+                          edge-cached 600s in caches.default (the aggregate scans run at most once per
+                          TTL per colo, however many people load it)
+                          /api/stats/badge?metric=rounds|solved|solveRate|shared — shields.io endpoint schema
 worker/routes/admin.ts    /api/admin/*: login/logout/session, dish CRUD, ingredients vocab,
-                          schedule GET/PUT, autofill, preview token, dashboard,
+                          schedule GET/PUT, autofill, schedule/shuffle, preview token, dashboard,
                           analytics aggregates + /recent-rounds (recent-activity feed),
                           /menu-mix (menu composition — catalogue, not players),
                           /dish-report (per-dish performance — players, surface-aware),
@@ -359,6 +368,7 @@ The user will say things like **"add dishes: Pho (Vietnam), Bibimbap (South Kore
 - Ingredients: JSON TEXT column, canonical lowercase singular ("tomato" not "tomatoes"). Admin tag input autocompletes from existing vocabulary — reuse names, don't fork spellings
 - Dish is "schedulable" only with ≥3 ingredients AND exactly 5 clues (enforced in PUT /schedule + shown in UI)
 - Schedule: past dates locked; DELETE dish blocked while scheduled today/future; autofill = least-recently-served, skips dishes used in last 60 days
+- **Tomorrow's Special shuffle** (`POST /api/admin/schedule/shuffle`, the 🎲 on the admin **Today** tab's card): rolls a dish that has **never held a schedule row** — past *or* future — onto one day, so you can click until something appealing turns up and then edit it. The pick is pure in `worker/shuffle.ts` (unit-tested); the route runs one query and passes a roll in. Three things are load-bearing, and the module's header comment has the full rationale: (1) **it writes on every click** — no accept step, because a roll that only proposed would need a commit button and a discard button; the displaced dish goes back in the pool; (2) **"never scheduled" is what stops consecutive clicks landing on the dish already showing**, since that dish has a row by the time the next roll is made — a click-until-you-like-it button has to visibly change something; (3) only **schedulable** dishes are candidates (≥3 ingredients, exactly 5 clues), since `PUT /schedule` would refuse the others and the button would fail on press. A shuffled day is an ordinary booking afterwards — nothing marks it
 - Regions enum (near-match buckets): north-america, latin-america, europe, middle-east, africa, south-asia, east-asia, southeast-asia, oceania. Courses: breakfast, appetizer, entree, dessert, drink. Proteins: beef, pork, poultry, seafood, lamb, vegetarian
 - SQL in seed files: escape apostrophes as `''`
 - vitest.config.ts exists SEPARATELY from vite.config.ts on purpose (tests must not load the cloudflare plugin). Its `include` covers `worker/` **and** `shared/` — the pure folds all live in one of those two
