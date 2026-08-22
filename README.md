@@ -154,3 +154,4 @@ The catalog ships two ways: `seed/seed.sql` is the canonical, idempotent snapsho
 - [`docs/`](docs/): the [project breakdown page](https://jacobpoteet.github.io/LunchSpecial/), published with GitHub Pages
 - [`public/`](public/): press kit (`/press`) and the Privacy Policy / Terms pages (`/privacy`, `/terms`) required for Discord verification
 - [`discord-assets/`](discord-assets/): source + build script for the Activity's store art
+- [`ACCESSIBILITY.md`](ACCESSIBILITY.md): what the game supports, what's still broken, and the rules for new UI

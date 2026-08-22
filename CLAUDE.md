@@ -344,7 +344,8 @@ The user will say things like **"add dishes: Pho (Vietnam), Bibimbap (South Kore
 - Don't add npm deps casually — the only runtime deps are hono, react, react-dom
 - Windows repo (CRLF warnings from git are noise; ignore)
 - Changing art: swap ai-*.svg in place (same viewBox ratio), update ASSETS.md; the neon logo is CSS text, not an image
+- Accessibility rules for player-facing UI live in `ACCESSIBILITY.md` — never encode meaning in colour alone, announce anything that changes after a user action, and add every new keyframe to the `prefers-reduced-motion` block in the same commit
 
 ## Verify a change
 
-`npm test && npm run check`, then dev server: play a full round (guess wrong twice → clue tickets appear → guess right → receipt modal), check /admin dashboard/editor/schedule, and mobile at 375px (no horizontal scroll). Seeded local answer for 2026-07-17 is Hamburger (id 51); schedule table maps the rest.
+`npm test && npm run check`, then dev server: play a full round (guess wrong twice → clue tickets appear → guess right → receipt modal), check /admin dashboard/editor/schedule, and mobile at 375px (no horizontal scroll). For UI changes also run the keyboard-only and reduced-motion passes in `ACCESSIBILITY.md`. Seeded local answer for 2026-07-17 is Hamburger (id 51); schedule table maps the rest.
