@@ -26,6 +26,8 @@ import { setPresence } from "../discord/presence";
 import { publishProgress, resetProgress } from "../discord/progress";
 import { canShareToChannel, shareToChannel } from "../discord/share";
 import { canInvite, onParticipantCount, openInvite } from "../discord/social";
+import { clueAnnouncement, guessAnnouncement } from "../../shared/announce";
+import { TICKET_MS } from "../../shared/audio";
 import { buildPresence } from "../../shared/presence";
 import { buildScorecard } from "../../shared/scorecard";
 import { playGuessArc, playSfx, setupAudio } from "../audio";
@@ -106,7 +108,7 @@ function WinToast({ text }: { text: string }) {
 
 function HowToModal({ onClose }: { onClose: () => void }) {
   return (
-    <Modal onClose={onClose}>
+    <Modal onClose={onClose} label="How to play">
       <div className="howto">
         <h2>How to play</h2>
         <p>
@@ -117,10 +119,16 @@ function HowToModal({ onClose }: { onClose: () => void }) {
           <strong>Order any dish off the menu.</strong> The kitchen tells you which of its ingredients are also in the
           Special, and how its country, course, serving temperature, and protein compare:
         </p>
+        {/* The mark leads, and the colour is named second. The board draws the
+            same three glyphs on every tile, so a player who can't separate the
+            green from the mustard still has something here that maps onto what
+            they're looking at. */}
         <div className="legend">
-          <span className="chip" style={{ background: "var(--hit)", color: "#fff" }}>green = match</span>
-          <span className="chip" style={{ background: "var(--near)" }}>yellow = close (same region)</span>
-          <span className="chip" style={{ background: "var(--miss-soft)", color: "var(--ink-soft)" }}>gray = miss</span>
+          <span className="chip" style={{ background: "var(--hit)", color: "#fff" }}>✓ match (green)</span>
+          <span className="chip" style={{ background: "var(--near)" }}>~ close — same region (yellow)</span>
+          <span className="chip" style={{ background: "var(--miss-soft)", color: "var(--ink-soft)" }}>
+            × miss (gray)
+          </span>
         </div>
         <p>
           After each wrong order, the kitchen slips you a <strong>clue ticket</strong> - country of origin, history, the
@@ -528,7 +536,7 @@ function ResultModal({
     </>
   );
   return (
-    <Modal onClose={onClose} variant="receipt" footer={actions}>
+    <Modal onClose={onClose} variant="receipt" footer={actions} label="Your check">
       <div className="receipt__head">
         <p className="receipt__title">Lunch Special - your check</p>
         <p className="receipt__verdict">{won ? "On the house!" : "Better luck tomorrow"}</p>
@@ -902,6 +910,22 @@ export default function GamePage() {
     // renders that didn't add a guess, and each one would be another upload.
   }, [tracked, daily, round.status, round.guesses.length]);
 
+  /**
+   * What a screen reader hears when a guess lands (GitHub #127). Submitting an
+   * order changes the board in three places and used to announce none of them,
+   * so the only way to find out what the kitchen said was to go and read the
+   * guess column.
+   *
+   * Two regions rather than one, because the clue ticket is deliberately
+   * staggered ~1.14s behind the row (--ticket-start in game.css, TICKET_MS in
+   * shared/audio.ts) and one region written twice in quick succession drops the
+   * first message. The wording is a pure fold in shared/announce.ts.
+   */
+  const [liveGuess, setLiveGuess] = useState("");
+  const [liveClue, setLiveClue] = useState("");
+  const clueTimer = useRef(0);
+  useEffect(() => () => window.clearTimeout(clueTimer.current), []);
+
   const submitGuess = useCallback(
     async (dish: DishSummary) => {
       if (!daily || busy || round.status !== "playing") return;
@@ -940,6 +964,25 @@ export default function GamePage() {
           lost: next.status === "lost",
           hasClue: Boolean(feedback.clue),
         });
+        // Said, not just drawn. The clue rides the same delay as its ticket and
+        // its printer, so the three arrive together rather than the sentence
+        // landing a second before the paper.
+        setLiveGuess(
+          guessAnnouncement({
+            guess: feedback,
+            ingredientCount: daily.ingredientCount,
+            guessNumber,
+            maxGuesses: MAX_GUESSES,
+          }),
+        );
+        const clue = feedback.clue;
+        window.clearTimeout(clueTimer.current);
+        if (clue) {
+          clueTimer.current = window.setTimeout(
+            () => setLiveClue(clueAnnouncement(clue.index, clue.text)),
+            TICKET_MS,
+          );
+        }
         // Daily + leftover persist to localStorage; the throwaway modes don't.
         if (!ephemeral) persist(next);
         // Real play counts toward analytics (daily, leftover, chef) — the test
@@ -989,6 +1032,15 @@ export default function GamePage() {
 
   return (
     <div className="scene">
+      {/* Off-screen, and the only two things on the page that speak. Kept up
+          here at the top of the scene so nothing about where they sit in the
+          DOM can be mistaken for layout. */}
+      <p className="sr-only" role="status" aria-live="polite">
+        {liveGuess}
+      </p>
+      <p className="sr-only" role="status" aria-live="polite">
+        {liveClue}
+      </p>
       {toast && <WinToast text={toast} />}
       <header className="marquee">
         <h1 className="marquee__script">Lunch Special</h1>
@@ -1137,7 +1189,7 @@ export default function GamePage() {
         />
       )}
       {showStats && (
-        <Modal onClose={() => setShowStats(false)}>
+        <Modal onClose={() => setShowStats(false)} label="My stats">
           <h2 className="receipt__title" style={{ textAlign: "center" }}>My stats</h2>
           <StatsPanel stats={stats} />
         </Modal>

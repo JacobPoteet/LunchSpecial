@@ -2,7 +2,7 @@
 
 Where Lunch Special stands, what it gets right, and what is still broken. Scoped to the **player-facing game**; `/admin` is a single-user back office behind a password and is not held to this.
 
-Target is WCAG 2.1 AA. The game does not meet it yet. Open gaps are tracked with the [`accessibility`](../../labels/accessibility) label.
+Target is WCAG 2.1 AA. Open gaps are tracked with the [`accessibility`](../../labels/accessibility) label.
 
 ---
 
@@ -41,11 +41,30 @@ Type, <kbd>↓</kbd>/<kbd>↑</kbd> to move the autocomplete highlight, <kbd>Ent
 
 Focus returns to the input after a guess on desktop only, gated behind `(hover: hover) and (pointer: fine)`, because refocusing on touch pops the on-screen keyboard after every guess.
 
+### Keyboard, in the modals
+
+All of it lives in the one `Modal` in `components.tsx`, so every card — how-to, stats, archive, the check, notices — behaves the same way:
+
+- **<kbd>Esc</kbd> closes**, through `requestClose()` rather than `onClose`, so the exit animation and the reduced-motion path both still apply.
+- **Focus moves into the card on open** (the card itself, not its × — a dialog that opens with its dismiss control focused reads as a suggestion to leave) and **returns to whatever opened it on close**.
+- **<kbd>Tab</kbd> is trapped** between the first and last focusable descendants. This is what `aria-modal="true"` was already claiming; before it, Tab walked straight out into the board behind the card.
+- Each modal passes a `label`, so `role="dialog"` has a name to announce.
+
+`GuessInput`'s own <kbd>Esc</kbd> stops propagating while its autocomplete list is open, so one press closes the list and never also the dialog around it.
+
+### Focus indicators
+
+`:focus-visible` is declared once, near the press-feedback block at the bottom of `game.css`, over every keyboard stop on the player-facing side — the toolbar, the share and replay buttons, the modal ×, the calendar cells and its month nav, the clue accordion, the mute button, the suggest-a-dish controls, the notice's OK, and the footer links. 3px mustard, offset 2px; the calendar's cells tuck the ring inside instead, since they sit 4px apart in a grid.
+
+`:focus-visible` and not `:focus`, so a mouse click doesn't leave a ring behind. Mustard because `.guess-input input:focus` has used exactly that treatment since it was written, and it reads against cream paper, deep teal and cherry alike — the user-agent default does not. Declaring it also means a future `outline: none` has something left behind it, which was the second-order problem: while nothing declared a focus style, removing the UA ring removed the only indicator there was.
+
 ### Semantics in place
 
 | Element | Treatment | Where |
 |---|---|---|
-| Modal | `role="dialog"`, `aria-modal="true"`, close button `aria-label` | `components.tsx:86` |
+| Modal | `role="dialog"` + `aria-label`, `aria-modal="true"`, focus trap, <kbd>Esc</kbd>, close button `aria-label` | `components.tsx` |
+| Guess + clue announcements | Two hidden `role="status"` regions | `GamePage.tsx` |
+| Attribute tile | `.attr-tile__mark` glyph + an `.sr-only` verdict | `components.tsx` |
 | Win toast | `role="status"`, `aria-live="polite"` | `GamePage.tsx:97` |
 | New-day banner | `role="status"`, `aria-live="polite"` | `GamePage.tsx:954` |
 | Discord counter bar | `role="status"`, `aria-live="polite"` | `GamePage.tsx:977` |
@@ -76,21 +95,46 @@ Most of the palette is comfortable:
 | `--ink-soft` on `--miss-soft` (tile) | 6.44 |
 | `#fff` on `--hit` (tile) | 5.05 |
 
-Three pairs do not. See [#126](../../issues/126).
+Two pairs did not, and one sat 0.09 under. All three are fixed, through two tokens in `base.css` rather than one-off hexes in a component — which is where both failures came from in the first place:
+
+| Token | Where it prints | Was | Now |
+|---|---|---|---|
+| `--hit-ink` `#276843` | `--hit` on `--hit-soft`: `.chip--match`, `.archive-cal__day--won` | 4.20 | 5.56 |
+| `--on-cherry` `#fdf8ee` | `--cream` on `--cherry`: the Order button, the primary share button, `.error-note`, the new-day button, the winning distribution bar, the notice's OK | 4.41 | 4.85 |
+
+`.chip--matchless` — the more common chip, since most ingredients in most guesses miss — took `--miss` off the text and put it on the border, so the chip still *looks* muted while the ingredient name reads at 7.22 instead of 2.40. `.closed__detail` had the same pair and took the same fix.
+
+---
+
+<a id="guess-feedback"></a>
+
+### Guess feedback
+
+The result of a guess is the most important dynamic content on the page, and it used to be carried entirely by background colour and announced not at all. It now travels on three channels, off one table in `shared/announce.ts` so they cannot drift apart:
+
+| Channel | What it is |
+|---|---|
+| Colour | `.attr-tile--hit`, `--near`, `--miss`, as before |
+| Glyph | `✓` / `~` / `×` beside the tile's label, `aria-hidden` — a redundant channel, not a second reading |
+| Words | An `.sr-only` verdict inside each tile, so it reads "Country, Italy, close" |
+
+Plus two hidden `role="status"` regions on the page, written when feedback lands:
+
+> Guess 3 of 6: Boeuf Bourguignon. 2 of 6 ingredients match. country close, course match, served match, protein no match. 3 guesses left.
+
+and, about a second later, the clue. **Two regions rather than one**, because the ticket is deliberately staggered ~1.14s behind the row (`--ticket-start` in `game.css`, `TICKET_MS` in `shared/audio.ts`) and a single region written twice in quick succession drops the first message. Putting `aria-live` on `.guesses` itself was the other option, and would announce the whole row — four tiles and every chip — in a DOM order that is not a sentence.
+
+The wording is a pure fold with unit tests, like every other fold in `shared/`. It never names the target dish, for the same reason the board doesn't.
 
 ---
 
 ## Known gaps
 
-| Gap | Criterion | Issue |
-|---|---|---|
-| Modal has no focus trap and no <kbd>Esc</kbd> to close, despite `aria-modal` | 2.1.1, 2.4.3 | [#124](../../issues/124) |
-| Hit / near / miss is carried by background colour alone | 1.4.1 | [#125](../../issues/125) |
-| Two ingredient chip styles fail AA contrast (2.40:1, 4.20:1) | 1.4.3 | [#126](../../issues/126) |
-| Guess results are never announced to screen readers | 4.1.3 | [#127](../../issues/127) |
-| No explicit `:focus-visible` styling on buttons | 2.4.7 | [#129](../../issues/129) |
+| Gap | Issue |
+|---|---|
+| No automated accessibility check in CI | [#130](../../issues/130) |
 
-None of the above has been verified with an actual screen reader or colour-vision simulator. They were found by reading the source, so treat them as a floor rather than the full list.
+Everything above was found by reading the source, and fixed the same way. None of it has been verified with an actual screen reader or a colour-vision simulator, so treat this as a floor rather than a clean bill of health.
 
 ---
 
@@ -98,7 +142,7 @@ None of the above has been verified with an actual screen reader or colour-visio
 
 Follow these and most of the above stays fixed once it is fixed.
 
-**Never encode meaning in colour alone.** A hue can be the fast channel, but a glyph, a border style, or a hidden text node has to carry the same fact. `title` does not count: it is invisible on touch and unreliable in screen readers.
+**Never encode meaning in colour alone.** A hue can be the fast channel, but a glyph, a border style, or a hidden text node has to carry the same fact. `title` does not count: it is invisible on touch and unreliable in screen readers. The attribute tiles are the worked example — see [Guess feedback](#guess-feedback).
 
 **Anything that changes after a user action needs an announcement.** The `role="status"` + `aria-live="polite"` pattern is already used in four places. Reuse it rather than inventing one.
 

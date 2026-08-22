@@ -325,7 +325,7 @@
 .guess-input__submit {
   font-family: var(--font-display);
   background: var(--cherry);
-  color: var(--cream);
+  color: var(--on-cherry);
   border: none;
   border-radius: var(--radius);
   padding: 0 18px;
@@ -485,12 +485,39 @@
   border-color: var(--paper-edge);
 }
 
+/* Flex rather than block so the verdict glyph and the label can't wrap onto
+   two lines when the four tiles are ~57px wide on a 320px phone. The label
+   ellipsizes instead — it's the same word on every row, so the last character
+   is the cheapest thing in the tile to lose, and the mark is the part that
+   isn't drawn anywhere else. */
 .attr-tile__label {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 3px;
   font-size: 0.56rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   opacity: 0.85;
+}
+
+.attr-tile__label-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ✓ / ~ / × — the second channel for hit / near / miss, so the board is
+   readable without separating green from mustard (GitHub #125). Bigger than
+   the label it sits beside, and with the tracking taken back off, because a
+   9px glyph at 0.12em is a speck. line-height: 1 keeps it from growing the
+   line box the label already sets. */
+.attr-tile__mark {
+  flex: 0 0 auto;
+  font-size: 0.7rem;
+  line-height: 1;
+  letter-spacing: normal;
+  font-weight: bold;
 }
 
 .attr-tile__value {
@@ -516,17 +543,22 @@
   border: 1px solid transparent;
 }
 
+/* Chips are the payload of a guess, and both of these read the ingredient name
+   below AA at 0.78rem (GitHub #126). The green goes darker on the text only, so
+   the chip keeps its light-green fill; the miss keeps looking muted by moving
+   --miss off the text and onto the border, where a 2.40:1 grey is a rule rather
+   than a word. */
 .chip--match {
   background: var(--hit-soft);
   border-color: var(--hit);
-  color: var(--hit);
+  color: var(--hit-ink);
   font-weight: bold;
 }
 
 .chip--matchless {
   background: transparent;
-  border-color: var(--paper-edge);
-  color: var(--miss);
+  border-color: var(--miss);
+  color: var(--ink-soft);
   text-decoration: line-through;
 }
 
@@ -1010,6 +1042,7 @@
    brighter (cherry), and lifted off the receipt so it's the obvious next tap. */
 .share-btn--primary {
   background: var(--cherry);
+  color: var(--on-cherry);
   font-size: 1.28rem;
   padding: 16px;
   margin-top: 4px;
@@ -1313,6 +1346,7 @@ textarea.dish-request__input {
 /* The row you just won on, marked the way Wordle marks yours. */
 .dist__row--current .dist__bar {
   background: var(--cherry);
+  color: var(--on-cherry);
 }
 
 .dist__row--current > span:first-child {
@@ -1343,7 +1377,7 @@ textarea.dish-request__input {
 
 .error-note {
   background: var(--cherry);
-  color: var(--cream);
+  color: var(--on-cherry);
   border-radius: var(--radius);
   padding: 10px 14px;
   text-align: center;
@@ -1404,6 +1438,7 @@ textarea.dish-request__input {
 
 .freeplay-bar__btn:hover {
   background: var(--cherry);
+  color: var(--on-cherry);
 }
 
 /* Who else is in this Discord Activity instance. Quieter than the other bars —
@@ -1503,7 +1538,7 @@ textarea.dish-request__input {
 .newday-bar__btn {
   font-family: var(--font-display);
   background: var(--cherry);
-  color: var(--cream);
+  color: var(--on-cherry);
   border: none;
   border-radius: 999px;
   font-size: 0.72rem;
@@ -1547,7 +1582,7 @@ textarea.dish-request__input {
    hundred who'll paste it into a bug report. */
 .closed__detail {
   font-size: 0.82rem;
-  color: var(--miss);
+  color: var(--ink-soft);
   margin: 0 0 14px;
 }
 
@@ -1721,10 +1756,11 @@ textarea.dish-request__input {
   height: 0.8em;
 }
 
+/* Same green-on-green pair as .chip--match, same fix. */
 .archive-cal__day--won {
   background: var(--hit-soft);
   border-color: var(--hit);
-  color: var(--hit);
+  color: var(--hit-ink);
   font-weight: bold;
 }
 
@@ -2194,6 +2230,54 @@ textarea.dish-request__input {
 .share-btn:not(.share-btn--primary):active,
 .guess-input__submit:not(:disabled):active {
   transform: translateY(2px);
+}
+
+/* Focus, for the people who never touch a pointer. Nothing in this file used to
+   declare one, so every button fell through to the user agent's ring — which is
+   drawn to contrast with a plain page, and this game puts controls on cream
+   paper, deep teal and cherry. On the cherry share button it is close to
+   invisible in Chrome (GitHub #129).
+
+   Mustard because it's already the focus colour: .guess-input input:focus above
+   has used exactly this treatment since the input was written, and it reads
+   against all three backgrounds. :focus-visible rather than :focus so a mouse
+   click doesn't leave a ring sitting behind.
+
+   The selector list is the press list plus the controls that have no press
+   treatment (the calendar, the clue accordion, the mute button, the notice's
+   OK) and the footer links — i.e. every keyboard stop on the player-facing
+   side. Declaring it here also means a future `outline: none` further down the
+   file has something left behind it, which was the second-order problem: right
+   now removing the UA ring removes the only indicator there is. */
+.icon-btn:focus-visible,
+.sound-btn:focus-visible,
+.share-btn:focus-visible,
+.replay-btn:focus-visible,
+.guess-input__submit:focus-visible,
+.modal__close:focus-visible,
+.story__toggle:focus-visible,
+.dish-request__toggle:focus-visible,
+.dish-request__cancel:focus-visible,
+.archive-bar__btn:focus-visible,
+.freeplay-bar__btn:focus-visible,
+.newday-bar__btn:focus-visible,
+.archive-cal__nav-btn:focus-visible,
+.notice__ok:focus-visible,
+.footer-note a:focus-visible {
+  outline: 3px solid var(--mustard);
+  outline-offset: 2px;
+}
+
+/* The calendar's cells sit 4px apart in a grid, so the 2px offset the buttons
+   take would have neighbouring rings touching. Tucked inside the cell instead.
+
+   This rule deliberately sits *after* .archive-cal__day--today, which marks
+   today with its own 2px --ink outline at equal specificity: while a cell is
+   focused the mustard wins, and the two never stack into a double ring. The
+   "today" fact isn't lost — it's in the cell's aria-label either way. */
+.archive-cal__day:focus-visible {
+  outline: 3px solid var(--mustard);
+  outline-offset: -1px;
 }
 
 /* The autocomplete is the most-touched surface in the game and it used to hard

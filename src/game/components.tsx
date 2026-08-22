@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DishSummary, GuessFeedback, MatchLevel } from "../../shared/types";
+import { MATCH_MARKS, MATCH_WORDS } from "../../shared/announce";
 import { gameToday, hms, msUntilGameMidnight } from "../../shared/time";
 import { playSfx, setMuffled } from "../audio";
 
@@ -24,13 +25,27 @@ function prefersReducedMotion(): boolean {
 // `modal-out` / `backdrop-out` keyframe durations in game.css.
 const MODAL_EXIT_MS = 220;
 
+// Everything the browser will hand a Tab to, in document order. Used to find
+// the two ends of the loop the dialog keeps focus inside; `[tabindex="-1"]` is
+// excluded because that's the card itself, which is a focus *target* on open
+// but never a stop on the way round.
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export function Modal({
   onClose,
+  label,
   variant,
   footer,
   children,
 }: {
   onClose?: () => void;
+  /**
+   * The dialog's accessible name. `role="dialog"` with nothing to call it is
+   * announced as an unnamed group, which is most of the way to not announcing
+   * it at all — and the card's own heading isn't always the first thing in it.
+   */
+  label?: string;
   /**
    * Cosmetic skin only — the three-zone layout comes from `footer`. `notice`
    * also swaps the enter/exit animation (it swings down from the top instead of
@@ -47,6 +62,7 @@ export function Modal({
   children: React.ReactNode;
 }) {
   const [closing, setClosing] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   // Slides up from the bottom on mount, and the sound matches the motion: the
   // check prints rather than sliding, and a notice drops in from *above* and
@@ -84,6 +100,67 @@ export function Modal({
     return () => clearTimeout(t);
   }, [closing, onClose]);
 
+  // The keyboard half of `aria-modal="true"`. That attribute tells a screen
+  // reader the rest of the page is inert; without the two effects below it was
+  // an assertion the implementation didn't keep — Tab walked straight out into
+  // the board behind, and the check, which opens itself at game over, couldn't
+  // be dismissed from the keyboard at all.
+  //
+  // Held in a ref rather than the dependency list so the listener is bound once
+  // per open: `requestClose` is rebuilt every render, and re-subscribing on each
+  // one is noise on the one path that has to be reliable.
+  const closeRef = useRef(requestClose);
+  closeRef.current = requestClose;
+
+  useEffect(() => {
+    // Whatever opened this — restored on unmount so a keyboard user lands back
+    // on the button they pressed rather than at the top of the document. The
+    // auto-opened check has no opener, in which case this is <body> and putting
+    // focus back is a no-op.
+    const opener = document.activeElement as HTMLElement | null;
+    // The card, not the close button: a dialog that steals focus onto its own
+    // dismiss control reads as "you probably want to leave".
+    cardRef.current?.focus();
+    return () => {
+      if (opener?.isConnected) opener.focus();
+    };
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const card = cardRef.current;
+      if (!card) return;
+      if (e.key === "Escape") {
+        // GuessInput's own Escape (which closes the autocomplete) stops
+        // propagating while its list is open, so the list closes first and the
+        // dialog second — never both on one press.
+        closeRef.current();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const stops = Array.from(card.querySelectorAll<HTMLElement>(FOCUSABLE));
+      if (stops.length === 0) {
+        // Nothing to land on: keep the ring inside the card rather than letting
+        // it escape to the page underneath.
+        e.preventDefault();
+        card.focus();
+        return;
+      }
+      const first = stops[0];
+      const last = stops[stops.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === card)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   return (
     <div
       className={closing ? "modal-backdrop modal-backdrop--closing" : "modal-backdrop"}
@@ -92,6 +169,7 @@ export function Modal({
       }}
     >
       <div
+        ref={cardRef}
         className={
           "modal" +
           (footer ? " modal--paneled" : "") +
@@ -100,6 +178,8 @@ export function Modal({
         }
         role="dialog"
         aria-modal="true"
+        aria-label={label}
+        tabIndex={-1}
         onAnimationEnd={(e) => {
           if (closing && e.target === e.currentTarget) onClose?.();
         }}
@@ -142,8 +222,20 @@ function AttrTile({
       style={{ "--i": index } as React.CSSProperties}
       title={`${label}: ${value} (${match})`}
     >
-      <span className="attr-tile__label">{label}</span>
+      {/* Hit / near / miss used to be background colour and nothing else, which
+          left a player who can't separate the green from the mustard with no
+          way to read a guess at all (WCAG 1.4.1) — the tile's text is the
+          *value*, never the verdict. Two redundant channels, from one table in
+          shared/announce.ts: a glyph for the eye, a hidden word for the
+          screen reader. `title` is neither — it never appears on touch. */}
+      <span className="attr-tile__label">
+        <span className="attr-tile__mark" aria-hidden="true">
+          {MATCH_MARKS[match]}
+        </span>
+        <span className="attr-tile__label-text">{label}</span>
+      </span>
       <span className="attr-tile__value">{value}</span>
+      <span className="sr-only">{MATCH_WORDS[match]}</span>
     </div>
   );
 }
@@ -328,6 +420,10 @@ export function GuessInput({
               e.preventDefault();
               pick(options[highlight]);
             } else if (e.key === "Escape") {
+              // Swallowed only while there's a list to close. Inside a dialog
+              // the two Escape handlers would otherwise both fire on one press
+              // — the list should close first, the dialog second.
+              if (open && text.trim()) e.stopPropagation();
               setOpen(false);
             }
           }}

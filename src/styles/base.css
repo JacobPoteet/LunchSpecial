@@ -34,6 +34,19 @@
   --miss: #a99e8f;
   --miss-soft: #eee7d8;
 
+  /* Two text-on-fill pairs the palette above can't make, both of them AA
+     failures the day they were written (GitHub #126). Kept as tokens rather
+     than one-off hexes in a component, because a one-off hex is where both
+     failures came from.
+
+       --hit-ink   --hit on --hit-soft is 4.20:1. Two steps darker reads 5.56
+                   on the chip and 6.56 on the archive's solved day cell.
+       --on-cherry --cream on --cherry is 4.41:1, and every cherry button in
+                   the game is small uppercase type. Half a step lighter than
+                   cream clears it at 4.85 without cooling the palette. */
+  --hit-ink: #276843;
+  --on-cherry: #fdf8ee;
+
   --font-display: "Alfa Slab One", "Arial Black", sans-serif;
   --font-script: "Yellowtail", "Brush Script MT", cursive;
   --font-body: Georgia, "Times New Roman", serif;
