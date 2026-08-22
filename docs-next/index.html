@@ -2519,7 +2519,7 @@
         <div class="tiles" id="tiles">
           <div class="tile" data-tile="rounds">
             <span class="tile__live" aria-hidden="true"></span>
-            <span class="tile__n" data-n="836">836</span>
+            <span class="tile__n" data-n="939">939</span>
             <span class="tile__label">Games played</span>
             <span class="tile__sub">across three modes, two surfaces</span>
           </div>
@@ -2531,15 +2531,15 @@
           </div>
           <div class="tile" data-tile="shared">
             <span class="tile__live" aria-hidden="true"></span>
-            <span class="tile__n" data-n="121">121</span>
+            <span class="tile__n" data-n="152">152</span>
             <span class="tile__label">Results shared</span>
             <span class="tile__sub">emoji grids posted out of the game</span>
           </div>
           <div class="tile" data-tile="returning">
             <span class="tile__live" aria-hidden="true"></span>
-            <span class="tile__n" data-n="20" data-suffix="%">20%</span>
+            <span class="tile__n" data-n="19" data-suffix="%">19%</span>
             <span class="tile__label">Came back another day</span>
-            <span class="tile__sub"><span class="js-ret">54 of 270</span> devices, no accounts</span>
+            <span class="tile__sub"><span class="js-ret">58 of 312</span> devices, no accounts</span>
           </div>
         </div>
         <p class="tiles__foot">
@@ -2567,7 +2567,7 @@
           <a class="claim" href="#design">
             <span class="claim__n">02</span>
             <p class="claim__t">
-              One beat sheet specifies every clue. The same five beats, <em>1,820 clues deep</em>, so
+              One beat sheet specifies every clue. The same five beats, <em><span class="js-clues">1,820</span> clues deep</em>, so
               a dish a day stays a defined job instead of a blank page.
             </p>
             <span class="claim__go">Design →</span>
@@ -2971,7 +2971,7 @@
               <tr>
                 <td class="t-goal">A second audience without a second product</td>
                 <td class="t-choice">Discord Activity on the same deploy</td>
-                <td>One dynamically-imported file, loaded only inside the iframe. Web visitors never download the SDK.</td>
+                <td>The SDK sits behind a dynamic import and is fetched only inside the iframe, so web visitors never download it. All that ships to everyone is the check for the iframe.</td>
               </tr>
               <tr>
                 <td class="t-goal">Shipping without babysitting</td>
@@ -3049,7 +3049,7 @@
         <div class="shead reveal">
           <span class="shead__n">04</span>
           <h2 class="shead__t">How it was engineered</h2>
-          <span class="shead__k">302 tests · 20 files</span>
+          <span class="shead__k">333 tests · 23 files</span>
         </div>
 
         <p>
@@ -3125,7 +3125,7 @@
             <div class="pipe__step" style="--i: 1">
               <span class="pipe__n">Gate 1</span>
               <span class="pipe__t">Tests</span>
-              <span class="pipe__d">302 across 20 files</span>
+              <span class="pipe__d">333 across 23 files</span>
             </div>
             <div class="pipe__step" style="--i: 2">
               <span class="pipe__n">Gate 2</span>
@@ -3158,8 +3158,8 @@
         <p>
           The Activity rides that same build. Discord does not host the code. It frames
           lunchspecial.app through its proxy under a URL mapping, so the tag that ships the website
-          ships the Activity, and the only Discord-specific code is one file the browser fetches
-          after it spots the iframe. Two more workflows carry the routine load: tests and typecheck
+          ships the Activity, and the only thing the browser fetches after it spots the iframe is
+          Discord&rsquo;s SDK. Two more workflows carry the routine load: tests and typecheck
           on every pull request, and a weekly security scan across the repository.
         </p>
 
@@ -3305,7 +3305,7 @@
         <h3>The arithmetic is separated from the database</h3>
         <p>
           Queries need a database. Arithmetic does not. Every number on this page comes out of a
-          pure function that takes rows and returns a shape, which is why 302 tests sit behind them
+          pure function that takes rows and returns a shape, which is why 333 tests sit behind them
           and why I trust a chart I have never eyeballed. The public endpoint this page reads runs
           <strong>the same folds</strong> as my private dashboard, so the two cannot drift into
           quoting different numbers at each other.
@@ -3342,9 +3342,9 @@
 
         <p>
           Everything below comes out of production the moment you load this page. The audience is
-          small and self-selected: <span class="js-rounds">836</span> rounds from
-          <span class="js-devices">270</span> devices, of whom
-          <span class="js-ret2">54</span> came back on a second day. Read it as a method and a first
+          small and self-selected: <span class="js-rounds">939</span> rounds from
+          <span class="js-devices">312</span> devices, of whom
+          <span class="js-ret2">58</span> came back on a second day. Read it as a method and a first
           result rather than a finding about daily games in general.
         </p>
         <p>
@@ -3564,7 +3564,7 @@
           <div class="chart__h">
             <p class="chart__t">Guesses needed to solve</p>
           </div>
-          <p class="chart__sub" id="dist-sub">610 solved rounds · 124 more ran out of guesses</p>
+          <p class="chart__sub" id="dist-sub">684 solved rounds &middot; 140 more ran out of guesses</p>
           <div class="bars" id="chart-dist"></div>
           <div class="legend">
             <span><i style="background: var(--ev-start)"></i>Solved</span>
@@ -3637,9 +3637,9 @@
             <p class="finding__t">The archive became a third of all play</p>
             <p>
               I built Leftovers as a courtesy for anyone who found the game late. Together with
-              Chef&rsquo;s Choice it now accounts for <b class="js-optional">37%</b> of every round
-              played, and <b class="js-optfinish">94%</b> of those rounds run to the end, against
-              <b class="js-dailyfinish">84%</b> for the Special itself.
+              Chef&rsquo;s Choice it now accounts for <b class="js-optional">35%</b> of every round
+              played, and <b class="js-optfinish">93%</b> of those rounds run to the end, against
+              <b class="js-dailyfinish">85%</b> for the Special itself.
             </p>
             <p style="margin-top: 9px">
               <b>So:</b> I stopped treating the archive as an accessory. It now unlocks the moment
@@ -3652,9 +3652,9 @@
             <span class="finding__k">Finding 02</span>
             <p class="finding__t">The Discord Activity out-recruits the website</p>
             <p>
-              Discord reaches <b class="js-dc-dev">145</b> devices against the web&rsquo;s
-              <b class="js-web-dev">126</b>, off <b class="js-dc-rounds">323</b> rounds against
-              <b class="js-web-rounds">513</b>. More people, each playing less. The embed recruits
+              Discord reaches <b class="js-dc-dev">174</b> devices against the web&rsquo;s
+              <b class="js-web-dev">139</b>, off <b class="js-dc-rounds">363</b> rounds against
+              <b class="js-web-rounds">576</b>. More people, each playing less. The embed recruits
               and the website is where the habit forms.
             </p>
             <p style="margin-top: 9px">
@@ -3912,31 +3912,49 @@
            fetch replaces it and marks which tiles moved.
            ========================================================== */
         var FALLBACK = {
-          headline: { dishes: 364, rounds: 836, completed: 734, solved: 610, shared: 121, avgGuesses: 3.239 },
-          devices: 270,
-          guessDistribution: [22, 199, 159, 114, 73, 43],
-          fails: 124,
+          headline: { dishes: 364, rounds: 939, completed: 824, solved: 684, shared: 152, avgGuesses: 3.244 },
+          devices: 312,
+          guessDistribution: [25, 220, 177, 132, 85, 45],
+          fails: 140,
           modes: {
-            daily: { started: 527, completed: 445 },
-            leftover: { started: 209, completed: 195 },
-            random: { started: 100, completed: 94 }
+            daily: { started: 606, completed: 515 },
+            leftover: { started: 230, completed: 214 },
+            random: { started: 103, completed: 95 }
           },
-          surfaces: { web: { rounds: 513, devices: 126 }, discord: { rounds: 323, devices: 145 } },
-          funnel: { visited: 105, played: 82, finished: 77, shared: 28, playedAgain: 11, days: 7, since: "2026-08-08" },
-          daysPlayed: [270, 54, 31, 20, 12, 9, 8, 8, 7, 6, 5, 3, 3, 2, 1, 1, 1],
+          surfaces: { web: { rounds: 576, devices: 139 }, discord: { rounds: 363, devices: 174 } },
+          funnel: { visited: 265, played: 160, finished: 145, shared: 57, playedAgain: 17, days: 15, since: "2026-08-08" },
+          daysPlayed: [312, 58, 36, 24, 15, 9, 8, 8, 7, 6, 5, 5,
+                      3, 3, 3, 3, 3, 3, 3, 3, 1, 1],
           growth: {
             days: [20, 85, 152, 177, 229, 262, 296, 312, 355, 365, 387, 408, 417, 449, 463, 483, 510,
-                   566, 592, 666, 705, 716, 726, 746, 765, 802, 813, 836].map(function (c, i) {
+                  566, 592, 666, 705, 716, 726, 746, 765, 802, 813, 836, 851, 873, 900, 914, 923, 930,
+                  938, 939].map(function (c, i) {
               var d = new Date(Date.UTC(2026, 6, 18 + i));
               return { date: d.toISOString().slice(0, 10), cumulative: c };
             }),
-            trend: { slope: 28.49, first: 90.54, last: 859.67, days: 28, recentPerDay: 18.71, recentDays: 7 }
+            trend: { slope: 26.02, first: 115.99, last: 1026.84, days: 36, recentPerDay: 12.57, recentDays: 7 }
           },
-          /* Empty on purpose. Every other figure here is a real snapshot taken
-             from production; this one has no snapshot to take, because the
-             endpoint did not carry countries when this page was written. An
-             invented one would be the only false number on the page. */
-          countries: { entries: [], rounds: 0, players: 0, untracked: 0 }
+          /* A real snapshot now that the endpoint carries countries. Taken with
+             the rest of this block, so every figure here comes from the same
+             moment in production. */
+          countries: {
+            entries: [
+              { code: "US", players: 81, rounds: 183 },
+              { code: "IE", players: 7, rounds: 20 },
+              { code: "IN", players: 5, rounds: 6 },
+              { code: "GB", players: 3, rounds: 11 },
+              { code: "HU", players: 3, rounds: 3 },
+              { code: "PH", players: 2, rounds: 9 },
+              { code: "AU", players: 2, rounds: 3 },
+              { code: "CH", players: 1, rounds: 1 },
+              { code: "FR", players: 1, rounds: 1 },
+              { code: "ID", players: 1, rounds: 1 },
+              { code: "PL", players: 1, rounds: 1 },
+              { code: "RU", players: 1, rounds: 1 },
+              { code: "SG", players: 1, rounds: 1 }
+            ],
+            rounds: 241, players: 109, untracked: 698
+          }
         };
 
         var DATA = FALLBACK;
