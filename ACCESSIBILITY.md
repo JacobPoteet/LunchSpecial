@@ -130,11 +130,7 @@ The wording is a pure fold with unit tests, like every other fold in `shared/`. 
 
 ## Known gaps
 
-| Gap | Issue |
-|---|---|
-| No automated accessibility check in CI | [#130](../../issues/130) |
-
-Everything above was found by reading the source, and fixed the same way. None of it has been verified with an actual screen reader or a colour-vision simulator, so treat this as a floor rather than a clean bill of health.
+Nothing tracked right now. That is not the same as nothing left: none of the above has been verified with an actual screen reader or a colour-vision simulator, and the automated pass in CI only covers the third of WCAG a tool can see. Treat this as a floor rather than a clean bill of health.
 
 ---
 
@@ -158,7 +154,21 @@ Follow these and most of the above stays fixed once it is fixed.
 
 ## How to test
 
-No automated accessibility checks run in CI today, which is why the list above was assembled by hand.
+### Automated
+
+`ci.yml`'s **a11y** job runs axe-core over the running game on every push and PR, and fails on `serious` and `critical` findings. Locally, with the dev server up in another terminal:
+
+```bash
+npm run a11y
+```
+
+It **plays a round before scanning**, which is the point: the guess column, the attribute tiles and the ingredient chips don't exist on a bare page load, so a scan of an empty board is a scan that passes because there's nothing on it. Five states get measured, at a 390px viewport: the how-to modal a first-timer lands in, the empty board, a board mid-round, the check, and the archive calendar. `scripts/a11y-scan.mjs` says why each one is there.
+
+It asks the browser for `prefers-reduced-motion: reduce`. That's not incidental — axe samples the pixels actually painted, so a card caught mid-entrance reports the colour of a half-faded element, and cherry at 60% opacity over cream is a real 3.4:1 and a useless finding. It doubles as a check that the reduced-motion path renders what everyone else eventually sees.
+
+**Automated checks catch roughly a third of WCAG**, so this is a floor. Of the five issues that produced this document, axe would have caught one outright (the contrast) and part of a second; the live region, the colour-only encoding and the missing focus trap it cannot see. It found two contrast failures a careful hand pass had missed, both because they only exist once composited — a 0.85 opacity on a tile label, and a `rgba()` footer over teal.
+
+### By hand
 
 ```bash
 npm run dev
