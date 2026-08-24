@@ -134,8 +134,8 @@ The game also runs as a **Discord Activity** (embedded iframe app) — **no sepa
 
 ```
 wrangler.jsonc        assets SPA fallback + run_worker_first:["/api/*"] + D1 binding "DB"
-migrations/0001_init.sql   dishes / clues / schedule tables (0025 is the latest: sound prefs)
-seed/seed.sql         366 dishes, 5 clues each, 30-day schedule from 2026-07-17. Idempotent (DELETEs first).
+migrations/0001_init.sql   dishes / clues / schedule tables (0026 is the latest: fan breakfast + pies)
+seed/seed.sql         381 dishes, 5 clues each, 30-day schedule from 2026-07-17. Idempotent (DELETEs first).
                       The catalogue grows by migration, so this count moves — recount before quoting it
 shared/types.ts       ALL shared types + enums (COURSES, REGIONS…) + MAX_GUESSES + EPOCH_DATE
 worker/index.ts       Hono entry; only /api/* reaches the Worker (assets serve the rest)
