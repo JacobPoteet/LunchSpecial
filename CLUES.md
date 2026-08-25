@@ -303,37 +303,26 @@ These five are the standard. When a beat isn't working, read the same beat acros
 `worker/data-integrity.test.ts` checks everything in section 4 that a machine can decide, for
 **every dish in the catalogue**. It fails in CI.
 
-It shipped as an opt-in `MIGRATED` set so the backfill could turn the gate on one dish at a time,
-rather than landing a test with ~374 exemptions that would teach the next person to add a 375th.
-That set is gone: all 381 dishes pass.
+```bash
+npx vitest run worker/data-integrity.test.ts
+```
 
-Two things it does *not* check, because no machine can: the swap test and the new-constraint test
-in section 5. The linter catches the mechanical half. The other half is yours.
+Only the ceilings fail. Being outside a target band prints a count and passes, because a test that
+reddens over a well-written 55-character clue gets muted inside a week. Watch that count: a slow
+climb is the inflation this file exists to stop.
 
-Alongside it, `backfill migrations and the seed agree` reads every `UPDATE clues` in `migrations/`
-as text and requires the **last** write to each `(slug, beat)` to match what the seed says that
-clue is now. That test exists because a re-run of `scripts/patch-clues.mjs` once rebuilt its
-migration from scratch and silently dropped 66 of 88 rewrites out of it while leaving them in the
-seed — prod would have received a quarter of the batch, and every other test would still have
-passed, because `buildDb()` applies migrations and then the seed on top.
+Two rules it cannot check, because no machine can: the swap test and the new-constraint test in
+section 5. The linter catches the mechanical half. The other half is yours.
 
-### The backfill
+A second test, `backfill migrations and the seed agree`, reads every `UPDATE clues` in
+`migrations/` as text and requires the **last** write to each `(slug, beat)` to match what the seed
+says that clue is now. Last-write-wins, because a later migration legitimately overrides an earlier
+one. It exists because `buildDb()` applies migrations and *then* the seed on top, so the seed
+always wins and a migration missing rows is invisible to every other test in the file — which is
+exactly how a patcher bug once kept 66 rewrites in the seed and out of the migration.
 
-Done. All 1,905 clues, in five passes, one beat at a time so each pass was one kind of judgment
-repeated rather than 381 separate creative problems. Shipped as `migrations/0027`–`0032`, written
-by `scripts/patch-clues.mjs` from a JSON patch into both `seed/seed.sql` and the migration.
-
-Three things the passes turned up that the audit hadn't:
-
-- **Beat 4's target band was too tight.** Sixteen of the first 78 rewrites landed at 116–120 with
-  none of them reading long, because beat 4 names three or four ingredients *and* a technique.
-  Widened to 120, the same way beat 5 was widened to 100.
-- **The decoder-ring beat 1s did not all name their country.** Checking for the literal country
-  name found 90; the cross-dish phrase check found 47 more that riddle it instead ("a country
-  south of the United States", "an island nation in northwestern Europe").
-- **Prefix matching is not enough for name-words.** `thai` fires on "Thailand", which is the
-  country beat 5 is required to name. The matcher now takes a word plus its ordinary inflections
-  and a closing boundary.
+When you add a country to the catalogue, add it to `COUNTRY_ALIASES` too, or beat 5 will be unable
+to satisfy the rule that it name the country.
 
 ---
 
