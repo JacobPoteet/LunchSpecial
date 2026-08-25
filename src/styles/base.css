@@ -47,6 +47,11 @@
   --hit-ink: #276843;
   --on-cherry: #fdf8ee;
 
+  /* Third of the same kind: --mustard on cream is 1.9:1, so mustard can fill a
+     shape but can never be small type. This reads 5.4 on --paper and 5.1 on
+     --cream, which is what the admin clue-budget warning needs. */
+  --mustard-ink: #8a5a12;
+
   --font-display: "Alfa Slab One", "Arial Black", sans-serif;
   --font-script: "Yellowtail", "Brush Script MT", cursive;
   --font-body: Georgia, "Times New Roman", serif;

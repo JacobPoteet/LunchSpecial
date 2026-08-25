@@ -1,0 +1,142 @@
+#!/usr/bin/env node
+// Apply a clue rewrite to both places a clue lives.
+//
+// The backfill (see CLUES.md section 8) rewrites clues in place rather than
+// adding them, so hand-editing 1,905 rows across seed/seed.sql plus a migration
+// is exactly the job a script should do. Feed it a patch:
+//
+//   { "pho": { "1": "A noodle soup from Southeast Asia.", "5": "…" } }
+//
+//   node scripts/patch-clues.mjs <patch.json> <migration-name>
+//
+// It rewrites the matching rows in seed/seed.sql (keyed by the dish id the seed
+// already uses) and writes migrations/00NN_<migration-name>.sql as UPDATEs
+// keyed by slug, which is what reaches prod. Re-running with the same migration
+// name MERGES into that file: existing rows stay, a repeated (slug, beat) is
+// replaced. It used to rebuild from scratch, which silently dropped 66 of the
+// first 88 beat-1 rewrites out of the migration while leaving them in the seed,
+// so prod would have received a quarter of the batch. data-integrity.test.ts
+// now asserts the migration and the seed agree.
+//
+// It refuses to touch a slug it cannot find, and refuses to write a clue whose
+// text did not change — both mean the patch is wrong about the catalogue.
+
+import { readFileSync, writeFileSync, readdirSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const SEED = join(ROOT, "seed", "seed.sql");
+
+const sqlEscape = (s) => s.replace(/'/g, "''");
+
+/** One generated UPDATE, so a re-run can read back what it wrote last time. */
+const MIGRATION_ROW =
+  /UPDATE clues SET text = '((?:[^']|'')*)'\n WHERE dish_id = \(SELECT id FROM dishes WHERE slug = '([a-z0-9-]+)'\) AND order_index = (\d);/g;
+
+function main() {
+  const [patchPath, migrationName] = process.argv.slice(2);
+  if (!patchPath || !migrationName) {
+    console.error("usage: patch-clues.mjs <patch.json> <migration-name>");
+    process.exit(1);
+  }
+
+  const patch = JSON.parse(readFileSync(patchPath, "utf8"));
+  let seed = readFileSync(SEED, "utf8");
+
+  // slug -> id, straight out of the seed's own INSERT INTO dishes rows.
+  const slugToId = new Map();
+  for (const m of seed.matchAll(/^\((\d+),'(?:[^']|'')*','([a-z0-9-]+)',/gm)) {
+    slugToId.set(m[2], Number(m[1]));
+  }
+
+  const updates = [];
+  const problems = [];
+
+  for (const [slug, beats] of Object.entries(patch)) {
+    const id = slugToId.get(slug);
+    if (id === undefined) {
+      problems.push(`${slug}: no such dish in seed.sql`);
+      continue;
+    }
+    for (const [beatKey, text] of Object.entries(beats)) {
+      const beat = Number(beatKey);
+      if (!(beat >= 1 && beat <= 5)) {
+        problems.push(`${slug}: beat ${beatKey} is not 1-5`);
+        continue;
+      }
+      // The clue row as the seed writes it: (id,order,'text'), terminated by
+      // either a comma or the statement's semicolon.
+      const row = new RegExp(`^\\(${id},${beat},'((?:[^']|'')*)'\\)(,|;)$`, "m");
+      const found = seed.match(row);
+      if (!found) {
+        problems.push(`${slug} beat ${beat}: row not found in seed.sql`);
+        continue;
+      }
+      if (found[1] === sqlEscape(text)) {
+        problems.push(`${slug} beat ${beat}: text is unchanged`);
+        continue;
+      }
+      seed = seed.replace(row, `(${id},${beat},'${sqlEscape(text)}')${found[2]}`);
+      updates.push({ slug, beat, text });
+    }
+  }
+
+  if (problems.length) {
+    console.error("refusing to write:\n  " + problems.join("\n  "));
+    process.exit(1);
+  }
+
+  // Next migration number, from whatever is already there.
+  const existing = readdirSync(join(ROOT, "migrations")).filter((f) => f.endsWith(".sql"));
+  const mine = existing.find((f) => f.endsWith(`_${migrationName}.sql`));
+  const number = mine
+    ? mine.slice(0, 4)
+    : String(Math.max(...existing.map((f) => Number(f.slice(0, 4)))) + 1).padStart(4, "0");
+  const file = join(ROOT, "migrations", `${number}_${migrationName}.sql`);
+
+  // Merge with whatever that migration already holds, keyed by (slug, beat), so
+  // a revised clue replaces its earlier version rather than appearing twice.
+  const merged = new Map();
+  try {
+    const prior = readFileSync(file, "utf8");
+    for (const m of prior.matchAll(MIGRATION_ROW)) {
+      merged.set(`${m[2]}:${m[3]}`, {
+        slug: m[2],
+        beat: Number(m[3]),
+        text: m[1].replace(/''/g, "'"),
+      });
+    }
+  } catch {
+    // No such migration yet, which is the common case.
+  }
+  for (const u of updates) merged.set(`${u.slug}:${u.beat}`, u);
+  const all = [...merged.values()];
+
+  const body = [
+    `-- Backfill: clue rewrites against the beat sheet (CLUES.md).`,
+    `-- ${all.length} clues across ${new Set(all.map((u) => u.slug)).size} dishes.`,
+    `-- UPDATEs, not INSERTs: these rows already exist. Keyed by slug so the ids`,
+    `-- this migration lands on do not have to match the seed's.`,
+    `-- Generated by scripts/patch-clues.mjs. Edit the patch, not this file.`,
+    "",
+    ...all.map(
+      (u) =>
+        `UPDATE clues SET text = '${sqlEscape(u.text)}'\n` +
+        ` WHERE dish_id = (SELECT id FROM dishes WHERE slug = '${u.slug}') AND order_index = ${u.beat};`,
+    ),
+    "",
+  ].join("\n");
+
+  writeFileSync(SEED, seed);
+  writeFileSync(file, body);
+
+  console.log(
+    `patched ${updates.length} clues across ${new Set(updates.map((u) => u.slug)).size} dishes ` +
+      `(migration now holds ${all.length})`,
+  );
+  console.log(`  seed/seed.sql`);
+  console.log(`  migrations/${number}_${migrationName}.sql`);
+}
+
+main();
