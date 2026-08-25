@@ -1480,7 +1480,6 @@
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 12px;
-  align-items: center;
 }
 
 .filter-row input,
@@ -1493,16 +1492,41 @@
 
 .filter-row input { flex: 1; min-width: 160px; }
 
-/* dish list filters */
+/* dish list filters
+
+   One facet per full-width row on a fixed label column. The first cut used an
+   auto-fit grid of facet groups, which is what made the panel look broken:
+   groups holding between two and nine chips, in a grid where every row is as
+   tall as its tallest cell, so the short groups sat over holes. Rows can't do
+   that, and they give the nine labels a single left edge. */
 
 .dish-filters {
-  border: 1px dashed var(--paper-edge);
-  border-radius: var(--radius);
-  padding: 12px;
+  border-bottom: 1.5px dashed var(--paper-edge);
+  padding-bottom: 12px;
   margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
 }
 
-.dish-filters .filter-row { margin-bottom: 10px; }
+/* Grid, not flex: the search box takes the slack and the two controls to its
+   right hold one position instead of sliding with the window. */
+.dish-filters__bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.dish-filters__search {
+  border: 1.5px solid var(--ink-soft);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  background: #fffdf6;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+}
 
 .sort-picker {
   display: inline-flex;
@@ -1512,28 +1536,37 @@
 
 .sort-picker span {
   font-family: var(--font-display);
-  font-size: 0.62rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-
-/* Facets sit side by side so eight groups of chips stay three or four rows
-   tall — a column of them would push the table itself off the screen. */
-.facet-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 10px 20px;
-}
-
-.facet__label {
-  display: block;
-  font-family: var(--font-display);
   font-size: 0.6rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  margin-bottom: 5px;
+}
+
+.sort-picker select {
+  border: 1.5px solid var(--ink-soft);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  background: #fffdf6;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+}
+
+/* 92px matches the mix bars' label column, so the two panels rhyme. */
+.facet {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.facet__label {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  /* Optically centres the label on the first row of chips. */
+  padding-top: 8px;
 }
 
 .facet__chips {
@@ -1546,16 +1579,18 @@
 .chip-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  height: 26px;
+  padding: 0 9px;
+  gap: 5px;
   font-family: var(--font-body);
   font-size: 0.76rem;
-  line-height: 1.2;
-  padding: 4px 9px;
+  line-height: 1;
   border: 1.5px solid var(--paper-edge);
   border-radius: 999px;
   background: #fffdf6;
   color: var(--ink);
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .chip-btn:hover { border-color: var(--teal); }
@@ -1571,14 +1606,19 @@
    zero is a fact about the catalogue, and you may want to see it anyway. */
 .chip-btn--empty { opacity: 0.45; }
 
-/* The tick is the non-colour channel for "selected"; it holds its width when
-   empty so a row of chips doesn't reflow as you click through them. */
+/* The tick is the non-colour channel for "selected". It holds its width when
+   empty so clicking one chip doesn't shuffle the rest of the row. */
 .chip-btn__mark {
   width: 8px;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
+  text-align: center;
 }
 
+/* Right-aligned with a floor, so a 3 and a 128 don't make two different chips
+   out of the same word. */
 .chip-btn__n {
+  min-width: 1.6em;
+  text-align: right;
   font-variant-numeric: tabular-nums;
   font-size: 0.68rem;
   color: var(--ink-soft);
@@ -1587,30 +1627,66 @@
 .chip-btn--on .chip-btn__n { color: var(--chrome); }
 
 .country-picker {
+  height: 26px;
+  border: 1.5px dashed var(--ink-soft);
+  border-radius: 999px;
+  padding: 0 11px;
+  background: #fffdf6;
+  font-family: var(--font-body);
+  font-size: 0.76rem;
+  width: 150px;
+}
+
+/* The fold sits on the chip column, so it lines up with what it opens. */
+.facet-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
   border: 1.5px dashed var(--paper-edge);
   border-radius: 999px;
-  padding: 4px 10px;
-  background: #fffdf6;
-  font-size: 0.76rem;
-  width: 130px;
+  background: none;
+  font-family: var(--font-body);
+  font-size: 0.74rem;
+  color: var(--teal);
+  cursor: pointer;
 }
 
-/* Second line inside a table cell: region under country, temperature under
-   course, "12 days ago" under a date. */
-.cell-sub {
-  display: block;
-  font-size: 0.68rem;
+.facet-more:hover { border-color: var(--teal); }
+
+.facet-count {
+  font-size: 0.74rem;
   color: var(--ink-soft);
-  line-height: 1.3;
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
 }
 
-.cell-warn { color: #9a6516; }
+/* Every cell on this table is one line: mixing one- and two-line cells down a
+   column makes even a well-aligned table look lumpy. */
+.admin-table--dishes td,
+.admin-table--dishes th { padding: 7px 8px; }
+
+.admin-table--dishes td { white-space: nowrap; }
+
+/* The one column allowed to wrap, since dish names run long. */
+.admin-table--dishes td[data-label="Dish"] { white-space: normal; }
+
+.cell-dim { color: var(--ink-soft); }
 
 .badge--booked {
-  margin-left: 6px;
+  margin-left: 5px;
   background: var(--near-soft);
   color: #9a6516;
   border-color: var(--near);
+}
+
+@media (max-width: 640px) {
+  .dish-filters__bar { grid-template-columns: 1fr; }
+  .facet { grid-template-columns: 1fr; gap: 2px; }
+  .facet__label { padding-top: 4px; }
+  .facet-count { margin-left: 0; }
+  .admin-table--dishes td { white-space: normal; }
 }
 
 /* editor */
