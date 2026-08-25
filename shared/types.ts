@@ -117,7 +117,17 @@ export interface RevealInfo {
 
 export interface AdminDishRow extends Dish {
   clueCount: number;
+  /** Most recent schedule row on or before today, or null if never served. */
   lastServed: string | null;
+  /**
+   * Earliest schedule row *after* today, or null if nothing is booked. A dish is
+   * only genuinely unspoken-for when this and `lastServed` are both null — the
+   * same "never scheduled, past or future" rule the shuffle picks by, and what
+   * lets the Dishes list hide anything already committed.
+   */
+  nextBooked: string | null;
+  /** Schedule rows on or before today — how many times this has been the Special. */
+  timesServed: number;
   /** Meets scheduling requirements: >= 3 ingredients and exactly 5 clues. */
   schedulable: boolean;
 }

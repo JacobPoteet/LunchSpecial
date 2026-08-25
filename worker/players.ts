@@ -14,7 +14,7 @@
 // The tracking start is derived from the data (the earliest tracked row) rather
 // than hardcoded, so it survives a backfill and can't rot.
 
-import { gameToday } from "../shared/time";
+import { daysBetween, gameToday } from "../shared/time";
 import type { PlayerRetention, PlayerSplit, RetentionStep } from "../shared/types";
 
 /**
@@ -120,10 +120,11 @@ export function foldPlayerActivity(rows: Iterable<PlayerBucketRow>): PlayerActiv
   return { byDay, visitDays, allTime: { new: allTimeNew, returning: allTimeReturning }, firstDay };
 }
 
-/** Whole days from ET day `a` to ET day `b`. Both are plain calendar days, so no zone is involved. */
-export function daysBetween(a: string, b: string): number {
-  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
-}
+// Lives in shared/time.ts so the admin's dish filters can measure rest with the
+// same primitive; re-exported here because this module's callers already had it.
+// `import` + `export`, not `export … from`: this file uses it too, and a bare
+// re-export creates no local binding.
+export { daysBetween };
 
 /**
  * The repeat-visit curve: after a player's 1st visit, how often is there a 2nd?

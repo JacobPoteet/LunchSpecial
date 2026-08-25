@@ -129,6 +129,8 @@ app.use("*", async (c, next) => {
 interface AdminDishDbRow extends DishDbRow {
   clue_count: number;
   last_served: string | null;
+  next_booked: string | null;
+  times_served: number;
 }
 
 function toAdminRow(row: AdminDishDbRow): AdminDishRow {
@@ -137,19 +139,30 @@ function toAdminRow(row: AdminDishDbRow): AdminDishRow {
     ...dish,
     clueCount: row.clue_count,
     lastServed: row.last_served,
+    nextBooked: row.next_booked,
+    timesServed: row.times_served,
     schedulable: dish.ingredients.length >= 3 && row.clue_count === 5,
   };
 }
 
 app.get("/dishes", async (c) => {
+  const today = serverToday();
   const res = await c.env.DB
     .prepare(
+      // A future booking is the difference between "available" and "spoken for",
+      // so the list needs next_booked as well as last_served — see the shuffle's
+      // "never scheduled, past or future" rule in worker/shuffle.ts.
       `SELECT d.*,
          (SELECT COUNT(*) FROM clues c WHERE c.dish_id = d.id) AS clue_count,
-         (SELECT MAX(s.date) FROM schedule s WHERE s.dish_id = d.id AND s.date <= ?) AS last_served
+         (SELECT MAX(s.date) FROM schedule s WHERE s.dish_id = d.id AND s.date <= ?) AS last_served,
+         (SELECT COUNT(*) FROM schedule s WHERE s.dish_id = d.id AND s.date <= ?) AS times_served,
+         (SELECT MIN(s.date) FROM schedule s WHERE s.dish_id = d.id AND s.date > ?) AS next_booked
        FROM dishes d ORDER BY d.name`,
     )
-    .bind(serverToday())
+    // Bound three times rather than as ?1: every other query in this file uses
+    // anonymous placeholders. One `today`, read once, so the three subselects
+    // can't disagree across a midnight-ET rollover.
+    .bind(today, today, today)
     .all<AdminDishDbRow>();
   return c.json(res.results.map(toAdminRow));
 });

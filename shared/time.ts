@@ -74,3 +74,8 @@ export function hms(ms: number): { h: string; m: string; s: string } {
     s: pad(Math.floor((clamped % 60_000) / 1000)),
   };
 }
+
+/** Whole days from ET day `a` to ET day `b`. Both are plain calendar days, so no zone is involved. */
+export function daysBetween(a: string, b: string): number {
+  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+}
