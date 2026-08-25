@@ -4,12 +4,17 @@ import { COURSES, PROTEINS, REGIONS, TEMPERATURES } from "../../shared/types";
 import { ClueTicket, GuessRow, Modal } from "../game/components";
 import * as api from "./api";
 
-const CLUE_HINTS = [
-  "Shown after 1st miss — broad hint (region, category)",
-  "Shown after 2nd miss — origin or history",
-  "Shown after 3rd miss — famous moment / pop culture",
-  "Shown after 4th miss — key ingredient or technique",
-  "Shown after 5th miss — near-giveaway",
+// The five beats, and the only guidance anyone writing a clue in /admin ever
+// sees. The full beat sheet is CLUES.md; these are its headlines plus the
+// character budget, because a budget nobody can see is a budget nobody keeps —
+// clue sets inflated 2.5x across 26 batches while this array said "broad hint".
+// [beat name, what it must do, target lo, target hi, hard max]
+const CLUE_BEATS: [string, string, number, number, number][] = [
+  ["Broad geography", "The region. Never the country.", 35, 70, 85],
+  ["Origin and history", "Who made it, when, why.", 60, 110, 130],
+  ["What makes it unmistakable", "True of this dish and almost no other.", 55, 105, 120],
+  ["A key ingredient or technique", "You or the cook doing the cooking.", 60, 120, 130],
+  ["Near-giveaway", "The country, and what it looks like.", 45, 100, 115],
 ];
 
 const emptyForm: AdminDishInput = {
@@ -318,17 +323,31 @@ export default function DishEditor({
             </p>
           </div>
 
-          {form.clues.map((clue, i) => (
-            <div className="field" key={i}>
-              <label>
-                Clue {i + 1} — {CLUE_HINTS[i]}
-              </label>
-              <textarea
-                value={clue}
-                onChange={(e) => set("clues", form.clues.map((c, j) => (j === i ? e.target.value : c)))}
-              />
-            </div>
-          ))}
+          {form.clues.map((clue, i) => {
+            const [beat, job, lo, hi, max] = CLUE_BEATS[i];
+            const len = clue.trim().length;
+            // Three states, not two: empty says nothing, inside the target is
+            // quiet, outside it warns, past the ceiling is an error. The count
+            // only judges a clue somebody has started writing.
+            const state = len === 0 ? "" : len > max ? " clue-count--over" : len < lo || len > hi ? " clue-count--warn" : "";
+            return (
+              <div className="field" key={i}>
+                <label>
+                  Beat {i + 1} — {beat}
+                </label>
+                <p className="field-hint">
+                  Shown after miss {i + 1}. {job}
+                </p>
+                <textarea
+                  value={clue}
+                  onChange={(e) => set("clues", form.clues.map((c, j) => (j === i ? e.target.value : c)))}
+                />
+                <p className={`clue-count${state}`}>
+                  {len} / {lo}–{hi} chars{len > max ? ` — over the ${max} ceiling` : ""}
+                </p>
+              </div>
+            );
+          })}
 
           <div className="field">
             <label>

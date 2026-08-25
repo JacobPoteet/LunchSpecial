@@ -360,13 +360,20 @@ The user will say things like **"add dishes: Pho (Vietnam), Bibimbap (South Kore
 | `protein` | `beef` \| `pork` \| `poultry` \| `seafood` \| `lamb` \| `vegetarian`. Pick the dominant one; `vegetarian` if none |
 | `ingredients` | JSON array, **canonical lowercase singular**, **≥3** (aim 5–8). Reuse existing pantry spellings — `tomato` not `tomatoes`, `bell pepper`, `olive oil`. Grep seed.sql for an ingredient before coining a new spelling |
 
-### The 5 clues (`order_index` 1→5, revealed after each miss — never name the dish)
+### The 5 clues — **the beat sheet lives in `CLUES.md`. Read it before writing one.**
 
-1. Broad geography/region hint ("comes from Europe — a country shaped like a boot")
-2. Origin / history
-3. Fame / pop-culture moment
-4. Key ingredient or technique
-5. Near-giveaway (everything but the name)
+Five beats, `order_index` 1→5, one printed on a clue ticket after each miss. Never name the dish.
+
+1. Broad geography — the region, **never the country**
+2. Origin and history — who made it, when, why
+3. What makes it unmistakable — true of this dish and almost no other
+4. A key ingredient or technique
+5. Near-giveaway — the country, and what it looks like in front of you
+
+That table is the index, not the spec. `CLUES.md` carries the voice (a short-order cook talking
+across the counter), per-beat character budgets, fourteen hard rules, and the two tests every clue
+has to pass. `worker/data-integrity.test.ts` enforces the mechanizable half for every slug in its
+`MIGRATED` set — **add the slug when the dish is done**, which is what turns the gate on for it.
 
 ### Where the rows go
 
