@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { DishFacet, DishFilter } from "../../shared/dishfilter";
 import type { MenuMix, MenuMixKey, MenuMixSlice, MenuSliceKey } from "../../shared/types";
 import { COURSES, MENU_MIX_KEYS, MENU_SLICES, PROTEINS, REGIONS, TEMPERATURES } from "../../shared/types";
 import * as api from "./api";
@@ -53,12 +54,15 @@ function MixBars({
   values,
   baseline,
   baselineTotal,
+  onPick,
 }: {
   counts: Record<string, number>;
   total: number;
   values: readonly string[];
   baseline: Record<string, number> | null;
   baselineTotal: number;
+  /** Given, each row becomes a jump into the dish list filtered to that category. */
+  onPick?: (value: string) => void;
 }) {
   // Ranked by value; ties keep the enum's own order (Array.sort is stable).
   const rows = [...values].sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0));
@@ -78,8 +82,8 @@ function MixBars({
           poolShare === null
             ? `${titleCase(v)}: ${n} (${share}%)`
             : `${titleCase(v)}: ${n} (${share}%) · pool ${poolShare}%`;
-        return (
-          <div className="mix__row" key={v} title={tip}>
+        const body = (
+          <>
             <span className={`mix__label${n === 0 ? " mix__label--zero" : ""}`}>{titleCase(v)}</span>
             <span className="mix__track">
               {/* Bar length is the count against the biggest count, so a small
@@ -95,6 +99,24 @@ function MixBars({
             <span className={`mix__delta${delta !== null && delta > 0 ? " mix__delta--over" : ""}`}>
               {delta === null || Math.abs(delta) < 3 ? "" : `${delta > 0 ? "+" : "−"}${Math.abs(delta)} pts`}
             </span>
+          </>
+        );
+        // An under-served bar is a decision waiting to be made, so the bar is the
+        // way to the dishes that would fix it rather than something to read and
+        // then re-type into a filter.
+        return onPick ? (
+          <button
+            type="button"
+            className="mix__row mix__row--pick"
+            key={v}
+            title={`${tip} · show these dishes`}
+            onClick={() => onPick(v)}
+          >
+            {body}
+          </button>
+        ) : (
+          <div className="mix__row" key={v} title={tip}>
+            {body}
           </div>
         );
       })}
@@ -158,7 +180,20 @@ function RankedBars({ rows }: { rows: { name: string; servings: number }[] }) {
 /** How many countries the table lists before folding the tail into a note. */
 const COUNTRY_ROWS = 12;
 
-export default function MenuMixPanel() {
+/** Which dish-list facet each mix breakdown filters on. */
+const MIX_FACETS: Record<MenuMixKey, DishFacet> = {
+  region: "regions",
+  course: "courses",
+  protein: "proteins",
+  temperature: "temperatures",
+};
+
+export default function MenuMixPanel({
+  onOpenDishes,
+}: {
+  /** Jump to the dish list with a filter applied. */
+  onOpenDishes: (filter: Partial<DishFilter>) => void;
+}) {
   const [mix, setMix] = useState<MenuMix | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [slice, setSlice] = useState<MenuSliceKey>("served");
@@ -229,8 +264,14 @@ export default function MenuMixPanel() {
         </div>
       </div>
       <p className="dash-note">
-        {mix.neverServed} of {pool.dishes} active dish{pool.dishes === 1 ? "" : "es"} ha
-        {mix.neverServed === 1 ? "s" : "ve"} never been the Special · {mix.upcoming.servings} day
+        <button
+          className="link-btn"
+          onClick={() => onOpenDishes({ statuses: ["never"], readiness: ["ready"], sort: "name" })}
+        >
+          {mix.neverServed} of {pool.dishes} active dish{pool.dishes === 1 ? "" : "es"} ha
+          {mix.neverServed === 1 ? "s" : "ve"} never been the Special
+        </button>{" "}
+        · {mix.upcoming.servings} day
         {mix.upcoming.servings === 1 ? "" : "s"} booked ahead
         {mix.unscheduledDays > 0 &&
           ` · ${mix.unscheduledDays} past day${mix.unscheduledDays === 1 ? "" : "s"} ran on the fallback pick (no schedule row, so not counted above)`}
@@ -280,12 +321,17 @@ export default function MenuMixPanel() {
                   values={cat.values}
                   baseline={baseline ? countsOf(baseline, cat.key) : null}
                   baselineTotal={pool.servings}
+                  // Longest-rested first, because the reason you clicked an
+                  // under-served bar is to book something from it. The status
+                  // chips are one click away if you want only the free ones.
+                  onPick={(v) => onOpenDishes({ [MIX_FACETS[cat.key]]: [v], sort: "rested" })}
                 />
               </div>
             ))}
           </div>
           <p className="dash-note" style={{ marginTop: 10 }}>
-            Bars are counts, ranked; the % is that category's share of the {SLICE_META[slice].noun}.
+            Click a bar to open the dish list filtered to it, longest-rested first. Bars are counts,
+            ranked; the % is that category's share of the {SLICE_META[slice].noun}.
             {baseline &&
               " The grey tick marks the pool's share, so a bar past it is over-served — the ± figure is the gap in percentage points."}
           </p>
@@ -325,7 +371,14 @@ export default function MenuMixPanel() {
                   <tbody>
                     {countries.slice(0, COUNTRY_ROWS).map((c) => (
                       <tr key={c.country}>
-                        <td>{c.country}</td>
+                        <td>
+                          <button
+                            className="link-btn"
+                            onClick={() => onOpenDishes({ countries: [c.country], sort: "rested" })}
+                          >
+                            {c.country}
+                          </button>
+                        </td>
                         <td>{titleCase(c.region)}</td>
                         <td>{c.servings}</td>
                         <td>{c.lastServed}</td>

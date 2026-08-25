@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { DishFilter } from "../../shared/dishfilter";
 import type { AdminDashboard, AnalyticsSummary, ExperimentReport } from "../../shared/types";
 import * as api from "./api";
 import type { AdminView } from "./AdminApp";
@@ -74,9 +75,12 @@ function writeTabToUrl(tab: DashboardTab | null) {
 export default function Dashboard({
   onNavigate,
   onOpenDish,
+  onOpenDishes,
 }: {
   onNavigate: (view: AdminView) => void;
   onOpenDish: (id: number | null) => void;
+  /** Jump to the dish list with a filter applied — the Menu tab's charts use it. */
+  onOpenDishes: (filter: Partial<DishFilter>) => void;
 }) {
   const [tab, setTab] = useState<DashboardTab>(tabFromUrl);
 
@@ -189,7 +193,7 @@ export default function Dashboard({
       {tab === "menu" && (
         <>
           <DishReportPanel surface={surface} />
-          <MenuMixPanel />
+          <MenuMixPanel onOpenDishes={onOpenDishes} />
         </>
       )}
       {tab === "players" && (

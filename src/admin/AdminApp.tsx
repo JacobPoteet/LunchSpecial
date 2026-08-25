@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import type { DishFilter } from "../../shared/dishfilter";
 import * as api from "./api";
 import AnnouncementsPanel from "./AnnouncementsPanel";
 import Dashboard from "./Dashboard";
@@ -62,6 +63,9 @@ export default function AdminApp() {
   const [draft, setDraft] = useState<DishDraft | null>(null);
   // Count of pending player requests, shown as a nav badge.
   const [requestCount, setRequestCount] = useState<number | null>(null);
+  // A filter handed to the dish list by a link (the dashboard's Menu tab). Null
+  // when you arrive by the nav, which leaves whatever filter you parked there.
+  const [dishFilter, setDishFilter] = useState<Partial<DishFilter> | null>(null);
 
   const refreshRequestCount = useCallback(() => {
     api.getRequests().then(
@@ -87,6 +91,15 @@ export default function AdminApp() {
     setDraft(null);
   }, []);
 
+  // "Show me the East Asian desserts nobody has had" — the Menu tab's charts
+  // link in here with the filter already applied.
+  const openDishes = useCallback((filter: Partial<DishFilter>) => {
+    setView("dishes");
+    setEditing(undefined);
+    setDraft(null);
+    setDishFilter(filter);
+  }, []);
+
   // "Add as dish" from a request: open a prefilled new-dish editor.
   const openDishFromRequest = useCallback((d: DishDraft) => {
     setView("dishes");
@@ -98,6 +111,7 @@ export default function AdminApp() {
     setView(v);
     setEditing(undefined);
     setDraft(null);
+    setDishFilter(null);
   };
 
   return (
@@ -144,10 +158,12 @@ export default function AdminApp() {
         {session === "out" && <Login onLoggedIn={() => setSession("in")} />}
         {session === "in" && (
           <>
-            {view === "dashboard" && <Dashboard onNavigate={changeView} onOpenDish={openDish} />}
+            {view === "dashboard" && (
+              <Dashboard onNavigate={changeView} onOpenDish={openDish} onOpenDishes={openDishes} />
+            )}
             {view === "dishes" &&
               (editing === undefined ? (
-                <DishList onOpenDish={openDish} />
+                <DishList onOpenDish={openDish} incomingFilter={dishFilter} />
               ) : (
                 <DishEditor
                   dishId={editing}
