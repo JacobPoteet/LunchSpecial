@@ -62,7 +62,7 @@ restates something already given is a wasted guess, and the player paid for it.
 Beat 3 changed name. It was "What made it famous", and that name is what produced the filler:
 when a dish has no cultural moment, "fame" leaves the writer nothing to do but praise it. Fame is
 now one route to an unmistakable fact rather than the requirement. The other four names are
-unchanged from the beat sheet in `docs-next/index.html`.
+unchanged from the beat sheet in `docs/index.html`.
 
 ### Beat 1 — Broad geography
 
@@ -326,5 +326,5 @@ to satisfy the rule that it name the country.
 
 ---
 
-Related: `CLAUDE.md` → "Adding dishes" for where the rows go. `docs-next/index.html` for why the
+Related: `CLAUDE.md` → "Adding dishes" for where the rows go. `docs/index.html` for why the
 beat sheet exists at all. `ACCESSIBILITY.md` for player-facing UI rules.

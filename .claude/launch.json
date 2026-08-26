@@ -23,18 +23,6 @@
       "port": 4173
     },
     {
-      "name": "breakdown-next",
-      "runtimeExecutable": "python",
-      "runtimeArgs": [
-        "-m",
-        "http.server",
-        "4174",
-        "--directory",
-        "docs-next"
-      ],
-      "port": 4174
-    },
-    {
       "name": "lunch-special-prod",
       "runtimeExecutable": "npx",
       "runtimeArgs": [
