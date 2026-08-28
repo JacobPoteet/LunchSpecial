@@ -124,12 +124,12 @@ describe("catalog data integrity", () => {
 });
 
 // ---------------------------------------------------------------------------
-// The beat sheet (CLUES.md section 4).
+// The beat sheet's hard rules (.claude/skills/create-dishes/SKILL.md section 3.4).
 //
 // Checks every dish. This started as an opt-in MIGRATED set, so the backfill
 // could turn the gate on one dish at a time instead of shipping a test with
 // ~374 exemptions; the set is gone now that all 381 pass, which is what
-// CLUES.md section 8 says to do when the backfill lands.
+// the beat sheet says to do when the backfill lands.
 // ---------------------------------------------------------------------------
 
 /** [target lo, target hi, hard max]. Only the hard max fails. */
@@ -271,7 +271,7 @@ function countryTerms(country: string): string[] {
  * A name built entirely from generic words is handled by the one-name-word cap
  * below rather than here: "Cinnamon Rolls" has no rare half to bar, so what
  * stops it is the rule that a clue may use only one word of its own name.
- * See CLUES.md rule 1.
+ * See the beat sheet, hard rule 1.
  */
 const GENERIC_MIN = 8;
 
@@ -357,7 +357,7 @@ interface ClueRow {
 }
 
 /**
- * Every rule in CLUES.md section 4 a machine can decide, for one clue.
+ * Every hard rule in the beat sheet a machine can decide, for one clue.
  *
  * Errors fail the build. Warnings are the target band only, which is guidance
  * rather than a rule: a 55-character beat 4 that reads well is fine, and a test

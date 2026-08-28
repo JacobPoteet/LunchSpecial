@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Apply a clue rewrite to both places a clue lives.
 //
-// The backfill (see CLUES.md section 8) rewrites clues in place rather than
+// The backfill (see .claude/skills/create-dishes/SKILL.md) rewrites clues in place rather than
 // adding them, so hand-editing 1,905 rows across seed/seed.sql plus a migration
 // is exactly the job a script should do. Feed it a patch:
 //
@@ -114,7 +114,7 @@ function main() {
   const all = [...merged.values()];
 
   const body = [
-    `-- Backfill: clue rewrites against the beat sheet (CLUES.md).`,
+    `-- Backfill: clue rewrites against the beat sheet.`,
     `-- ${all.length} clues across ${new Set(all.map((u) => u.slug)).size} dishes.`,
     `-- UPDATEs, not INSERTs: these rows already exist. Keyed by slug so the ids`,
     `-- this migration lands on do not have to match the seed's.`,
