@@ -67,12 +67,12 @@ app.get("/daily", async (c) => {
   const special = c.req.query("special");
   const target = await resolveTarget(c.env, date, preview, random, special);
   if ("error" in target) return c.json({ error: target.error }, 400);
-  // Preview and random rounds sit outside the numbering entirely. A playtest
+  // A random round sits outside the numbering entirely. A preview or a playtest
   // round is a dress rehearsal for the daily, so it keeps its date's real
   // number — that's what the receipt and the share grid print. (On the daily
-  // path resolveTarget has already vetted the date; on the playtest one it
-  // never looked at it, hence the check.)
-  const numbered = !preview && !random && !!date && isPlayableDate(date);
+  // path resolveTarget has already vetted the date; on the other two it never
+  // looked at it, hence the check.)
+  const numbered = !random && !!date && isPlayableDate(date);
   const info: DailyInfo = {
     date: date ?? "",
     puzzleNumber: numbered ? puzzleNumber(date) : 0,

@@ -175,7 +175,11 @@
   font-size: 0.82rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  border: none;
+  /* Transparent rather than none, so a solid button is exactly as tall as the
+     ghost variant's 2px border makes it. They stand side by side in most rows
+     on this dashboard, and 4px of difference reads as one of them sitting
+     wrong. */
+  border: 2px solid transparent;
   border-radius: var(--radius);
   padding: 9px 16px;
   background: var(--teal);
@@ -224,6 +228,23 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 14px;
+}
+
+/* The three cards on the Today tab's top row say different amounts above their
+   buttons — a countdown here, a warning there — so left alone their button rows
+   land at three different heights and read as three unrelated cards. Grid already
+   stretches them to a common height; this pins the row to that shared bottom
+   edge, so the buttons sit on one line however much text is above them. Scoped to
+   direct children: a `.btn-row` nested deeper inside a panel is part of that
+   panel's content, not its footer. */
+.dash-grid > .panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-grid > .panel > .btn-row {
+  margin-top: auto;
+  padding-top: 10px;
 }
 
 .dash-big {

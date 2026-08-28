@@ -153,6 +153,13 @@ export const shuffleSchedule = (date: string) =>
     json({ date }),
   );
 export const createPreview = (dishId: number) => request<{ token: string; url: string }>("/preview", json({ dishId }));
+/**
+ * A test-play token for whatever a player would be served on `date` — the
+ * schedule row if there is one, the fallback pick if there isn't. The dashboard
+ * asks this way so "Test play" works on an unbooked day too.
+ */
+export const createDayPreview = (date: string) =>
+  request<{ token: string; url: string }>("/preview", json({ date }));
 export const getRequests = () => request<DishRequest[]>("/requests");
 export const deleteRequest = (id: number) => request<{ ok: true }>(`/requests/${id}`, { method: "DELETE" });
 /** Every notice ever posted, newest window first, each with its reach numbers. */
