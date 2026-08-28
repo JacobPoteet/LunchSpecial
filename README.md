@@ -11,7 +11,7 @@
 
 <sub>Live engagement, straight from the diner's own [anonymous analytics](#engagement-stats). The badges read the public `/api/stats` endpoint and refresh hourly through shields.io's cache.</sub>
 
-Every day the diner runs one *Special*: a famous dish from somewhere in the world. You get 6 guesses. Each guess (any dish on the menu) reveals which ingredients it shares with the Special and how its country, course, serving temperature, and protein compare. After every miss, the kitchen slips you a clue ticket: country of origin, history, the moment that made the dish famous.
+Every day the diner runs one *Special*: a famous dish from somewhere in the world. You get 6 guesses. Each guess (any dish on the menu) reveals which ingredients it shares with the Special and how its country, course, serving temperature, and protein compare. After every miss, the kitchen slips you a clue ticket: where it's from, who made it, the one thing that could only be this dish.
 
 Once today's check is settled, **Leftovers** unlocks: a calendar of every past Special, marked with what you solved and what you missed, so you can replay a day you skipped. **Chef's Choice** deals a no-stakes round on a random dish. The receipt at the end of a round also carries a form to suggest a dish for the menu; suggestions land in an admin inbox, and a dish that reaches the menu that way gets credited on the check. A **note from the kitchen** turns up now and then: a short notice posted from the admin panel, shown once, on Today's Special only.
 
@@ -112,10 +112,10 @@ The game fires anonymous, fire-and-forget beacons to `/api/rounds/*`, **never ca
 Every round carries its **kind** (Today's Special / Leftovers / Chef's Choice), its **surface** (web / Discord), the **dish**, and a random per-device player id used only to tell new players from returning ones. Cloudflare resolves the **country** at the edge and the Worker stamps it on write; the client never sends it, and nothing stores an IP. Two ways to read the numbers back:
 
 - **Admin dashboard**: six tabs, each holding one question rather than one data source. Today (live service), Menu (what's served and how it lands), Players (funnel, retention, new-vs-returning, country), Trends (growth, weekday/hour rhythm), Experiments (before/after for logged changes), Activity (the raw beacon feed). Every tab is web/Discord filterable, and the day slice takes a calendar picker. Login required.
-- **Public totals**: `GET /api/stats` returns aggregate-only counts:
+- **Public totals**: `GET /api/stats` returns aggregate-only counts (a real response, so the values move):
 
   ```json
-  { "dishes": 351, "rounds": 745, "completed": 650, "solved": 537, "shared": 104, "avgGuesses": 3.15 }
+  { "dishes": 379, "rounds": 1049, "completed": 921, "solved": 759, "shared": 180, "avgGuesses": 3.28 }
   ```
 
   `GET /api/stats/badge?metric=rounds|solved|solveRate|shared` returns the same numbers in [shields.io's endpoint schema](https://shields.io/badges/endpoint-badge), which powers the badges at the top of this README. `GET /api/stats/breakdown` returns one consolidated, edge-cached payload (guess distribution, per-mode and per-surface splits, the device-based funnel, days-played survival curve, and the cumulative growth series) that the [project breakdown page](https://jacobpoteet.github.io/LunchSpecial/) charts live. Aggregate-only throughout; nothing exposes a per-player row.
@@ -138,7 +138,7 @@ The Activity tab also carries **This device's data**: a review of everything thi
 ## Content model
 
 - `dishes`: name, country, region (drives the yellow "close" country match), course, hot/cold, protein, JSON array of canonical ingredients, fan-submission flag
-- `clues`: 5 per dish, ordered vague → specific (region hint → origin → famous moment → key ingredient → near-giveaway)
+- `clues`: 5 per dish, ordered vague → specific (region → origin → what makes it unmistakable → key ingredient → near-giveaway)
 - `schedule`: `date (YYYY-MM-DD) → dish_id`
 - `dish_requests`: player suggestions, an inbox kept deliberately separate from the `dishes` catalog
 - `announcements` + `announcement_views`: notices and who they reached
