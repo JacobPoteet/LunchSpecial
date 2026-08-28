@@ -1,8 +1,8 @@
 // Automated accessibility pass over the player-facing game (GitHub #130).
 //
-// Everything in ACCESSIBILITY.md was found by reading source by hand, and at
-// least two of those findings — the two contrast failures — are exactly what a
-// tool reports for free. Automated checks catch roughly a third of WCAG, so
+// Every accessibility finding in this game so far was found by reading source
+// by hand, and at least two of them, the two contrast failures, are exactly what
+// a tool reports for free. Automated checks catch roughly a third of WCAG, so
 // this closes one specific gap rather than the whole problem: it stops the
 // mechanical regressions, and it costs nothing per run now that it exists.
 //
@@ -22,8 +22,8 @@
 // 3. **serious + critical only**, at least to begin with, so the check doesn't
 //    go red on the day it lands over a moderate finding nobody has triaged.
 //    Everything below that threshold is still printed, just not fatal.
-// 4. **/admin is out of scope** — a password-gated single-user back office,
-//    per ACCESSIBILITY.md. Nothing here logs in.
+// 4. **/admin is out of scope** — a password-gated single-user back office.
+//    Nothing here logs in.
 // 5. **The browser asks for reduced motion**, and that is not incidental. Axe
 //    samples the pixels that are actually painted, so a card caught mid-entrance
 //    reports the colour of a half-faded element — cherry at 60% opacity on

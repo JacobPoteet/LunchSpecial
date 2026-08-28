@@ -1265,8 +1265,8 @@
 
 /* ---- activity feed -------------------------------------------------------
    A round per row, folded into visits. Everything here is static: admin.css
-   still declares no keyframes, which is what lets ACCESSIBILITY.md say it needs
-   no reduced-motion block — a feed that repaints every 30 seconds is the last
+   still declares no keyframes, which is why it needs
+   no reduced-motion block at all — a feed that repaints every 30 seconds is the last
    place to introduce the first animation. "Just landed" is a rail that a timer
    removes, not a pulse. */
 
@@ -1965,7 +1965,7 @@
 
 /* The clue budget, live under each beat's textarea. Tabular figures so the
    number doesn't jiggle as you type, and the colour only appears once the
-   count is worth acting on — see CLUES.md section 3. */
+   count is worth acting on — see the budgets in .claude/skills/create-dishes/SKILL.md. */
 .clue-count {
   font-size: 0.74rem;
   color: var(--ink-soft);

@@ -79,7 +79,7 @@ jobs:
       - run: npm test
       - run: npm run check
 
-  # Automated accessibility pass (GitHub #130). Every finding in ACCESSIBILITY.md
+  # Automated accessibility pass (GitHub #130). Every accessibility finding so far
   # was made by reading source by hand; this catches the mechanical third of WCAG
   # that a tool does for free, and stops those particular regressions.
   #
@@ -87,7 +87,7 @@ jobs:
   # the attribute tiles and the ingredient chips don't exist on a bare page load,
   # so a scan of an empty board is a scan that passes because there is nothing on
   # it. See scripts/a11y-scan.mjs for what it visits and why. /admin is out of
-  # scope, per ACCESSIBILITY.md.
+  # scope: a password-gated single-user back office.
   a11y:
     runs-on: ubuntu-latest
     steps:

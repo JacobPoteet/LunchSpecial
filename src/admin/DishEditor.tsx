@@ -5,8 +5,10 @@ import { ClueTicket, GuessRow, Modal } from "../game/components";
 import * as api from "./api";
 
 // The five beats, and the only guidance anyone writing a clue in /admin ever
-// sees. The full beat sheet is CLUES.md; these are its headlines plus the
-// character budget, because a budget nobody can see is a budget nobody keeps —
+// sees. The full beat sheet is section 3 of .claude/skills/create-dishes/SKILL.md;
+// these are its headlines plus the character budget, which has to stay in step
+// with BEAT_BUDGET in worker/data-integrity.test.ts. A budget nobody can see is
+// a budget nobody keeps —
 // clue sets inflated 2.5x across 26 batches while this array said "broad hint".
 // [beat name, what it must do, target lo, target hi, hard max]
 const CLUE_BEATS: [string, string, number, number, number][] = [

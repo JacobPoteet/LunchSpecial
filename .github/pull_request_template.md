@@ -23,6 +23,13 @@
 <!-- `npm test` / `npm run check`, the screen or round you exercised, and
      anything you did NOT verify. Two or three lines. -->
 
+## Docs pass
+
+<!-- Both run on every PR. Tick, or say "nothing to change" — never delete. -->
+
+- [ ] **CLAUDE.md** read for anything this change made stale, and updated here
+- [ ] **Wiki** note updated (before opening this PR, since it lives outside the repo)
+
 <!-- If this PR touches any of these, move that line out of this comment and tick
      it. Otherwise leave the whole block commented — none of them fail loudly:
 - [ ] spoilers — target dish reaching the client outside `/reveal`, or a free-play path reading `schedule`
