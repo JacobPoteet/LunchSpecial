@@ -131,8 +131,8 @@ function HowToModal({ onClose }: { onClose: () => void }) {
           </span>
         </div>
         <p>
-          After each wrong order, the kitchen slips you a <strong>clue ticket</strong> - country of origin, history, the
-          moment that made the dish famous. Five clues in total. Good luck, hon.
+          After each wrong order, the kitchen slips you a <strong>clue ticket</strong> - where it's from, who made it,
+          the one thing that could only be this dish. Five clues in total. Good luck, hon.
         </p>
         <p>
           Once you've settled today's check, hit <strong>Menu archive</strong> to replay any Special you missed, or
