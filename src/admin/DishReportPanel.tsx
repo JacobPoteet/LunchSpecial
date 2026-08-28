@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { DishReport, DishReportRow } from "../../shared/types";
 import { rate, separated } from "../../shared/sample";
 import * as api from "./api";
@@ -91,10 +91,34 @@ function MiniDist({ dist, fails }: { dist: number[]; fails: number }) {
   );
 }
 
-export default function DishReportPanel({ surface }: { surface: SurfaceFilter }) {
+export default function DishReportPanel({
+  surface,
+  focusDish,
+  onFocused,
+}: {
+  surface: SurfaceFilter;
+  /**
+   * A dish to scroll to and mark, handed over by the Activity feed — clicking a
+   * dish in the log lands on its record here rather than on a search box. The
+   * mark is cleared once shown, so clicking the same dish again re-marks it.
+   */
+  focusDish?: number | null;
+  onFocused?: () => void;
+}) {
   const [report, setReport] = useState<DishReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("hardest");
+  const focusRow = useRef<HTMLTableRowElement | null>(null);
+  const [marked, setMarked] = useState<number | null>(null);
+
+  // Scroll only once the rows exist — the panel fetches its own report, so the
+  // tab switch that set `focusDish` almost always beats the data.
+  useEffect(() => {
+    if (focusDish == null || !report) return;
+    setMarked(focusDish);
+    focusRow.current?.scrollIntoView({ block: "center" });
+    onFocused?.();
+  }, [focusDish, report, onFocused]);
 
   useEffect(() => {
     let live = true;
@@ -185,7 +209,13 @@ export default function DishReportPanel({ surface }: { surface: SurfaceFilter })
               // it is rather than letting the totals imply.
               const replays = d.byKind.leftover + d.byKind.random;
               return (
-                <tr key={d.dishId} className={thin ? "dish-table__row--thin" : undefined}>
+                <tr
+                  key={d.dishId}
+                  ref={d.dishId === focusDish ? focusRow : undefined}
+                  className={[thin ? "dish-table__row--thin" : "", d.dishId === marked ? "dish-table__row--marked" : ""]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
                   <td>
                     <span className="ev-when">{d.name}</span>
                     <span className="ev-sub">

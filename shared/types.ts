@@ -1101,39 +1101,153 @@ export interface AnalyticsPace {
 /** How many earlier active days the pace baseline averages over. */
 export const PACE_LOOKBACK_DAYS = 7;
 
-/** The three things a round can report, in the order they happen. */
+/**
+ * The three beacons a round can fire, in the order they happen. They are no
+ * longer the feed's rows — a round is (see {@link ActivityRound}) — but they
+ * remain the names of the three pips its arc lights up.
+ */
 export const ANALYTICS_EVENT_TYPES = ["start", "complete", "share"] as const;
 export type AnalyticsEventType = (typeof ANALYTICS_EVENT_TYPES)[number];
 
 /**
- * One entry in the admin's recent-activity feed — a single beacon a round fired,
- * derived from the analytics_rounds row (see migrations/0011). Still anonymous:
- * no guess content, and `playerId` is a random per-device id, not an account.
+ * One round in the admin's activity feed — the whole arc of a single game, not
+ * one beacon of it.
+ *
+ * The feed used to send events: `analytics_rounds` is one row per round, and the
+ * route un-flattened each into up to three rows with a UNION so the UI could be
+ * a chronological log. That made the reader re-assemble every game by eye, and
+ * cost three real things — the page boundary cut a round's trio in half (you
+ * could get a share whose start had fallen off the bottom), "started 40 seconds
+ * ago" and "started on Tuesday and never came back" rendered identically, and
+ * the two timestamps that give a round its duration were never in the same row.
+ * A round is the unit every question about this feed is actually asked in, so
+ * it's the unit that ships; the beacons are still there, one expand away.
+ *
+ * Still anonymous: no guess content, and `playerId` is a random per-device id.
  */
-export interface AnalyticsEvent {
-  type: AnalyticsEventType;
-  /** When it happened, as an ISO-8601 UTC instant ("2026-07-20T14:32:07Z"). */
-  at: string;
-  /** The round this belongs to — a start/complete/share trio shares one id. */
+export interface ActivityRound {
+  /** The client-generated round id — unique per puzzle per device. */
   roundId: string;
   puzzleNumber: number;
-  /** The puzzle's date (YYYY-MM-DD) — not necessarily the day it was played. */
+  /** The **puzzle's** date (YYYY-MM-DD) — not necessarily the day it was played. */
   date: string;
+  /**
+   * The ET day the round was *played* on, stamped server-side. This is what it
+   * groups by, and it differs from `date` for every Leftover: replaying July's
+   * puzzle in August is August's visit.
+   */
+  playedDay: string;
   kind: RoundKind;
   surface: Surface;
-  /** Anonymous per-device id, or null for rounds from clients that omit it. */
+  /**
+   * Anonymous per-device id, or null. Null is commoner than it looks: only the
+   * `/start` beacon binds it, so a round whose start was blocked or lost has no
+   * device and can never be grouped into a visit.
+   */
   playerId: string | null;
-  /** Scheduled dish for `date`; null for random rounds (they ignore the schedule). */
+  /** ISO 3166-1 alpha-2 from the edge (migrations/0018); null on pre-0018 rounds. */
+  country: string | null;
+  dishId: number | null;
+  /** The dish played, from `dish_id`, falling back to the schedule for pre-0012 rows. */
   dishName: string | null;
-  /** Guesses used — `complete` events only. */
+  /** When the first guess landed, as an ISO-8601 UTC instant ("2026-07-20T14:32:07Z"). */
+  startedAt: string;
+  /** Reached game over. True even when `completedAt` is null (pre-0011 rows). */
+  completed: boolean;
+  /**
+   * When it reached game over — **null when it never did, and also null on rows
+   * written before migrations/0011**, which recorded the fact and not the time.
+   * Never back-filled from `updatedAt`: a fabricated stamp would silently invent
+   * a duration, and this feed's whole new read is how long a round took.
+   */
+  completedAt: string | null;
+  shared: boolean;
+  /** Same rule as `completedAt` — the fact can be true while the time is unknown. */
+  sharedAt: string | null;
+  /** Guesses used, when it finished. */
   guesses: number | null;
-  /** Whether the round was won — `complete` events only. */
+  /** Whether it was won, when it finished. */
   solved: boolean | null;
+  /**
+   * The most recent thing that happened to this round, falling back through
+   * `shared_at` → `completed_at` → `updated_at` → `started_at`. The feed sorts on
+   * it, so a round that gets shared an hour later comes back to the top with its
+   * share pip newly lit — which is what keeps a feed of rounds a live log.
+   */
+  lastAt: string;
 }
 
-/** How many events the admin feed asks for at a time, and its server-side cap. */
-export const ANALYTICS_EVENTS_PAGE = 50;
-export const ANALYTICS_EVENTS_MAX = 200;
+/**
+ * One arrival: a device that opened a board on an ET day, whether or not it ever
+ * guessed (migrations/0020).
+ *
+ * These have never appeared in the feed, which is the gap that made a bounce
+ * invisible everywhere except as a funnel percentage — a morning of opening the
+ * game and never playing writes one of these and nothing else. In the feed a
+ * visit is the *group header*, so the two tables meet instead of running as two
+ * logs side by side.
+ */
+export interface ActivityVisit {
+  /** ET day, stamped server-side — the same day the rounds group by. */
+  day: string;
+  playerId: string;
+  surface: Surface;
+  country: string | null;
+  /** Normalised `utm_source`, or null on visits recorded before migrations/0024. */
+  source: string | null;
+  /** ISO-8601 UTC instant the device first showed up that day. */
+  firstSeenAt: string;
+}
+
+/**
+ * What one device actually did on one ET day, across the *whole* day rather than
+ * the page in front of you.
+ *
+ * A group header that counted only what it could see would say "3 rounds" of a
+ * device that played nine, which is the same class of lie as reporting an
+ * unmeasured visit count as zero. With these the header can say "3 of 9", and
+ * the two numbers mean different things on purpose.
+ */
+export interface ActivityDayTotal {
+  day: string;
+  playerId: string;
+  rounds: number;
+  solved: number;
+  shared: number;
+}
+
+/**
+ * One page of the activity feed: rounds, the arrivals they sit under, and the
+ * day totals that keep a group header honest about what it can't see.
+ *
+ * The visits are those from `since` onward, where `since` is the oldest round on
+ * the page — so the window is coherent and stateable rather than two unrelated
+ * "most recent N" lists that happen to be rendered together.
+ */
+export interface ActivityFeed {
+  rounds: ActivityRound[];
+  visits: ActivityVisit[];
+  dayTotals: ActivityDayTotal[];
+  /** ISO-8601 UTC instant of the oldest round on this page, or null when empty. */
+  since: string | null;
+  /** More rounds exist below this page. */
+  hasMore: boolean;
+  /** ET days with any recorded activity — rounds *or* arrivals — oldest first. */
+  activeDays: string[];
+  /** Today in game time, so the day picker knows where "today" is. */
+  today: string;
+}
+
+/**
+ * How many **rounds** the feed asks for at a time, and its server-side cap.
+ *
+ * The unit changed with the payload and the names went with it: the old
+ * ANALYTICS_EVENTS_PAGE counted beacons, so "50" was somewhere between 17 and 50
+ * games depending on how many got finished and shared, and the UNION's LIMIT
+ * could cut a round's own trio across the boundary. 50 rounds is 50 rounds.
+ */
+export const ACTIVITY_PAGE = 50;
+export const ACTIVITY_MAX = 200;
 
 /**
  * Everything one anonymous device has written into the analytics tables — the

@@ -64,6 +64,22 @@ export function gameTimestamp(instant: Date): string {
   return `${zoneDay.format(instant)} ${wallClock.format(instant)}`;
 }
 
+const zoneClock = new Intl.DateTimeFormat("en-GB", {
+  timeZone: GAME_TIMEZONE,
+  hourCycle: "h23",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+/**
+ * An instant as an hours:minutes wall clock in GAME_TIMEZONE — "17:58". The
+ * activity feed's visit headers use it for a span ("17:58 → 23:41"), where
+ * {@link gameTimestamp}'s date and seconds would be noise on both ends.
+ */
+export function gameClock(instant: Date): string {
+  return zoneClock.format(instant);
+}
+
 /** Break a millisecond span into zero-padded hh/mm/ss strings for a countdown. */
 export function hms(ms: number): { h: string; m: string; s: string } {
   const clamped = Math.max(0, ms);

@@ -1242,6 +1242,221 @@
   vertical-align: middle;
 }
 
+/* ---- activity feed -------------------------------------------------------
+   A round per row, folded into visits. Everything here is static: admin.css
+   still declares no keyframes, which is what lets ACCESSIBILITY.md say it needs
+   no reduced-motion block — a feed that repaints every 30 seconds is the last
+   place to introduce the first animation. "Just landed" is a rail that a timer
+   removes, not a pulse. */
+
+/* Each round is its own <tbody> so an expanded row can add a second <tr>. That
+   makes `.day-table tr:last-child` match the last row of *every* tbody, which
+   would strip the separator off every collapsed round — restate it here. */
+.act-table tbody td { border-bottom: 1px dashed var(--paper-edge); }
+.act-table tbody:last-child tr:last-child td { border-bottom: none; }
+
+.act-when {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.act-when:hover .ev-when { text-decoration: underline; }
+
+.act-caret {
+  width: 0.8em;
+  flex: none;
+  color: var(--ink-soft);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+/* The three beacons as pips: lit = it happened. The Result column beside them
+   says the same thing in words, so nothing rides on the colour alone. */
+.arc { display: inline-flex; gap: 4px; align-items: center; }
+
+.arc__pip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.arc__pip--start { background: var(--teal); }
+.arc__pip--complete { background: var(--cherry); }
+.arc__pip--share { background: var(--mustard); }
+/* Hollow, not absent: the shape of the arc is what you skim, so an unfired
+   beacon has to hold its place in the row. */
+.arc__pip--off {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--paper-edge);
+}
+
+.act-state { font-weight: 700; }
+.act-state--solved { color: var(--teal); }
+.act-state--lost { color: var(--cherry-dark); }
+.act-state--abandoned { color: var(--ink-soft); }
+.act-state--in-progress { color: var(--mustard-ink); }
+
+/* Rows whose newest beacon arrived since you last looked. Mustard rail, cleared
+   on a timer — see the note at the top of this block. */
+.act-row--fresh td:first-child { box-shadow: inset 3px 0 0 var(--mustard); }
+
+/* Spotlight: following one device dims everything that isn't it. Activated, not
+   a colour code — hue on this dashboard already means game kind, event type and
+   rank, and a per-device palette would collide with all three. */
+.act-row--dim { opacity: 0.35; }
+.act-row--lit td { background: rgba(27, 79, 74, 0.06); }
+
+.act-row--nested td:first-child { padding-left: 22px; }
+
+.act-device {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.act-device:hover .ev-player { text-decoration: underline; }
+.act-device--lit .ev-player { color: var(--teal); font-weight: 700; }
+
+.act-spotlight {
+  margin: 10px 0 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--teal);
+  background: rgba(27, 79, 74, 0.06);
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+.act-detail td {
+  background: rgba(230, 217, 184, 0.25);
+  white-space: normal;
+}
+.act-beacons { margin: 6px 0; padding-left: 0; list-style: none; }
+.act-beacons li { padding: 2px 0; font-size: 0.8rem; }
+.act-beacons .ev-sub { display: inline; margin-left: 6px; }
+
+/* ---- visit headers ---- */
+
+.act-group td {
+  border-bottom: 1px solid var(--paper-edge);
+  padding: 0;
+  background: rgba(27, 79, 74, 0.05);
+}
+/* An arrival that never played — the funnel's bounce, which existed only as a
+   percentage before this feed learned to show visits at all. */
+.act-group--bounced td { background: rgba(232, 165, 58, 0.12); }
+
+.act-group__toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 8px;
+  background: none;
+  border: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.act-group__toggle:disabled { cursor: default; }
+
+.act-group__who { font-weight: 700; }
+.act-group__who--lit .ev-player { color: var(--teal); }
+
+.act-group__meta,
+.act-group__tally {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+.act-group__tally { margin-left: auto; }
+.act-group__note { font-style: italic; }
+
+/* ---- filter chips ---- */
+
+.act-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0 4px;
+}
+
+/* Rows on a fixed label column, not an auto-fit grid: the two facets hold four
+   chips each, and a grid makes every row as tall as its tallest cell. */
+.act-filters__row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.act-filters__label {
+  flex: none;
+  width: 62px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.act-filters__chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.act-filters__clear { font-size: 0.75rem; margin-left: 4px; }
+
+.act-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border: 1px solid var(--paper-edge);
+  border-radius: 999px;
+  background: var(--paper);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+.act-chip:hover { border-color: var(--teal); }
+.act-chip--on {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: var(--cream);
+}
+/* Dimmed, never disabled: a zero is a fact about the page in front of you. */
+.act-chip--empty { opacity: 0.45; }
+
+.act-chip__n {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+}
+.act-chip--on .act-chip__n { color: var(--cream); }
+
+/* Live mode's on-state, reusing the ghost button rather than a new variant. */
+.btn--on {
+  background: var(--teal);
+  color: var(--cream);
+}
+.btn--on:hover { background: var(--teal-dark); }
+
+/* The dish report row the activity feed jumped to. */
+.dish-table__row--marked td { box-shadow: inset 0 0 0 2px var(--mustard); }
+
+@media (max-width: 560px) {
+  /* The label column costs more than it gives once the chips wrap anyway. */
+  .act-filters__row { flex-direction: column; gap: 4px; }
+  .act-filters__label { width: auto; }
+  .act-group__tally { margin-left: 0; }
+}
+
 /* menu mix — what has actually been on the menu (region / course / protein /
    temperature ratios). Every bar is one hue on purpose: these are *nominal*
    categories, so bar length already carries the value; spending nine hues on

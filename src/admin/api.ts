@@ -6,7 +6,7 @@ import type {
   AdminDishDetail,
   AdminDishInput,
   AdminDishRow,
-  AnalyticsEvent,
+  ActivityFeed,
   AnalyticsSummary,
   AnnouncementInput,
   DeviceDataDeleted,
@@ -68,22 +68,35 @@ export const getAnalytics = (surface?: Surface, date?: string) => {
   return request<AnalyticsSummary>(`/analytics${qs ? `?${qs}` : ""}`);
 };
 /**
- * Recent activity feed, newest first. Same optional surface filter as above,
- * plus an optional "mine" filter that keeps or drops one player id (this
- * device's own test rounds) — applied server-side so `limit` counts the rows
- * that actually come back.
- * Path is "/recent-rounds", not "/analytics/events" — see the route comment in
- * worker/routes/admin.ts: ad blockers block the latter shape outright.
+ * One page of the activity feed: rounds (not beacons — see the route comment in
+ * worker/routes/admin.ts), the arrivals they sit under, and the per-device-day
+ * totals that keep a group header honest about what it can't see.
+ *
+ * `limit` counts **rounds**, which is the point of the rename: the old
+ * events endpoint returned somewhere between a third and all of `limit` games
+ * depending on how many got finished and shared.
+ *
+ * `date` pins the feed to one ET day; omit it for "most recent". `mine` keeps or
+ * drops one player id (this device's own test rounds), server-side.
+ *
+ * Path is "/recent-rounds", not "/analytics/events" — ad blockers block the
+ * latter shape outright.
  */
-export const getAnalyticsEvents = (
-  surface: Surface | undefined,
-  limit: number,
-  mine?: { playerId: string; mode: "only" | "hide" },
-) =>
-  request<AnalyticsEvent[]>(
-    `/recent-rounds?limit=${limit}${surface ? `&surface=${surface}` : ""}` +
-      (mine ? `&player=${encodeURIComponent(mine.playerId)}&playerMode=${mine.mode}` : ""),
-  );
+export const getActivity = (opts: {
+  surface?: Surface;
+  limit: number;
+  date?: string | null;
+  mine?: { playerId: string; mode: "only" | "hide" };
+}) => {
+  const q = new URLSearchParams({ limit: String(opts.limit) });
+  if (opts.surface) q.set("surface", opts.surface);
+  if (opts.date) q.set("date", opts.date);
+  if (opts.mine) {
+    q.set("player", opts.mine.playerId);
+    q.set("playerMode", opts.mine.mode);
+  }
+  return request<ActivityFeed>(`/recent-rounds?${q}`);
+};
 /**
  * What this browser's own anonymous device id has written into the analytics
  * tables — the review step before {@link deleteDeviceData}. Same "who is me" as
