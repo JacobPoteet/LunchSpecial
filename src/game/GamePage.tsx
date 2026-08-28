@@ -32,7 +32,7 @@ import { buildPresence } from "../../shared/presence";
 import { buildScorecard } from "../../shared/scorecard";
 import { playGuessArc, playSfx, setupAudio } from "../audio";
 import { SoundToggle } from "./SoundToggle";
-import { buildShareText, copyShareText, SHARE_URL } from "./share";
+import { buildShareText, canUseNativeShare, copyShareText, shareMessage } from "./share";
 import {
   emptyRound,
   getPlayerId,
@@ -374,30 +374,34 @@ function KitchenClosed({ detail, onRetry }: { detail: string | null; onRetry: ()
   );
 }
 
-type ShareState = "idle" | "working" | "shared" | "copied" | "failed";
+type ShareState = "idle" | "working" | "channel" | "sent" | "copied" | "failed";
 
 /**
  * What the share button says.
  *
- * The idle label doesn't name a destination inside Discord, because which path
- * runs is only settled at click time: posting to the channel rides on the
- * authorization presence takes, and a player who declined that gets the
- * clipboard. A button that promised "Share to channel" and then quietly copied
- * would be lying about where the round went — so the button offers to share and
- * the *result* says where it ended up.
+ * The idle label never names a destination, and that rule now holds on every
+ * surface rather than only inside Discord, because which path runs is only
+ * settled at click time everywhere. In the Activity, posting to the channel
+ * rides on the authorization presence takes and a player who declined it gets
+ * the clipboard; on the web, a phone gets the native share sheet and a desktop
+ * gets the clipboard — see canUseNativeShare(). A button that promised one and
+ * then quietly did the other would be lying about where the round went, so the
+ * button offers to share and the *result* says where it ended up.
  */
 function shareLabel(state: ShareState, surface: Surface): string {
   switch (state) {
     case "working":
       return "Plating up…";
-    case "shared":
+    case "channel":
       return "Sent to the channel!";
+    case "sent":
+      return "Shared!";
     case "copied":
       return surface === "discord" ? "Copied — paste it in chat!" : "Copied!";
     case "failed":
       return "Tap to retry";
     default:
-      return surface === "discord" ? "📤 Share" : "📋 Share";
+      return "📤 Share";
   }
 }
 
@@ -439,7 +443,7 @@ function ResultModal({
   const won = round.status === "won";
   const share = async () => {
     setShareState("idle");
-    const text = buildShareText(daily.puzzleNumber, round.guesses, won, daily.ingredientCount);
+    const message = shareMessage(buildShareText(daily.puzzleNumber, round.guesses, won, daily.ingredientCount));
     // The daily and leftover replays both carry an analytics id; the test modes
     // (preview, playtest) never get one, so their share stays untracked.
     if (round.analyticsId) {
@@ -455,19 +459,23 @@ function ResultModal({
         setShareState("working");
         const card = buildScorecard(daily.puzzleNumber, round.guesses, won, daily.ingredientCount);
         if (await shareToChannel(card)) {
-          setShareState("shared");
+          setShareState("channel");
           return;
         }
       }
-      setShareState((await copyShareText(`${text}\n${SHARE_URL}`)) ? "copied" : "failed");
+      setShareState((await copyShareText(message)) ? "copied" : "failed");
       return;
     }
-    // On mobile (and any browser with the Web Share API) bring up the native
-    // share sheet so results can go straight to other apps. Fall back to the
-    // clipboard when it's unavailable.
-    if (typeof navigator.share === "function") {
+    // On a phone or tablet, raise the native share sheet so the result can go
+    // straight to a messaging app. Everywhere else — including the desktop
+    // browsers that *have* `navigator.share` — the clipboard is the answer; see
+    // canUseNativeShare(). The whole message travels in one field, never split
+    // across `text` and `url`, because a target that reads only one of them
+    // drops the grid and posts a bare link.
+    if (canUseNativeShare(message)) {
       try {
-        await navigator.share({ text, url: SHARE_URL });
+        await navigator.share({ text: message });
+        setShareState("sent");
         return;
       } catch (err) {
         // User dismissed the share sheet — leave the button as-is, don't copy.
@@ -475,7 +483,7 @@ function ResultModal({
         // Any other failure: fall through to the clipboard path below.
       }
     }
-    setShareState((await copyShareText(`${text}\n${SHARE_URL}`)) ? "copied" : "failed");
+    setShareState((await copyShareText(message)) ? "copied" : "failed");
   };
   // Clue 5 is the near-giveaway — everything about the dish but its name — so it
   // doubles as a one-line definition under the answer. The collapsed story below
@@ -489,7 +497,7 @@ function ResultModal({
   // in-flight, and a dismissed native share sheet returns to idle — correctly
   // silent, since nothing was shared.
   useEffect(() => {
-    if (shareState === "shared" || shareState === "copied") playSfx("share-success");
+    if (shareState === "channel" || shareState === "sent" || shareState === "copied") playSfx("share-success");
     else if (shareState === "failed") playSfx("error");
   }, [shareState]);
   // Actions live in the card's pinned footer so they stay on screen no matter
