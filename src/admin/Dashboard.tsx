@@ -103,6 +103,11 @@ export default function Dashboard({
   const [surface, setSurface] = useState<SurfaceFilter>("all");
   const [date, setDate] = useState<string | null>(null);
 
+  // Set by the Activity feed clicking a dish name: switch to Menu and highlight
+  // that row in the dish report. Cleared by the report once it has scrolled to
+  // it, so re-clicking the same dish highlights it again.
+  const [focusDish, setFocusDish] = useState<number | null>(null);
+
   const [report, setReport] = useState<ExperimentReport | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
   const [reportReloads, setReportReloads] = useState(0);
@@ -192,7 +197,7 @@ export default function Dashboard({
           and the composition below is the context it came from. */}
       {tab === "menu" && (
         <>
-          <DishReportPanel surface={surface} />
+          <DishReportPanel surface={surface} focusDish={focusDish} onFocused={() => setFocusDish(null)} />
           <MenuMixPanel onOpenDishes={onOpenDishes} />
         </>
       )}
@@ -220,7 +225,15 @@ export default function Dashboard({
           onChanged={() => setReportReloads((n) => n + 1)}
         />
       )}
-      {tab === "activity" && <ActivityPanel surface={surface} />}
+      {tab === "activity" && (
+        <ActivityPanel
+          surface={surface}
+          onOpenDishReport={(id) => {
+            setFocusDish(id);
+            setTab("menu");
+          }}
+        />
+      )}
     </>
   );
 }
