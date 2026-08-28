@@ -172,6 +172,8 @@ worker/discordsig.ts  Ed25519 check that an interaction came from Discord (raw b
 worker/avatar.ts      Discord avatar url + display name (default faces, animated hashes)
 worker/data-integrity.test.ts   the clue linter. Enforces the beat sheet's mechanizable half. Fails in CI
 
+shared/clues.ts       the five beats, their names, jobs, character budgets and sentence caps —
+                      one copy, imported by the linter and by the admin editor's live counter
 shared/markdown.ts    inline-markdown tokenizer for announcements (bold/italic/link → tokens, never HTML)
 shared/audio.ts       sound registry + mix + the guess-arc timing table + AUDIO_DEFAULTS per surface
 shared/presence.ts    Discord Rich Presence copy. Never the dish

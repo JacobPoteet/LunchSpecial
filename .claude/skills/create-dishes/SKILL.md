@@ -240,9 +240,11 @@ picture of the plate, which costs about 90 characters: the first seven dishes wr
 spec all landed at 89–100. Beat 4 names three or four ingredients *and* a technique, and 16 of the
 first 78 rewrites landed at 116–120 with none of them reading long.
 
-These numbers live in two other places and all three have to move together: `BEAT_BUDGET` in
-`worker/data-integrity.test.ts` (the gate) and `CLUE_BEATS` in `src/admin/DishEditor.tsx` (the
-live counter under each textarea in `/admin`).
+**The table above is prose. The numbers themselves live once, in `shared/clues.ts`**, which both
+`worker/data-integrity.test.ts` (the gate that fails CI) and `src/admin/DishEditor.tsx` (the live
+counter under each textarea in `/admin`) import. Re-tune a band there and both move together. If
+you change a number, change it here too, since a beat sheet that disagrees with the gate is worse
+than one with no numbers in it.
 
 ### 3.4 Hard rules
 

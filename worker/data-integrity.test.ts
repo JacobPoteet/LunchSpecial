@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import { describe, expect, it } from "vitest";
+import { clueBeat } from "../shared/clues";
 
 // Applies every migration + the seed catalog to a real (in-memory) SQLite
 // database so the schema's own CHECK/UNIQUE constraints do the enforcing —
@@ -126,23 +127,15 @@ describe("catalog data integrity", () => {
 // ---------------------------------------------------------------------------
 // The beat sheet's hard rules (.claude/skills/create-dishes/SKILL.md section 3.4).
 //
-// Checks every dish. This started as an opt-in MIGRATED set, so the backfill
-// could turn the gate on one dish at a time instead of shipping a test with
-// ~374 exemptions; the set is gone now that all 381 pass, which is what
-// the beat sheet says to do when the backfill lands.
+// Checks every dish in the catalogue, with no exemption list. The gate was
+// opt-in while the backfill ran, so it could be turned on a dish at a time
+// rather than shipping a test that excused ~374 of them; every dish passes
+// now, so the opt-in is gone.
 // ---------------------------------------------------------------------------
 
-/** [target lo, target hi, hard max]. Only the hard max fails. */
-const BEAT_BUDGET: Record<number, [number, number, number]> = {
-  1: [35, 70, 85],
-  2: [60, 110, 130],
-  3: [55, 105, 120],
-  4: [60, 120, 130],
-  5: [45, 100, 115],
-};
-
-/** Beats 1, 4 and 5 are one sentence. 2 and 3 may take two. */
-const MAX_SENTENCES: Record<number, number> = { 1: 1, 2: 2, 3: 2, 4: 1, 5: 2 };
+// The budgets and sentence counts come from shared/clues.ts, which is also
+// what draws the live counter in /admin. They used to be declared here and
+// again there, with nothing checking they agreed.
 
 const BANNED_OPENER =
   /^(it is the|it's the|it is now|it's now|it remains|it has become|this dish|known as|considered)\b/i;
@@ -371,9 +364,9 @@ function lintClue(row: ClueRow, freq: Map<string, number>): { errors: string[]; 
   const warnings: string[] = [];
   const folded = fold(text);
 
-  const budget = BEAT_BUDGET[beat];
+  const budget = clueBeat(beat);
   if (budget) {
-    const [lo, hi, max] = budget;
+    const { lo, hi, max } = budget;
     if (text.length > max) problems.push(`${text.length} chars, over the ${max} ceiling`);
     else if (text.length < lo || text.length > hi) {
       warnings.push(`${text.length} chars, outside the ${lo}-${hi} target`);
@@ -381,8 +374,9 @@ function lintClue(row: ClueRow, freq: Map<string, number>): { errors: string[]; 
   }
 
   const sentences = (text.match(/[.!?](\s|$)/g) ?? []).length;
-  if (sentences > (MAX_SENTENCES[beat] ?? 2)) {
-    problems.push(`${sentences} sentences, beat ${beat} allows ${MAX_SENTENCES[beat]}`);
+  const maxSentences = budget?.maxSentences ?? 2;
+  if (sentences > maxSentences) {
+    problems.push(`${sentences} sentences, beat ${beat} allows ${maxSentences}`);
   }
 
   if (text.includes("—")) problems.push("em dash");

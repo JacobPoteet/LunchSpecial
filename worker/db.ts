@@ -1,6 +1,5 @@
 import type { Course, Dish, Protein, Region, Temperature } from "../shared/types";
 import { gameToday } from "../shared/time";
-import type { DishRecord } from "./game";
 import { fnv1a } from "./game";
 
 export interface DishDbRow {
@@ -81,10 +80,6 @@ export async function getTargetDish(db: D1Database, date: string): Promise<Dish 
  */
 export async function getSeededDish(db: D1Database, seed: string): Promise<Dish | null> {
   return pickActiveDish(db, seed);
-}
-
-export function toRecord(dish: Dish): DishRecord {
-  return dish;
 }
 
 export async function getClues(db: D1Database, dishId: number): Promise<string[]> {
