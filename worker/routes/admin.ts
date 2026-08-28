@@ -69,7 +69,7 @@ import {
   SESSION_TTL_MS,
   verifyToken,
 } from "../auth";
-import { rowToDish, serverToday, type DishDbRow } from "../db";
+import { getTargetDish, rowToDish, serverToday, type DishDbRow } from "../db";
 import { isValidDateString } from "../game";
 import {
   etDayOfHourBucket,
@@ -475,16 +475,38 @@ app.post("/schedule/shuffle", async (c) => {
   return c.json({ date: body.date, dishId: pick.id, dishName: pick.name, remaining: pool.length });
 });
 
+/**
+ * A token for an untracked test play (`/?preview=…`, 24h).
+ *
+ * Two ways to ask. `dishId` names a dish outright — the dish editor and the
+ * schedule rows, which are both already looking at one. `date` asks the other
+ * question: what would a player be served that day? That resolves through
+ * `getTargetDish`, so it follows the schedule row when there is one and the
+ * deterministic fallback pick when there isn't — which is the case the
+ * dashboard's "Test play" would otherwise have to refuse, on exactly the day
+ * you'd most want to see what players are getting.
+ *
+ * Either way the token is minted against a dish id, so nothing downstream
+ * changes: the round is the dish, not the date.
+ */
 app.post("/preview", async (c) => {
-  let body: { dishId?: number };
+  let body: { dishId?: number; date?: string };
   try {
     body = await c.req.json();
   } catch {
     return c.json({ error: "Invalid JSON body" }, 400);
   }
-  const dish = await c.env.DB.prepare("SELECT id FROM dishes WHERE id = ?").bind(Number(body.dishId)).first();
-  if (!dish) return c.json({ error: "Dish not found" }, 404);
-  const token = await createToken(`preview:${body.dishId}`, PREVIEW_TTL_MS, c.env.SESSION_SECRET);
+  let dishId: number | null = null;
+  if (typeof body.date === "string") {
+    const target = await getTargetDish(c.env.DB, body.date);
+    dishId = target?.id ?? null;
+    if (dishId === null) return c.json({ error: "No dish available for that day" }, 404);
+  } else {
+    const dish = await c.env.DB.prepare("SELECT id FROM dishes WHERE id = ?").bind(Number(body.dishId)).first();
+    if (!dish) return c.json({ error: "Dish not found" }, 404);
+    dishId = Number(body.dishId);
+  }
+  const token = await createToken(`preview:${dishId}`, PREVIEW_TTL_MS, c.env.SESSION_SECRET);
   return c.json({ token, url: `/?preview=${encodeURIComponent(token)}` });
 });
 

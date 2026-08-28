@@ -282,6 +282,84 @@ function AtAGlance({
 }
 
 /**
+ * What players are being served right now, and the one place to go and be one
+ * of them. Test play opens today's actual Special on a 24-hour preview token
+ * (`/?preview=…`), which is the game's existing dress-rehearsal door: the board
+ * is the real one, and the round is dressed as the daily all the way through the
+ * check — countdown, share button, stats panel — so the parts worth trying
+ * before players reach them can actually be reached.
+ *
+ * Nothing it does is recorded. A preview round is untracked at the source
+ * (`tracked` in GamePage): no arrival, no start, no completion, no share beacon,
+ * so it can't reach the Activity feed or any figure on this dashboard, and it
+ * writes neither localStorage nor lifetime stats. That's why this is a preview
+ * token rather than a link to `/` — playing today's Special from the dashboard
+ * for real would put the person reading these numbers into them.
+ *
+ * The token is minted from the *date*, not from `today.dishId`, so it resolves
+ * the same way the game does — schedule row if there is one, deterministic
+ * fallback pick if there isn't. That's why the button is still there on an
+ * unbooked day: "what are players actually getting right now" is the question
+ * that day raises, and a card that could only answer it when it was already
+ * answered would be silent exactly when it mattered.
+ */
+function TodaysSpecial({
+  today,
+  onOpenDish,
+}: {
+  today: DashboardSpecial;
+  onOpenDish: (id: number | null) => void;
+}) {
+  const [error, setError] = useState<string | null>(null);
+
+  const testPlay = async () => {
+    setError(null);
+    try {
+      const { url } = await api.createDayPreview(today.date);
+      window.open(url, "_blank", "noopener");
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  const testPlayBtn = (
+    <button className="btn btn--ghost" onClick={() => void testPlay()}>
+      Test play ▶
+    </button>
+  );
+
+  return (
+    <section className="panel">
+      <h2>Today's Special</h2>
+      {today.dishName ? (
+        <>
+          <p className="dash-big">{today.dishName}</p>
+          <p className="dash-note">Serving on {today.date}</p>
+          <SwitchCountdown />
+          <div className="btn-row">
+            <button className="btn btn--ghost" onClick={() => onOpenDish(today.dishId)}>
+              Edit dish
+            </button>
+            {testPlayBtn}
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="dash-big">Nothing scheduled!</p>
+          <p className="dash-note">
+            Players will get an automatic fallback dish today. Assign one in the schedule — or test play to
+            see which one they're getting.
+          </p>
+          <SwitchCountdown />
+          <div className="btn-row">{testPlayBtn}</div>
+        </>
+      )}
+      {error && <p className="form-error">{error}</p>}
+    </section>
+  );
+}
+
+/**
  * Tomorrow's booking. An empty day isn't fatal — the game falls back to a
  * deterministic pick and never 404s — but it's the one gap you'd want to fill
  * before it becomes today, so it warns.
@@ -339,6 +417,18 @@ function TomorrowsSpecial({
     </button>
   );
 
+  // What the last roll did, sitting *above* the buttons rather than under them:
+  // the three cards in this row pin their button rows to a shared bottom edge,
+  // and a note printed after the row would push this one's buttons up out of
+  // line every time you shuffled.
+  const roll = shuffleError ? (
+    <p className="form-error">{shuffleError}</p>
+  ) : remaining !== null ? (
+    <p className="dash-note">
+      Rolled from {remaining} dish{remaining === 1 ? "" : "es"} that have never been the Special.
+    </p>
+  ) : null;
+
   return (
     <section className={tomorrow.dishName ? "panel" : "panel panel--warn"}>
       <h2>Tomorrow's Special</h2>
@@ -346,7 +436,8 @@ function TomorrowsSpecial({
         <>
           <p className="dash-big">{tomorrow.dishName}</p>
           <p className="dash-note">Serving on {tomorrow.date}</p>
-          <div className="btn-row" style={{ marginTop: 10 }}>
+          {roll}
+          <div className="btn-row">
             <button className="btn btn--ghost" onClick={() => onOpenDish(tomorrow.dishId)}>
               Edit dish
             </button>
@@ -359,19 +450,14 @@ function TomorrowsSpecial({
           <p className="dash-note">
             {tomorrow.date} would run on the automatic fallback pick. Book it before it becomes today.
           </p>
-          <div className="btn-row" style={{ marginTop: 10 }}>
+          {roll}
+          <div className="btn-row">
             <button className="btn" onClick={() => onNavigate("schedule")}>
               Open schedule
             </button>
             {shuffleBtn}
           </div>
         </>
-      )}
-      {shuffleError && <p className="form-error">{shuffleError}</p>}
-      {!shuffleError && remaining !== null && (
-        <p className="dash-note">
-          Rolled from {remaining} dish{remaining === 1 ? "" : "es"} that have never been the Special.
-        </p>
       )}
     </section>
   );
@@ -466,29 +552,7 @@ export default function OverviewPanel({
   return (
     <>
       <div className="dash-grid">
-        <section className="panel">
-          <h2>Today's Special</h2>
-          {data.today.dishName ? (
-            <>
-              <p className="dash-big">{data.today.dishName}</p>
-              <p className="dash-note">Serving on {data.today.date}</p>
-              <SwitchCountdown />
-              <div className="btn-row" style={{ marginTop: 10 }}>
-                <button className="btn btn--ghost" onClick={() => onOpenDish(data.today.dishId)}>
-                  Edit dish
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="dash-big">Nothing scheduled!</p>
-              <p className="dash-note">
-                Players will get an automatic fallback dish today. Assign one in the schedule.
-              </p>
-              <SwitchCountdown />
-            </>
-          )}
-        </section>
+        <TodaysSpecial today={data.today} onOpenDish={onOpenDish} />
 
         <TomorrowsSpecial
           tomorrow={data.tomorrow}
@@ -506,7 +570,7 @@ export default function OverviewPanel({
             {data.firstGap ? `First empty day: ${data.firstGap}` : "Next 60 days fully booked"}
             {lowSchedule && " — time to fill the board!"}
           </p>
-          <div className="btn-row" style={{ marginTop: 10 }}>
+          <div className="btn-row">
             <button className="btn" onClick={() => onNavigate("schedule")}>
               Open schedule
             </button>

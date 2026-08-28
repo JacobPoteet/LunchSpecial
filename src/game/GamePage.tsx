@@ -425,7 +425,8 @@ function ResultModal({
   stats: Stats;
   /**
    * Wear the daily's finish: countdown, share button, stats panel. True for the
-   * real daily and for a playtest round, which exists to rehearse this screen.
+   * real daily and for the two rehearsal modes — an admin preview and a
+   * playtest — which exist to try this screen before players reach it.
    */
   asDaily: boolean;
   isRandom: boolean;
@@ -569,8 +570,9 @@ function ResultModal({
           <StoryDetails clues={reveal.clues} />
         </>
       )}
-      {/* A playtest round shows the panel but hasn't been folded into it — the
-          numbers are the ones you walked in with, since nothing was recorded. */}
+      {/* A rehearsal round (preview, playtest) shows the panel but hasn't been
+          folded into it — the numbers are the ones you walked in with, since
+          nothing was recorded. */}
       {asDaily && <StatsPanel stats={stats} highlight={won ? round.guesses.length : undefined} />}
       {reveal?.isFanSubmission && <FanStamp dishName={reveal.name} />}
       <RequestDishForm promoted={reveal?.isFanSubmission === true} />
@@ -625,11 +627,14 @@ export default function GamePage() {
   // Preview and playtest are test tools rather than games — they record no
   // analytics at all (a random round still does, as a chef's special).
   const tracked = !isPreview && !playtest;
-  // Playtest exists to rehearse the real finish, so it's *dressed* as the daily
-  // wherever that shows: puzzle number, countdown, share button, stats panel.
-  // Only the banner up top gives it away. Underneath it stays as throwaway as
-  // preview — nothing written, nothing counted.
-  const dressedAsDaily = isDaily || !!playtest;
+  // Preview and playtest both exist to rehearse the real finish, so they're
+  // *dressed* as the daily wherever that shows: puzzle number, countdown, share
+  // button, stats panel. Only the banner up top gives either away. Underneath
+  // they stay throwaway — nothing written, nothing counted. That dressing is the
+  // point of the admin's test play: the check, the share and the stats panel are
+  // the parts of the daily you'd most want to try before players do, and a
+  // preview that couldn't reach them could only rehearse the board.
+  const dressedAsDaily = isDaily || isPreview || !!playtest;
 
   const [dishes, setDishes] = useState<DishSummary[]>([]);
   const [daily, setDaily] = useState<DailyInfo | null>(null);
@@ -1056,7 +1061,9 @@ export default function GamePage() {
       </header>
 
       <main className="menu-card">
-        {isPreview && <p className="preview-banner">Admin test play — nothing is saved</p>}
+        {isPreview && (
+          <p className="preview-banner">Admin test play — nothing is saved, counted or shown to players</p>
+        )}
         {playtest && <p className="preview-banner">Playtest — pinned to “{playtest}”, nothing is saved</p>}
         {/* Sits above every other bar: if the day has turned, that reframes
             whatever mode the player is in, so it needs to be read first. */}
@@ -1093,7 +1100,7 @@ export default function GamePage() {
         <div className="menu-card__header">
           <h2 className="menu-card__title">{isArchive ? "From the Archive" : "Today's Menu"}</h2>
           <p className="menu-card__meta">
-            {daily && (!ephemeral || playtest) ? <>Special No. {daily.puzzleNumber} — </> : null}
+            {daily && (!ephemeral || dressedAsDaily) ? <>Special No. {daily.puzzleNumber} — </> : null}
             {dateLabel(date)}
           </p>
           <div className="menu-card__toolbar">
