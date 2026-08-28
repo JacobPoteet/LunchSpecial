@@ -1,15 +1,18 @@
 // Shareable emoji summary of a finished round.
 
+import { wantsNativeShare } from "../../shared/share";
 import type { GuessFeedback, MatchLevel } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
 
+// The message and the target decision are pure folds and live in shared/share.ts
+// (unit-tested in share.test.ts); this module is the half that needs a browser.
+export { SHARE_URL, shareMessage } from "../../shared/share";
+
 const SQUARE: Record<MatchLevel, string> = { hit: "🟩", near: "🟨", miss: "⬜" };
 
-export const SHARE_URL = "https://lunchspecial.app";
-
-// The score card only — NO url. Callers pass the url as a separate Web Share
-// field (and append it for the clipboard fallback). Keeping them apart lets
-// each share target format the link itself.
+// The score card only — NO url. `shareMessage()` appends it, in the same string,
+// for every target that takes text. Keeping the fold itself url-free is what
+// lets shared/scorecard.ts draw the same score as a picture without one.
 export function buildShareText(
   puzzleNumber: number,
   guesses: GuessFeedback[],
@@ -63,4 +66,20 @@ export async function copyShareText(text: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Read what this browser can do and ask shared/share.ts where the round goes.
+ *
+ * Every capability is read synchronously, because `navigator.share` needs the
+ * click's transient activation and an await before it would spend that.
+ */
+export function canUseNativeShare(text: string): boolean {
+  const hasShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+  return wantsNativeShare({
+    hasShare,
+    coarsePointer: typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches,
+    canShareText:
+      hasShare && typeof navigator.canShare === "function" ? navigator.canShare({ text }) : null,
+  });
 }
