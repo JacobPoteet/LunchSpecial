@@ -2,22 +2,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { AdminDishInput, GuessFeedback } from "../../shared/types";
 import { COURSES, PROTEINS, REGIONS, TEMPERATURES } from "../../shared/types";
 import { ClueTicket, GuessRow, Modal } from "../game/components";
+import { CLUE_BEATS } from "../../shared/clues";
 import * as api from "./api";
 
-// The five beats, and the only guidance anyone writing a clue in /admin ever
-// sees. The full beat sheet is section 3 of .claude/skills/create-dishes/SKILL.md;
-// these are its headlines plus the character budget, which has to stay in step
-// with BEAT_BUDGET in worker/data-integrity.test.ts. A budget nobody can see is
-// a budget nobody keeps —
-// clue sets inflated 2.5x across 26 batches while this array said "broad hint".
-// [beat name, what it must do, target lo, target hi, hard max]
-const CLUE_BEATS: [string, string, number, number, number][] = [
-  ["Broad geography", "The region. Never the country.", 35, 70, 85],
-  ["Origin and history", "Who made it, when, why.", 60, 110, 130],
-  ["What makes it unmistakable", "True of this dish and almost no other.", 55, 105, 120],
-  ["A key ingredient or technique", "You or the cook doing the cooking.", 60, 120, 130],
-  ["Near-giveaway", "The country, and what it looks like.", 45, 100, 115],
-];
+// The beat headlines and budgets are the only guidance anyone writing a clue
+// in /admin ever sees. They come from shared/clues.ts, which is the same table
+// worker/data-integrity.test.ts gates on, so the counter under a textarea and
+// the check that fails CI can't disagree. The full beat sheet is section 3 of
+// .claude/skills/create-dishes/SKILL.md. A budget nobody can see is a budget
+// nobody keeps: clue sets inflated 2.5x across 26 batches while this array
+// said "broad hint".
 
 const emptyForm: AdminDishInput = {
   name: "",
@@ -326,7 +320,7 @@ export default function DishEditor({
           </div>
 
           {form.clues.map((clue, i) => {
-            const [beat, job, lo, hi, max] = CLUE_BEATS[i];
+            const { name: beat, job, lo, hi, max } = CLUE_BEATS[i];
             const len = clue.trim().length;
             // Three states, not two: empty says nothing, inside the target is
             // quiet, outside it warns, past the ceiling is an error. The count
