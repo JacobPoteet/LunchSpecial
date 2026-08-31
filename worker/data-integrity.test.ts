@@ -509,6 +509,32 @@ describe("the beat sheet", () => {
 const MIGRATION_CLUE_UPDATE =
   /UPDATE clues SET text = '((?:[^']|'')*)'\s*\n\s*WHERE dish_id = \(SELECT id FROM dishes WHERE slug = '([a-z0-9-]+)'\) AND order_index = (\d);/g;
 
+// Dishes deleted in /admin and then removed from seed.sql. A migration written
+// before the deletion still carries UPDATEs for them, which is correct history
+// and a no-op against a database where the row is already gone. Without this
+// list the only way to retire a dish would be to edit a migration prod has
+// already applied.
+//
+// This stays an explicit list rather than a blanket "skip unknown slugs",
+// because an unknown slug is otherwise a typo in a migration that would never
+// have reached the dish it was aimed at, and that check is worth keeping.
+const RETIRED_SLUGS = new Set(["borsch-ukrainian-style", "piri-piri-chicken"]);
+
+// Dishes renamed in /admin, which regenerates the slug. 0027-0032 were written
+// against the long slugs and no longer match anything; 0034 re-aims that text
+// at the slugs prod has. The old ones stay referenced by the migrations that
+// shipped with them, so they are absent from the catalogue by the same
+// mechanism as a retirement.
+const RENAMED_SLUGS = new Set([
+  "kansas-city-bbq-ribs",
+  "chicago-deep-dish-pizza",
+  "new-york-bagel-with-lox",
+  "texas-beef-brisket",
+  "nashville-hot-chicken",
+  "maryland-crab-cakes",
+  "shepherds-pie",
+]);
+
 describe("backfill migrations and the seed agree", () => {
   const db = buildDb();
   const seedText = new Map<string, string>();
@@ -536,7 +562,7 @@ describe("backfill migrations and the seed agree", () => {
       for (const m of sql.matchAll(MIGRATION_CLUE_UPDATE)) {
         const [, raw, slug, beat] = m;
         const key = `${slug}:${beat}`;
-        if (!seedText.has(key)) {
+        if (!seedText.has(key) && !RETIRED_SLUGS.has(slug) && !RENAMED_SLUGS.has(slug)) {
           mismatches.push(`${file}: ${slug} beat ${beat} is not in the catalogue`);
         }
         lastWrite.set(key, { file, text: raw.replace(/''/g, "'") });

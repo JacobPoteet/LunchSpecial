@@ -400,9 +400,12 @@ The user says **"add dishes: Pho (Vietnam), Bibimbap (South Korea)"**. Minimum i
 
 **The `create-dishes` skill is the workflow, and its section 3 is the beat sheet** — the voice, the five beats, the character budgets, the fourteen hard rules and the two tests. Read it before writing a clue. `worker/data-integrity.test.ts` enforces the mechanizable half for every dish in the catalogue and fails in CI.
 
+**Asking for one clue is a different job.** `suggest-clue` reads the dish's five clues and hands back options to paste into `/admin`, writing nothing. An admin edit lives in prod D1 only, so the linter never sees it — that skill does the mechanizable checks by hand instead.
+
 Four things that hold regardless:
 
 - **One dish = one `dishes` row + exactly 5 `clues` rows.** A dish is only schedulable with **≥3 ingredients AND exactly 5 clues**.
+- **Renaming a dish in /admin regenerates its slug, and every backfill migration is keyed by slug.** A rename after a migration is written means that migration's `UPDATE`s match nothing and fail silently: seven US regional dishes were renamed in Aug 2026 and sat on pre-beat-sheet clue text in prod for a week while the repo and CI showed the rewrite. Re-aim the text at the new slug (migration 0034) rather than renaming prod back. `RETIRED_SLUGS` / `RENAMED_SLUGS` in `worker/data-integrity.test.ts` are how a slug leaves the catalogue without anyone editing a migration prod has already applied.
 - **Rows go in two places:** appended to `seed/seed.sql` (canonical) *and* an additive `migrations/000N_add_<batch>.sql` — INSERTs only, no `DELETE`s, dish **keyed by slug** not a hardcoded id. CI applies it on the next `v*` release. Never re-run the seed against prod.
 - **Pool only. Never `INSERT INTO schedule`.** New dishes land in the active pool; `/admin` autofill assigns dates.
 - **Fan submissions** get `UPDATE dishes SET is_fan_submission = 1 WHERE slug IN (…)` in both files, keyed by slug. Leave the `INSERT INTO dishes` column lists alone — the column defaults to 0.
