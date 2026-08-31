@@ -1,6 +1,6 @@
 ---
 name: create-dishes
-description: Add dishes to the Lunch Special catalogue, or rewrite an existing dish's clues, following the beat sheet in section 3. Use when the user says "add dishes: Pho (Vietnam), Bibimbap (South Korea)", asks for a new dish batch, pastes suggestions from the admin Requests tab, or asks to rewrite/fix/backfill the clues on dishes that already exist.
+description: Add dishes to the Lunch Special catalogue, or rewrite an existing dish's clues, following the beat sheet in section 3. Use when the user says "add dishes: Pho (Vietnam), Bibimbap (South Korea)", asks for a new dish batch, pastes suggestions from the admin Requests tab, or asks to rewrite/fix/backfill the clues on dishes that already exist. For clue options the user will paste into /admin themselves, with no file written, use suggest-clue instead.
 ---
 
 # Adding dishes to Lunch Special
