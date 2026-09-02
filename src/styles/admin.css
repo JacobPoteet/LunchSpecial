@@ -2081,9 +2081,11 @@
   flex-wrap: wrap;
 }
 
-.sched-row--past { opacity: 0.5; }
+/* A served day is settled, so it recedes — but not out of reach: its Edit and
+   Test buttons still work, and 0.5 opacity took them below readable. */
+.sched-row--past { opacity: 0.68; }
 .sched-row--today { background: rgba(232, 165, 58, 0.18); border-radius: 8px; }
-.sched-row--empty .sched-dish { color: var(--cherry); font-style: italic; }
+.sched-row--empty .sched-dish::placeholder { color: var(--cherry); font-style: italic; opacity: 1; }
 
 .sched-date {
   font-family: var(--font-display);
@@ -2092,7 +2094,104 @@
   color: var(--ink);
 }
 
-.sched-dish { flex: 1; min-width: 140px; }
+.sched-dish { flex: 1 1 160px; min-width: 140px; }
+.sched-dish--locked { color: var(--ink); }
+.sched-row--empty .sched-dish--locked { color: var(--ink-soft); font-style: italic; }
+
+/* What the row knows about the booking. Sized to hold two tags and a rest note
+   without pushing the buttons off a 1024px board. */
+.sched-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 200px;
+  flex-wrap: wrap;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+.sched-tag {
+  border-radius: 999px;
+  padding: 1px 8px;
+  background: var(--miss-soft);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.sched-tag--course { text-transform: capitalize; }
+
+.sched-rest { white-space: nowrap; }
+
+/* A repeat inside autofill's sixty-day window. Stated, never blocking — the
+   border carries it as well as the colour, since a tint alone at this size is
+   easy to miss on a scan. */
+.sched-rest--soon {
+  color: #9a6516;
+  background: var(--near-soft);
+  border: 1px solid var(--near);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+/* Weeks. A rule and a label, so six weeks of rows read as six weeks. */
+.sched-week {
+  list-style: none;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border-top: 2px solid var(--paper-edge);
+  margin-top: 10px;
+  padding: 10px 6px 2px;
+}
+
+.sched-list > .sched-week:first-child { border-top: none; margin-top: 0; }
+
+/* The result of the last write, pinned under the row that caused it. Takes the
+   full row width so it never squeezes the buttons. */
+.sched-flash {
+  flex-basis: 100%;
+  font-size: 0.8rem;
+  padding: 4px 6px 0;
+  color: var(--hit);
+}
+
+.sched-flash--bad { color: var(--cherry); }
+
+.sched-summary {
+  margin: 0 0 8px;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+/* The window nav. `from`/`to` have always been on the route; this is the part
+   that was missing, so the board can page past its own six weeks. */
+.sched-window {
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.sched-window__span {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  min-width: 130px;
+  text-align: center;
+}
+
+/* Teal text that acts, for the jump-to-gap in a sentence. */
+.btn--link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--teal);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.btn--link:hover { color: var(--teal-dark); }
 
 .form-error {
   background: var(--cherry);

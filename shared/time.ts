@@ -95,3 +95,12 @@ export function hms(ms: number): { h: string; m: string; s: string } {
 export function daysBetween(a: string, b: string): number {
   return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
 }
+
+/**
+ * Add `days` to a YYYY-MM-DD calendar day, returning YYYY-MM-DD. The inverse of
+ * {@link daysBetween}, and a plain calendar day like it — UTC noon-free because
+ * both ends are parsed at UTC midnight, so no zone or DST shift can move it.
+ */
+export function addDays(date: string, days: number): string {
+  return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+}

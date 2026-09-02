@@ -183,9 +183,12 @@ shared/sample.ts      Wilson intervals, SMALL_SAMPLE_MIN, weighted median/percen
 shared/attribution.ts utm_source normaliser + SOURCE_DIRECT
 shared/experiment.ts  before/after comparison — windowing, pooled rates, verdicts, "how many more days"
 shared/dishfilter.ts  admin dish-list query — facet matching, facet counts, rest days, sorts, normalize
+shared/schedule.ts    the admin specials board — schedule window × catalogue → rows with dish meta,
+                      nearest-other-serving gap, week starts; board gap summary; name → dish
 shared/activity.ts    activity feed (rounds + arrivals + day totals → round states, durations, visits)
 shared/announce.ts    the guess-feedback wording, one table feeding colour, glyph and screen reader
-shared/time.ts        GAME_TIMEZONE (America/New_York), gameToday, msUntilGameMidnight, daysBetween
+shared/time.ts        GAME_TIMEZONE (America/New_York), gameToday, msUntilGameMidnight, daysBetween,
+                      addDays (one copy — the worker routes and src/game/archive.ts both import it)
 
 worker/routes/discord.ts  /token (OAuth hop), /attachment (score-card PNG), /interactions (signed
                           callbacks, Ed25519-verified or 401), /progress (patch the live message)
@@ -339,6 +342,18 @@ The engagement panel's day slice defaults to today, and a 📅 `DayPicker` can s
 - **Every table cell is one line**, which is why the clue/ingredient shortfall lives inside the "incomplete" badge (`3/5 clues`) rather than as two columns.
 - **The Menu tab links straight in** — every mix bar, the never-served sentence and each country row calls `onOpenDishes(filter)`.
 
+### The specials board (admin Schedule page)
+
+`shared/schedule.ts` folds the schedule window against the catalogue; `ScheduleView` draws it. One row per day, past days locked.
+
+- **The dish picker is a type-ahead over one shared `<datalist>`, never a `<select>` per row.** The catalogue is several hundred dishes and the window is forty-odd unlocked days, so a select per row put tens of thousands of `<option>` nodes in the DOM to choose one and offered no search. **Don't reintroduce one.** Same pattern as the Dishes page's country facet.
+- **A typed name is resolved, not trusted.** `resolveDishName` matches trimmed and case-insensitively, and **a name two dishes share resolves to neither** — booking the wrong one silently is worse than asking for a rename. An unmatched or unschedulable name says so and writes nothing.
+- **A close repeat is stated, never blocked.** Autofill skips a dish used within `REPEAT_WINDOW_DAYS` (60) and the shuffle only rolls dishes never scheduled at all; hand-booking is the path where you might *want* the repeat, so the row prints the gap and books it anyway.
+- **A serving is a serving wherever it was measured.** The nearest one to a day can sit inside the visible window or outside it in the catalogue's `lastServed` / `nextBooked`. The fold takes the minimum over all three, which is what stops a dish served the week before the window opens reading as never served. **The row's own date is excluded** — `lastServed` is computed against today, so counting it would flag every current Special as a zero-day repeat.
+- **The result of a write is pinned to the row that caused it.** The board is fifty rows long and a confirmation at the top of the panel is offscreen from most of them. Panel-level messages are for panel-level actions (autofill).
+- **`GET /schedule` has always taken `from`/`to`.** The window nav shifts relative to the rows that came back, so the **route keeps owning the default** (today-7 → today+45) and the client only ever moves away from it.
+- **Edit and Test stay on past rows.** Only the *booking* is locked once a day is served; the dish is still a dish.
+
 ### Menu mix (admin Menu tab)
 
 `GET /api/admin/menu-mix` → `assembleMenuMix()` in worker/menu.ts. Catalogue data only, so it takes **no `surface` or `date` filter** and touches no analytics table. Three slices: served (EPOCH→today) / booked (future) / pool (active dishes).
@@ -418,7 +433,7 @@ Finish with `npm test && npm run check`.
 - Dish is "schedulable" only with ≥3 ingredients AND exactly 5 clues (enforced in PUT /schedule + shown in UI)
 - Schedule: past dates locked; DELETE dish blocked while scheduled today/future; autofill = least-recently-served, skips dishes used in last 60 days
 - **The shuffle** (`POST /api/admin/schedule/shuffle`, the 🎲 on the Today tab's Tomorrow's Special card and on every unlocked row of the Schedule tab): rolls a dish that has **never held a schedule row, past or future**, onto one day, so you can click until something appealing turns up and then edit it. Three things are load-bearing: (1) **it writes on every click** — no accept step, since a roll that only proposed would need a commit button and a discard button; the displaced dish goes back in the pool; (2) **"never scheduled" is what stops consecutive clicks landing on the dish already showing**, since that dish has a row by the time the next roll is made; (3) only **schedulable** dishes are candidates, since `PUT /schedule` would refuse the others and the button would fail on press. A shuffled day is an ordinary booking afterwards
-- **Clearing a day** (the Schedule tab's per-row Clear, `PUT /schedule` with a null `dishId`) deletes the schedule row, which is a booking decision and not a hole: an unbooked day runs on the deterministic fallback pick and never 404s. Same write as picking "— empty (fallback dish) —" in the row's select
+- **Clearing a day** (the Schedule tab's per-row Clear, `PUT /schedule` with a null `dishId`) deletes the schedule row, which is a booking decision and not a hole: an unbooked day runs on the deterministic fallback pick and never 404s
 - Regions enum (near-match buckets): north-america, latin-america, europe, middle-east, africa, south-asia, east-asia, southeast-asia, oceania. Courses: breakfast, appetizer, entree, dessert, drink. Proteins: beef, pork, poultry, seafood, lamb, vegetarian
 - SQL in seed files: escape apostrophes as `''`
 - vitest.config.ts exists SEPARATELY from vite.config.ts on purpose (tests must not load the cloudflare plugin). Its `include` covers `worker/` **and** `shared/` — the pure folds all live in one of those two
