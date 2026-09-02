@@ -47,7 +47,7 @@ npm run dev                          # game at :5173/, admin at :5173/admin
 
 ### Debug / testing options
 
-Ways to poke at the game locally without editing the schedule or touching your saved stats:
+Ways to poke at the game without editing the schedule or touching your saved stats. The first five are things you type at a local dev server; the last is a button in the admin that also works against production:
 
 | Option | What it does |
 |---|---|
@@ -56,7 +56,7 @@ Ways to poke at the game locally without editing the schedule or touching your s
 | `npm run ramen` | The same thing pinned to **one named dish** (Ramen) instead of a random one, for playtesting a specific board, and the finished-round screen, over and over. |
 | `?special=<slug>` | The pinned-dish mode by URL (e.g. `http://localhost:5173/play?special=pho`). Any active dish's slug works; add another `npm run <dish>` script for one you reach for often. |
 | `npm run admin` | Starts the dev server and opens **`/admin`** straight at the login, skipping the game. |
-| Admin **Test play** | From `/admin`, a signed preview link that plays a *specific* dish (see [Admin panel](#admin-panel-admin)). |
+| **Test play ▶** (in `/admin`) | Not a URL you type: a button that mints a signed 24-hour link to the real game, pinned to today's Special (dashboard), a booked day (schedule) or the dish you're editing. It's the door for rehearsing something *already on the menu*, and because the link is signed it's the only one of these that works on a deployed site — records nothing either way, see [Admin panel](#admin-panel-admin). |
 
 A random round sends a seed the API maps to one active dish, so the round holds still and a new seed rolls another. That's the same spoiler-free **Chef's Choice** mode players get in production (never touches the schedule, saves no stats). `?special=<slug>` takes the roll out and names the dish outright, and it's the most throwaway mode of the lot: no localStorage, no lifetime stats, no analytics, honoured by the client in dev only. It exists to rehearse the **end of a round**, so it comes dressed as the daily right down to the check, countdown and share button, with the top banner as the only tell.
 
@@ -131,7 +131,7 @@ Password login (Worker secret + HMAC-signed session cookie, 7 days). `npm run ad
 - **Schedule**: upcoming board, assign/swap/clear days, **auto-fill 30 days** (least-recently-served, no repeats within 60 days), past days locked
 - **Announcements**: write, schedule and retire the notices players see; limited markdown (bold/italic/link only), audience of everyone or returning players, plus per-notice reach
 - **Requests**: inbox of player-suggested dishes (badge = pending count); review, remove, or open one prefilled in a new dish editor
-- **Test play**: signed preview link that opens the real game against any dish without touching daily state or stats
+- **Test play**: a signed 24-hour link that opens the real game on one pinned dish — today's Special from the dashboard, a booked day from the schedule, or the dish under edit (**Save + test play**) — without touching daily state or stats
 
 The Activity tab also carries **This device's data**: a review of everything this browser has recorded across rounds, visits and notice views, and a button to delete it. The admin is also a player, and at this volume one person play-testing is a visible fraction of every rate on the dashboard.
 
