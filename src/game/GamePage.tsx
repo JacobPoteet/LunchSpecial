@@ -1180,7 +1180,7 @@ export default function GamePage() {
       </main>
 
       <footer className="footer-note">
-        <p>Created by Jacob Poteet</p>
+        <p>Created by <b>Jacob Poteet</b></p>
         <p className="footer-note__links">
           <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/press">Press</a>
         </p>
