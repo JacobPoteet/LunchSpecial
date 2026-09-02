@@ -138,7 +138,15 @@ export const updateDish = (id: number, input: AdminDishInput) =>
   request<{ id: number }>(`/dishes/${id}`, { ...json(input), method: "PUT" });
 export const deleteDish = (id: number) => request<{ ok: true }>(`/dishes/${id}`, { method: "DELETE" });
 export const getIngredients = () => request<string[]>("/ingredients");
-export const getSchedule = () => request<ScheduleEntry[]>("/schedule");
+/**
+ * A window of the board, oldest first. The route defaults to today-7 → today+45
+ * when neither end is given, which is what the Schedule tab opens on; passing
+ * both is how it pages back through served days and further out than six weeks.
+ */
+export const getSchedule = (from?: string, to?: string) => {
+  const q = from && to ? `?from=${from}&to=${to}` : "";
+  return request<ScheduleEntry[]>(`/schedule${q}`);
+};
 export const setSchedule = (date: string, dishId: number | null) =>
   request<{ ok: true }>("/schedule", { ...json({ date, dishId }), method: "PUT" });
 export const autofillSchedule = () => request<{ filled: number }>("/schedule/autofill", { method: "POST" });

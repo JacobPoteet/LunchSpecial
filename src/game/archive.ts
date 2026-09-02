@@ -2,6 +2,7 @@
 // Puzzle dates run from EPOCH_DATE (puzzle #1) up to today (midnight-ET rollover).
 
 import { EPOCH_DATE } from "../../shared/types";
+import { addDays } from "../../shared/time";
 
 const DAY_MS = 86_400_000;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -22,10 +23,9 @@ export function isPastPuzzleDate(date: string, today: string): boolean {
   return isPuzzleDate(date, today) && date < today;
 }
 
-/** Add `days` to a YYYY-MM-DD date, returning YYYY-MM-DD. */
-export function addDays(date: string, days: number): string {
-  return new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10);
-}
+// Re-exported so the archive's callers keep one import for date walking, while
+// the arithmetic itself lives beside daysBetween in shared/time.ts.
+export { addDays };
 
 /** Every puzzle date from the epoch to `today`, inclusive, oldest first. */
 export function puzzleDates(today: string): string[] {

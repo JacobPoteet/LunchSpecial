@@ -2081,9 +2081,11 @@
   flex-wrap: wrap;
 }
 
-.sched-row--past { opacity: 0.5; }
+/* A served day is settled, so it recedes — but not out of reach: its Edit and
+   Test buttons still work, and 0.5 opacity took them below readable. */
+.sched-row--past { opacity: 0.68; }
 .sched-row--today { background: rgba(232, 165, 58, 0.18); border-radius: 8px; }
-.sched-row--empty .sched-dish { color: var(--cherry); font-style: italic; }
+.sched-row--empty .sched-dish::placeholder { color: var(--cherry); font-style: italic; opacity: 1; }
 
 .sched-date {
   font-family: var(--font-display);
@@ -2092,7 +2094,148 @@
   color: var(--ink);
 }
 
-.sched-dish { flex: 1; min-width: 140px; }
+.sched-dish { flex: 1 1 160px; min-width: 140px; }
+.sched-dish--locked { color: var(--ink); }
+.sched-row--empty .sched-dish--locked { color: var(--ink-soft); font-style: italic; }
+
+/* What the row knows about the booking. Sized to hold two tags and a rest note
+   without pushing the buttons off a 1024px board. */
+.sched-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 200px;
+  flex-wrap: wrap;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+.sched-tag {
+  border-radius: 999px;
+  padding: 1px 8px;
+  background: var(--miss-soft);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.sched-tag--course { text-transform: capitalize; }
+
+.sched-rest { white-space: nowrap; }
+
+/* A repeat inside autofill's sixty-day window. Stated, never blocking — the
+   border carries it as well as the colour, since a tint alone at this size is
+   easy to miss on a scan. */
+.sched-rest--soon {
+  color: #9a6516;
+  background: var(--near-soft);
+  border: 1px solid var(--near);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+/* The dish picker: an input with a list this stylesheet draws, not a native
+   <datalist>. Anchors the dropdown. */
+.sched-picker {
+  position: relative;
+  flex: 1 1 160px;
+  min-width: 140px;
+  display: flex;
+}
+
+.sched-picker .sched-dish { width: 100%; }
+
+.sched-options {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--paper);
+  border: 2px solid var(--teal);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.sched-option {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.sched-option--active { background: var(--hit-soft); }
+
+.sched-option__name { font-size: 0.9rem; color: var(--ink); }
+.sched-option__meta { font-size: 0.74rem; color: var(--ink-soft); }
+
+/* Errors only, under the row that raised one. Successes print nothing: the row
+   already shows the new dish, and a line saying so changed the row's height on
+   every click, which read as a flicker. */
+.sched-flash {
+  flex-basis: 100%;
+  font-size: 0.8rem;
+  padding: 4px 6px 0;
+  color: var(--cherry);
+}
+
+/* A write in flight. Opacity only — `.btn:disabled` paints --miss over a ghost
+   button, so disabling one for the length of a request flashed it grey, and any
+   change of size or weight here would shift the row it sits in. */
+.sched-row .btn[aria-busy="true"] { opacity: 0.55; }
+
+/* A button the row can't use right now. Still laid out, so the four keep their
+   width whether or not the day is booked, but out of the tab order and off the
+   pointer. Clearing a day drops three of its four buttons, and without this the
+   picker and the tags slid sideways to fill the space every time. */
+.sched-row .btn.is-inert { visibility: hidden; }
+
+.sched-row > .btn-row { justify-content: flex-end; }
+
+.sched-summary {
+  margin: 0 0 8px;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+/* The window nav. `from`/`to` have always been on the route; this is the part
+   that was missing, so the board can page past its own six weeks. */
+.sched-window {
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.sched-window__span {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  min-width: 130px;
+  text-align: center;
+}
+
+/* Teal text that acts, for the jump-to-gap in a sentence. */
+.btn--link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--teal);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.btn--link:hover { color: var(--teal-dark); }
 
 .form-error {
   background: var(--cherry);

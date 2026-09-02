@@ -81,7 +81,7 @@ import {
   type PlayerBucketRow,
 } from "../players";
 import { assembleMenuMix, type MenuDishRow, type MenuScheduleRow } from "../menu";
-import { gameToday, msUntilGameMidnight } from "../../shared/time";
+import { addDays, gameToday, msUntilGameMidnight } from "../../shared/time";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -327,10 +327,6 @@ app.get("/ingredients", async (c) => {
   }
   return c.json([...all].sort());
 });
-
-function addDays(date: string, days: number): string {
-  return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
-}
 
 app.get("/schedule", async (c) => {
   const today = serverToday();
