@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="description" content="How Lunch Special runs as a Discord Activity with no separate build: iframe detection, one authorization, a live progress message in the channel, and a rule that nothing may ever wait on Discord.">
+<title>Discord Activity Integration</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=Yellowtail&display=swap">
+
+<style>
+  :root {
+    color-scheme: light;
+    --ground: #fbf4e0;
+    --card: #f6edd9;
+    --card-2: #efe3c4;
+    --edge: #ded0ac;
+    --edge-soft: #e9dcbc;
+    --ink: #2b2320;
+    --ink-soft: #5b4f45;
+    --ink-faint: #8b7f70;
+    --teal: #1b4f4a;
+    --teal-wash: #e2ece7;
+    --cherry: #a52436;
+    --cherry-wash: #f6e2e2;
+    --mustard: #e8a53a;
+    --mustard-ink: #8a5a12;
+    --mustard-wash: #f8ecd2;
+    --code-bg: #efe6cd;
+    --shadow: 0 1px 0 rgba(43,35,32,.06), 0 10px 28px rgba(43,35,32,.07);
+    --mast-bg: #123833;
+    --mast-fg: #fbf3df;
+    --mast-sub: #d8cdb0;
+    --mast-meta: #b8ab8b;
+    --mast-rule: rgba(232, 165, 58, .45);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #141a19;
+      --card: #1b2321;
+      --card-2: #212b28;
+      --edge: #33403c;
+      --edge-soft: #2a3532;
+      --ink: #ece2cd;
+      --ink-soft: #b7ab97;
+      --ink-faint: #8a8073;
+      --teal: #7fc4b4;
+      --teal-wash: #1c2b28;
+      --cherry: #f08a97;
+      --cherry-wash: #2e1e21;
+      --mustard: #e8a53a;
+      --mustard-ink: #e6b660;
+      --mustard-wash: #2b2519;
+      --code-bg: #101615;
+      --shadow: 0 1px 0 rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.35);
+      --mast-bg: #0f1918;
+      --mast-fg: #ece2cd;
+      --mast-sub: #b3a893;
+      --mast-meta: #8a8073;
+      --mast-rule: rgba(232, 165, 58, .35);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #141a19;
+    --card: #1b2321;
+    --card-2: #212b28;
+    --edge: #33403c;
+    --edge-soft: #2a3532;
+    --ink: #ece2cd;
+    --ink-soft: #b7ab97;
+    --ink-faint: #8a8073;
+    --teal: #7fc4b4;
+    --teal-wash: #1c2b28;
+    --cherry: #f08a97;
+    --cherry-wash: #2e1e21;
+    --mustard: #e8a53a;
+    --mustard-ink: #e6b660;
+    --mustard-wash: #2b2519;
+    --code-bg: #101615;
+    --shadow: 0 1px 0 rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.35);
+    --mast-bg: #0f1918;
+    --mast-fg: #ece2cd;
+    --mast-sub: #b3a893;
+    --mast-meta: #8a8073;
+    --mast-rule: rgba(232, 165, 58, .35);
+  }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-text-size-adjust: 100%;
+  }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+
+  .page { max-width: 820px; margin: 0 auto; padding: 0 22px 96px; }
+
+  .mast {
+    background: var(--mast-bg);
+    color: var(--mast-fg);
+    margin: 0 0 40px;
+    padding: 54px 22px 40px;
+    border-bottom: 6px solid var(--mustard);
+  }
+  .mast-inner { max-width: 820px; margin: 0 auto; }
+  .mast .kicker {
+    font-family: "Yellowtail", "Brush Script MT", cursive;
+    font-size: 1.6rem;
+    color: var(--mustard);
+    margin: 0 0 4px;
+    line-height: 1;
+  }
+  .mast h1 {
+    font-family: "Bitter", Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(2.1rem, 6.2vw, 3.1rem);
+    line-height: 1.12;
+    margin: 0 0 18px;
+    text-wrap: balance;
+    letter-spacing: -0.015em;
+  }
+  .mast p { margin: 0; max-width: 58ch; color: var(--mast-sub); }
+  .mast .stamp {
+    display: inline-block;
+    margin-top: 22px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .7rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--mast-meta);
+    border-top: 1px solid var(--mast-rule);
+    padding-top: 10px;
+  }
+
+  .toc {
+    background: var(--card);
+    border: 1px solid var(--edge);
+    border-radius: 4px;
+    padding: 20px 22px;
+    margin-bottom: 52px;
+    box-shadow: var(--shadow);
+  }
+  .toc h2 {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .72rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+  .toc ol { margin: 0; padding: 0; list-style: none; counter-reset: toc; display: grid; gap: 2px; }
+  .toc li { counter-increment: toc; }
+  .toc a {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    padding: 5px 0;
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px dotted transparent;
+  }
+  .toc a:hover { border-bottom-color: var(--edge); }
+  .toc a::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .78rem;
+    color: var(--mustard-ink);
+    min-width: 2.1em;
+  }
+
+  section { margin-bottom: 60px; scroll-margin-top: 18px; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .7rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--mustard-ink);
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+  h2.head {
+    font-family: "Bitter", Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(1.42rem, 3.3vw, 1.78rem);
+    line-height: 1.26;
+    letter-spacing: -0.012em;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+  h3 {
+    font-family: Georgia, serif;
+    font-size: 1.16rem;
+    font-weight: 700;
+    margin: 34px 0 10px;
+  }
+  h4 {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .78rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 26px 0 8px;
+    font-weight: 600;
+  }
+  p { margin: 0 0 16px; }
+  section > p, section > ul, section > ol { max-width: 68ch; }
+  a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  ul, ol { margin: 0 0 16px; padding-left: 1.3em; }
+  li { margin-bottom: 7px; }
+  hr { border: 0; border-top: 1px solid var(--edge); margin: 40px 0; }
+
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .84em;
+    background: var(--code-bg);
+    border: 1px solid var(--edge-soft);
+    border-radius: 3px;
+    padding: 1px 5px;
+    word-break: break-word;
+  }
+  .codewrap { overflow-x: auto; margin: 0 0 20px; border-radius: 4px; border: 1px solid var(--edge); background: var(--code-bg); }
+  pre { margin: 0; padding: 16px 18px; }
+  pre code {
+    background: none; border: 0; padding: 0; font-size: .8rem; line-height: 1.62;
+    white-space: pre; display: block; color: var(--ink);
+  }
+  .cmt { color: var(--ink-faint); font-style: italic; }
+
+  .note {
+    border-left: 3px solid var(--teal);
+    background: var(--teal-wash);
+    padding: 14px 18px;
+    margin: 0 0 22px;
+    border-radius: 0 4px 4px 0;
+  }
+  .note.trap { border-left-color: var(--cherry); background: var(--cherry-wash); }
+  .note.rule { border-left-color: var(--mustard); background: var(--mustard-wash); }
+  .note p:last-child { margin-bottom: 0; }
+  .note .tag {
+    display: block;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .68rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--teal);
+  }
+  .note.trap .tag { color: var(--cherry); }
+  .note.rule .tag { color: var(--mustard-ink); }
+
+  .tablewrap { overflow-x: auto; margin: 0 0 24px; border: 1px solid var(--edge); border-radius: 4px; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; font-size: .89rem; min-width: 520px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--edge-soft); vertical-align: top; }
+  thead th {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .68rem;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--card-2);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td code { white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; }
+  .sw {
+    display: inline-block; width: 11px; height: 11px; border-radius: 2px;
+    margin-right: 7px; vertical-align: -1px; border: 1px solid rgba(0,0,0,.15);
+  }
+  .sw-mustard { background: #e8a53a; }
+  .sw-teal { background: #1b4f4a; }
+  .sw-cherry { background: #c9354a; }
+  .sw-ink { background: #8b7f70; }
+
+  figure { margin: 0 0 26px; }
+  .figbody {
+    overflow-x: auto;
+    background: var(--card);
+    border: 1px solid var(--edge);
+    border-radius: 4px;
+    padding: 20px;
+  }
+  figure svg { display: block; width: 100%; min-width: 560px; height: auto; }
+  figcaption { font-size: .82rem; color: var(--ink-soft); margin-top: 8px; font-style: italic; }
+  .sv-box { fill: var(--card-2); stroke: var(--edge); }
+  .sv-box-hi { fill: var(--teal-wash); stroke: var(--teal); }
+  .sv-label { fill: var(--ink); font-family: Georgia, serif; font-size: 13px; }
+  .sv-mono { fill: var(--ink-soft); font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .06em; }
+  .sv-accent { fill: var(--mustard-ink); font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .08em; }
+  .sv-line { stroke: var(--ink-faint); fill: none; }
+  .sv-fill-ink { fill: var(--ink-faint); }
+  .sv-track { fill: var(--edge-soft); }
+  .sv-fill-teal { fill: var(--teal); }
+  .sv-fill-cherry { fill: var(--cherry); }
+  .sv-fill-mustard { fill: var(--mustard); }
+
+  .lede { font-size: 1.06rem; color: var(--ink-soft); }
+
+  footer.end {
+    border-top: 1px solid var(--edge);
+    padding-top: 20px;
+    font-size: .84rem;
+    color: var(--ink-faint);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    letter-spacing: .04em;
+  }
+  footer.end a { color: var(--teal); }
+
+  a:focus-visible {
+    outline: 3px solid var(--mustard);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="mast-inner">
+    <p class="kicker">Lunch Special</p>
+    <h1>Discord Activity Integration</h1>
+    <p>The same game, the same deploy, embedded in someone else's client. Iframe detection, one authorization, a message in the channel that rewrites itself after every guess, and a rule that nothing in the game may ever wait on any of it.</p>
+    <p class="stamp">Technical reference &nbsp;·&nbsp; 11 parts</p>
+  </div>
+</header>
+
+<div class="page">
+
+  <nav class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#s1">No second build</a></li>
+      <li><a href="#s2">Detection, and the race at boot</a></li>
+      <li><a href="#s3">The parameters that keep falling off</a></li>
+      <li><a href="#s4">One authorization, two scopes</a></li>
+      <li><a href="#s5">The hop through our own server</a></li>
+      <li><a href="#s6">Presence: two lines that must never name the dish</a></li>
+      <li><a href="#s7">The live progress message</a></li>
+      <li><a href="#s8">Posting the check to the channel</a></li>
+      <li><a href="#s9">The room the game is in</a></li>
+      <li><a href="#s10">Failing in silence, on purpose</a></li>
+      <li><a href="#s11">What transfers to your next embed</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1 -->
+  <section id="s1">
+    <p class="eyebrow">Part 01</p>
+    <h2 class="head">No second build</h2>
+
+    <p class="lede">Lunch Special runs as a Discord Activity, which means a player can launch it from a voice channel and play inside a Discord window. There is no Discord version of the app. <code>npm run deploy</code> ships the public site, and the Activity comes along with it.</p>
+
+    <p>Discord does not host the code. You register a URL mapping in the developer portal, pointing <code>/</code> at <code>lunchspecial.app</code>, and Discord frames the live site through its own proxy. Whatever you deployed this morning is what a player sees in the channel this afternoon.</p>
+
+    <p>That arrangement works because of properties the app already had, none of which were added for Discord:</p>
+
+    <ul>
+      <li>Every client call is a relative <code>/api/*</code> path, so the proxy carries them without a rewrite rule.</li>
+      <li>Fonts, art and assets come from the Worker, so nothing needs a CDN allowance in Discord's content policy.</li>
+      <li>The whole thing is same-origin, so no CORS negotiation happens at all.</li>
+    </ul>
+
+    <p>An app that pulled fonts from Google and its API from a second domain would need proxy configuration for each one. The reward for keeping a small app self-contained arrives years later, in a feature nobody had planned.</p>
+
+    <p>The Discord-specific code fits in one directory:</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>Owns</th></tr></thead>
+        <tbody>
+          <tr><td><code>src/discord/bootstrap.ts</code></td><td>Detection, the SDK handshake, sticky parameters, portrait lock</td></tr>
+          <tr><td><code>src/discord/auth.ts</code></td><td>The single authorization and the token it yields</td></tr>
+          <tr><td><code>src/discord/presence.ts</code></td><td>Rate-limited pushes of the profile line</td></tr>
+          <tr><td><code>src/discord/progress.ts</code></td><td>The live message in the launch channel</td></tr>
+          <tr><td><code>src/discord/share.ts</code></td><td>Posting the finished check as a picture</td></tr>
+          <tr><td><code>src/discord/social.ts</code></td><td>Invites, participant count, layout mode</td></tr>
+          <tr><td><code>worker/routes/discord.ts</code></td><td>The four server endpoints</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section id="s2">
+    <p class="eyebrow">Part 02</p>
+    <h2 class="head">Detection, and the race at boot</h2>
+
+    <p>Discord appends <code>frame_id</code> to the iframe URL. Its presence is the whole detection mechanism, and it is the same signal the SDK uses internally.</p>
+
+    <div class="codewrap"><pre><code>export function isDiscordActivity(): boolean {
+  return new URLSearchParams(window.location.search).has("frame_id");
+}</code></pre></div>
+
+    <p>On the open web that parameter is absent, <code>initDiscord()</code> returns null, and the Embedded App SDK never downloads. The import is dynamic for exactly that reason, so a static import cannot drag the SDK into the bundle a web visitor parses.</p>
+
+    <p><code>main.tsx</code> awaits <code>initDiscord()</code> before mounting React, which creates a problem: <code>sdk.ready()</code> waits on Discord's RPC parent, and a slow or broken handshake would leave the player looking at an empty iframe. So the boot races the handshake against a five second timer, and mounts either way.</p>
+
+    <figure>
+      <div class="figbody">
+        <svg viewBox="0 0 900 210" role="img" aria-label="The handshake race: the timer decides when React mounts, the handshake decides when features attach">
+          <text class="sv-mono" x="4" y="20">PAGE LOAD</text>
+          <path class="sv-line" d="M4 34 H896" stroke-width="1" stroke-dasharray="3 4"/>
+
+          <rect class="sv-box-hi" x="4" y="48" width="250" height="46" rx="4"/>
+          <text class="sv-label" x="129" y="70" text-anchor="middle">sdk.ready()</text>
+          <text class="sv-mono" x="129" y="87" text-anchor="middle">DISCORD RPC HANDSHAKE</text>
+
+          <path class="sv-line" d="M258 71 H330" stroke-width="1.5"/>
+          <path class="sv-fill-ink" d="M330 67 l10 4 -10 4 z"/>
+
+          <rect class="sv-box-hi" x="344" y="42" width="300" height="58" rx="4"/>
+          <text class="sv-label" x="494" y="64" text-anchor="middle">.then(): attach the five features</text>
+          <text class="sv-mono" x="494" y="82" text-anchor="middle">PRESENCE · PROGRESS · SHARE · SOCIAL · LOCK</text>
+          <text class="sv-accent" x="494" y="118" text-anchor="middle">RUNS WHENEVER THE HANDSHAKE LANDS, EVEN AT 5.1s</text>
+
+          <rect class="sv-box" x="4" y="136" width="250" height="46" rx="4"/>
+          <text class="sv-label" x="129" y="158" text-anchor="middle">5s timer</text>
+          <text class="sv-mono" x="129" y="175" text-anchor="middle">Promise.race</text>
+
+          <path class="sv-line" d="M258 159 H330" stroke-width="1.5"/>
+          <path class="sv-fill-ink" d="M330 155 l10 4 -10 4 z"/>
+
+          <rect class="sv-box" x="344" y="136" width="300" height="46" rx="4"/>
+          <text class="sv-label" x="494" y="158" text-anchor="middle">Mount React</text>
+          <text class="sv-mono" x="494" y="175" text-anchor="middle">WITH OR WITHOUT THE SDK</text>
+
+          <path class="sv-line" d="M700 60 V170" stroke-width="1.5"/>
+          <text class="sv-accent" x="712" y="100">TWO OUTCOMES,</text>
+          <text class="sv-accent" x="712" y="116">TWO TIMELINES.</text>
+          <text class="sv-accent" x="712" y="140">TYING THE TOP ONE</text>
+          <text class="sv-accent" x="712" y="156">TO THE BOTTOM COST US</text>
+          <text class="sv-accent" x="712" y="172">THE SHARE BUTTON.</text>
+        </svg>
+      </div>
+      <figcaption>The timer governs the mount. The handshake governs the features. Wiring the second to the first is the bug described below.</figcaption>
+    </figure>
+
+    <div class="note trap">
+      <span class="tag">The bug this shape exists to prevent</span>
+      <p>The five feature registrations used to sit on the winning branch of the race. On a fast connection everything worked. On a slow Activity start the timer won, React mounted, the handshake landed a second later, and the share button did nothing for the rest of the session, with no error anywhere. The registrations now sit inside the handshake's own <code>.then()</code>, so a handshake that arrives at 5.1 seconds still delivers a working SDK.</p>
+    </div>
+
+    <p>A missing <code>VITE_DISCORD_CLIENT_ID</code> logs an explicit console error rather than failing at the first SDK call. The variable is public and build-time, so it ships in the bundle. It belongs in <code>.env.local</code> and in a repository Actions variable, never in <code>.dev.vars</code> alongside the secrets.</p>
+  </section>
+
+  <!-- 3 -->
+  <section id="s3">
+    <p class="eyebrow">Part 03</p>
+    <h2 class="head">The parameters that keep falling off</h2>
+
+    <p>The game ships no router. Switching modes navigates by assigning a new URL, which wipes the query string. Inside Discord that means the first board carries <code>frame_id</code> and every board after it does not.</p>
+
+    <p>The symptom showed up in the analytics rather than in the game: Chef's Choice and Leftovers rounds played inside Discord were recording as web plays. The fix captures Discord's parameters into <code>sessionStorage</code> on the first load of the tab, then re-attaches them to any URL the app navigates to.</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">/**
+ * Rewrite an in-app URL so it keeps the player on the same surface: inside
+ * Discord it re-attaches the Activity params the assignment would otherwise
+ * drop (params already on `url` win). A no-op on the open web.
+ */</span>
+export function surfaceUrl(url: string): string {
+  if (discordParams === "") return url;
+  const [path, query] = url.split("?");
+  const merged = new URLSearchParams(discordParams);
+  if (query) for (const [key, value] of new URLSearchParams(query)) merged.set(key, value);
+  return `${path}?${merged.toString()}`;
+}</code></pre></div>
+
+    <p>Nine parameters get preserved: <code>frame_id</code>, <code>instance_id</code>, <code>platform</code>, <code>channel_id</code>, <code>guild_id</code>, <code>location_id</code>, <code>custom_id</code>, <code>referrer_id</code> and <code>mobile_app_version</code>. The SDK reads several of them back out of the URL, so all nine have to survive.</p>
+
+    <p><code>isDiscordActivity()</code> stays strictly URL-based, since the SDK handshake needs the real parameters on this page load. <code>currentSurface()</code> reads the sticky copy, because a beacon fired an hour into a session still needs to know where it is. Two questions that look identical and take different sources.</p>
+
+    <p>The arrival-source capture in <a href="analytics-pipeline.html">the analytics pipeline</a> hit the same wall and took the same shape. Its module comment points at this one so the next person finds a pattern rather than a coincidence.</p>
+  </section>
+
+  <!-- 4 -->
+  <section id="s4">
+    <p class="eyebrow">Part 04</p>
+    <h2 class="head">One authorization, two scopes</h2>
+
+    <p>Rich Presence needs the <code>rpc.activities.write</code> scope, so the Activity has to run an OAuth flow. That flow is the only moment this anonymous game touches a real identity, and every rule around it exists to keep the touch as small as possible.</p>
+
+    <h3>Two scopes, measured</h3>
+    <p>The list is <code>identify</code> plus <code>rpc.activities.write</code>. The second grants <code>setActivity</code>. The first is required by the SDK's <code>authenticate()</code> hop, which parses Discord's reply against a schema where the <code>user</code> object is required. A token that cannot produce one fails the parse, and every later <code>setActivity</code> with it.</p>
+
+    <p>That was established by experiment rather than by reading:</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">/**
+ * **This was measured, not reasoned** (GitHub #101 → #106). The list was
+ * deliberately cut back to `rpc.activities.write` alone, with `type: 0` left in
+ * so the two candidate causes were separated, and presence went silent again.
+ * Both scopes: works. One: dead. The cost of `identify` — username, avatar and
+ * banner on the consent sheet of a game that has no accounts — is real enough to
+ * be worth one round trip to confirm we were paying it for a reason. We were.
+ * Don't spend a third: leave this list alone.
+ */</span></code></pre></div>
+
+    <p>Two candidate causes, one variable changed at a time, and a note in the code so nobody repeats the test. The consent sheet lists what a scope grants, so on a game with no accounts each additional scope is a real cost paid by the player.</p>
+
+    <h3>The identity gets dropped</h3>
+    <p>Taking <code>identify</code> means the app receives a user object. It never reads it. The object is not stored, not sent to the Worker, and not written to localStorage. The game stays anonymous, with per-device state and no identity in any table.</p>
+
+    <h3>Once per page load, whatever happens</h3>
+    <p>The call uses <code>prompt: "none"</code>, so a returning player sees nothing. A refusal or a broken exchange sets an <code>unavailable</code> flag that is never retried, because a consent sheet appearing over a live board costs more than the missing presence line is worth.</p>
+
+    <p>Two accessors express the policy. <code>ensureAuthorized()</code> starts the flow and caches the promise. <code>peekToken()</code> returns the token if it exists and never triggers anything. Presence calls the first, so authorization happens on the first real board. The share button calls the second, so pressing share can never be the thing that raises a prompt.</p>
+  </section>
+
+  <!-- 5 -->
+  <section id="s5">
+    <p class="eyebrow">Part 05</p>
+    <h2 class="head">The hop through our own server</h2>
+
+    <p>Discord's SDK hands the client an authorization <em>code</em>. Turning it into an access token requires the app's client secret, which must never reach a browser. The Worker performs that exchange, and returns one field.</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">// Only the token goes back — not the refresh token, scope echo or expiry,
+// none of which the Activity's `authenticate()` call has any use for.</span>
+return c.json({ accessToken });</code></pre></div>
+
+    <p>Four endpoints live on the Worker, and three of them share a contract: a deployment without Discord secrets answers <code>503</code> and runs the entire game without them.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Endpoint</th><th>Does</th><th>Stores</th></tr></thead>
+        <tbody>
+          <tr><td><code>POST /api/discord/token</code></td><td>Exchanges the code for an access token</td><td>Nothing</td></tr>
+          <tr><td><code>POST /api/discord/attachment</code></td><td>Forwards the score card to Discord's CDN</td><td>Nothing</td></tr>
+          <tr><td><code>POST /api/discord/interactions</code></td><td>Answers Discord's signed callbacks</td><td>A handle and a token, for 15 minutes</td></tr>
+          <tr><td><code>POST /api/discord/progress</code></td><td>Patches the live message</td><td>Nothing</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Both outbound calls log the response status and never the body, because a Discord error envelope can echo back the submitted code or the bearer token. The attachment route bounds the upload twice, once on the declared <code>Content-Length</code> and once on the blob it actually received, so a bad client cannot make the Worker hold an arbitrary payload in memory on its way to Discord.</p>
+
+    <p>The attachment route also carries no credentials of its own. It forwards the player's bearer, which is what makes the resulting attachment theirs to share.</p>
+  </section>
+
+  <!-- 6 -->
+  <section id="s6">
+    <p class="eyebrow">Part 06</p>
+    <h2 class="head">Presence: two lines that must never name the dish</h2>
+
+    <p>While someone plays, their Discord profile can show two lines under "Playing Lunch Special": which mode they are in, and how far through the six guesses they have got.</p>
+
+    <p>A profile is read by people who have not played today. Naming the dish would hand them the answer, which makes this a spoiler surface rather than a decoration. The copy is a pure fold in <code>shared/presence.ts</code>, and its test asserts that the fold's whole output space stays inside a character class no dish name can survive.</p>
+
+    <div class="note rule">
+      <span class="tag">The rule</span>
+      <p>A guess count says nothing about the dish, so progress is safe to publish. The answer, the guessed dishes and the clue text are not. The same rule governs the score card, and it is why the public API never leaks the target except through <code>/reveal</code>.</p>
+    </div>
+
+    <p>The client half owns one thing: the rate at which updates leave. Discord allows five <code>SET_ACTIVITY</code> calls per twenty seconds, so the module pushes at most one every four seconds. A round cannot change state that fast, but React effects can re-run, and a burst that trips the limit would drop the interesting update rather than the noise.</p>
+
+    <p>The throttle sends a trailing update instead of dropping one:</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">// A trailing update, not a dropped one: whatever `desired` holds when the
+// timer fires is what gets sent, so the newest state always wins.</span>
+if (timer === null) {
+  timer = setTimeout(() => { timer = null; flush(); }, wait);
+}</code></pre></div>
+
+    <p>A failed push clears the cached payload rather than latching it as sent, so the next state change retries the same content instead of skipping it.</p>
+
+    <p>One honesty detail sits in the fold. Discord can show an elapsed timer, and the presence carries a start time only while a round is live. A board restored from localStorage gets none, because that round began on a page load nobody has any record of, and a timer counting from the restore would measure the wrong thing.</p>
+  </section>
+
+  <!-- 7 -->
+  <section id="s7">
+    <p class="eyebrow">Part 07</p>
+    <h2 class="head">The live progress message</h2>
+
+    <p>On the player's first guess, the app posts one message into the channel they launched from: their name, their face, a picture of the board, and a <strong>Play now!</strong> button. Every guess after that edits the same message. The round ending flips its text to the past tense.</p>
+
+    <p>A whole round costs the channel one message rather than six, and anyone scrolling past sees a game in progress with a one-click way into their own.</p>
+
+    <figure>
+      <div class="figbody">
+        <svg viewBox="0 0 900 250" role="img" aria-label="Four hops: the client asks Discord to invoke the command, Discord posts a signed interaction, the Worker replies and banks the token, then the client patches the message">
+          <rect class="sv-box-hi" x="4" y="30" width="170" height="54" rx="4"/>
+          <text class="sv-label" x="89" y="52" text-anchor="middle">Activity (browser)</text>
+          <text class="sv-mono" x="89" y="70" text-anchor="middle">progress.ts</text>
+
+          <rect class="sv-box" x="365" y="30" width="170" height="54" rx="4"/>
+          <text class="sv-label" x="450" y="52" text-anchor="middle">Discord</text>
+          <text class="sv-mono" x="450" y="70" text-anchor="middle">CLIENT + API</text>
+
+          <rect class="sv-box" x="726" y="30" width="170" height="54" rx="4"/>
+          <text class="sv-label" x="811" y="52" text-anchor="middle">Worker</text>
+          <text class="sv-mono" x="811" y="70" text-anchor="middle">routes/discord.ts</text>
+
+          <path class="sv-line" d="M178 106 H360" stroke-width="1.5"/>
+          <path class="sv-fill-ink" d="M360 102 l10 4 -10 4 z"/>
+          <text class="sv-mono" x="182" y="100">1. shareInteraction({ command, handle, require_launch_channel })</text>
+
+          <path class="sv-line" d="M539 134 H722" stroke-width="1.5"/>
+          <path class="sv-fill-ink" d="M722 130 l10 4 -10 4 z"/>
+          <text class="sv-mono" x="543" y="128">2. signed interaction · the identity arrives HERE</text>
+
+          <path class="sv-line" d="M722 162 H539" stroke-width="1.5"/>
+          <path class="sv-fill-ink" d="M539 158 l-10 4 10 4 z"/>
+          <text class="sv-mono" x="543" y="156">3. reply: content + embed(name, face) + button</text>
+          <text class="sv-accent" x="543" y="180">THE WORKER BANKS THE INTERACTION TOKEN</text>
+
+          <path class="sv-line" d="M178 212 H722" stroke-width="1.5"/>
+          <path class="sv-fill-ink" d="M722 208 l10 4 -10 4 z"/>
+          <text class="sv-mono" x="182" y="206">4. POST /api/discord/progress · handle + PNG · repeated on every guess</text>
+          <text class="sv-accent" x="182" y="232">PATCHES content + attachments ONLY. NEVER embeds.</text>
+        </svg>
+      </div>
+      <figcaption>Creation is Discord-driven, editing is client-driven, and the two halves never exchange an identity.</figcaption>
+    </figure>
+
+    <h3>Why the message is created by Discord</h3>
+    <p>The client cannot post into a channel, and should not be able to. Instead it calls <code>shareInteraction</code>, which asks Discord to invoke the app's own registered command. Discord then sends a signed interaction to the Worker, and the Worker's reply becomes the message.</p>
+
+    <p>The player's name and face arrive on that signed payload. A player cannot make the app announce somebody else, because the only identity in the flow is the one Discord vouched for.</p>
+
+    <h3>Why the edits never re-send embeds</h3>
+    <p>Discord replaces embeds wholesale on a patch. Keeping the author line means writing it once at creation and never touching it again, so the edit sends <code>content</code> and <code>attachments</code> and nothing else. That decision is what keeps the database table down to three columns:</p>
+
+    <div class="codewrap"><pre><code>CREATE TABLE IF NOT EXISTS discord_messages (
+  handle            TEXT PRIMARY KEY,
+  interaction_token TEXT NOT NULL,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now'))
+);</code></pre></div>
+
+    <p>No user id, no username, no avatar, no channel, no guild, no image. Read that table cold and it tells you nothing about anybody: a random handle, a credential Discord kills after 15 minutes, and a timestamp. Putting the name in <code>content</code> instead of the embed would force the app to store it.</p>
+
+    <h3>The handle</h3>
+    <p>Sixteen bytes of hex, minted in the browser, meaningless anywhere else. Not the user id and not the channel id. Rows get swept by age on write, because they expire on Discord's clock rather than ours and there is no state worth a scheduled job.</p>
+
+    <h3>Verify the signature or answer nothing</h3>
+    <p>The interactions endpoint is a public URL that posts messages into people's servers as this app. One check stands between those two facts, and it runs against the raw request body:</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">// The RAW body: Discord signs the exact bytes it sent, so re-serializing the
+// parsed object would change the signed message and fail every request.</span>
+const body = await c.req.text();</code></pre></div>
+
+    <p>Re-serializing parsed JSON changes key order, whitespace and number formatting, and every request fails. The verifier never throws: a malformed header, a wrong-length key and a runtime without Ed25519 all return false, which is the same answer as a forgery.</p>
+
+    <p>Discord validates a newly-saved endpoint by sending a deliberately bad signature and requiring a 401. A 401 during setup means the check works.</p>
+
+    <h3>The avatar nobody stores</h3>
+    <p><code>worker/avatar.ts</code> builds a URL and hands it to Discord, which fetches the picture itself. No avatar bytes pass through the app. Two details in that small file earn their tests: an animated avatar hash starts <code>a_</code> and has to be requested as a GIF, and a user with no avatar gets a stock face indexed by <code>(id &gt;&gt; 22) % 6</code> in BigInt. Doing that shift in <code>Number</code> rounds the snowflake and lands everyone on the same one or two faces.</p>
+
+    <h3>Trailing, not queued</h3>
+    <p>The client sends one update at a time and keeps only the newest pending state. Three guesses landing during an upload should show the third, since the message displays a position and only the latest one is true.</p>
+
+    <p>A <code>410</code> from the Worker means Discord expired the token, which is the ordinary end of a long round. The loop retires without a word.</p>
+  </section>
+
+  <!-- 8 -->
+  <section id="s8">
+    <p class="eyebrow">Part 08</p>
+    <h2 class="head">Posting the check to the channel</h2>
+
+    <p>On the web, sharing a finished round copies text or opens the share sheet. Inside the Activity it used to mean copying text and asking the player to go and paste it: leave the game, find the message box, paste. Three steps on the one action a daily puzzle spreads by.</p>
+
+    <p>The native path replaces those with a dialog, in three hops:</p>
+
+    <ol>
+      <li><strong>Draw the card</strong> as a PNG, from a pure fold in <code>shared/scorecard.ts</code> rendered by a canvas module that loads dynamically.</li>
+      <li><strong>Upload it</strong> through the Worker to Discord's attachment endpoint.</li>
+      <li><strong>Open the dialog</strong> with <code>openShareMomentDialog({ mediaUrl })</code>.</li>
+    </ol>
+
+    <p>The dialog takes a Discord CDN URL and nothing else, which is why the result travels as a picture rather than as the emoji grid.</p>
+
+    <p>Two details in the drawing keep the image alive longer than the code around it. Tiles are drawn as rectangles rather than emoji, and the palette is hard-coded from <code>base.css</code> instead of read at draw time. A card posted last month should not change when the stylesheet does.</p>
+
+    <div class="note">
+      <span class="tag">The safety argument</span>
+      <p><code>shareToChannel()</code> never throws and returns a boolean. On false the caller copies the text instead, which is what Discord players had before this existed. Trying and failing is never worse than not trying, and that property is the entire reason the feature is allowed to be this complicated.</p>
+    </div>
+
+    <p>The clipboard fallback has its own wrinkle. <code>navigator.clipboard</code> sits behind a permissions policy Discord's iframe does not grant, so the modern API alone rejects there. <code>copyShareText()</code> falls back to a hidden textarea and <code>document.execCommand("copy")</code>, returns a boolean, and the button shows a retry label on false.</p>
+
+    <p>One thing the return value deliberately does not distinguish: a player who opens the dialog and closes it without posting counts as a success. They were offered the choice, and stuffing their clipboard after they declined would second-guess an answer they already gave.</p>
+  </section>
+
+  <!-- 9 -->
+  <section id="s9">
+    <p class="eyebrow">Part 09</p>
+    <h2 class="head">The room the game is in</h2>
+
+    <p>Three small features make the Activity feel like an Activity. None takes an OAuth scope, and all three are no-ops on the open web.</p>
+
+    <h3>The invite button</h3>
+    <p>It appears in the check's footer, and hides when <code>sdk.guildId</code> is null, since DMs have nothing to invite anyone to. The documented approach checks <code>CREATE_INSTANT_INVITE</code> first, which costs a <code>guilds.members.read</code> scope. The code calls the dialog and swallows the refusal instead. Being wrong produces a dialog that does not open, which is what the check would have produced anyway, for the price of a third line on the consent sheet.</p>
+
+    <h3>"3 others are at the counter"</h3>
+    <p>Discord reports who is connected to this Activity instance, and the payload carries usernames, avatars and nicknames. One number leaves the module:</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">/**
+ * **The count is all that ever leaves this module.** Discord's payload carries
+ * full user objects — usernames, avatars, nicknames — and reading any of them
+ * would put identity into a game that deliberately has none. `.length` says the
+ * diner is busy without saying who's in it.
+ */</span></code></pre></div>
+
+    <p>You get subtracted from the count, and the bar hides at zero.</p>
+
+    <h3>Picture-in-picture</h3>
+    <p>Discord can draw the Activity as a small floating tile. The layout mode gets stamped onto <code>&lt;html data-discord-layout="pip"&gt;</code> and the stylesheet does the rest: the marquee, the header, the clue tickets and the footer all disappear, and the blurred diner backdrop goes with them, since two fixed full-viewport layers with a blur filter is the most expensive thing on the page and none of it is visible behind a card that now covers the tile.</p>
+
+    <p>An attribute rather than React state, because picture-in-picture is a property of the window rather than of the round, and a player can flip it back a second later. Scoped to the attribute rather than to a width query, because a floating tile and a narrow phone share a width and share nothing else.</p>
+
+    <p>Mobile clients also get a portrait lock on handshake. The board is a portrait menu card laid out for 375 pixels; rotating a phone hands it a viewport a few hundred pixels tall, where the check barely fits. Every other surface lets the player choose that. The Activity is the one place the app can decline.</p>
+  </section>
+
+  <!-- 10 -->
+  <section id="s10">
+    <p class="eyebrow">Part 10</p>
+    <h2 class="head">Failing in silence, on purpose</h2>
+
+    <p>One sentence governs every module in this directory: a round must play identically whether or not any of this works. The code enforces it in four ways.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Pattern</th><th>Where</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td>Nothing is awaited by the game</td><td>Presence, progress, social</td><td>A hung Discord call cannot stall a guess</td></tr>
+          <tr><td>Nothing throws</td><td>Share, progress, invite</td><td>The caller gets false and takes the other path</td></tr>
+          <tr><td>Failure is sticky</td><td>Progress, authorization</td><td>One failure retires the loop rather than retrying into a rate limit</td></tr>
+          <tr><td>503 for unconfigured</td><td>Three Worker routes</td><td>A deployment with no Discord secrets runs the whole game</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Silent failure creates its own problem: this flow only reproduces inside the real Discord client, where "the share button did nothing" is unbisectable. So each multi-hop function tracks which hop it is on and names that hop in the warning.</p>
+
+    <div class="codewrap"><pre><code>let step = "draw";
+try {
+  <span class="cmt">// ... draw the card</span>
+  step = "upload";
+  <span class="cmt">// ... POST to /api/discord/attachment</span>
+  step = "share dialog";
+  <span class="cmt">// ... openShareMomentDialog</span>
+} catch (err) {
+  console.warn(`[discord] native share unavailable (failed at: ${step}) — falling back to the clipboard:`, err);
+  return false;
+}</code></pre></div>
+
+    <p>Three words in a console line turn an unreproducible bug report into a bisected one.</p>
+
+    <p>Two more constraints hold across the surface. Preview and playtest modes publish nothing, gated on the same <code>tracked</code> flag the analytics beacons use, because an admin rehearsing tomorrow's board is nobody's round and has no business in a channel. And a board restored from localStorage publishes on mount, which is why <code>resetProgress()</code> is declared above the publisher in <code>GamePage</code>: effects fire in order, and resetting afterwards would orphan that first post.</p>
+
+    <p>The footer's side pages stay plain same-origin links with no <code>target="_blank"</code>. They navigate the iframe, Discord's proxy serves them, and each carries its own way back to the diner. <code>openExternalLink</code> was tried and does not apply, because the game has no outbound links at all.</p>
+  </section>
+
+  <!-- 11 -->
+  <section id="s11">
+    <p class="eyebrow">Part 11</p>
+    <h2 class="head">What transfers to your next embed</h2>
+
+    <ol>
+      <li><strong>Stay self-contained and the embed comes free.</strong> Relative API paths, self-hosted assets and one origin cost nothing on the open web and remove every proxy question inside somebody else's client.</li>
+      <li><strong>Separate "when do I render" from "when do I have the SDK".</strong> Racing a handshake to protect the mount is right. Attaching features to the race's winner is how a feature dies in silence.</li>
+      <li><strong>Ask for the fewest scopes, and prove the number.</strong> Cut one, watch what breaks, write down the result next to the list.</li>
+      <li><strong>Let the platform hold the identity.</strong> Reading the name off a signed payload, writing it once and never re-sending it is what keeps a table down to three anonymous columns.</li>
+      <li><strong>Name the hop in the log line.</strong> Any flow you cannot reproduce locally needs to say where it stopped.</li>
+      <li><strong>Give every optional feature a fallback that already works.</strong> The clipboard is what the native share is allowed to fail into, which is why the native share is allowed to exist.</li>
+    </ol>
+
+    <p>The measurement side of the same surface is covered in <a href="analytics-pipeline.html">Analytics Beacon Pipeline</a>, and the panels reading it in <a href="admin-dashboard.html">Admin Analytics Dashboard</a>.</p>
+  </section>
+
+  <footer class="end">
+    <p style="margin:0 0 10px"><a href="../index.html">&larr; Back to the project breakdown</a></p>
+    Lunch Special · Discord Activity walkthrough · client in <code>src/discord/</code>, server in <code>worker/routes/discord.ts</code>, copy folds in <code>shared/presence.ts</code> and <code>shared/scorecard.ts</code>
+  </footer>
+
+</div>
+</body>
+</html>

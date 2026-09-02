@@ -1,0 +1,1131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="description" content="How Lunch Special measures itself: anonymous beacons from the browser to the admin dashboard, and the rules that keep the numbers honest.">
+<title>Analytics Beacon Pipeline</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=Yellowtail&display=swap">
+
+<style>
+  :root {
+    color-scheme: light;
+    --ground: #fbf4e0;
+    --card: #f6edd9;
+    --card-2: #efe3c4;
+    --edge: #ded0ac;
+    --edge-soft: #e9dcbc;
+    --ink: #2b2320;
+    --ink-soft: #5b4f45;
+    --ink-faint: #8b7f70;
+    --teal: #1b4f4a;
+    --teal-wash: #e2ece7;
+    /* Masthead panel. Its own tokens, never reused for text: this is a dark
+       band in BOTH themes, so it must not borrow a token whose job flips. */
+    --mast-bg: #123833;
+    --mast-fg: #fbf3df;
+    --mast-sub: #d8cdb0;
+    --mast-meta: #b8ab8b;
+    --mast-rule: rgba(232, 165, 58, .45);
+    --cherry: #a52436;
+    --cherry-wash: #f6e2e2;
+    --mustard: #e8a53a;
+    --mustard-ink: #8a5a12;
+    --mustard-wash: #f8ecd2;
+    --code-bg: #efe6cd;
+    --shadow: 0 1px 0 rgba(43,35,32,.06), 0 10px 28px rgba(43,35,32,.07);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #141a19;
+      --card: #1b2321;
+      --card-2: #212b28;
+      --edge: #33403c;
+      --edge-soft: #2a3532;
+      --ink: #ece2cd;
+      --ink-soft: #b7ab97;
+      --ink-faint: #8a8073;
+      --teal: #7fc4b4;
+      --mast-bg: #0f1918;
+      --mast-fg: #ece2cd;
+      --mast-sub: #b3a893;
+      --mast-meta: #8a8073;
+      --mast-rule: rgba(232, 165, 58, .35);
+      --teal-wash: #1c2b28;
+      --cherry: #f08a97;
+      --cherry-wash: #2e1e21;
+      --mustard: #e8a53a;
+      --mustard-ink: #e6b660;
+      --mustard-wash: #2b2519;
+      --code-bg: #101615;
+      --shadow: 0 1px 0 rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.35);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #141a19;
+    --card: #1b2321;
+    --card-2: #212b28;
+    --edge: #33403c;
+    --edge-soft: #2a3532;
+    --ink: #ece2cd;
+    --ink-soft: #b7ab97;
+    --ink-faint: #8a8073;
+    --teal: #7fc4b4;
+    --mast-bg: #0f1918;
+    --mast-fg: #ece2cd;
+    --mast-sub: #b3a893;
+    --mast-meta: #8a8073;
+    --mast-rule: rgba(232, 165, 58, .35);
+    --teal-wash: #1c2b28;
+    --cherry: #f08a97;
+    --cherry-wash: #2e1e21;
+    --mustard: #e8a53a;
+    --mustard-ink: #e6b660;
+    --mustard-wash: #2b2519;
+    --code-bg: #101615;
+    --shadow: 0 1px 0 rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.35);
+  }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .page { max-width: 820px; margin: 0 auto; padding: 0 22px 96px; }
+
+  /* ---------- masthead ---------- */
+  .mast {
+    background: var(--mast-bg);
+    color: var(--mast-fg);
+    margin: 0 -22px 40px;
+    padding: 54px 22px 40px;
+    border-bottom: 6px solid var(--mustard);
+  }
+  .mast-inner { max-width: 820px; margin: 0 auto; }
+  .mast .kicker {
+    font-family: "Yellowtail", "Brush Script MT", cursive;
+    font-size: 1.6rem;
+    color: var(--mustard);
+    margin: 0 0 4px;
+    line-height: 1;
+  }
+  .mast h1 {
+    font-family: "Bitter", Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(2.1rem, 6.2vw, 3.1rem);
+    line-height: 1.12;
+    margin: 0 0 18px;
+    text-wrap: balance;
+    letter-spacing: -0.015em;
+  }
+  .mast p { margin: 0; max-width: 58ch; color: var(--mast-sub); }
+  .mast .stamp {
+    display: inline-block;
+    margin-top: 22px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .7rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--mast-meta);
+    border-top: 1px solid var(--mast-rule);
+    padding-top: 10px;
+  }
+
+  /* ---------- contents ---------- */
+  .toc {
+    background: var(--card);
+    border: 1px solid var(--edge);
+    border-radius: 4px;
+    padding: 20px 22px;
+    margin-bottom: 52px;
+    box-shadow: var(--shadow);
+  }
+  .toc h2 {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .72rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+  .toc ol { margin: 0; padding: 0; list-style: none; counter-reset: toc; display: grid; gap: 2px; }
+  .toc li { counter-increment: toc; }
+  .toc a {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    padding: 5px 0;
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px dotted transparent;
+  }
+  .toc a:hover { border-bottom-color: var(--edge); }
+  .toc a::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .78rem;
+    color: var(--mustard-ink);
+    min-width: 2.1em;
+  }
+
+  /* ---------- sections ---------- */
+  section { margin-bottom: 60px; scroll-margin-top: 18px; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .7rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--mustard-ink);
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+  h2.head {
+    font-family: "Bitter", Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(1.42rem, 3.3vw, 1.78rem);
+    line-height: 1.26;
+    letter-spacing: -0.012em;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+  h3 {
+    font-family: Georgia, serif;
+    font-size: 1.16rem;
+    font-weight: 700;
+    margin: 34px 0 10px;
+    color: var(--ink);
+  }
+  h4 {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .78rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 26px 0 8px;
+    font-weight: 600;
+  }
+  p { margin: 0 0 16px; }
+  section > p, section > ul, section > ol { max-width: 68ch; }
+  strong { font-weight: 700; }
+  em { font-style: italic; }
+  a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  ul, ol { margin: 0 0 16px; padding-left: 1.3em; }
+  li { margin-bottom: 7px; }
+  hr { border: 0; border-top: 1px solid var(--edge); margin: 40px 0; }
+
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .84em;
+    background: var(--code-bg);
+    border: 1px solid var(--edge-soft);
+    border-radius: 3px;
+    padding: 1px 5px;
+    word-break: break-word;
+  }
+  .codewrap { overflow-x: auto; margin: 0 0 20px; border-radius: 4px; border: 1px solid var(--edge); background: var(--code-bg); }
+  pre { margin: 0; padding: 16px 18px; }
+  pre code {
+    background: none; border: 0; padding: 0; font-size: .8rem; line-height: 1.62;
+    white-space: pre; display: block; color: var(--ink);
+  }
+  .cmt { color: var(--ink-faint); font-style: italic; }
+  .kw { color: var(--cherry); }
+
+  /* ---------- callouts ---------- */
+  .note {
+    border-left: 3px solid var(--teal);
+    background: var(--teal-wash);
+    padding: 14px 18px;
+    margin: 0 0 22px;
+    border-radius: 0 4px 4px 0;
+  }
+  .note.trap { border-left-color: var(--cherry); background: var(--cherry-wash); }
+  .note.rule { border-left-color: var(--mustard); background: var(--mustard-wash); }
+  .note p:last-child { margin-bottom: 0; }
+  .note .tag {
+    display: block;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .68rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--teal);
+  }
+  .note.trap .tag { color: var(--cherry); }
+  .note.rule .tag { color: var(--mustard-ink); }
+
+  /* ---------- tables ---------- */
+  .tablewrap { overflow-x: auto; margin: 0 0 24px; border: 1px solid var(--edge); border-radius: 4px; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; font-size: .89rem; min-width: 520px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--edge-soft); vertical-align: top; }
+  thead th {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .68rem;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--card-2);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td code { white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---------- figure ---------- */
+  figure { margin: 0 0 26px; }
+  .figbody {
+    overflow-x: auto;
+    background: var(--card);
+    border: 1px solid var(--edge);
+    border-radius: 4px;
+    padding: 20px;
+  }
+  figure svg { display: block; width: 100%; min-width: 560px; height: auto; }
+  figcaption {
+    font-size: .82rem;
+    color: var(--ink-soft);
+    margin-top: 8px;
+    font-style: italic;
+  }
+  .sv-box { fill: var(--card-2); stroke: var(--edge); }
+  .sv-box-hi { fill: var(--teal-wash); stroke: var(--teal); }
+  .sv-label { fill: var(--ink); font-family: Georgia, serif; font-size: 13px; }
+  .sv-mono { fill: var(--ink-soft); font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .06em; }
+  .sv-accent { fill: var(--mustard-ink); font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .08em; }
+  .sv-line { stroke: var(--ink-faint); fill: none; }
+  .sv-fill-ink { fill: var(--ink-faint); }
+
+  /* ---------- lifecycle grid ---------- */
+  .life { display: grid; gap: 12px; margin-bottom: 24px; }
+  @media (min-width: 680px) { .life { grid-template-columns: repeat(3, 1fr); } }
+  .life .step {
+    background: var(--card);
+    border: 1px solid var(--edge);
+    border-top: 3px solid var(--teal);
+    border-radius: 3px;
+    padding: 14px 16px;
+  }
+  .life .step:nth-child(2) { border-top-color: var(--cherry); }
+  .life .step:nth-child(3) { border-top-color: var(--mustard); }
+  .life .step h5 {
+    margin: 0 0 8px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .78rem;
+    letter-spacing: .05em;
+    color: var(--ink);
+  }
+  .life .step p { font-size: .86rem; margin: 0 0 8px; color: var(--ink-soft); }
+  .life .step ul { font-size: .82rem; margin: 0; padding-left: 1.1em; color: var(--ink-soft); }
+
+  .lede {
+    font-size: 1.06rem;
+    color: var(--ink-soft);
+  }
+
+  footer.end {
+    border-top: 1px solid var(--edge);
+    padding-top: 20px;
+    font-size: .84rem;
+    color: var(--ink-faint);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    letter-spacing: .04em;
+  }
+
+  a:focus-visible, .toc a:focus-visible {
+    outline: 3px solid var(--mustard);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<style>
+  /* Reset the artifact host normally provides. */
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header class="mast">
+  <div class="mast-inner">
+    <p class="kicker">Lunch Special</p>
+    <h1>Analytics Beacon Pipeline</h1>
+    <p>How the game learns anything about the people playing it: what a beacon is, where it goes, what gets written down, and the rules that stop the numbers from lying.</p>
+    <p class="stamp">Technical reference &nbsp;·&nbsp; 13 parts</p>
+  </div>
+</header>
+
+<div class="page">
+
+  <nav class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#s1">The problem: measuring a game with no accounts</a></li>
+      <li><a href="#s2">The five nouns everything is built from</a></li>
+      <li><a href="#s3">What a beacon actually is</a></li>
+      <li><a href="#s4">The seven beacons, one by one</a></li>
+      <li><a href="#s5">Why the URLs are so boring</a></li>
+      <li><a href="#s6">The trust boundary: who is allowed to say what</a></li>
+      <li><a href="#s7">Where it lands: three tables and an upsert</a></li>
+      <li><a href="#s8">Two ledgers: sending versus counting</a></li>
+      <li><a href="#s9">Time: stored in UTC, true in New York</a></li>
+      <li><a href="#s10">The read path: query, fold, render</a></li>
+      <li><a href="#s11">The honesty rules</a></li>
+      <li><a href="#s12">How it breaks, and how you'd notice</a></li>
+      <li><a href="#s13">Tracing one round end to end</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1 -->
+  <section id="s1">
+    <p class="eyebrow">Part 01</p>
+    <h2 class="head">The problem: measuring a game with no accounts</h2>
+
+    <p class="lede">Every analytics system answers the same question first: <em>what is the thing I am counting?</em> Lunch Special answers it under a hard constraint. There are no accounts, no logins, no email addresses, no user table. Nobody signs up. So there is no such thing as a "user" in this system, and pretending otherwise would be the first lie.</p>
+
+    <p>What exists instead are three countable units, and almost every argument in the rest of this document is really an argument about which of the three a given number should use.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Unit</th><th>What it is</th><th>Identified by</th><th>Honest name</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Round</strong></td>
+            <td>One game board being played. Opened, guessed at, finished or abandoned.</td>
+            <td>A random id minted when the board resolves</td>
+            <td>"games"</td>
+          </tr>
+          <tr>
+            <td><strong>Device</strong></td>
+            <td>One browser profile on one machine. Your phone and your laptop are two.</td>
+            <td>A random UUID kept in <code>localStorage</code></td>
+            <td>"devices", loosely "players"</td>
+          </tr>
+          <tr>
+            <td><strong>Visit</strong></td>
+            <td>One device showing up on one calendar day. Four boards in a morning is still one visit.</td>
+            <td>The pair (day, device)</td>
+            <td>"arrivals" or "visitors"</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>A device is not a person. Somebody who plays on their phone in the morning and their laptop at lunch is two devices forever, and there is no way to know that from inside this system. Somebody who clears their browser data becomes a brand new device with no history. Those are real limitations, not bugs, and the dashboard's job is to say "devices" where it means devices rather than quietly upgrading the word to "people".</p>
+
+    <div class="note rule">
+      <span class="tag">The governing rule</span>
+      <p>Count the right unit, and name it. The player funnel counts <strong>devices</strong> at every stage. The finish-rate chart counts <strong>games</strong>. They sit on different tabs on purpose and are never merged, because a device that plays the Special plus three archive rounds is one arrival and four games, and stacking those two numbers in one chart makes the bars grow as they go down.</p>
+    </div>
+
+    <p>Everything the game knows is assembled from those three units plus a handful of tags, and all of it arrives by one mechanism: a small message the browser throws at the server and immediately forgets about. That message is a beacon.</p>
+  </section>
+
+  <!-- 2 -->
+  <section id="s2">
+    <p class="eyebrow">Part 02</p>
+    <h2 class="head">The five nouns everything is built from</h2>
+
+    <p>Before the plumbing, the vocabulary. Five values ride on beacons, and every number on the dashboard is some combination of them. Where each one is <em>minted</em> matters enormously, because it determines who is allowed to lie about it.</p>
+
+    <h3>1. <code>player_id</code> — the device</h3>
+    <p>A random UUID generated in the browser the first time it is needed, then kept forever in <code>localStorage</code> under <code>lunch-special:player</code>.</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">// src/game/storage.ts</span>
+export function getPlayerId(): string {
+  try {
+    const existing = localStorage.getItem(PLAYER_KEY);
+    if (existing) return existing;
+    const id = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(PLAYER_KEY, id);
+    return id;
+  } catch {
+    <span class="cmt">// Storage blocked (private mode) — an ephemeral id, so the beacon</span>
+    <span class="cmt">// still has a shape; it just won't survive the session.</span>
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+}</code></pre></div>
+
+    <p>Two details that look small and are not. First, it is generated <em>lazily</em>: the id does not exist until something needs it. Second, there is a sibling function, <code>peekPlayerId()</code>, which reads the id but never creates one. The admin dashboard uses the peek version, because merely opening the dashboard should not mint a device id that then appears in exactly zero rows of data. The mute button uses it too: reaching for the volume must not be the event that brings a device into existence.</p>
+
+    <h3>2. <code>round_id</code> — the game</h3>
+    <p>Also a random UUID, minted in the browser when a playable board resolves. Its entire job is to be the same string across three separate network requests, so that the "you started" message, the "you finished" message and the "you shared" message can be recognised as being about one game. It is stored alongside the round in <code>localStorage</code>, so a player who closes the tab mid-round and comes back tomorrow still completes the same round they started.</p>
+
+    <h3>3. <code>kind</code> — which mode</h3>
+    <p>One of three: <code>daily</code> (today's Special), <code>leftover</code> (an archive replay of an old puzzle) or <code>random</code> (Chef's Choice, a random dish). This is what stops a burst of archive replays from being read as a great day for the Special.</p>
+
+    <p>Two further modes exist and deliberately record <em>nothing</em>: admin preview and dev playtest. In the code they are excluded by a single boolean:</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">// src/game/GamePage.tsx</span>
+const tracked = !isPreview &amp;&amp; !playtest;</code></pre></div>
+
+    <p>Every beacon call site is gated on that one flag. It is why the admin dashboard links to a preview token rather than to the live game: an admin testing tomorrow's board must not move today's numbers.</p>
+
+    <h3>4. <code>surface</code> — web or Discord</h3>
+    <p>The game also runs embedded inside Discord as an Activity. Discord adds a <code>frame_id</code> query parameter to the iframe URL, and that parameter's presence is the whole detection mechanism.</p>
+
+    <div class="note trap">
+      <span class="tag">A bug worth understanding</span>
+      <p>The game has no router. Switching modes navigates by assigning a fresh URL, which wipes the query string. So inside Discord, the first board logged as <code>discord</code> and every board after it logged as <code>web</code>, because <code>frame_id</code> was gone. The fix is to capture Discord's parameters into <code>sessionStorage</code> on the first load of the tab and re-attach them to every internal navigation. The arrival-source capture in the next item has exactly the same problem and is solved exactly the same way, on purpose.</p>
+    </div>
+
+    <h3>5. <code>source</code> — where they came from</h3>
+    <p>The <code>utm_source</code> on the landing URL: <code>reddit</code>, <code>newsletter</code>, and so on. Read once at module load, stashed in <code>sessionStorage</code>, and attached to the arrival beacon.</p>
+
+    <p><code>sessionStorage</code> rather than <code>localStorage</code> is a deliberate and important choice. An arrival source describes <em>this arrival</em>. Persisting it would re-attribute every future visit from that browser to an ad clicked once, weeks ago, and a campaign would look like it was still working long after it stopped.</p>
+
+    <p>Two more values ride along that the client never sends at all — the country and the calendar day. Both are stamped by the server, for reasons covered in Part 06.</p>
+  </section>
+
+  <!-- 3 -->
+  <section id="s3">
+    <p class="eyebrow">Part 03</p>
+    <h2 class="head">What a beacon actually is</h2>
+
+    <p>Strip away the vocabulary and a beacon is nine lines of code. This is the whole transport layer:</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">// src/api.ts</span>
+function beacon(path: string, body: unknown): void {
+  try {
+    void fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      keepalive: true,
+    }).catch(() =&gt; {});
+  } catch {
+    <span class="cmt">// analytics must never break the game</span>
+  }
+}</code></pre></div>
+
+    <p>Four properties are doing all the work here, and each one has consequences that show up hundreds of lines away.</p>
+
+    <h4>It returns <code>void</code></h4>
+    <p>Not a promise. There is nothing to <code>await</code>, which means no call site can accidentally make a player wait on it. The guess flow submits the guess, updates the board, and throws a beacon over its shoulder on the way past.</p>
+
+    <h4>It swallows every error, twice</h4>
+    <p>The <code>.catch(() =&gt; {})</code> handles a rejected request (offline, DNS failure, an ad blocker cancelling it). The outer <code>try/catch</code> handles the case where <code>fetch</code> itself throws before returning a promise. A failed beacon produces no console error, no retry, no user-visible anything. That is the correct behaviour for analytics and it is also the source of the single hardest problem in this whole system, which Part 05 is about.</p>
+
+    <h4><code>keepalive: true</code></h4>
+    <p>This is the flag that lets the request outlive the page. Without it, a browser cancels in-flight requests when the tab closes, and the "you finished the game" beacon fired half a second before someone closes the tab would frequently die in transit. With it, the browser promises to finish sending even if the document goes away.</p>
+
+    <h4>It sends JSON in the body, not parameters in the URL</h4>
+    <p>Partly hygiene, partly evasion. Content blockers match on URL <em>shapes</em>, and <code>?utm_source=</code> in a request URL is a shape some of them strip. A stripped parameter would quietly relabel paid traffic as organic, which is worse than losing the request outright, because it is a wrong answer rather than a missing one.</p>
+
+    <figure>
+      <div class="figbody">
+        <svg viewBox="0 0 900 210" role="img" aria-label="Five stages: browser, worker route, D1 database, pure fold modules, admin dashboard">
+          <rect class="sv-box-hi" x="4" y="46" width="150" height="76" rx="4"/>
+          <text class="sv-label" x="79" y="76" text-anchor="middle">Browser</text>
+          <text class="sv-mono" x="79" y="95" text-anchor="middle">GamePage.tsx</text>
+          <text class="sv-mono" x="79" y="109" text-anchor="middle">api.ts</text>
+          <text class="sv-accent" x="79" y="142" text-anchor="middle">MINTS IDS</text>
+          <text class="sv-accent" x="79" y="156" text-anchor="middle">FIRE + FORGET</text>
+
+          <path class="sv-line" d="M158 84 H196" stroke-width="1.5"/>
+          <path class="sv-fill-ink" d="M196 80 l10 4 -10 4 z"/>
+          <text class="sv-mono" x="177" y="74" text-anchor="middle">POST</text>
+
+          <rect class="sv-box" x="210" y="46" width="150" height="76" rx="4"/>
+          <text class="sv-label" x="285" y="76" text-anchor="middle">Worker route</text>
+          <text class="sv-mono" x="285" y="95" text-anchor="middle">routes/</text>
+          <text class="sv-mono" x="285" y="109" text-anchor="middle">analytics.ts</text>
+          <text class="sv-accent" x="285" y="142" text-anchor="middle">VALIDATES</text>
+          <text class="sv-accent" x="285" y="156" text-anchor="middle">STAMPS DAY + COUNTRY</text>
+
+          <path class="sv-line" d="M364 84 H402" stroke-width="1.5"/>
+          <path class="sv-fill-ink" d="M402 80 l10 4 -10 4 z"/>
+          <text class="sv-mono" x="383" y="74" text-anchor="middle">UPSERT</text>
+
+          <rect class="sv-box" x="416" y="46" width="150" height="76" rx="4"/>
+          <text class="sv-label" x="491" y="76" text-anchor="middle">D1 (SQLite)</text>
+          <text class="sv-mono" x="491" y="95" text-anchor="middle">analytics_rounds</text>
+          <text class="sv-mono" x="491" y="109" text-anchor="middle">analytics_visits</text>
+          <text class="sv-accent" x="491" y="142" text-anchor="middle">THE ONLY COPY</text>
+
+          <path class="sv-line" d="M570 84 H608" stroke-width="1.5"/>
+          <path class="sv-fill-ink" d="M608 80 l10 4 -10 4 z"/>
+          <text class="sv-mono" x="589" y="74" text-anchor="middle">SELECT</text>
+
+          <rect class="sv-box" x="622" y="46" width="128" height="76" rx="4"/>
+          <text class="sv-label" x="686" y="76" text-anchor="middle">Pure folds</text>
+          <text class="sv-mono" x="686" y="95" text-anchor="middle">funnel.ts</text>
+          <text class="sv-mono" x="686" y="109" text-anchor="middle">service.ts …</text>
+          <text class="sv-accent" x="686" y="142" text-anchor="middle">UNIT TESTED</text>
+
+          <path class="sv-line" d="M754 84 H786" stroke-width="1.5"/>
+          <path class="sv-fill-ink" d="M786 80 l10 4 -10 4 z"/>
+
+          <rect class="sv-box-hi" x="800" y="46" width="96" height="76" rx="4"/>
+          <text class="sv-label" x="848" y="80" text-anchor="middle">Dashboard</text>
+          <text class="sv-mono" x="848" y="99" text-anchor="middle">6 tabs</text>
+
+          <text class="sv-mono" x="4" y="24">ONE WAY. NOTHING EVER TRAVELS BACK.</text>
+        </svg>
+      </div>
+      <figcaption>The whole pipeline. Every number in the admin dashboard is somewhere on this line.</figcaption>
+    </figure>
+  </section>
+
+  <!-- 4 -->
+  <section id="s4">
+    <p class="eyebrow">Part 04</p>
+    <h2 class="head">The seven beacons, one by one</h2>
+
+    <p>Five of them are about rounds, two are not. Here they are as a set, then in detail.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Path</th><th>Fires when</th><th>Carries</th><th>Writes to</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>/api/rounds/seated</code></td>
+            <td>A real playable board is ready</td>
+            <td>device, surface, source</td>
+            <td><code>analytics_visits</code></td>
+          </tr>
+          <tr>
+            <td><code>/api/rounds/start</code></td>
+            <td>The <em>first guess</em> is submitted</td>
+            <td>round, puzzle no., date, kind, surface, device, seed</td>
+            <td><code>analytics_rounds</code></td>
+          </tr>
+          <tr>
+            <td><code>/api/rounds/complete</code></td>
+            <td>The round ends, won or lost</td>
+            <td>round, guess count, solved</td>
+            <td><code>analytics_rounds</code></td>
+          </tr>
+          <tr>
+            <td><code>/api/rounds/share</code></td>
+            <td>The share button succeeds</td>
+            <td>round, puzzle no., date, kind, surface</td>
+            <td><code>analytics_rounds</code></td>
+          </tr>
+          <tr>
+            <td><code>/api/rounds/sound</code></td>
+            <td>The mute button is pressed</td>
+            <td>device, surface, muted, toggle count</td>
+            <td><code>sound_prefs</code></td>
+          </tr>
+          <tr>
+            <td><code>/api/announcements/seen</code></td>
+            <td>A notice is <em>displayed</em></td>
+            <td>notice id, device, surface</td>
+            <td><code>announcement_views</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Seated: the top of the funnel</h3>
+    <p>This one exists because of a gap. A round counts as "started" on the first submitted guess, which is the right definition — opening a page is not playing a game. But the cost of that definition is that everyone who loads the game and never guesses was completely invisible. The widest number the dashboard had was "games started", with nothing above it, so the most natural question anyone can ask about a change ("did it make more visitors actually play?") could not be asked at all. A change that doubled interest while halving conversion looked identical to no change.</p>
+
+    <p>So <code>/seated</code> fires on the board being ready. A guest is seated before they order. It carries only a device id, a surface and an arrival source, and notably <strong>no date</strong>: a visit belongs to the day it happened on, and the client has no authority over what day it is.</p>
+
+    <h3>Start, complete and share: three messages, one row</h3>
+    <p>These three share a <code>round_id</code> and progressively fill in the same database row. This is the single most important mechanic in the storage layer, so it gets its own diagram:</p>
+
+    <div class="life">
+      <div class="step">
+        <h5>POST /start</h5>
+        <p>On guess #1. Creates the row.</p>
+        <ul>
+          <li>Sets kind, surface, country, device, dish</li>
+          <li><code>ON CONFLICT DO NOTHING</code></li>
+          <li>The only beacon that binds a device</li>
+        </ul>
+      </div>
+      <div class="step">
+        <h5>POST /complete</h5>
+        <p>On win or loss. Updates the row.</p>
+        <ul>
+          <li>Sets guesses, solved, completed</li>
+          <li>Creates the row if start was lost</li>
+          <li><code>completed_at</code> keeps the <em>first</em> value</li>
+        </ul>
+      </div>
+      <div class="step">
+        <h5>POST /share</h5>
+        <p>On a successful share. Updates the row.</p>
+        <ul>
+          <li>Sets shared = 1</li>
+          <li>Re-sharing is harmless</li>
+          <li><code>shared_at</code> keeps the first value</li>
+        </ul>
+      </div>
+    </div>
+
+    <p>Notice the asymmetry in what each beacon is allowed to write. <code>kind</code>, <code>surface</code>, <code>country</code> and <code>dish_id</code> are <strong>insert-only</strong>: if the row already exists, a later beacon leaves them alone, because the <code>/start</code> that created the row already established them and a later message has no better information. The counters and flags are update-on-conflict. The timestamps are <code>COALESCE</code>d, so the first value wins and a replayed beacon cannot shift when something happened.</p>
+
+    <div class="note">
+      <span class="tag">Why /complete can create a row</span>
+      <p>Because <code>/start</code> might never have arrived. A blocked or dropped start beacon should not also cost you the completion. So <code>/complete</code> is an upsert too, and the resulting row is a real, countable finished game that simply has no device attached. The dashboard does not hide those or guess at whose they were: it collects them into an "Unattributed" group. Only <code>/start</code> binds a device, so a round with no start belongs to nobody, and saying so is more honest than assigning it to the nearest plausible player.</p>
+    </div>
+
+    <h3>Sound: the one that isn't about a game</h3>
+    <p>A single upserted row per device holding <em>where they ended up</em> (muted or not) and <em>how many times they changed their mind</em>. Not an event log, because a row per press would be a table that grows forever to answer a question nobody asks twice.</p>
+
+    <p>The toggle count is taken from the client rather than incremented server-side (<code>MAX(existing, incoming)</code>, not <code>toggles + 1</code>), so a device whose row was wiped comes back with its real local count instead of restarting at one. It is clamped, because it is client-supplied.</p>
+
+    <div class="note rule">
+      <span class="tag">Standing rule</span>
+      <p><code>sound_prefs</code> is not a measurement of anyone's audio experience, and nothing on the dashboard may quote a percentage off it. A player on a silent phone, a player with the tab muted at OS level, and a player who never noticed the game had sound are all indistinguishable from a device that never toggled. It answers "does anyone touch this button", and nothing more.</p>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section id="s5">
+    <p class="eyebrow">Part 05</p>
+    <h2 class="head">Why the URLs are so boring</h2>
+
+    <p>The beacons used to POST to <code>/api/analytics/start</code>, and the admin feed used to read <code>/api/admin/analytics/events</code>. Both were changed, and the reason is the best worked example in this codebase of why a naming decision is an engineering decision.</p>
+
+    <p>Ad and content blockers ship filter lists that match request URLs by pattern. <code>analytics</code>, <code>track</code>, <code>collect</code>, <code>beacon</code>, <code>telemetry</code>, <code>pixel</code>, <code>event</code>, <code>visit</code>, <code>view</code>, <code>pageview</code> — a path containing any of those is a path a meaningful share of browsers will cancel before it leaves the machine.</p>
+
+    <p>The two failures looked completely different:</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th></th><th>Admin feed</th><th>Player beacons</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Failure</strong></td><td>Loud</td><td>Silent</td></tr>
+          <tr><td><strong>Symptom</strong></td><td>A bare <code>NetworkError</code> in the browser, nothing in the Worker logs</td><td>Nothing at all</td></tr>
+          <tr><td><strong>Consequence</strong></td><td>Confusing but visible</td><td>Those players never appeared in any count, ever</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The silent one is the dangerous one, and it is dangerous <em>because</em> of the design in Part 03. A fire-and-forget beacon that was blocked in the browser is indistinguishable from one that was delivered. Nothing errors. Nothing retries. Nothing logs. Those players simply were not in the data, and no amount of staring at the dashboard would tell you they were missing.</p>
+
+    <div class="note trap">
+      <span class="tag">Hard rule</span>
+      <p>Never put <code>analytics</code>, <code>event</code>, <code>track</code>, <code>collect</code>, <code>beacon</code>, <code>telemetry</code>, <code>pixel</code>, <code>visit</code>, <code>view</code> or <code>pageview</code> into any URL the browser calls. That last group is exactly why the arrival beacon is named <code>/seated</code> rather than <code>/visit</code>.</p>
+    </div>
+
+    <p>Hence <code>/api/rounds/seated</code>, <code>/start</code>, <code>/complete</code>, <code>/share</code>. They read as game vocabulary because game vocabulary is not on anybody's filter list. The public stats endpoint is allowed to be called <code>/api/stats</code>, because shields.io fetches it server-side and no browser extension is involved.</p>
+  </section>
+
+  <!-- 6 -->
+  <section id="s6">
+    <p class="eyebrow">Part 06</p>
+    <h2 class="head">The trust boundary: who is allowed to say what</h2>
+
+    <p>These endpoints are public and unauthenticated. Anyone can POST to them with curl. That is the same trust model as the rest of the game (the reveal is client-initiated, the archive is client-tracked, it is a Wordle-style game and not a bank), but "unauthenticated" is not the same as "unvalidated". Every field falls into one of three categories.</p>
+
+    <h3>Category one: the client says it, the server checks the shape</h3>
+    <p>Ids, dates, enums, counters. A single validator guards every round beacon:</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">// worker/routes/analytics.ts — the shared validator</span>
+function base(body: unknown): Base | null {
+  const b = body as (Partial&lt;Base&gt; &amp; { kind?: string; surface?: string }) | null;
+  if (!b || typeof b.roundId !== "string" || b.roundId.length &lt; 8 || b.roundId.length &gt; 64) return null;
+  const puzzleNumber = Number(b.puzzleNumber);
+  if (!Number.isInteger(puzzleNumber) || puzzleNumber &lt; 0) return null;
+  if (typeof b.date !== "string" || !isValidDateString(b.date)) return null;
+  <span class="cmt">// Older clients omit `kind`; treat those as the daily. Anything</span>
+  <span class="cmt">// not in the enum is rejected outright.</span>
+  const kind = b.kind === undefined ? "daily" : (b.kind as RoundKind);
+  if (!ROUND_KINDS.includes(kind)) return null;
+  const surface = b.surface === undefined ? "web" : (b.surface as Surface);
+  if (!SURFACES.includes(surface)) return null;
+  return { roundId: b.roundId, puzzleNumber, date: b.date, kind, surface };
+}</code></pre></div>
+
+    <p>Anything that fails gets a <code>400</code> and is never stored. Note the two <code>undefined</code> defaults: they are backwards compatibility for old clients that predate the <code>kind</code> and <code>surface</code> columns, and they are the only place absence is tolerated.</p>
+
+    <h3>Category two: the server stamps it, the client never sees it</h3>
+    <p>Two values are never accepted from the browser at all.</p>
+
+    <p><strong>The country.</strong> Cloudflare's edge resolves it for every request that reaches a Worker, so the handler reads it off the request rather than the payload. Nothing to spoof, no extra bytes on the wire, and no IP address is stored anywhere. Two special values come back from Cloudflare and are kept as-is: <code>T1</code> for a Tor exit node and <code>XX</code> for "could not determine".</p>
+
+    <div class="codewrap"><pre><code>function countryOf(c: Context&lt;{ Bindings: Env }&gt;): string | null {
+  const cf = (c.req.raw as { cf?: { country?: unknown } }).cf;
+  const raw = typeof cf?.country === "string" ? cf.country : c.req.header("CF-IPCountry");
+  const code = raw?.trim().toUpperCase();
+  return code &amp;&amp; /^[A-Z0-9]{2}$/.test(code) ? code : null;
+}</code></pre></div>
+
+    <p><strong>The calendar day</strong> on a visit row, via <code>serverToday()</code>. A visit belongs to the day it happened on, and letting a client with a wrong clock decide that would put arrivals on days that had not started yet.</p>
+
+    <h3>Category three: the client supplies it, the server re-derives it</h3>
+    <p>Exactly one field is in this category: <code>source</code>. It is the only value on any beacon that starts life in a URL the player controls, so the Worker re-normalises it regardless of what the client claims to have already done. Lowercased, matched against <code>/^[a-z0-9][a-z0-9_.-]*$/</code>, capped at 32 characters, and anything that fails becomes the literal <code>direct</code>.</p>
+
+    <p>The client-side normalisation exists to survive an in-app navigation, not to be trusted. The server's pass is the authoritative one. That is a general pattern worth internalising: <em>shared validation code does not mean shared authority.</em></p>
+
+    <div class="note">
+      <span class="tag">Also worth knowing</span>
+      <p>Analytics may never break gameplay, and this is enforced structurally rather than by discipline. Resolving which dish a round played is a database lookup that could fail, so it is wrapped in a <code>try/catch</code> that returns <code>null</code> on any error. A round with an unknown dish is a small gap in one chart. A round that crashed the beacon handler would be a 500 the player never sees but the row never records.</p>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section id="s7">
+    <p class="eyebrow">Part 07</p>
+    <h2 class="head">Where it lands: three tables and an upsert</h2>
+
+    <p>The database is Cloudflare D1, which is SQLite. Four tables hold everything discussed here.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Table</th><th>Grain</th><th>Uniqueness</th><th>Since</th></tr></thead>
+        <tbody>
+          <tr><td><code>analytics_rounds</code></td><td>one row per game</td><td><code>round_id</code> UNIQUE</td><td class="num">0005</td></tr>
+          <tr><td><code>analytics_visits</code></td><td>one row per device per ET day</td><td>PK <code>(visit_day, player_id)</code></td><td class="num">0020</td></tr>
+          <tr><td><code>sound_prefs</code></td><td>one row per device</td><td>PK <code>player_id</code></td><td class="num">0025</td></tr>
+          <tr><td><code>announcement_views</code></td><td>one row per notice per device</td><td>PK <code>(announcement_id, player_id)</code></td><td class="num">0015</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Idempotency is the design, not a feature</h3>
+    <p>Look at the uniqueness column again. Every single table is keyed so that writing the same fact twice is harmless. This is not incidental tidiness — it is the direct consequence of fire-and-forget delivery. When you cannot retry, cannot confirm and cannot detect a duplicate at the sender, the receiver has to be built so that duplicates cost nothing.</p>
+
+    <p>Here is what the arrival insert looks like with that principle applied:</p>
+
+    <div class="codewrap"><pre><code>INSERT INTO analytics_visits (visit_day, player_id, surface, country, source, first_seen_at)
+VALUES (?, ?, ?, ?, ?, datetime('now'))
+ON CONFLICT(visit_day, player_id) DO NOTHING</code></pre></div>
+
+    <p><code>DO NOTHING</code> encodes a policy: <strong>first touch of the day wins</strong>. A device that opened the game directly this morning and clicked an ad at lunch keeps <code>direct</code>, because the ad did not bring them here today. Change that one clause to <code>DO UPDATE</code> and you have silently switched the whole product to last-touch attribution.</p>
+
+    <p>And here is the completion upsert, where the policy is more nuanced:</p>
+
+    <div class="codewrap"><pre><code>INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface,
+    country, dish_id, started_at, guesses, solved, completed, completed_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, 1, datetime('now'), datetime('now'))
+ON CONFLICT(round_id) DO UPDATE SET
+  guesses      = excluded.guesses,
+  solved       = excluded.solved,
+  completed    = 1,
+  completed_at = COALESCE(analytics_rounds.completed_at, excluded.completed_at),
+  updated_at   = excluded.updated_at</code></pre></div>
+
+    <p>Read the <code>DO UPDATE</code> block as a list of decisions. Results are overwritten. <code>completed_at</code> is coalesced so the first completion time survives a replay. And the columns that are <em>absent</em> from the block — <code>kind</code>, <code>surface</code>, <code>country</code>, <code>dish_id</code> — are the insert-only ones from Part 04.</p>
+
+    <h3>Schema evolution: additive, always</h3>
+    <p>The analytics schema was not designed up front. It grew, one column at a time, and every migration is additive because production D1 is the only copy of this data and there is no automatic backup. The history is legible in the migration list and it doubles as a record of which questions became askable when:</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Migration</th><th>Added</th><th>Question it unlocked</th></tr></thead>
+        <tbody>
+          <tr><td class="num">0005</td><td>the rounds table</td><td>Is anyone playing?</td></tr>
+          <tr><td class="num">0007</td><td><code>kind</code></td><td>Playing what — the Special, or the archive?</td></tr>
+          <tr><td class="num">0008</td><td><code>player_id</code></td><td>Is it the same people coming back?</td></tr>
+          <tr><td class="num">0009</td><td><code>surface</code></td><td>Web or Discord?</td></tr>
+          <tr><td class="num">0011</td><td><code>completed_at</code>, <code>shared_at</code></td><td>How long does a round take?</td></tr>
+          <tr><td class="num">0012</td><td><code>dish_id</code></td><td>Which dishes are too hard?</td></tr>
+          <tr><td class="num">0018</td><td><code>country</code></td><td>Where in the world are they?</td></tr>
+          <tr><td class="num">0020</td><td>the visits table</td><td>How many arrive but never play?</td></tr>
+          <tr><td class="num">0024</td><td><code>source</code></td><td>Did the ad work, and did those people come back?</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note rule">
+      <span class="tag">The consequence to remember</span>
+      <p>Every one of those columns is <code>NULL</code> for every row written before it existed. That <code>NULL</code> means <em>we were not measuring yet</em>, and it must never be read as a zero or as a category. A round with a <code>NULL</code> country is reported as untracked, not as an unknown country. Rows with a <code>NULL</code> dish are untracked, not assigned to a dish. This is the single most common way an analytics dashboard starts lying, and Part 11 is entirely about it.</p>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section id="s8">
+    <p class="eyebrow">Part 08</p>
+    <h2 class="head">Two ledgers: sending versus counting</h2>
+
+    <p>This pattern appears twice in the codebase and is worth naming, because it is the thing designers usually get wrong when they specify "only show this once".</p>
+
+    <p>There are two separate questions, and one mechanism cannot answer both:</p>
+
+    <ol>
+      <li><strong>Should I send this?</strong> Answered on the client, in <code>sessionStorage</code>, instantly and offline.</li>
+      <li><strong>Should I count this?</strong> Answered by the database's primary key, authoritatively and permanently.</li>
+    </ol>
+
+    <p>For arrivals, the client ledger is a <code>sessionStorage</code> key holding the day it last reported. If it matches today, no beacon is sent:</p>
+
+    <div class="codewrap"><pre><code>export function markSeated(day: string): boolean {
+  try {
+    if (sessionStorage.getItem(SEATED_KEY) === day) return false;
+    sessionStorage.setItem(SEATED_KEY, day);
+    return true;
+  } catch {
+    <span class="cmt">// Storage blocked — send it and let the server's primary key dedupe.</span>
+    return true;
+  }
+}</code></pre></div>
+
+    <p>Neither ledger is sufficient alone. <code>sessionStorage</code> is per-tab and cleared constantly, so it can never be the source of truth for a visitor count. But without it, every mode switch (which navigates by assigning a URL and remounts the whole page) would fire a redundant request. The failure mode of the pair is one wasted HTTP request, never a missed visitor.</p>
+
+    <p>Look at the <code>catch</code> branch: storage blocked means <em>send it anyway</em>. When in doubt, the client sends and the server deduplicates, because the server's ledger is the one that is actually correct.</p>
+
+    <p>The announcement modal uses the identical structure for a different reason: <code>localStorage</code> decides what to <em>show</em> so the modal can open with no round-trip, while <code>announcement_views</code> counts who was <em>reached</em>. And that view is recorded on display rather than on dismissal, because reach means somebody saw it, not that they agreed with it.</p>
+  </section>
+
+  <!-- 9 -->
+  <section id="s9">
+    <p class="eyebrow">Part 09</p>
+    <h2 class="head">Time: stored in UTC, true in New York</h2>
+
+    <p>The puzzle rolls over at midnight Eastern for everybody on Earth. Not the browser's local midnight, not UTC. That single design decision creates the most persistent complication in the read path.</p>
+
+    <p>Timestamps are written by SQLite's <code>datetime('now')</code>, which is UTC. SQLite has no named-timezone support: it cannot be told about <code>America/New_York</code>, cannot apply daylight saving, cannot group rows into Eastern days. So the conversion cannot happen in SQL and has to happen in JavaScript.</p>
+
+    <p>The technique is to have SQL do the part it is good at — grouping — at a resolution fine enough that the conversion is still possible afterwards:</p>
+
+    <div class="codewrap"><pre><code>SELECT strftime('%Y-%m-%d %H', started_at) AS bucket, kind, COUNT(*) AS started
+FROM analytics_rounds
+WHERE started_at IS NOT NULL
+GROUP BY bucket, kind</code></pre></div>
+
+    <p>SQL returns UTC <em>hour buckets</em>. JavaScript then folds each bucket into the Eastern day and hour it belongs to, using <code>Intl.DateTimeFormat</code> with the game's timezone, which handles daylight saving correctly by definition. An hour maps cleanly onto one Eastern hour because the offset is a whole number of hours in both DST phases.</p>
+
+    <figure>
+      <div class="figbody">
+        <svg viewBox="0 0 900 168" role="img" aria-label="UTC hour buckets folding across the midnight Eastern boundary into one Eastern day">
+          <text class="sv-mono" x="4" y="20">UTC HOURS AS STORED</text>
+          <g>
+            <rect class="sv-box" x="4" y="32" width="84" height="30" rx="3"/>
+            <text class="sv-mono" x="46" y="51" text-anchor="middle">21 JUL 22</text>
+            <rect class="sv-box" x="92" y="32" width="84" height="30" rx="3"/>
+            <text class="sv-mono" x="134" y="51" text-anchor="middle">21 JUL 23</text>
+            <rect class="sv-box-hi" x="180" y="32" width="84" height="30" rx="3"/>
+            <text class="sv-mono" x="222" y="51" text-anchor="middle">22 JUL 00</text>
+            <rect class="sv-box-hi" x="268" y="32" width="84" height="30" rx="3"/>
+            <text class="sv-mono" x="310" y="51" text-anchor="middle">22 JUL 01</text>
+            <rect class="sv-box-hi" x="356" y="32" width="84" height="30" rx="3"/>
+            <text class="sv-mono" x="398" y="51" text-anchor="middle">22 JUL 02</text>
+            <rect class="sv-box-hi" x="444" y="32" width="84" height="30" rx="3"/>
+            <text class="sv-mono" x="486" y="51" text-anchor="middle">22 JUL 03</text>
+            <rect class="sv-box" x="532" y="32" width="84" height="30" rx="3"/>
+            <text class="sv-mono" x="574" y="51" text-anchor="middle">22 JUL 04</text>
+            <rect class="sv-box" x="620" y="32" width="84" height="30" rx="3"/>
+            <text class="sv-mono" x="662" y="51" text-anchor="middle">22 JUL 05</text>
+          </g>
+
+          <path class="sv-line" d="M532 26 V70" stroke-width="2" stroke-dasharray="4 3"/>
+          <text class="sv-accent" x="540" y="22">MIDNIGHT ET (04:00 UTC IN SUMMER)</text>
+
+          <path class="sv-line" d="M46 70 C 46 96, 260 96, 260 112" stroke-width="1.2"/>
+          <path class="sv-line" d="M134 70 C 134 96, 270 96, 270 112" stroke-width="1.2"/>
+          <path class="sv-line" d="M222 70 C 222 96, 480 96, 480 112" stroke-width="1.2"/>
+          <path class="sv-line" d="M310 70 C 310 96, 495 96, 495 112" stroke-width="1.2"/>
+          <path class="sv-line" d="M398 70 C 398 96, 510 96, 510 112" stroke-width="1.2"/>
+          <path class="sv-line" d="M486 70 C 486 96, 525 96, 525 112" stroke-width="1.2"/>
+          <path class="sv-line" d="M574 70 C 574 96, 700 96, 700 112" stroke-width="1.2"/>
+          <path class="sv-line" d="M662 70 C 662 96, 715 96, 715 112" stroke-width="1.2"/>
+
+          <rect class="sv-box" x="180" y="112" width="180" height="34" rx="3"/>
+          <text class="sv-label" x="270" y="134" text-anchor="middle">ET day: 21 July</text>
+          <rect class="sv-box-hi" x="404" y="112" width="200" height="34" rx="3"/>
+          <text class="sv-label" x="504" y="134" text-anchor="middle">ET day: 22 July</text>
+          <rect class="sv-box" x="648" y="112" width="140" height="34" rx="3"/>
+          <text class="sv-label" x="718" y="134" text-anchor="middle">…</text>
+        </svg>
+      </div>
+      <figcaption>Four UTC hours of "22 July" actually belong to the Eastern day before. Folding in JavaScript is the only way to get this right across daylight saving.</figcaption>
+    </figure>
+
+    <p>Two consequences follow from this that are easy to miss:</p>
+
+    <ul>
+      <li><strong>A day slice queries a ±1 day window.</strong> One Eastern day straddles two UTC days, so asking for "22 July" pulls a wider window from SQL and drops the out-of-range rows during the fold, where the conversion is actually possible.</li>
+      <li><strong>The visits table is the exception.</strong> Its <code>visit_day</code> was stamped by the Worker as an Eastern day at write time, so it needs no fold at all. That is one of the reasons the day is stamped server-side rather than derived later.</li>
+    </ul>
+
+    <p>One more timing subtlety: "games started" is measured by <em>when the round started</em>, not by which puzzle it was. An archive replay of an old puzzle played today lands on today's bar in the daily chart, not on the old puzzle's date. The row carries both facts (<code>play_date</code> and <code>started_at</code>) precisely so each chart can pick the one it means.</p>
+  </section>
+
+  <!-- 10 -->
+  <section id="s10">
+    <p class="eyebrow">Part 10</p>
+    <h2 class="head">The read path: query, fold, render</h2>
+
+    <p>Writing is many tiny requests. Reading is the opposite: one authenticated admin request that issues a whole batch of SQL at once and then transforms it in pure functions.</p>
+
+    <p><code>GET /api/admin/analytics</code> fires fourteen prepared statements in a single <code>DB.batch()</code> call. Each one is shaped to feed a specific fold, and several are deliberately shared between two folds so a second table scan is not paid for twice. The route's job ends there. It does not compute anything.</p>
+
+    <h3>The architectural rule</h3>
+    <div class="note rule">
+      <span class="tag">Query in the route, fold in the module, assert on the fold</span>
+      <p>Every transformation lives in its own module as a pure function that takes rows and returns a shape. No database access, no request object, no clock unless it is passed in as an argument. Each has a unit test file sitting next to it. This is why the numbers can be trusted: the interesting logic is all testable without a database.</p>
+    </div>
+
+    <p>There are a dozen of these fold modules, and their names map almost one-to-one onto dashboard panels:</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Module</th><th>Turns…</th><th>…into</th></tr></thead>
+        <tbody>
+          <tr><td><code>service.ts</code></td><td>one day's UTC hour buckets</td><td>an ET hour profile, totals, still-playing vs walked-out</td></tr>
+          <tr><td><code>growth.ts</code></td><td>all-time hour buckets</td><td>a zero-filled daily series and a least-squares trend line</td></tr>
+          <tr><td><code>funnel.ts</code></td><td>(device, hour) groups</td><td>arrived → played → finished → shared → came back</td></tr>
+          <tr><td><code>players.ts</code></td><td>the same groups</td><td>new vs returning, and the repeat-visit curve</td></tr>
+          <tr><td><code>countries.ts</code></td><td>(country, device) counts</td><td>one country per device, plus a pooled tail</td></tr>
+          <tr><td><code>attribution.ts</code></td><td>visit rows</td><td>devices per source, with censored return rates</td></tr>
+          <tr><td><code>rhythm.ts</code></td><td>hour buckets</td><td>a 7 × 24 weekday heat grid and both margins</td></tr>
+          <tr><td><code>dishstats.ts</code></td><td>rounds joined to dishes</td><td>per-dish win rate, guess count, DNF, shares</td></tr>
+          <tr><td><code>activity.ts</code></td><td>rounds and arrivals</td><td>the raw feed, grouped into visits by device × day</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The surface filter</h3>
+    <p>Every tab can be scoped to web, Discord or both. That is implemented as a tiny helper returning a SQL fragment appended to each statement. One deliberate exception: the query that determines <em>when device tracking switched on</em> is never surface-filtered, because it marks the instrument rather than the audience, and letting a filter move it would make the Discord view claim measurement started later than it did.</p>
+
+    <h3>The public read</h3>
+    <p>A separate, unauthenticated, aggregate-only route serves <code>/api/stats</code> for the README badges, <code>/api/stats/breakdown</code> for the public case-study page (edge-cached for ten minutes), and <code>/api/stats/badge</code> in shields.io's schema. It sends <code>Access-Control-Allow-Origin: *</code> and exposes nothing per-player and no guess content. Its definitions deliberately mirror the admin ones so the two can never disagree in public.</p>
+  </section>
+
+  <!-- 11 -->
+  <section id="s11">
+    <p class="eyebrow">Part 11</p>
+    <h2 class="head">The honesty rules</h2>
+
+    <p>This is the part that is really design work rather than engineering. A pipeline that collects correct data can still produce a lying dashboard, and at this game's volume (tens of rounds a day, not thousands) the ways it lies are specific and predictable. Seven rules govern it.</p>
+
+    <h3>1. Never report unmeasured as zero</h3>
+    <p>The most important one. A visit count of <code>null</code> means the arrival beacon had not shipped yet on that day. Rendering it as <code>0</code> would claim a hundred percent bounce rate for the game's entire early history. Every fold that can encounter a gap distinguishes "we did not measure" from "it was none", and panels omit a row rather than draw an empty one.</p>
+
+    <h3>2. Every small-sample rate carries its interval</h3>
+    <p>Below 30 observations, a percentage is a mood rather than a measurement. "67% win rate" off three completions and off three hundred render identically and mean completely different things — the first moves 33 points if one more player loses. So every rate whose denominator is under 30 is quoted with a 95% confidence interval, and nothing above 30 is.</p>
+    <p>The interval is a <strong>Wilson</strong> score interval rather than the textbook normal approximation, because this game lives exactly where the normal approximation breaks: tiny samples, and rates pinned near 0 or 1 (almost nobody shares, almost everybody solves). The normal approximation returns a zero-width interval at 4-of-4, which is the most confident-looking and least justified output possible.</p>
+
+    <h3>3. A headline refuses to compare when it cannot</h3>
+    <p>The dish report, the arrival-source table and the experiment verdicts all check whether two intervals actually separate before claiming a difference. "Too early to tell" is a verdict, not an absence, and every undecided one is shipped alongside an estimate of how many more days it needs.</p>
+
+    <h3>4. Censored denominators</h3>
+    <p>Return rates only count a device once seven days have passed since the visit being measured. Everything more recent is reported as <em>pending</em>, never as a no-show. Without this, a busy week lowers your retention number and an ad campaign lowers its own score with every click it buys, because the newest arrivals have not had time to come back yet.</p>
+
+    <h3>5. Pool over a period, never average the days</h3>
+    <p>A rate for a week is the week's successes over the week's trials. It is never the mean of seven daily percentages, because that lets a one-round Tuesday outvote a busy weekend. This is also why the experiment series ships raw counts rather than percentages: a pre-divided number cannot be re-pooled over a different window.</p>
+
+    <h3>6. Broken measurements are dropped, never clamped</h3>
+    <p>A negative duration (a <code>/start</code> that arrived after its <code>/complete</code>) is dropped, not clamped to zero. A round left open in a background tab all morning is capped at 15 minutes for the play-time total, and a <code>capped</code> flag rides along so the panel states that the trim happened rather than hiding it. A ratio over 100% is printed honestly; only the bar drawing it is clamped.</p>
+
+    <h3>7. A duration needs both ends measured</h3>
+    <p>Completion timestamps are never substituted with the row's <code>updated_at</code>. A round missing one end shows a marker and the words "time not recorded". An abandoned round gets no duration at all, because now-minus-start measures how long ago something happened, not how long anyone played.</p>
+
+    <p>And solve times are reported as a <strong>median and p90, never a mean</strong>. A round is a browser tab, and tabs get left open.</p>
+
+    <div class="note">
+      <span class="tag">Why this belongs in a document about beacons</span>
+      <p>Because every one of these rules is a downstream consequence of how the data arrives. Fire-and-forget delivery creates gaps. Additive migrations create nulls. A small player base creates small denominators. Anonymous devices create ambiguity about what a "player" is. The honesty rules are not decoration on top of the pipeline; they are the pipeline's failure modes, handled in the open.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section id="s12">
+    <p class="eyebrow">Part 12</p>
+    <h2 class="head">How it breaks, and how you'd notice</h2>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Failure</th><th>What happens to the data</th><th>The tell</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>A content blocker cancels beacons</td>
+            <td>That device is entirely absent, silently</td>
+            <td>None from inside. This is why the paths are named as they are.</td>
+          </tr>
+          <tr>
+            <td><code>/start</code> lost, <code>/complete</code> lands</td>
+            <td>A real finished game with no device attached</td>
+            <td>An "Unattributed" group on the activity feed</td>
+          </tr>
+          <tr>
+            <td>Private mode / storage disabled</td>
+            <td>Ephemeral device id; every session looks like a new device</td>
+            <td>Returning-player rate lower than it should be</td>
+          </tr>
+          <tr>
+            <td>A scraper fetches the HTML</td>
+            <td>Nothing recorded — it never ran the JavaScript</td>
+            <td>A country in Cloudflare's request logs that never appears here</td>
+          </tr>
+          <tr>
+            <td>Discord iframe params dropped on navigation</td>
+            <td>Discord rounds mislabelled as web</td>
+            <td>Was a real bug; fixed by the sticky sessionStorage capture</td>
+          </tr>
+          <tr>
+            <td>The announcement "seen" POST is blocked</td>
+            <td>Reach undercounts</td>
+            <td>Reach far below the day's player count. Suspect the path.</td>
+          </tr>
+          <tr>
+            <td>Admin plays the live game instead of a preview</td>
+            <td>Your own testing is in the numbers</td>
+            <td>Fixable: the Activity tab can review and wipe this device's rows</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>That last row is worth expanding, because it is the only destructive operation in this whole system. <code>GET /api/admin/device-data</code> reviews every row belonging to this browser across all three tables, and <code>DELETE</code> on the same path removes them. The review is a mandatory step, not a suggestion: the delete button does not exist until the summary has loaded, because production has no automatic backup. The delete then reports what each table <em>actually</em> lost rather than what was asked for, so a wipe that matched nothing tells you that you had the wrong id. And the device id itself survives, because nothing touches <code>localStorage</code> — the next round records under the same id.</p>
+  </section>
+
+  <!-- 13 -->
+  <section id="s13">
+    <p class="eyebrow">Part 13</p>
+    <h2 class="head">Tracing one round end to end</h2>
+
+    <p>Everything above, as a single narrative. Somebody clicks a link in a newsletter on a Tuesday evening.</p>
+
+    <ol>
+      <li><strong>The page loads</strong> at <code>/?utm_source=newsletter</code>. Before React mounts, a module-level constant reads <code>utm_source</code>, normalises it to <code>newsletter</code> and stashes it in <code>sessionStorage</code>. Another constant checks for <code>frame_id</code>, finds none, and fixes the surface as <code>web</code> for the rest of the tab.</li>
+      <li><strong>The board resolves.</strong> <code>tracked</code> is true (not a preview, not a playtest). One effect mints a <code>round_id</code> and saves it with the round. Another checks the seated ledger, finds no entry for today, and fires <code>POST /api/rounds/seated</code> with a device id, <code>web</code>, and <code>newsletter</code>.</li>
+      <li><strong>The Worker</strong> validates the device id, re-normalises the source, reads the country off Cloudflare's edge, stamps today's Eastern date, and inserts a row into <code>analytics_visits</code>. If the player had already arrived today, <code>DO NOTHING</code> silently discards it.</li>
+      <li><strong>First guess.</strong> Wrong, but a clue ticket prints. <code>POST /api/rounds/start</code> fires with the round id, puzzle number, date, <code>daily</code>, <code>web</code> and the device id. A new row appears in <code>analytics_rounds</code> with a UTC <code>started_at</code>, a resolved <code>dish_id</code> and a country.</li>
+      <li><strong>Guesses two through four</strong> send nothing. Guesses are gameplay requests, not beacons, and no guess content is ever recorded anywhere.</li>
+      <li><strong>They solve it on the fifth.</strong> <code>POST /api/rounds/complete</code> carries <code>guesses: 5, solved: true</code>. The upsert finds the existing row, writes the results, sets <code>completed_at</code>, and leaves kind, surface, country and dish exactly as <code>/start</code> left them.</li>
+      <li><strong>They share the grid.</strong> <code>POST /api/rounds/share</code> sets <code>shared = 1</code> and <code>shared_at</code>. Pressing share again changes nothing.</li>
+      <li><strong>The next morning</strong> the admin opens the dashboard. Fourteen statements go out in one batch. The UTC timestamp on that round is bucketed to its hour, folded into Tuesday Eastern, and lands in the 7pm column of the service chart, in Tuesday's bar on the growth series, in the "5 guesses" column of the distribution, and in the newsletter row of the arrival table — where its return rate is reported as <em>pending</em>, because seven days have not passed yet.</li>
+    </ol>
+
+    <p>One arrival, one game, four small POSTs, two rows in a database, and a dozen numbers on six tabs. The whole system is that shape repeated.</p>
+
+    <p>The panels those numbers land on are covered in <a href="admin-dashboard.html">Admin Analytics Dashboard</a>, and the other surface firing these beacons in <a href="discord-activity.html">Discord Activity Integration</a>.</p>
+
+    <hr>
+
+    <h3>The five things to remember</h3>
+    <ol>
+      <li><strong>Fire and forget is the root cause of everything else.</strong> Because a beacon cannot be retried, confirmed or even known to have failed, every table is keyed to make duplicates harmless and every read has to cope with gaps.</li>
+      <li><strong>Where a value is minted decides who can lie about it.</strong> Ids from the client, day and country from the server, and exactly one field re-derived on arrival because it started in a URL.</li>
+      <li><strong>Three units, never blurred.</strong> Rounds, devices, visits. Naming the wrong one is how a chart becomes wrong while every number in it is right.</li>
+      <li><strong>Null means unmeasured.</strong> Not zero, not unknown, not a category.</li>
+      <li><strong>Query in the route, fold in the module.</strong> Every transformation is a pure function with a test beside it, which is the reason any of these numbers can be trusted.</li>
+    </ol>
+  </section>
+
+  <footer class="end">
+    <p style="margin:0 0 10px"><a href="../index.html">&larr; Back to the project breakdown</a></p>
+    Lunch Special · analytics pipeline walkthrough · beacons in <code>src/api.ts</code>, handlers in <code>worker/routes/analytics.ts</code>, folds in <code>worker/</code> and <code>shared/</code>
+  </footer>
+
+</div>
+</body>
+</html>
