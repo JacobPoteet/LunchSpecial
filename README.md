@@ -152,7 +152,7 @@ The catalog ships two ways: `seed/seed.sql` is the canonical, idempotent snapsho
 
 ## Also in this repo
 
-- [`docs/`](docs/): the [project breakdown page](https://jacobpoteet.github.io/LunchSpecial/), published with GitHub Pages
+- [`docs/`](docs/): the [project breakdown page](https://jacobpoteet.github.io/LunchSpecial/), published with GitHub Pages, plus [`docs/lessons/`](docs/lessons/) — long-form walkthroughs of one subsystem each
 - [`public/`](public/): press kit (`/press`) and the Privacy Policy / Terms pages (`/privacy`, `/terms`) required for Discord verification
 - [`discord-assets/`](discord-assets/): source + build script for the Activity's store art
 - [`ASSETS.md`](ASSETS.md): every visual asset, plus the spec and licence log for the audio still to be bought

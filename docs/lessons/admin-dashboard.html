@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="description" content="How the Lunch Special admin dashboard is built to stay honest at tens of rounds a day: one question per tab, four colour meanings, and the rules that decide when a number is allowed to speak.">
+<title>Admin Analytics Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@600;700&family=IBM+Plex+Mono:wght@400;600&family=Yellowtail&display=swap">
+
+<style>
+  :root {
+    color-scheme: light;
+    --ground: #fbf4e0;
+    --card: #f6edd9;
+    --card-2: #efe3c4;
+    --edge: #ded0ac;
+    --edge-soft: #e9dcbc;
+    --ink: #2b2320;
+    --ink-soft: #5b4f45;
+    --ink-faint: #8b7f70;
+    --teal: #1b4f4a;
+    --teal-wash: #e2ece7;
+    --cherry: #a52436;
+    --cherry-wash: #f6e2e2;
+    --mustard: #e8a53a;
+    --mustard-ink: #8a5a12;
+    --mustard-wash: #f8ecd2;
+    --code-bg: #efe6cd;
+    --shadow: 0 1px 0 rgba(43,35,32,.06), 0 10px 28px rgba(43,35,32,.07);
+    --mast-bg: #123833;
+    --mast-fg: #fbf3df;
+    --mast-sub: #d8cdb0;
+    --mast-meta: #b8ab8b;
+    --mast-rule: rgba(232, 165, 58, .45);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #141a19;
+      --card: #1b2321;
+      --card-2: #212b28;
+      --edge: #33403c;
+      --edge-soft: #2a3532;
+      --ink: #ece2cd;
+      --ink-soft: #b7ab97;
+      --ink-faint: #8a8073;
+      --teal: #7fc4b4;
+      --teal-wash: #1c2b28;
+      --cherry: #f08a97;
+      --cherry-wash: #2e1e21;
+      --mustard: #e8a53a;
+      --mustard-ink: #e6b660;
+      --mustard-wash: #2b2519;
+      --code-bg: #101615;
+      --shadow: 0 1px 0 rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.35);
+      --mast-bg: #0f1918;
+      --mast-fg: #ece2cd;
+      --mast-sub: #b3a893;
+      --mast-meta: #8a8073;
+      --mast-rule: rgba(232, 165, 58, .35);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #141a19;
+    --card: #1b2321;
+    --card-2: #212b28;
+    --edge: #33403c;
+    --edge-soft: #2a3532;
+    --ink: #ece2cd;
+    --ink-soft: #b7ab97;
+    --ink-faint: #8a8073;
+    --teal: #7fc4b4;
+    --teal-wash: #1c2b28;
+    --cherry: #f08a97;
+    --cherry-wash: #2e1e21;
+    --mustard: #e8a53a;
+    --mustard-ink: #e6b660;
+    --mustard-wash: #2b2519;
+    --code-bg: #101615;
+    --shadow: 0 1px 0 rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.35);
+    --mast-bg: #0f1918;
+    --mast-fg: #ece2cd;
+    --mast-sub: #b3a893;
+    --mast-meta: #8a8073;
+    --mast-rule: rgba(232, 165, 58, .35);
+  }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-text-size-adjust: 100%;
+  }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+
+  .page { max-width: 820px; margin: 0 auto; padding: 0 22px 96px; }
+
+  .mast {
+    background: var(--mast-bg);
+    color: var(--mast-fg);
+    margin: 0 0 40px;
+    padding: 54px 22px 40px;
+    border-bottom: 6px solid var(--mustard);
+  }
+  .mast-inner { max-width: 820px; margin: 0 auto; }
+  .mast .kicker {
+    font-family: "Yellowtail", "Brush Script MT", cursive;
+    font-size: 1.6rem;
+    color: var(--mustard);
+    margin: 0 0 4px;
+    line-height: 1;
+  }
+  .mast h1 {
+    font-family: "Bitter", Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(2.1rem, 6.2vw, 3.1rem);
+    line-height: 1.12;
+    margin: 0 0 18px;
+    text-wrap: balance;
+    letter-spacing: -0.015em;
+  }
+  .mast p { margin: 0; max-width: 58ch; color: var(--mast-sub); }
+  .mast .stamp {
+    display: inline-block;
+    margin-top: 22px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .7rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: var(--mast-meta);
+    border-top: 1px solid var(--mast-rule);
+    padding-top: 10px;
+  }
+
+  .toc {
+    background: var(--card);
+    border: 1px solid var(--edge);
+    border-radius: 4px;
+    padding: 20px 22px;
+    margin-bottom: 52px;
+    box-shadow: var(--shadow);
+  }
+  .toc h2 {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .72rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+  .toc ol { margin: 0; padding: 0; list-style: none; counter-reset: toc; display: grid; gap: 2px; }
+  .toc li { counter-increment: toc; }
+  .toc a {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    padding: 5px 0;
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px dotted transparent;
+  }
+  .toc a:hover { border-bottom-color: var(--edge); }
+  .toc a::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .78rem;
+    color: var(--mustard-ink);
+    min-width: 2.1em;
+  }
+
+  section { margin-bottom: 60px; scroll-margin-top: 18px; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .7rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--mustard-ink);
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+  h2.head {
+    font-family: "Bitter", Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(1.42rem, 3.3vw, 1.78rem);
+    line-height: 1.26;
+    letter-spacing: -0.012em;
+    margin: 0 0 18px;
+    text-wrap: balance;
+  }
+  h3 {
+    font-family: Georgia, serif;
+    font-size: 1.16rem;
+    font-weight: 700;
+    margin: 34px 0 10px;
+  }
+  h4 {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .78rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 26px 0 8px;
+    font-weight: 600;
+  }
+  p { margin: 0 0 16px; }
+  section > p, section > ul, section > ol { max-width: 68ch; }
+  a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  ul, ol { margin: 0 0 16px; padding-left: 1.3em; }
+  li { margin-bottom: 7px; }
+  hr { border: 0; border-top: 1px solid var(--edge); margin: 40px 0; }
+
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .84em;
+    background: var(--code-bg);
+    border: 1px solid var(--edge-soft);
+    border-radius: 3px;
+    padding: 1px 5px;
+    word-break: break-word;
+  }
+  .codewrap { overflow-x: auto; margin: 0 0 20px; border-radius: 4px; border: 1px solid var(--edge); background: var(--code-bg); }
+  pre { margin: 0; padding: 16px 18px; }
+  pre code {
+    background: none; border: 0; padding: 0; font-size: .8rem; line-height: 1.62;
+    white-space: pre; display: block; color: var(--ink);
+  }
+  .cmt { color: var(--ink-faint); font-style: italic; }
+
+  .note {
+    border-left: 3px solid var(--teal);
+    background: var(--teal-wash);
+    padding: 14px 18px;
+    margin: 0 0 22px;
+    border-radius: 0 4px 4px 0;
+  }
+  .note.trap { border-left-color: var(--cherry); background: var(--cherry-wash); }
+  .note.rule { border-left-color: var(--mustard); background: var(--mustard-wash); }
+  .note p:last-child { margin-bottom: 0; }
+  .note .tag {
+    display: block;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .68rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--teal);
+  }
+  .note.trap .tag { color: var(--cherry); }
+  .note.rule .tag { color: var(--mustard-ink); }
+
+  .tablewrap { overflow-x: auto; margin: 0 0 24px; border: 1px solid var(--edge); border-radius: 4px; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; font-size: .89rem; min-width: 520px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--edge-soft); vertical-align: top; }
+  thead th {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .68rem;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--card-2);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: 0; }
+  td code { white-space: nowrap; }
+  .num { font-variant-numeric: tabular-nums; }
+  .sw {
+    display: inline-block; width: 11px; height: 11px; border-radius: 2px;
+    margin-right: 7px; vertical-align: -1px; border: 1px solid rgba(0,0,0,.15);
+  }
+  .sw-mustard { background: #e8a53a; }
+  .sw-teal { background: #1b4f4a; }
+  .sw-cherry { background: #c9354a; }
+  .sw-ink { background: #8b7f70; }
+
+  figure { margin: 0 0 26px; }
+  .figbody {
+    overflow-x: auto;
+    background: var(--card);
+    border: 1px solid var(--edge);
+    border-radius: 4px;
+    padding: 20px;
+  }
+  figure svg { display: block; width: 100%; min-width: 560px; height: auto; }
+  figcaption { font-size: .82rem; color: var(--ink-soft); margin-top: 8px; font-style: italic; }
+  .sv-box { fill: var(--card-2); stroke: var(--edge); }
+  .sv-box-hi { fill: var(--teal-wash); stroke: var(--teal); }
+  .sv-label { fill: var(--ink); font-family: Georgia, serif; font-size: 13px; }
+  .sv-mono { fill: var(--ink-soft); font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .06em; }
+  .sv-accent { fill: var(--mustard-ink); font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: .08em; }
+  .sv-line { stroke: var(--ink-faint); fill: none; }
+  .sv-fill-ink { fill: var(--ink-faint); }
+  .sv-track { fill: var(--edge-soft); }
+  .sv-fill-teal { fill: var(--teal); }
+  .sv-fill-cherry { fill: var(--cherry); }
+  .sv-fill-mustard { fill: var(--mustard); }
+
+  .lede { font-size: 1.06rem; color: var(--ink-soft); }
+
+  footer.end {
+    border-top: 1px solid var(--edge);
+    padding-top: 20px;
+    font-size: .84rem;
+    color: var(--ink-faint);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    letter-spacing: .04em;
+  }
+  footer.end a { color: var(--teal); }
+
+  a:focus-visible {
+    outline: 3px solid var(--mustard);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="mast-inner">
+    <p class="kicker">Lunch Special</p>
+    <h1>Admin Analytics Dashboard</h1>
+    <p>Six tabs, four colour meanings, and a set of rules that decide when a number has earned the right to speak. What it takes to build a dashboard for a game that records tens of rounds a day rather than millions.</p>
+    <p class="stamp">Technical reference &nbsp;·&nbsp; 12 parts</p>
+  </div>
+</header>
+
+<div class="page">
+
+  <nav class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#s1">The constraint: small numbers</a></li>
+      <li><a href="#s2">One question per tab</a></li>
+      <li><a href="#s3">How a panel is assembled</a></li>
+      <li><a href="#s4">Count the right unit, then name it</a></li>
+      <li><a href="#s5">Tracks instead of funnels</a></li>
+      <li><a href="#s6">Four colour meanings, all spoken for</a></li>
+      <li><a href="#s7">Uncertainty, drawn selectively</a></li>
+      <li><a href="#s8">When a sentence is allowed to speak</a></li>
+      <li><a href="#s9">"Too early to tell" is an answer</a></li>
+      <li><a href="#s10">Drawing the gaps</a></li>
+      <li><a href="#s11">Nothing animates</a></li>
+      <li><a href="#s12">What transfers to your next dashboard</a></li>
+    </ol>
+  </nav>
+
+  <!-- 1 -->
+  <section id="s1">
+    <p class="eyebrow">Part 01</p>
+    <h2 class="head">The constraint: small numbers</h2>
+
+    <p class="lede">Most dashboard advice assumes you have plenty of data. Lunch Special has tens of rounds a day. At that volume a percentage is a fragile object: one more player losing swings a win rate by ten points, and yesterday's dip and yesterday's noise look the same on a chart.</p>
+
+    <p>That single fact shapes the whole design. A big-number dashboard can get away with drawing whatever the query returns, because volume smooths the lies out. A small-number dashboard that does the same thing will show you a figure that went up, and you will ship something on the strength of it.</p>
+
+    <p>So the admin UI spends most of its complexity on one job: making sure you can tell a measurement from a mood. The comment at the top of the Experiments tab states the design brief for the entire dashboard.</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">/**
+ * The tab the rest of the dashboard exists to serve.
+ *
+ * Every other panel answers "what is happening". This one answers "did the thing
+ * I shipped do anything", which is the question the game is actually run on ...
+ *
+ * The design constraint is that at tens of rounds a day, the honest answer is
+ * usually **"not yet"**. A dashboard that can't say that will instead show a
+ * number that went up, and its owner will ship on it. So "inconclusive" is a
+ * first-class verdict here, it comes with how many more days would settle it, and
+ * the noise a difference has to beat is printed next to the difference.
+ */</span></code></pre></div>
+
+    <p>Everything below follows from that. Six tabs, four colour meanings, five separate minimum-sample thresholds and a refusal to draw a bar for something nobody measured yet.</p>
+  </section>
+
+  <!-- 2 -->
+  <section id="s2">
+    <p class="eyebrow">Part 02</p>
+    <h2 class="head">One question per tab</h2>
+
+    <p>The dashboard started as one scroll about nine screens long. Splitting it into tabs was the obvious fix, and the first split got it wrong in a way worth studying: the tabs were organised by <em>data source</em>. Overview and Players both rendered the day slice. Trends carried the retention ladder and the country pie, on the grounds that both are charts with an x-axis.</p>
+
+    <p>A tab defined by "has an x-axis" is not a question anyone asks. The second arrangement gives each tab one question, and moves panels wherever the answer lives.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Tab</th><th>The question</th><th>What sits there</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Today</strong></td><td>What is happening right now?</td><td>Today's Special, tomorrow's booking, pace against recent days, finish rate, last order</td></tr>
+          <tr><td><strong>Menu</strong></td><td>What are we serving, and how does it land?</td><td>Per-dish performance first, then the catalogue mix</td></tr>
+          <tr><td><strong>Players</strong></td><td>Who is playing?</td><td>New against returning, the drop-off funnel, repeat visits, countries, arrival sources</td></tr>
+          <tr><td><strong>Trends</strong></td><td>Where is it all going?</td><td>Time and nothing else: all-time growth, a 30-day spark, weekday profile, hour heatmap</td></tr>
+          <tr><td><strong>Experiments</strong></td><td>Did anything I did cause any of it?</td><td>The change log, with a verdict per change</td></tr>
+          <tr><td><strong>Activity</strong></td><td>What actually happened?</td><td>The raw feed, grouped into visits</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Read left to right and the order is a narrative: the day, the food, the people, the direction, your own decisions, the receipts. Experiments sits second from the end on purpose, because you arrive there having already watched a number move.</p>
+
+    <div class="note">
+      <span class="tag">The reorganisation rule</span>
+      <p>When two tabs both hold part of an answer, neither tab answers anything. The retention ladder and the country pie moved to Players so that Trends could become a tab about time and nothing else. One question, asked at four scales: the whole run, the last month, the week, the day.</p>
+    </div>
+
+    <p>Two smaller decisions keep the tabs usable. The current tab writes itself into the query string with <code>history.replaceState</code>, so a reload lands where you were without stacking history entries. And leaving the dashboard for the dish list clears <code>?tab=</code> on unmount, so the parameter never outlives the thing it describes.</p>
+  </section>
+
+  <!-- 3 -->
+  <section id="s3">
+    <p class="eyebrow">Part 03</p>
+    <h2 class="head">How a panel is assembled</h2>
+
+    <p>The data path has three stages, and the boundaries between them are strict. A route runs the SQL. A pure module folds rows into a shape. A React component renders that shape and computes nothing.</p>
+
+    <figure>
+      <div class="figbody">
+        <svg viewBox="0 0 900 176" role="img" aria-label="One admin fetch feeding three tabs through pure fold modules">
+          <rect class="sv-box" x="4" y="30" width="168" height="60" rx="4"/>
+          <text class="sv-label" x="88" y="55" text-anchor="middle">GET /api/admin/analytics</text>
+          <text class="sv-mono" x="88" y="74" text-anchor="middle">14 STATEMENTS, ONE BATCH</text>
+
+          <path class="sv-line" d="M176 60 H214" stroke-width="1.5"/>
+          <path class="sv-fill-ink" d="M214 56 l10 4 -10 4 z"/>
+
+          <rect class="sv-box" x="228" y="14" width="150" height="30" rx="3"/>
+          <text class="sv-mono" x="303" y="33" text-anchor="middle">service.ts</text>
+          <rect class="sv-box" x="228" y="48" width="150" height="30" rx="3"/>
+          <text class="sv-mono" x="303" y="67" text-anchor="middle">funnel.ts · players.ts</text>
+          <rect class="sv-box" x="228" y="82" width="150" height="30" rx="3"/>
+          <text class="sv-mono" x="303" y="101" text-anchor="middle">growth.ts · rhythm.ts</text>
+          <rect class="sv-box" x="228" y="116" width="150" height="30" rx="3"/>
+          <text class="sv-mono" x="303" y="135" text-anchor="middle">countries · attribution</text>
+          <text class="sv-accent" x="303" y="162" text-anchor="middle">PURE. TESTED. NO DB.</text>
+
+          <path class="sv-line" d="M382 80 H420" stroke-width="1.5"/>
+          <path class="sv-fill-ink" d="M420 76 l10 4 -10 4 z"/>
+
+          <rect class="sv-box-hi" x="434" y="14" width="140" height="34" rx="3"/>
+          <text class="sv-label" x="504" y="36" text-anchor="middle">Today</text>
+          <rect class="sv-box-hi" x="434" y="60" width="140" height="34" rx="3"/>
+          <text class="sv-label" x="504" y="82" text-anchor="middle">Players</text>
+          <rect class="sv-box-hi" x="434" y="106" width="140" height="34" rx="3"/>
+          <text class="sv-label" x="504" y="128" text-anchor="middle">Trends</text>
+          <text class="sv-accent" x="504" y="162" text-anchor="middle">PRESENTATION ONLY</text>
+
+          <rect class="sv-box" x="620" y="14" width="150" height="34" rx="3"/>
+          <text class="sv-label" x="695" y="36" text-anchor="middle">Menu</text>
+          <rect class="sv-box" x="620" y="60" width="150" height="34" rx="3"/>
+          <text class="sv-label" x="695" y="82" text-anchor="middle">Activity</text>
+          <rect class="sv-box" x="620" y="106" width="150" height="34" rx="3"/>
+          <text class="sv-label" x="695" y="128" text-anchor="middle">Experiments</text>
+          <text class="sv-accent" x="695" y="162" text-anchor="middle">FETCH ON OPEN</text>
+          <text class="sv-mono" x="790" y="36">own</text>
+          <text class="sv-mono" x="790" y="82">endpoints</text>
+        </svg>
+      </div>
+      <figcaption>One request feeds three tabs. The other three fetch their own data the first time you open them, which keeps the dashboard's first paint down to two calls.</figcaption>
+    </figure>
+
+    <p>Two pieces of state live above the tabs so they survive switching between them: the surface filter (web, Discord or both) and the picked day. The day defaults to <code>null</code> rather than to today's date, which sounds like a detail and prevents a real bug. A pinned date goes stale at midnight ET. A null keeps following the rollover.</p>
+
+    <p>The wording lives above the tabs too. <code>analyticsUi.tsx</code> holds the pieces more than one tab needs, and the reason is stated in the file: the difficulty sentence appears on both Today and Players, <q>so the two can't drift into describing the same number differently</q>. A shared constant is cheaper than two panels that disagree about what a figure means.</p>
+  </section>
+
+  <!-- 4 -->
+  <section id="s4">
+    <p class="eyebrow">Part 04</p>
+    <h2 class="head">Count the right unit, then name it</h2>
+
+    <p>Three units run through this data: a round (one game), a device (one browser), a visit (one device on one day). Mixing them produces charts where every number is correct and the picture is false.</p>
+
+    <p>The finish-rate panel on the Today tab switches units halfway down, and says so in both rows:</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">// The top row counts **people**, the rows under it count **games**, and that
+// switch is not sloppiness — it's the only way the arithmetic is true. A visit
+// is one device per day, while `started` counts rounds, so a player who does
+// the Special and three Leftovers is one arrival and four starts: dividing
+// those would report a 400% play rate. So the funnel's first question is "of
+// the people who showed up, how many played", and only then does it switch to
+// games. Both rows name their own unit so the change is legible.</span></code></pre></div>
+
+    <p>The player funnel on the next tab counts devices at every stage, which makes each bar a genuine subset of the one above it. That is the only condition under which a bar's width carries meaning. The finish-rate panel counts games, because a service is measured in covers rather than in regulars. Both live on the dashboard and neither one gets "fixed" into the other.</p>
+
+    <div class="note rule">
+      <span class="tag">Worth stealing</span>
+      <p>Write the unit into the label, every time. "Devices" and "games" are four keystrokes apiece, and they are what stops somebody dividing one by the other six months from now.</p>
+    </div>
+
+    <p>One more unit trap sits in the funnel, and the fix is instructive. A later stage can legitimately outrun an earlier one, because start, complete and share arrive as independent beacons. A share whose completion beacon never landed is a real player the row above cannot see. The code clamps the bar and leaves the number alone:</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">// The *bar* is clamped, the percentage beside it is not. A rung can
+// legitimately outrun the one above ... Clamping the number would
+// hide that; clamping only the fill keeps the shape readable.</span>
+const width = Math.min(100, Math.max(0, (s.n / top) * 100));</code></pre></div>
+  </section>
+
+  <!-- 5 -->
+  <section id="s5">
+    <p class="eyebrow">Part 05</p>
+    <h2 class="head">Tracks instead of funnels</h2>
+
+    <p>A funnel chart wastes its first row. The top bar is full width by definition, so it carries no value, and every bar below it gets read against a baseline nobody drew. That works when the stages share a denominator. Two of this dashboard's charts do not.</p>
+
+    <p>The finish-rate panel and the repeat-visit ladder both draw <strong>tracks</strong>: each row is its own denominator, drawn as an empty rail, with the answer as a fill inside it.</p>
+
+    <figure>
+      <div class="figbody">
+        <svg viewBox="0 0 900 200" role="img" aria-label="A funnel with a wasted top bar next to two tracks with their own denominators">
+          <text class="sv-mono" x="4" y="18">FUNNEL: ONE DENOMINATOR, TOP BAR ALWAYS FULL</text>
+          <rect class="sv-track" x="4" y="30" width="380" height="20" rx="2"/>
+          <rect class="sv-fill-teal" x="4" y="30" width="380" height="20" rx="2"/>
+          <text class="sv-mono" x="392" y="45">arrived 120</text>
+          <rect class="sv-track" x="4" y="56" width="380" height="20" rx="2"/>
+          <rect class="sv-fill-teal" x="4" y="56" width="228" height="20" rx="2"/>
+          <text class="sv-mono" x="392" y="71">played 72</text>
+          <rect class="sv-track" x="4" y="82" width="380" height="20" rx="2"/>
+          <rect class="sv-fill-teal" x="4" y="82" width="146" height="20" rx="2"/>
+          <text class="sv-mono" x="392" y="97">finished 46</text>
+          <text class="sv-accent" x="4" y="122">THE FIRST ROW SPENDS A LINE SAYING 100%</text>
+
+          <text class="sv-mono" x="500" y="18">TRACKS: EACH ROW CARRIES ITS OWN DENOMINATOR</text>
+          <rect class="sv-track" x="500" y="30" width="300" height="20" rx="2"/>
+          <rect class="sv-fill-cherry" x="500" y="30" width="192" height="20" rx="2"/>
+          <text class="sv-mono" x="808" y="45">64% of 72</text>
+          <text class="sv-mono" x="500" y="66">FINISHED, OF GAMES STARTED</text>
+          <rect class="sv-track" x="500" y="76" width="300" height="20" rx="2"/>
+          <rect class="sv-fill-mustard" x="500" y="76" width="69" height="20" rx="2"/>
+          <text class="sv-mono" x="808" y="91">23% of 46</text>
+          <text class="sv-mono" x="500" y="112">SHARED, OF GAMES FINISHED</text>
+          <text class="sv-accent" x="500" y="140">EVERY ROW DOES WORK</text>
+
+          <path class="sv-line" d="M4 160 H896" stroke-width="1" stroke-dasharray="3 4"/>
+          <text class="sv-mono" x="4" y="180">THE UNFINISHED REMAINDER IS SPLIT, NEVER LUMPED: "14 STILL PLAYING · 12 WALKED OUT"</text>
+        </svg>
+      </div>
+      <figcaption>The tracks carry two denominators, so both rows answer something. Neither row is the always-full bar a funnel opens with.</figcaption>
+    </figure>
+
+    <p>The remainder gets the same treatment. An earlier version reported every unfinished round as a walkout and clamped the count at zero, which on a live afternoon reads a full diner as a mass exit. Start and complete arrive as separate beacons, so the split cannot come from the rows. It comes from the age of each start cohort: <code>DNF_GRACE_MINUTES</code> is two hours, and a round begun inside that window counts as still playing. Both halves get named. Neither gets inferred in silence.</p>
+
+    <p>The retention ladder keeps its cohort sizes as text rather than as bar width, for a reason worth borrowing: <q>encoding it as bar width too would spend the axis on a number already written twice</q>. A reader can hold "17 of 50". Making the bar shorter as well says the same thing twice and costs you the ability to compare rates down the ladder.</p>
+  </section>
+
+  <!-- 6 -->
+  <section id="s6">
+    <p class="eyebrow">Part 06</p>
+    <h2 class="head">Four colour meanings, all spoken for</h2>
+
+    <p>The game's palette gives the dashboard three hues to work with. Four meanings already claim them, and adding a fifth means retiring one first.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Palette</th><th>Encodes</th><th>Where you see it</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="sw sw-mustard"></span><span class="sw sw-teal"></span><span class="sw sw-cherry"></span> mustard / teal / cherry</td>
+            <td>game <strong>kind</strong></td>
+            <td>Today's Special, Leftovers, Chef's Choice, on every stacked bar</td>
+          </tr>
+          <tr>
+            <td><span class="sw sw-teal"></span><span class="sw sw-cherry"></span><span class="sw sw-mustard"></span> start / complete / share</td>
+            <td><strong>event</strong> type</td>
+            <td>Activity feed pips, finish-rate fills, funnel rungs</td>
+          </tr>
+          <tr>
+            <td><span class="sw sw-teal"></span> single-hue teal ramp</td>
+            <td><strong>rank</strong></td>
+            <td>The country pie, ordered by share, with the tail pooled in grey</td>
+          </tr>
+          <tr>
+            <td><span class="sw sw-ink"></span> dashed ink</td>
+            <td>an <strong>annotation</strong> over data</td>
+            <td>The constant-pace line through the growth curve</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The same three hues carry the first two meanings in different orders, which sounds like a collision waiting to happen. It holds because the two never share a chart. A stacked bar is always about game modes. A fill inside a track is always about events. The stylesheet says so at each site:</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">/* Fills use the Activity feed's EVENT colours (complete =
+   cherry, share = mustard), never the kind palette, which means game mode. */</span></code></pre></div>
+
+    <p>Two refusals matter as much as the assignments. The country pie takes one hue at varying strength rather than a categorical set, because a categorical set would be a fourth meaning on borrowed colours. And no colour is ever assigned to a player. Following one device through the Activity feed is an <strong>action</strong>: you click a chip and everything else dims. A per-device palette would collide with all three existing meanings at once.</p>
+
+    <p>Menu-mix bars stay one hue for a different reason. Nine region colours would re-encode what bar length already tells you.</p>
+  </section>
+
+  <!-- 7 -->
+  <section id="s7">
+    <p class="eyebrow">Part 07</p>
+    <h2 class="head">Uncertainty, drawn selectively</h2>
+
+    <p>Every rate in the app passes through <code>shared/sample.ts</code>, which returns the percentage together with a 95% Wilson interval and the denominator it came from. The interval reaches the screen only when the denominator falls under <code>SMALL_SAMPLE_MIN</code>, which is 30.</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">/**
+ * The honest range around a rate — but only when the sample is thin enough that
+ * the point estimate can't carry itself.
+ *
+ * Rendered selectively on purpose. An interval on every number on the page
+ * teaches you to stop reading them; an interval on exactly the numbers that need
+ * one is a signal about which numbers those are.
+ */</span>
+export function RangeHint({ n, of }: { n: number; of: number }) {
+  const label = rangeLabel(rate(n, of));
+  if (label === null) return null;
+  return &lt;span className="rate-range" title={SAMPLE_NOTE}&gt;{label}&lt;/span&gt;;
+}</code></pre></div>
+
+    <p>The selectivity is the design. Error bars on everything become wallpaper inside a week. Error bars on four numbers out of forty tell you which four to distrust, before you have read any of them.</p>
+
+    <p>Wilson rather than the textbook normal approximation, because this game sits where the approximation breaks: small samples and rates pinned near zero or one. Almost nobody shares. Almost everybody solves. The normal approximation hands back a zero-width interval at four wins out of four, which is the most confident-looking output a wrong method can produce.</p>
+
+    <p>One wording for the caveat lives in one constant, and every range on the dashboard hangs it off the same tooltip:</p>
+
+    <div class="codewrap"><pre><code>export const SAMPLE_NOTE =
+  `Under ${SMALL_SAMPLE_MIN} rounds the percentage moves several points on one player, so the range ` +
+  `it plausibly sits in (95% confidence) is shown beside it.`;</code></pre></div>
+  </section>
+
+  <!-- 8 -->
+  <section id="s8">
+    <p class="eyebrow">Part 08</p>
+    <h2 class="head">When a sentence is allowed to speak</h2>
+
+    <p>Several panels open with a plain-English headline. "▲ 21% ahead of the last 7 days at this hour." "Aloo gobi is the toughest at 44% solved." Those sentences carry more weight than the table under them, so each one sits behind its own minimum sample.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Threshold</th><th>Value</th><th>Guards</th></tr></thead>
+        <tbody>
+          <tr><td><code>DIFFICULTY_MIN_SOLVES</code></td><td class="num">5</td><td>"That Special played harder than average"</td></tr>
+          <tr><td><code>DISH_MIN_COMPLETED</code></td><td class="num">8</td><td>A dish's win rate entering the hardest/kindest comparison</td></tr>
+          <tr><td><code>RETENTION_MIN_COHORT</code></td><td class="num">10</td><td>"A first-timer comes back 38% of the time"</td></tr>
+          <tr><td><code>GROWTH_TREND_MIN_DAYS</code></td><td class="num">7</td><td>The gaining / steady / stalling verdict</td></tr>
+          <tr><td><code>WEEKDAY_MIN_OCCURRENCES</code></td><td class="num">3</td><td>Calling out a strongest or weakest weekday</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The split between what a row may claim and what a sentence may claim is the part worth taking away. A row can quote one out of one, because it prints its denominator beside the percentage. A sentence cannot carry that denominator without turning into a paragraph, so the sentence stays silent.</p>
+
+    <div class="codewrap"><pre><code><span class="cmt">/**
+ * Null until **both** rungs clear RETENTION_MIN_COHORT ...
+ * The rungs themselves can quote a thin cohort because each one prints its own
+ * "1 of 1" denominator beside the percentage; a prose sentence can't carry that,
+ * and "once they've come twice, 100%" off a single player is a claim the data
+ * hasn't earned.
+ */</span></code></pre></div>
+
+    <p>Thin cohorts still appear. They get flagged in place rather than hidden, because "how many of my three-timers came back" is the whole question and a blank row answers it worse than a caveat does.</p>
+
+    <p>The pace sentence adds a second idea: compare like with like. "41 games started" at two in the afternoon means nothing on its own, so the panel compares the day's cumulative total <em>through the current ET hour</em> against the same hour across recent days. Below one game of baseline it returns null, because a percentage off a fraction is noise and an empty line beats a confident wrong number.</p>
+  </section>
+
+  <!-- 9 -->
+  <section id="s9">
+    <p class="eyebrow">Part 09</p>
+    <h2 class="head">"Too early to tell" is an answer</h2>
+
+    <p>The Experiments tab keeps a log of deliberate changes: what shipped, when, and which metric it was meant to move. Naming the metric up front is the mechanism that stops you from shopping for a number afterwards, and reading a different one prints a warning.</p>
+
+    <p>Each entry gets one of four verdicts, and the fourth carries as much weight as the others:</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Verdict</th><th>Means</th></tr></thead>
+        <tbody>
+          <tr><td>▲ Moved up</td><td>The difference beat the noise</td></tr>
+          <tr><td>▼ Moved down</td><td>Same, in the other direction</td></tr>
+          <tr><td>No detectable change</td><td>Enough data to say the change did little</td></tr>
+          <tr><td>Too early to tell</td><td>Not enough data yet, with the number of days that would settle it</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>The last two are different claims and the dashboard keeps them apart. "No detectable change" is a finding. "Too early to tell" is a status, and it ships with <code>daysNeeded</code> attached so the tab tells you when to come back.</p>
+
+    <p>Counts and rates take different tests. A count gets a two-sample t against the pooled day-to-day spread. A rate gets non-overlapping Wilson intervals, through the same <code>separated()</code> helper the dish report uses before it calls anything the hardest dish on the menu. The sentence under each verdict names the bar the difference had to clear: the day-to-day swing for a count, the denominator for a rate.</p>
+
+    <div class="note rule">
+      <span class="tag">The rule underneath</span>
+      <p>Rates pool over the period. A week's rate is that week's successes over that week's trials, never the average of seven daily percentages, or a one-round Tuesday outvotes a busy Saturday. The experiment series ships raw counts for the same reason: a pre-divided percentage cannot be re-pooled over a different window.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section id="s10">
+    <p class="eyebrow">Part 10</p>
+    <h2 class="head">Drawing the gaps</h2>
+
+    <p>Analytics that grew one column at a time leaves holes, and each kind of hole gets its own treatment. None of them get drawn as zero.</p>
+
+    <h4>Not measured yet</h4>
+    <p>The visit beacon shipped long after the round beacons, so the arrival count is <code>null</code> for the game's early history. The finish-rate panel drops its top row on those days rather than drawing an empty rail, and one shared sentence explains why wherever a slice comes back null:</p>
+
+    <div class="codewrap"><pre><code>export function untrackedNote(trackingStart?: string | null): string {
+  return trackingStart
+    ? `Player tracking didn't start until ${trackingStart} — not measured before that, which isn't the same as zero.`
+    : "Player tracking hasn't recorded anything yet.";
+}</code></pre></div>
+
+    <h4>Has not happened yet</h4>
+    <p>On today's hourly chart, the hours after the current one are drawn faded. An empty column at 9pm on a live evening and an empty column at 9pm on a finished day are different claims, and the faded state keeps them from looking identical. A past day passes <code>null</code> for the boundary, because every one of its hours is a real measurement.</p>
+
+    <h4>Measured at one end only</h4>
+    <p>A round needs both a start and a completion timestamp before the dashboard will quote a duration. Neither is ever filled in from <code>updated_at</code>. Those rounds light their pip and say "time not recorded". An abandoned round gets no duration at all, since now-minus-start measures how long ago something happened.</p>
+
+    <h4>Measured, but implausible</h4>
+    <p>Negative durations get dropped rather than clamped. The 15-minute play-time cap only ever reduces a figure, and the count of capped rounds rides along so the panel can state the trim out loud: <q>the timer measures how long the tab was open, not how long anyone was playing</q>. Solve times report a median and a p90 rather than a mean, because a round is a browser tab and some of them get left open until lunch.</p>
+  </section>
+
+  <!-- 11 -->
+  <section id="s11">
+    <p class="eyebrow">Part 11</p>
+    <h2 class="head">Nothing animates</h2>
+
+    <p><code>admin.css</code> declares no keyframes across 2,900 lines. That is a deliberate property, and it pays for itself twice.</p>
+
+    <p>The first payment is accessibility: a stylesheet with no animation needs no reduced-motion block, so there is nothing to forget to update when a new panel lands. The game's stylesheet has one and every keyframe goes into it in the same commit. The dashboard sidesteps the requirement by not creating it.</p>
+
+    <p>The second is legibility. The Today tab refetches every 30 seconds while you watch a service. Anything that moved on arrival would turn a quiet afternoon into a light show, and you would start reading motion as news. New rows arrive with a static rail that a timer removes.</p>
+
+    <div class="note trap">
+      <span class="tag">The one thing to keep true</span>
+      <p>Introducing the first keyframe here also introduces the requirement for a reduced-motion block that has never existed. The cost of animation on this dashboard is not the animation.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section id="s12">
+    <p class="eyebrow">Part 12</p>
+    <h2 class="head">What transfers to your next dashboard</h2>
+
+    <p>Seven of these rules have nothing to do with diners, games, or Cloudflare.</p>
+
+    <ol>
+      <li><strong>Give each tab a question, not a data source.</strong> If two tabs hold half an answer, merge or move until one of them holds all of it.</li>
+      <li><strong>Name the unit in the label.</strong> Devices and games look alike in a number and behave nothing alike in a ratio.</li>
+      <li><strong>Draw tracks when denominators differ.</strong> Save the funnel for stages that share one, or spend a row on a bar that always reads 100%.</li>
+      <li><strong>Count your colour meanings before adding one.</strong> Four is a workable ceiling. Assigning a hue to an identity burns the budget fastest.</li>
+      <li><strong>Show uncertainty on the numbers that need it and nowhere else.</strong> Universal error bars are decoration.</li>
+      <li><strong>Let a row quote a thin sample; make a sentence earn it.</strong> The row prints its denominator, and a headline cannot.</li>
+      <li><strong>Ship "not yet" as a verdict, with a date attached.</strong> A dashboard that cannot say it will show you something that went up instead.</li>
+    </ol>
+
+    <p>The pipeline that feeds all of this is covered in <a href="analytics-pipeline.html">Analytics Beacon Pipeline</a>, which ends where this document starts.</p>
+  </section>
+
+  <footer class="end">
+    <p style="margin:0 0 10px"><a href="../index.html">&larr; Back to the project breakdown</a></p>
+    Lunch Special · admin dashboard walkthrough · panels in <code>src/admin/</code>, folds in <code>worker/</code>, sample maths in <code>shared/sample.ts</code>
+  </footer>
+
+</div>
+</body>
+</html>
