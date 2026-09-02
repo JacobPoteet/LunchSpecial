@@ -2330,6 +2330,40 @@ INSERT INTO clues (dish_id, order_index, text) VALUES
 (381,4,'Chunks of white and smoked seafood fold into a thick parsley bechamel under a mashed potato lid, forked into ridges.'),
 (381,5,'Britain''s forked potato crust over a creamy parsley sauce.');
 
+INSERT INTO dishes (id, name, slug, country, region, course, temperature, protein, ingredients) VALUES
+(382,'Deep-Fried Oreo','deep-fried-oreo','United States','north-america','dessert','hot','vegetarian','["chocolate","flour","egg","milk","sugar","powdered sugar","baking powder"]'),
+(383,'Elephant Ear','elephant-ear','United States','north-america','dessert','hot','vegetarian','["flour","yeast","butter","sugar","cinnamon","milk"]'),
+(384,'Cotton Candy','cotton-candy','United States','north-america','dessert','cold','vegetarian','["sugar","food coloring","vanilla"]'),
+(385,'Fried Ice Cream','fried-ice-cream','Mexico','latin-america','dessert','cold','vegetarian','["ice cream","cornflakes","cinnamon","egg","honey","sugar"]'),
+(386,'Caramel Apple','caramel-apple','United States','north-america','dessert','cold','vegetarian','["apple","caramel","sugar","butter","cream","peanuts"]');
+
+INSERT INTO clues (dish_id, order_index, text) VALUES
+(382,1,'A battered sweet sold at American fairgrounds.'),
+(382,2,'Fair vendors in California and Texas both claim they battered the first one.'),
+(382,3,'You bite through the batter and find the cookie has gone soft, closer to warm cake than to a snap.'),
+(382,4,'The cook drops a chocolate sandwich cookie into pancake batter, fries it, and buries it in powdered sugar.'),
+(382,5,'America''s fairground cookie under a golden shell, three to a stick and dusted white.'),
+(383,1,'A flat fried pastry from the American Midwest.'),
+(383,2,'Fried flat dough is older than any fairground, and Midwestern vendors are the ones who put a price on it.'),
+(383,3,'Vendors named it after an animal, and cross into Canada and the animal changes.'),
+(383,4,'You stretch a ball of yeasted dough thin with your hands, drop it flat into hot oil, and shake cinnamon sugar over it.'),
+(383,5,'America''s plate-sized fried sheet, chewy under a heavy dust of cinnamon sugar.'),
+(384,1,'A spun sugar sweet sold at American fairs.'),
+(384,2,'A dentist and a confectioner patented the machine together in 1897 and sold it at the 1904 world''s fair.'),
+(384,3,'You get mostly air for your money, and it disappears the moment it touches your tongue.'),
+(384,4,'The cook spins molten sugar through a drum full of pinholes and winds the dyed threads onto a paper cone.'),
+(384,5,'America''s pink cloud on a paper cone, bigger than your head and gone in three bites.'),
+(385,1,'A fried dessert from Latin America.'),
+(385,2,'Chicago and Philadelphia both claimed it at their world''s fairs, and neither city is where you find it now.'),
+(385,3,'The crust leaves the fryer hot while the middle stays frozen, and the cook has seconds to get it out.'),
+(385,4,'You roll a frozen scoop in egg and crushed cornflakes, lower it into hot oil for seconds, and shake cinnamon over it.'),
+(385,5,'Mexico''s cold scoop in a crunchy shell, drizzled with honey under a cap of whipped cream.'),
+(386,1,'A coated fruit on a stick from North America.'),
+(386,2,'A Kraft sales rep melted leftover Halloween sweets in the 1950s and dunked whole orchard fruit in the pot.'),
+(386,3,'People mix it up with the red glassy one, which is a different dip and sets hard enough to crack a tooth.'),
+(386,4,'You push a stick into the top, dunk it in melted sugar, butter and cream, then roll it in chopped peanuts.'),
+(386,5,'America''s fall fairground stick treat, a chewy brown coat over cold fruit, cut into wedges.');
+
 -- Dishes that came in through the player suggestion form. Flagged here rather
 -- than in the INSERT above so the column list stays as it was; the rest of the
 -- catalogue keeps the 0 default. See migrations/0017.
