@@ -105,41 +105,67 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
 
   const say = (date: string | null, ok: boolean, text: string) => setFlash({ date, ok, text });
 
-  const write = async (date: string, run: () => Promise<string>) => {
+  /**
+   * Swap one day's booking in place.
+   *
+   * Deliberately not a refetch. Rewriting `entries` from the server after every
+   * click re-rendered fifty rows to change one, and the row visibly restacked
+   * while it happened. Patching the single entry lets React change the one name
+   * that moved; `buildBoard` still runs over the whole window, so a booking that
+   * collides with another day updates both rest notes without a round trip.
+   */
+  const patchEntry = (date: string, dishId: number | null, dishName: string | null) =>
+    setEntries((cur) => cur?.map((e) => (e.date === date ? { date, dishId, dishName } : e)) ?? cur);
+
+  /**
+   * A write against one day, with the row put back if the server refuses it.
+   *
+   * `optimistic` is what the day should show straight away. A booking or a clear
+   * knows that up front and shows it before the request goes out, so the swap
+   * looks instant; the shuffle can't, since the server chooses, so its row
+   * changes once when the answer lands. Either way the row never greys, never
+   * grows and never reflows the list.
+   */
+  const write = async (
+    date: string,
+    optimistic: { dishId: number | null; dishName: string | null } | null,
+    run: () => Promise<{ dishId: number | null; dishName: string | null }>,
+  ) => {
+    if (busyDate === date) return;
+    const before = entries?.find((e) => e.date === date);
     setBusyDate(date);
     setError(null);
     setFlash(null);
+    if (optimistic) patchEntry(date, optimistic.dishId, optimistic.dishName);
     try {
-      say(date, true, await run());
-      reload();
+      const after = await run();
+      patchEntry(date, after.dishId, after.dishName);
     } catch (e) {
+      if (optimistic && before) patchEntry(date, before.dishId, before.dishName);
       say(date, false, (e as Error).message);
     } finally {
       setBusyDate(null);
     }
   };
 
-  const book = (date: string, dish: AdminDishRow) =>
-    write(date, async () => {
+  const book = (date: string, dish: AdminDishRow) => {
+    discardDraft(date);
+    return write(date, { dishId: dish.id, dishName: dish.name }, async () => {
       await api.setSchedule(date, dish.id);
-      return `${monthDay(date)} → ${dish.name}.`;
+      return { dishId: dish.id, dishName: dish.name };
     });
+  };
 
-  // The roll reports the pool it drew from. That count is the only place the
-  // unserved catalogue is visible, and it says when clicking again has stopped
-  // paying.
   const shuffleDay = (date: string) =>
-    write(date, async () => {
+    write(date, null, async () => {
       const picked = await api.shuffleSchedule(date);
-      return `${monthDay(date)} → ${picked.dishName}. Rolled from ${picked.remaining} dish${
-        picked.remaining === 1 ? "" : "es"
-      } that have never been the Special.`;
+      return { dishId: picked.dishId, dishName: picked.dishName };
     });
 
   const clearDay = (date: string) =>
-    write(date, async () => {
+    write(date, { dishId: null, dishName: null }, async () => {
       await api.setSchedule(date, null);
-      return `${monthDay(date)} cleared — it will run on the automatic fallback pick.`;
+      return { dishId: null, dishName: null };
     });
 
   /** Drop a half-typed name, putting the field back to what the day is booked with. */
@@ -291,6 +317,35 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
   );
 }
 
+/** One of a row's four buttons. Hidden means still there, holding its width. */
+function RowButton({
+  hidden,
+  busy,
+  title,
+  label,
+  onClick,
+  children,
+}: {
+  hidden: boolean;
+  busy?: boolean;
+  title?: string;
+  label?: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      className={hidden ? "btn btn--ghost is-inert" : "btn btn--ghost"}
+      aria-busy={busy}
+      title={title}
+      aria-label={label}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
 /**
  * The picker is a listbox this file draws, not a native `<datalist>`. A datalist
  * searches every scrap of text in an option, so listing the country beside a
@@ -364,7 +419,6 @@ function Row({
               aria-expanded={open}
               aria-controls={`sched-options-${row.date}`}
               value={value}
-              disabled={busy}
               placeholder="— fallback pick —"
               aria-label={`Special for ${weekday(row.date)}`}
               // Select what's there so the first keystroke replaces the booking
@@ -447,46 +501,46 @@ function Row({
           )}
         </span>
 
+        {/* Every row renders all four buttons and hides the ones it can't use,
+            rather than rendering only what applies. Clearing a day drops three
+            of the four, and dropping them from the DOM let the picker and the
+            tags slide sideways to fill the space on every click. `visibility`
+            holds the exact width without a guessed one, and takes a hidden
+            button out of the tab order and off the pointer. */}
         <span className="btn-row">
-          {!row.isPast && (
-            // Offered on an empty day too, where it is the fastest way to fill
-            // the gap. Same pool either way.
-            <button
-              className="btn btn--ghost"
-              disabled={busy}
-              title="Roll a dish that has never been the Special onto this day"
-              aria-label={`Shuffle ${weekday(row.date)}`}
-              onClick={onShuffle}
-            >
-              🎲
-            </button>
-          )}
-          {!row.isPast && row.dishId !== null && (
-            <button
-              className="btn btn--ghost"
-              disabled={busy}
-              title="Unbook this day — it runs on the automatic fallback pick"
-              aria-label={`Clear ${weekday(row.date)}`}
-              onClick={onClear}
-            >
-              Clear
-            </button>
-          )}
-          {row.dishId !== null && (
-            <>
-              <button className="btn btn--ghost" onClick={() => onOpenDish(row.dishId)}>
-                Edit
-              </button>
-              <button className="btn btn--ghost" onClick={() => onTestPlay(row.dishId!)}>
-                Test ▶
-              </button>
-            </>
-          )}
+          {/* Offered on an empty day too, where it is the fastest way to fill
+              the gap. Same pool either way. */}
+          <RowButton
+            hidden={row.isPast}
+            busy={busy}
+            title="Roll a dish that has never been the Special onto this day"
+            label={`Shuffle ${weekday(row.date)}`}
+            onClick={onShuffle}
+          >
+            🎲
+          </RowButton>
+          <RowButton
+            hidden={row.isPast || row.dishId === null}
+            busy={busy}
+            title="Unbook this day — it runs on the automatic fallback pick"
+            label={`Clear ${weekday(row.date)}`}
+            onClick={onClear}
+          >
+            Clear
+          </RowButton>
+          <RowButton hidden={row.dishId === null} onClick={() => onOpenDish(row.dishId)}>
+            Edit
+          </RowButton>
+          <RowButton hidden={row.dishId === null} onClick={() => row.dishId !== null && onTestPlay(row.dishId)}>
+            Test ▶
+          </RowButton>
         </span>
 
-        {/* Pinned to the row that caused it. A board is fifty rows long, and a
-            confirmation at the top of the panel is offscreen from most of them. */}
-        {flash && <span className={flash.ok ? "sched-flash" : "sched-flash sched-flash--bad"}>{flash.text}</span>}
+        {/* Errors only, pinned to the row that raised them: a board is fifty rows
+            long, and a message at the top of the panel is offscreen from most of
+            them. Successes print nothing — the row already shows the new dish,
+            and a line saying so grew the row on every click. */}
+        {flash && <span className="sched-flash">{flash.text}</span>}
       </li>
     </>
   );

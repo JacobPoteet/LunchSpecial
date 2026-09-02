@@ -2180,16 +2180,28 @@
 .sched-option__name { font-size: 0.9rem; color: var(--ink); }
 .sched-option__meta { font-size: 0.74rem; color: var(--ink-soft); }
 
-/* The result of the last write, pinned under the row that caused it. Takes the
-   full row width so it never squeezes the buttons. */
+/* Errors only, under the row that raised one. Successes print nothing: the row
+   already shows the new dish, and a line saying so changed the row's height on
+   every click, which read as a flicker. */
 .sched-flash {
   flex-basis: 100%;
   font-size: 0.8rem;
   padding: 4px 6px 0;
-  color: var(--hit);
+  color: var(--cherry);
 }
 
-.sched-flash--bad { color: var(--cherry); }
+/* A write in flight. Opacity only — `.btn:disabled` paints --miss over a ghost
+   button, so disabling one for the length of a request flashed it grey, and any
+   change of size or weight here would shift the row it sits in. */
+.sched-row .btn[aria-busy="true"] { opacity: 0.55; }
+
+/* A button the row can't use right now. Still laid out, so the four keep their
+   width whether or not the day is booked, but out of the tab order and off the
+   pointer. Clearing a day drops three of its four buttons, and without this the
+   picker and the tags slid sideways to fill the space every time. */
+.sched-row .btn.is-inert { visibility: hidden; }
+
+.sched-row > .btn-row { justify-content: flex-end; }
 
 .sched-summary {
   margin: 0 0 8px;
