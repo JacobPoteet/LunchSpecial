@@ -39,7 +39,8 @@ Local admin password: `ADMIN_PASSWORD` in `.dev.vars` (gitignored; currently `lu
 
 ### Where secrets live
 
-- **Worker secrets** (`ADMIN_PASSWORD`, `SESSION_SECRET`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_PUBLIC_KEY`): set with `wrangler secret put`. They persist across deploys, so CI never touches them. The Discord ones are **optional** — without them every deployment still runs, minus Rich Presence and the channel share (`/api/discord/token` answers 503).
+- **Worker secrets** (`ADMIN_PASSWORD`, `SESSION_SECRET`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_PUBLIC_KEY`, `GITHUB_TOKEN`): set with `wrangler secret put`. They persist across deploys, so CI never touches them. The Discord ones are **optional** — without them every deployment still runs, minus Rich Presence and the channel share (`/api/discord/token` answers 503). `GITHUB_TOKEN` is optional too — without it the back office's issue composer says so instead of showing the form.
+- **Not a secret: `GITHUB_REPO`**, a plain `vars` entry in wrangler.jsonc (`JacobPoteet/LunchSpecial`). A public repo name is worth being greppable. `VITE_DISCORD_CLIENT_ID` is the other public one, and it's a build-time Vite var rather than a Worker var — see the Discord section.
 - **CI credentials**: GitHub Actions secrets. `CLOUDFLARE_API_TOKEN` ("Edit Cloudflare Workers" template + D1:Edit), `CLOUDFLARE_ACCOUNT_ID` = `9016037cfaa0836d9bbc85d754935cb5`.
 - **`DISCORD_BOT_TOKEN`** is used by `npm run discord:register` and nowhere else. It is not a Worker secret and nothing in the running app has one.
 
@@ -141,7 +142,7 @@ No OAuth scopes, all no-ops off Discord.
 
 ```
 wrangler.jsonc        assets SPA fallback + run_worker_first:["/api/*"] + D1 binding "DB"
-migrations/           0001_init.sql = dishes/clues/schedule. Additive only. 0032 is the latest
+migrations/           0001_init.sql = dishes/clues/schedule. Additive only. 0037 is the latest
 seed/seed.sql         canonical dish catalogue + a 30-day schedule from 2026-07-17. Idempotent (DELETEs first)
 shared/types.ts       ALL shared types + enums (COURSES, REGIONS…) + MAX_GUESSES + EPOCH_DATE
 worker/index.ts       Hono entry; only /api/* reaches the Worker (assets serve the rest)
@@ -169,6 +170,8 @@ worker/device.ts      one device's rows, the review shown before a wipe
 worker/shuffle.ts     the unserved-dish pick behind the Tomorrow's Special shuffle
 worker/stats.ts       public-badge folds (shields.io endpoint payload, compact counts, breakdown)
 worker/discordsig.ts  Ed25519 check that an interaction came from Discord (raw body!)
+worker/github.ts      issue composer folds (repo string, input validation, the posted body,
+                      GitHub's JSON → our shapes). No fetch — the route does the talking
 worker/avatar.ts      Discord avatar url + display name (default faces, animated hashes)
 worker/data-integrity.test.ts   the clue linter. Enforces the beat sheet's mechanizable half. Fails in CI
 
@@ -201,7 +204,7 @@ worker/routes/analytics.ts  the beacon handlers, mounted at /api/rounds/* (see "
 worker/routes/admin.ts    /api/admin/*: login/logout/session, dish CRUD, ingredients vocab, schedule
                           GET/PUT, autofill, schedule/shuffle, preview token, dashboard, analytics
                           aggregates + /recent-rounds, /menu-mix, /dish-report, /device-data GET+DELETE,
-                          /experiments CRUD, /announcements CRUD
+                          /experiments CRUD, /announcements CRUD, /issues GET+POST
 
 src/audio/            engine.ts = the Web Audio graph (two buses, buffer cache, gesture unlock, audio-clock
                       scheduling); music.ts = the ambient bed; prefs.ts = the mute pref; index.ts = the
@@ -215,7 +218,7 @@ src/api.ts            public fetch wrappers + localToday()
 src/game/             GamePage (orchestrator), components.tsx (Modal/GuessRow/ClueTicket/GuessInput/
                       Countdown), SoundToggle.tsx, storage.ts, share.ts, attribution.ts,
                       ArchiveModal.tsx + archive.ts, AnnouncementModal.tsx + Markdown.tsx, scorecard.ts
-src/admin/            AdminApp (session+nav), api.ts, Dashboard (6 tabs), OverviewPanel, DishReportPanel,
+src/admin/            AdminApp (session+nav), api.ts, IssueComposer, Dashboard (6 tabs), OverviewPanel, DishReportPanel,
                       MenuMixPanel, PlayersPanel, TrendsPanel, ExperimentsPanel, ActivityPanel
                       (+ MyDataPanel), RequestsView, AnnouncementsPanel, analyticsUi.tsx, DayPicker,
                       DishList, DishEditor, ScheduleView
@@ -411,6 +414,19 @@ Two buses, one mute button, and **not one audio file in the repo yet**. Dropping
 - **Three tables:** `analytics_rounds`, `analytics_visits` (arrivals), `announcement_views` (reach). `dish_requests` is deliberately excluded — a suggestion isn't analytics.
 - **The delete reports what each table actually lost**, not what was asked for: a wipe that matched nothing is a wrong id.
 - **The device id survives the wipe.** Nothing touches localStorage, so the next round records under the same id.
+
+### Filing issues to GitHub (the nav's File an issue button)
+
+`File an issue` sits in the admin nav on every panel and opens one modal: the compose form, with the repo's open issues listed under it. `worker/github.ts` holds every fold, `src/admin/IssueComposer.tsx` draws it, `GET`/`POST /api/admin/issues` do the talking.
+
+- **GitHub is the record. There is no D1 table**, no migration and nothing to back up — unlike `dish_requests`, which is an inbox with no other home.
+- **`GITHUB_TOKEN` never reaches the browser.** Same rule as `DISCORD_CLIENT_SECRET`: it can write to the repository. A fine-grained PAT, Issues: Read and write, that one repo, nothing else.
+- **The read answers 200 with `configured: false`; the write answers 503.** That asymmetry is deliberate and is the one place this deviates from the Discord routes' 503-when-unconfigured convention: the composer's job with no token is to name the missing secret, and a 503 would put that sentence behind an error banner. The write genuinely cannot proceed, so it keeps the 503.
+- **`GET /issues` returns pull requests too**, and they are dropped in `toIssue` by their `pull_request` key. Nothing else distinguishes a PR row.
+- **A 404 from GitHub almost always means the token, not the name.** GitHub answers 404, not 403, when a token can see the account but not the repo, which is why `githubError` says so out loud.
+- **One surface, not two.** The open-issue list exists to stop you filing a duplicate, and the moment that matters is while you are typing. A separate nav tab would put the check one click away from what it prevents.
+- **The context block is why this isn't a link to `issues/new`.** The view, the URL (which carries the dashboard's `?tab=`), the dish under edit and the viewport ride along, captured when the button is pressed rather than as the modal renders. The checkbox drops them when the issue isn't about a screen.
+- **A failed label fetch costs the chips, not the composer.** Labels are a convenience; being unable to file because one of two parallel calls missed would not be.
 
 ## Adding dishes (when asked)
 
