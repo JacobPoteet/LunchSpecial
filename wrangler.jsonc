@@ -18,6 +18,12 @@
   ],
   "observability": {
     "enabled": true
+  },
+  // Where the back office's "File an issue" button posts. Not a secret — the
+  // repo is public and the name is worth being greppable — so it lives here as
+  // a plain var rather than in .dev.vars. The token that goes with it does not.
+  "vars": {
+    "GITHUB_REPO": "JacobPoteet/LunchSpecial"
   }
   // Secrets (set via `wrangler secret put`, never committed):
   //   ADMIN_PASSWORD        — password for the /admin panel
@@ -32,6 +38,10 @@
   //                           (/api/discord/interactions). Optional: without it
   //                           the endpoint answers 503 and the Activity's live
   //                           progress message simply doesn't post.
+  //   GITHUB_TOKEN          — fine-grained PAT, Issues: Read and write on the
+  //                           repo in "vars" above and nothing else. Optional:
+  //                           without it the back office's issue composer says
+  //                           so instead of showing the form.
   // NOT a secret here: the bot token. It's used once, by
   // scripts/discord-register-command.mjs, and nothing in the running app has one.
 }

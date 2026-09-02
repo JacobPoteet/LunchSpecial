@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import type { DishFilter } from "../../shared/dishfilter";
+import type { IssueContext } from "../../shared/types";
 import * as api from "./api";
 import AnnouncementsPanel from "./AnnouncementsPanel";
 import Dashboard from "./Dashboard";
 import DishEditor from "./DishEditor";
 import DishList from "./DishList";
+import IssueComposer, { currentIssueContext } from "./IssueComposer";
 import RequestsView from "./RequestsView";
 import ScheduleView from "./ScheduleView";
 
@@ -66,6 +68,10 @@ export default function AdminApp() {
   // A filter handed to the dish list by a link (the dashboard's Menu tab). Null
   // when you arrive by the nav, which leaves whatever filter you parked there.
   const [dishFilter, setDishFilter] = useState<Partial<DishFilter> | null>(null);
+  // The issue composer, opened from the nav. Holds the context captured at the
+  // moment the button was pressed rather than reading it as it renders — what
+  // matters is the screen you were looking at when something looked wrong.
+  const [filing, setFiling] = useState<IssueContext | null>(null);
 
   const refreshRequestCount = useCallback(() => {
     api.getRequests().then(
@@ -143,6 +149,16 @@ export default function AdminApp() {
                 Requests
                 {requestCount ? <span className="nav-badge">{requestCount}</span> : null}
               </button>
+              {/* An action, not a destination, which is why it takes the
+                  mustard tint the nav's other pills don't — but it lives in
+                  the nav because "Clock out" set that precedent and because it
+                  has to be reachable from every panel, not just one tab. */}
+              <button
+                className="admin-nav__action"
+                onClick={() => setFiling(currentIssueContext(view, editing))}
+              >
+                File an issue
+              </button>
               <button
                 onClick={() => {
                   api.logout().finally(() => setSession("out"));
@@ -181,6 +197,7 @@ export default function AdminApp() {
             {view === "requests" && (
               <RequestsView onAddAsDish={openDishFromRequest} onCountChange={setRequestCount} />
             )}
+            {filing && <IssueComposer context={filing} onClose={() => setFiling(null)} />}
           </>
         )}
       </div>

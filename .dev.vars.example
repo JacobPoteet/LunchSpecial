@@ -7,3 +7,8 @@ SESSION_SECRET=any-long-random-string
 DISCORD_CLIENT_ID=
 DISCORD_CLIENT_SECRET=
 DISCORD_PUBLIC_KEY=
+
+# Optional — the back office's "File an issue" button. A fine-grained GitHub PAT
+# with Issues: Read and write on the repo named in wrangler.jsonc's "vars", and
+# nothing else. Leave blank and the composer says it isn't configured.
+GITHUB_TOKEN=

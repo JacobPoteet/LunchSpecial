@@ -15,6 +15,9 @@ import type {
   DishRequest,
   ExperimentInput,
   ExperimentReport,
+  Issue,
+  IssueBoard,
+  IssueInput,
   MenuMix,
   ScheduleEntry,
   Surface,
@@ -178,3 +181,13 @@ export const updateAnnouncement = (id: number, input: AnnouncementInput) =>
 /** Deletes the notice *and* its view rows — reach numbers go with it. */
 export const deleteAnnouncement = (id: number) =>
   request<{ ok: true }>(`/announcements/${id}`, { method: "DELETE" });
+
+/**
+ * What the issue composer needs on open: whether this deployment can file at
+ * all, where issues go, the repo's labels, and what's already open. Answers 200
+ * with `configured: false` rather than an error when GITHUB_TOKEN is unset —
+ * see the route comment in worker/routes/admin.ts.
+ */
+export const getIssueBoard = () => request<IssueBoard>("/issues");
+/** Files one issue on GitHub and hands back the created issue, number and all. */
+export const createIssue = (input: IssueInput) => request<Issue>("/issues", json(input));

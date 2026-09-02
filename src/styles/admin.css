@@ -3028,3 +3028,105 @@
   background: rgba(201, 53, 74, 0.08);
   color: var(--ink);
 }
+
+/* ---- Issue composer (files to GitHub) ---- */
+
+/* An action sitting in a row of destinations, so it takes a fill where the
+   other pills take an outline. Ink on mustard is 7.2:1, and the hover inverts
+   the same two tokens rather than reaching for a one-off hex. */
+.admin-nav__action,
+.admin-nav button.admin-nav__action {
+  background: var(--mustard);
+  border-color: var(--mustard);
+  color: var(--ink);
+}
+
+.admin-nav button.admin-nav__action:hover {
+  background: var(--ink);
+  border-color: var(--mustard);
+  color: var(--mustard);
+}
+
+.issue-composer__title {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.05em;
+  color: var(--teal);
+  margin: 0 0 6px;
+}
+
+/* GitHub's own label colour. Decorative — the name beside it is the label, and
+   the tick is what says "selected" — so it's aria-hidden in the markup. */
+.issue-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(43, 35, 32, 0.25);
+  flex: none;
+}
+
+/* A checkbox, so this label is a control's name rather than a field's heading:
+   inline, sentence case, and immune to the 100% width .field puts on inputs. */
+.issue-context__toggle {
+  display: flex !important;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-body) !important;
+  font-size: 0.9rem !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  color: var(--ink) !important;
+  cursor: pointer;
+}
+
+.issue-context__toggle input {
+  width: auto !important;
+  margin: 0;
+}
+
+.issue-context {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 7px 10px;
+  border-left: 3px solid var(--paper-edge);
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.issue-context li + li { margin-top: 2px; }
+
+/* The user agent is the one line that can run long enough to widen the card. */
+.issue-context__ua {
+  overflow-wrap: anywhere;
+  font-size: 0.76rem;
+}
+
+.issue-open {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--paper-edge);
+}
+
+.issue-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.88rem;
+}
+
+.issue-list__row {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--paper-edge);
+  line-height: 1.35;
+}
+
+.issue-list__row:last-child { border-bottom: none; }
+
+.issue-list__label { margin-left: 6px; font-size: 0.68rem; }
+
+.issue-list__when {
+  margin-left: 6px;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
