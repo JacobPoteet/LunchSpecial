@@ -113,8 +113,16 @@ export function parseIssueInput(raw: unknown): { input: IssueInput } | { error: 
   return { input: context ? { title, body, labels, context } : { title, body, labels } };
 }
 
-/** A pipe would break out of the markdown table cell it lands in. */
-const cell = (value: string) => value.replace(/\|/g, "\\|");
+/**
+ * A pipe would break out of the markdown table cell it lands in, and a newline
+ * would break out of the row.
+ *
+ * Backslashes go first, and the order is the whole point: escaping only the
+ * pipe turns an input of `\|` into `\\|`, which GitHub renders as an escaped
+ * backslash followed by a live pipe, so the cell breaks anyway.
+ */
+const cell = (value: string) =>
+  value.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
 
 /**
  * The body as GitHub receives it: what you typed, then the context block when

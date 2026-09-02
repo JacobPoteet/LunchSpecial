@@ -170,6 +170,27 @@ describe("buildIssueBody", () => {
     );
     expect(out).toContain("| Browser | Weird\\|Browser |");
   });
+
+  it("escapes the backslash before the pipe, so an input of \\| still can't", () => {
+    // Escaping only the pipe would emit `\\|`: an escaped backslash, then a
+    // live pipe. The cell breaks on exactly the input that looks handled.
+    const out = buildIssueBody(
+      { title: "t", body: "", labels: [], context: { ...context, userAgent: "Weird\\|Browser" } },
+      "now",
+    );
+    expect(out).toContain("| Browser | Weird\\\\\\|Browser |");
+  });
+
+  it("flattens a newline, which would break the row rather than the cell", () => {
+    const out = buildIssueBody(
+      { title: "t", body: "", labels: [], context: { ...context, url: "/admin\r\n| evil | row |" } },
+      "now",
+    );
+    expect(out).toContain("| URL | `/admin \\| evil \\| row \\|` |");
+    // Header, separator, and one row each for View / URL / Viewport / Browser
+    // / Filed. The injected row folded into the URL cell instead of adding one.
+    expect(out.split("\n").filter((l) => l.startsWith("| "))).toHaveLength(7);
+  });
 });
 
 describe("toIssues", () => {
