@@ -47,8 +47,6 @@ export interface BoardRow {
   dish: AdminDishRow | null;
   isPast: boolean;
   isToday: boolean;
-  /** Starts a Monday, or opens the board. Where the week rule is drawn. */
-  startsWeek: boolean;
   /** Whole days to the nearest other serving of this dish, or null if there is none. */
   restDays: number | null;
   /** That serving's date. */
@@ -66,11 +64,6 @@ export interface BoardSummary {
   firstGap: string | null;
   /** Booked days from today forward, inside the window. */
   bookedAhead: number;
-}
-
-/** Monday, read off a plain calendar day at UTC midnight so no zone can shift it. */
-function isMonday(date: string): boolean {
-  return new Date(`${date}T00:00:00Z`).getUTCDay() === 1;
 }
 
 /**
@@ -96,7 +89,7 @@ export function buildBoard(
   today: string,
 ): BoardRow[] {
   const byId = new Map(dishes.map((d) => [d.id, d]));
-  return entries.map((entry, i) => {
+  return entries.map((entry) => {
     const dish = entry.dishId === null ? null : byId.get(entry.dishId) ?? null;
     let restDays: number | null = null;
     let restDate: string | null = null;
@@ -122,7 +115,6 @@ export function buildBoard(
       dish,
       isPast: entry.date < today,
       isToday: entry.date === today,
-      startsWeek: i === 0 || isMonday(entry.date),
       restDays,
       restDate,
       restSide,
@@ -149,13 +141,48 @@ export function summarizeBoard(rows: BoardRow[]): BoardSummary {
 }
 
 /**
- * Name to dish, for the board's type-ahead. Names are matched case-insensitively
- * and trimmed, and a name two dishes share resolves to neither — booking the
- * wrong one silently is worse than asking you to rename one of them.
+ * Name to dish, for the board's picker. Names are matched case-insensitively and
+ * trimmed, and a name two dishes share resolves to neither — booking the wrong
+ * one silently is worse than asking you to rename one of them.
  */
 export function resolveDishName(name: string, dishes: AdminDishRow[]): AdminDishRow | null {
   const key = name.trim().toLowerCase();
   if (key === "") return null;
   const hits = dishes.filter((d) => d.name.trim().toLowerCase() === key);
   return hits.length === 1 ? hits[0] : null;
+}
+
+/** How many suggestions the board's picker offers at once. */
+export const DISH_MATCH_LIMIT = 8;
+
+/**
+ * Dishes whose **name** contains the query, best first: names that start with it
+ * ahead of names that merely contain it, each group keeping the order it came in
+ * (the dishes route sorts by name, so that is alphabetical).
+ *
+ * Name only, on purpose. This replaced a native `<datalist>`, which searches
+ * every scrap of text in an option — so listing the country beside a dish meant
+ * typing three letters matched a country and the list filled with dishes whose
+ * names had nothing to do with what you typed. The country still shows on each
+ * suggestion; it just isn't what you're searching.
+ *
+ * An empty query offers the head of the catalogue rather than nothing, so
+ * focusing the field shows what the control does.
+ */
+export function matchDishes(
+  query: string,
+  dishes: AdminDishRow[],
+  limit: number = DISH_MATCH_LIMIT,
+): AdminDishRow[] {
+  const key = query.trim().toLowerCase();
+  if (key === "") return dishes.slice(0, limit);
+  const starts: AdminDishRow[] = [];
+  const contains: AdminDishRow[] = [];
+  for (const dish of dishes) {
+    const name = dish.name.toLowerCase();
+    const at = name.indexOf(key);
+    if (at === 0) starts.push(dish);
+    else if (at > 0) contains.push(dish);
+  }
+  return [...starts, ...contains].slice(0, limit);
 }

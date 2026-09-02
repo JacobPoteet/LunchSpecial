@@ -184,7 +184,7 @@ shared/attribution.ts utm_source normaliser + SOURCE_DIRECT
 shared/experiment.ts  before/after comparison — windowing, pooled rates, verdicts, "how many more days"
 shared/dishfilter.ts  admin dish-list query — facet matching, facet counts, rest days, sorts, normalize
 shared/schedule.ts    the admin specials board — schedule window × catalogue → rows with dish meta,
-                      nearest-other-serving gap, week starts; board gap summary; name → dish
+                      nearest-other-serving gap; board gap summary; name → dish; picker search
 shared/activity.ts    activity feed (rounds + arrivals + day totals → round states, durations, visits)
 shared/announce.ts    the guess-feedback wording, one table feeding colour, glyph and screen reader
 shared/time.ts        GAME_TIMEZONE (America/New_York), gameToday, msUntilGameMidnight, daysBetween,
@@ -346,8 +346,9 @@ The engagement panel's day slice defaults to today, and a 📅 `DayPicker` can s
 
 `shared/schedule.ts` folds the schedule window against the catalogue; `ScheduleView` draws it. One row per day, past days locked.
 
-- **The dish picker is a type-ahead over one shared `<datalist>`, never a `<select>` per row.** The catalogue is several hundred dishes and the window is forty-odd unlocked days, so a select per row put tens of thousands of `<option>` nodes in the DOM to choose one and offered no search. **Don't reintroduce one.** Same pattern as the Dishes page's country facet.
-- **A typed name is resolved, not trusted.** `resolveDishName` matches trimmed and case-insensitively, and **a name two dishes share resolves to neither** — booking the wrong one silently is worse than asking for a rename. An unmatched or unschedulable name says so and writes nothing.
+- **The dish picker draws its own listbox. Never a `<select>` per row, and never a `<datalist>`.** A select per row put tens of thousands of `<option>` nodes in the DOM (several hundred dishes × forty-odd unlocked days) and offered no search. A `<datalist>` searches *every* scrap of text in an option, so showing the country beside a dish meant typing a few letters matched a country and the list filled with names that had nothing to do with the query. **Don't reintroduce either.**
+- **`matchDishes` searches names only**, prefix matches ahead of substring, capped at `DISH_MATCH_LIMIT` (8). The country and rest ride on each suggestion as *shown* text, never as searched text — that distinction is the whole reason the list is hand-drawn.
+- **A typed name is resolved, not trusted.** `resolveDishName` matches trimmed and case-insensitively, and **a name two dishes share resolves to neither** — booking the wrong one silently is worse than asking for a rename. Leaving the field books a name that resolves outright and **puts anything else back in silence**: the suggestion list was open under the cursor, so a half-typed name needs no error.
 - **A close repeat is stated, never blocked.** Autofill skips a dish used within `REPEAT_WINDOW_DAYS` (60) and the shuffle only rolls dishes never scheduled at all; hand-booking is the path where you might *want* the repeat, so the row prints the gap and books it anyway.
 - **A serving is a serving wherever it was measured.** The nearest one to a day can sit inside the visible window or outside it in the catalogue's `lastServed` / `nextBooked`. The fold takes the minimum over all three, which is what stops a dish served the week before the window opens reading as never served. **The row's own date is excluded** — `lastServed` is computed against today, so counting it would flag every current Special as a zero-day repeat.
 - **The result of a write is pinned to the row that caused it.** The board is fifty rows long and a confirmation at the top of the panel is offscreen from most of them. Panel-level messages are for panel-level actions (autofill).

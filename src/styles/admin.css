@@ -2133,20 +2133,52 @@
   padding: 1px 8px;
 }
 
-/* Weeks. A rule and a label, so six weeks of rows read as six weeks. */
-.sched-week {
-  list-style: none;
-  font-family: var(--font-display);
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  border-top: 2px solid var(--paper-edge);
-  margin-top: 10px;
-  padding: 10px 6px 2px;
+/* The dish picker: an input with a list this stylesheet draws, not a native
+   <datalist>. Anchors the dropdown. */
+.sched-picker {
+  position: relative;
+  flex: 1 1 160px;
+  min-width: 140px;
+  display: flex;
 }
 
-.sched-list > .sched-week:first-child { border-top: none; margin-top: 0; }
+.sched-picker .sched-dish { width: 100%; }
+
+.sched-options {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--paper);
+  border: 2px solid var(--teal);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.sched-option {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.sched-option--active { background: var(--hit-soft); }
+
+.sched-option__name { font-size: 0.9rem; color: var(--ink); }
+.sched-option__meta { font-size: 0.74rem; color: var(--ink-soft); }
 
 /* The result of the last write, pinned under the row that caused it. Takes the
    full row width so it never squeezes the buttons. */

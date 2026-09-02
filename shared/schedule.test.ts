@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   buildBoard,
+  DISH_MATCH_LIMIT,
+  matchDishes,
   REPEAT_WINDOW_DAYS,
   resolveDishName,
   summarizeBoard,
@@ -64,16 +66,6 @@ describe("buildBoard", () => {
       [false, true],
       [false, false],
     ]);
-  });
-
-  it("starts a week on the board's first row and on every Monday", () => {
-    // 2026-09-09 is a Wednesday; 2026-09-14 is the Monday after it.
-    const rows = buildBoard(
-      ["2026-09-09", "2026-09-10", "2026-09-13", "2026-09-14", "2026-09-15"].map((d) => entry(d)),
-      [],
-      TODAY,
-    );
-    expect(rows.filter((r) => r.startsWeek).map((r) => r.date)).toEqual(["2026-09-09", "2026-09-14"]);
   });
 
   describe("rest", () => {
@@ -205,5 +197,49 @@ describe("resolveDishName", () => {
   it("refuses a name two dishes share", () => {
     // Booking the wrong one silently is worse than asking for a rename.
     expect(resolveDishName("Pho", [...all, dish({ id: 3, name: "Pho" })])).toBeNull();
+  });
+});
+
+describe("matchDishes", () => {
+  // Names chosen so "pho" hits one at the front and one in the middle, and so a
+  // country string ("Japan") appears in no dish name.
+  const all = [
+    dish({ id: 1, name: "Katsu Curry", country: "Japan" }),
+    dish({ id: 2, name: "Pho", country: "Vietnam" }),
+    dish({ id: 3, name: "Ramen", country: "Japan" }),
+    dish({ id: 4, name: "Shepherd's Pie", country: "United Kingdom" }),
+  ];
+
+  it("offers the head of the catalogue on an empty query", () => {
+    // Focusing the field should show what the control does, not an empty box.
+    expect(matchDishes("", all, 2).map((d) => d.name)).toEqual(["Katsu Curry", "Pho"]);
+  });
+
+  it("matches a substring of the name, ignoring case", () => {
+    expect(matchDishes("RAM", all).map((d) => d.name)).toEqual(["Ramen"]);
+  });
+
+  it("puts names that start with the query ahead of names that contain it", () => {
+    expect(matchDishes("p", all).map((d) => d.name)).toEqual(["Pho", "Shepherd's Pie"]);
+  });
+
+  it("searches names and not countries", () => {
+    // A native <datalist> searched the country too, so typing three letters
+    // filled the list with dishes whose names had nothing to do with the query.
+    expect(matchDishes("japan", all)).toEqual([]);
+  });
+
+  it("ignores surrounding space", () => {
+    expect(matchDishes("  pho  ", all).map((d) => d.name)).toEqual(["Pho"]);
+  });
+
+  it("returns nothing when no name matches", () => {
+    expect(matchDishes("zzz", all)).toEqual([]);
+  });
+
+  it("caps the list", () => {
+    const many = Array.from({ length: 40 }, (_, i) => dish({ id: i + 1, name: `Soup ${i}` }));
+    expect(matchDishes("soup", many)).toHaveLength(DISH_MATCH_LIMIT);
+    expect(matchDishes("soup", many, 3)).toHaveLength(3);
   });
 });

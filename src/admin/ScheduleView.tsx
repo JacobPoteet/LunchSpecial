@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AdminDishRow, ScheduleEntry } from "../../shared/types";
 import { addDays, daysBetween, gameToday } from "../../shared/time";
-import { buildBoard, resolveDishName, summarizeBoard, type BoardRow } from "../../shared/schedule";
+import { buildBoard, matchDishes, resolveDishName, summarizeBoard, type BoardRow } from "../../shared/schedule";
 import * as api from "./api";
 
 /** How far ◀ / ▶ move the window. Roughly a month, so two presses clear the default view. */
@@ -43,11 +43,11 @@ interface Flash {
  * four ways to change it, because which one you reach for depends on how much
  * you already know:
  *
- * - the **picker**, when you have a dish in mind. A type-ahead over a single
- *   shared `<datalist>`, not a `<select>` per row: the catalogue is several
- *   hundred dishes and forty-odd unlocked days, so a select per row put tens of
- *   thousands of options in the DOM to let you choose one, and gave you no way
- *   to search them. Same pattern the Dishes page uses for countries.
+ * - the **picker**, when you have a dish in mind. Type any part of a name and the
+ *   matches drop down under the field. Not a `<select>` per row: the catalogue is
+ *   several hundred dishes and forty-odd unlocked days, so a select per row put
+ *   tens of thousands of options in the DOM to let you choose one, and gave you
+ *   no way to search them. Not a `<datalist>` either — see {@link Row}.
  * - **🎲**, when you don't. It rolls a dish that has never been the Special onto
  *   that day, and is meant to be pressed repeatedly until something appealing
  *   turns up. See worker/shuffle.ts for what "never" means and why consecutive
@@ -74,6 +74,8 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
   const [busyDate, setBusyDate] = useState<string | null>(null);
   /** Half-typed dish names, per date. Absent means "showing what's booked". */
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  /** The one row whose suggestion list is open. Only ever one. */
+  const [openDate, setOpenDate] = useState<string | null>(null);
   /** The window to ask for. Null leaves the route's own default (today-7 → today+45). */
   const [range, setRange] = useState<{ from: string; to: string } | null>(null);
   const today = gameToday();
@@ -83,6 +85,7 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
       (rows) => {
         setEntries(rows);
         setDrafts({});
+        setOpenDate(null);
       },
       (e: Error) => setError(e.message),
     );
@@ -139,31 +142,30 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
       return `${monthDay(date)} cleared — it will run on the automatic fallback pick.`;
     });
 
-  /** Commit a typed name, or say why it didn't take. Never writes on a guess. */
+  /** Drop a half-typed name, putting the field back to what the day is booked with. */
+  const discardDraft = (date: string) =>
+    setDrafts((d) => {
+      const { [date]: _dropped, ...rest } = d;
+      return rest;
+    });
+
+  /**
+   * Leaving the field. A name that resolves outright is booked — typing a dish
+   * in full and tabbing away should do what it looks like it does. Anything else
+   * is put back, in silence: the suggestion list was open under the cursor, so a
+   * half-typed name that went nowhere needs no explanation.
+   */
   const commitDraft = (date: string, text: string) => {
     const typed = text.trim();
     const current = rows.find((r) => r.date === date)?.dishName ?? "";
-    if (typed === "" || typed.toLowerCase() === current.toLowerCase()) {
-      setDrafts((d) => {
-        const { [date]: _dropped, ...rest } = d;
-        return rest;
-      });
-      return;
+    if (typed !== "" && typed.toLowerCase() !== current.toLowerCase()) {
+      const dish = resolveDishName(typed, dishes);
+      if (dish?.isActive && dish.schedulable) {
+        void book(date, dish);
+        return;
+      }
     }
-    const dish = resolveDishName(typed, dishes);
-    if (!dish) {
-      say(date, false, `No single dish is called "${typed}". Pick one from the list.`);
-      return;
-    }
-    if (!dish.isActive || !dish.schedulable) {
-      say(
-        date,
-        false,
-        `${dish.name} isn't ready to book — it needs at least 3 ingredients, exactly 5 clues, and to be active.`,
-      );
-      return;
-    }
-    void book(date, dish);
+    discardDraft(date);
   };
 
   const autofill = async () => {
@@ -257,25 +259,26 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
         midnight Eastern Time (America/New_York).
       </p>
 
-      {/* One datalist for the whole board. Every row's input points at it, so the
-          catalogue is in the DOM once rather than once per unlocked day. */}
-      <datalist id="sched-dish-options">
-        {schedulable.map((d) => (
-          <option key={d.id} value={d.name}>
-            {d.country} · {restLabel(d, today)}
-          </option>
-        ))}
-      </datalist>
-
       <ul className="sched-list">
         {rows.map((row) => (
           <Row
             key={row.date}
             row={row}
+            today={today}
             busy={busyDate === row.date}
             draft={drafts[row.date]}
+            open={openDate === row.date}
+            matches={
+              openDate === row.date ? matchDishes(drafts[row.date] ?? row.dishName ?? "", schedulable) : []
+            }
             flash={flash && flash.date === row.date ? flash : null}
+            onOpen={() => setOpenDate(row.date)}
+            onClose={() => setOpenDate(null)}
             onDraft={(text) => setDrafts((d) => ({ ...d, [row.date]: text }))}
+            onPick={(dish) => {
+              setOpenDate(null);
+              void book(row.date, dish);
+            }}
             onCommit={(text) => commitDraft(row.date, text)}
             onShuffle={() => void shuffleDay(row.date)}
             onClear={() => void clearDay(row.date)}
@@ -288,12 +291,26 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
   );
 }
 
+/**
+ * The picker is a listbox this file draws, not a native `<datalist>`. A datalist
+ * searches every scrap of text in an option, so listing the country beside a
+ * dish meant typing a few letters matched a country and the list filled with
+ * dishes whose names had nothing to do with what you typed. Drawing the list
+ * means `matchDishes` decides what appears and the country stays visible without
+ * being searchable.
+ */
 function Row({
   row,
+  today,
   busy,
   draft,
+  open,
+  matches,
   flash,
+  onOpen,
+  onClose,
   onDraft,
+  onPick,
   onCommit,
   onShuffle,
   onClear,
@@ -301,16 +318,23 @@ function Row({
   onTestPlay,
 }: {
   row: BoardRow;
+  today: string;
   busy: boolean;
   draft: string | undefined;
+  open: boolean;
+  matches: AdminDishRow[];
   flash: Flash | null;
+  onOpen: () => void;
+  onClose: () => void;
   onDraft: (text: string) => void;
+  onPick: (dish: AdminDishRow) => void;
   onCommit: (text: string) => void;
   onShuffle: () => void;
   onClear: () => void;
   onOpenDish: (id: number | null) => void;
   onTestPlay: (dishId: number) => void;
 }) {
+  const [active, setActive] = useState(0);
   const classes = [
     "sched-row",
     row.isPast ? "sched-row--past" : "",
@@ -321,30 +345,91 @@ function Row({
     .join(" ");
 
   const value = draft ?? row.dishName ?? "";
+  const index = Math.min(active, Math.max(matches.length - 1, 0));
 
   return (
     <>
-      {row.startsWeek && <li className="sched-week">Week of {monthDay(row.date)}</li>}
       <li id={`sched-${row.date}`} className={classes}>
         <span className="sched-date">{weekday(row.date)}</span>
 
         {row.isPast ? (
           <span className="sched-dish sched-dish--locked">{row.dishName ?? "— fallback pick —"}</span>
         ) : (
-          <input
-            className="sched-dish"
-            list="sched-dish-options"
-            value={value}
-            disabled={busy}
-            placeholder="— fallback pick —"
-            aria-label={`Special for ${weekday(row.date)}`}
-            onChange={(e) => onDraft(e.target.value)}
-            onBlur={(e) => onCommit(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") onCommit((e.target as HTMLInputElement).value);
-              if (e.key === "Escape") onDraft(row.dishName ?? "");
-            }}
-          />
+          <span className="sched-picker">
+            <input
+              className="sched-dish"
+              type="text"
+              autoComplete="off"
+              role="combobox"
+              aria-expanded={open}
+              aria-controls={`sched-options-${row.date}`}
+              value={value}
+              disabled={busy}
+              placeholder="— fallback pick —"
+              aria-label={`Special for ${weekday(row.date)}`}
+              // Select what's there so the first keystroke replaces the booking
+              // rather than appending to it.
+              onFocus={(e) => {
+                setActive(0);
+                onOpen();
+                e.target.select();
+              }}
+              onChange={(e) => {
+                setActive(0);
+                onOpen();
+                onDraft(e.target.value);
+              }}
+              onBlur={(e) => {
+                onClose();
+                onCommit(e.target.value);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                  e.preventDefault();
+                  if (matches.length === 0) return;
+                  const step = e.key === "ArrowDown" ? 1 : -1;
+                  setActive((i) => (Math.min(i, matches.length - 1) + step + matches.length) % matches.length);
+                  return;
+                }
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (open && matches[index]) onPick(matches[index]);
+                  else onCommit(e.currentTarget.value);
+                  return;
+                }
+                if (e.key === "Escape") {
+                  onClose();
+                  onDraft(row.dishName ?? "");
+                }
+              }}
+            />
+            {open && matches.length > 0 && (
+              <ul className="sched-options" id={`sched-options-${row.date}`} role="listbox">
+                {matches.map((d, i) => (
+                  <li key={d.id}>
+                    {/* mousedown, not click: the input's blur would otherwise fire
+                        first and put the field back before the pick lands. */}
+                    <button
+                      type="button"
+                      className={i === index ? "sched-option sched-option--active" : "sched-option"}
+                      role="option"
+                      aria-selected={i === index}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        onPick(d);
+                      }}
+                      onMouseEnter={() => setActive(i)}
+                    >
+                      <span className="sched-option__name">{d.name}</span>
+                      <span className="sched-option__meta">
+                        {d.country} · {restLabel(d, today)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </span>
         )}
 
         <span className="sched-meta">
