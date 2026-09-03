@@ -19,6 +19,7 @@ import { DISH_REQUEST_LIMITS, MAX_GUESSES } from "../../shared/types";
 import { ClueTicket, Countdown, GuessInput, GuessRow, Modal, useNewDayAvailable } from "./components";
 import AnnouncementModal from "./AnnouncementModal";
 import ArchiveModal from "./ArchiveModal";
+import { BuildTag } from "./BuildTag";
 import { dateLabel, isPastPuzzleDate } from "./archive";
 import { visitSource } from "./attribution";
 import { currentSurface, surfaceUrl } from "../discord/bootstrap";
@@ -1237,6 +1238,10 @@ export default function GamePage() {
           onClose={() => setShowResult(false)}
         />
       )}
+
+      {/* Last in the scene and fixed to a corner, so a screenshot of the check
+          carries it too. */}
+      <BuildTag />
     </div>
   );
 }

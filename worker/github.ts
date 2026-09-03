@@ -78,6 +78,8 @@ function parseContext(raw: unknown): IssueContext | undefined {
     userAgent: cleanText(c.userAgent, 300),
   };
   if (dishId !== undefined) context.dishId = dishId;
+  const build = cleanText(c.build, 60);
+  if (build) context.build = build;
   return context;
 }
 
@@ -141,6 +143,9 @@ export function buildIssueBody(input: IssueInput, filedAt: string): string {
     ["URL", `\`${cell(input.context.url || "—")}\``],
   ];
   if (input.context.dishId !== undefined) rows.push(["Dish", `#${input.context.dishId}`]);
+  // Which bundle the reporter was actually looking at. Absent on an issue filed
+  // from a build that predates the marker, so it's a row rather than a column.
+  if (input.context.build) rows.push(["Build", `\`${cell(input.context.build)}\``]);
   rows.push(["Viewport", cell(input.context.viewport || "—")]);
   rows.push(["Browser", cell(input.context.userAgent || "—")]);
   rows.push(["Filed", cell(filedAt)]);

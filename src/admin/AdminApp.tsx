@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { buildLabel, buildTitle } from "../../shared/build";
 import type { DishFilter } from "../../shared/dishfilter";
 import type { IssueContext } from "../../shared/types";
 import * as api from "./api";
@@ -166,6 +167,13 @@ export default function AdminApp() {
               >
                 Clock out
               </button>
+              {/* Always on, unlike the player-facing marker: this is the back
+                  office, it has no screenshot to keep clean, and "did that
+                  deploy actually land" is a question you ask here. The title
+                  carries the full sha and the build time. */}
+              <span className="admin-nav__build" title={buildTitle(__BUILD__)}>
+                {buildLabel(__BUILD__)}
+              </span>
             </nav>
           )}
         </header>

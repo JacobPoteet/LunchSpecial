@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { buildLabel } from "../../shared/build";
 import type { Issue, IssueBoard, IssueContext } from "../../shared/types";
 import { ISSUE_LIMITS } from "../../shared/types";
 import { Modal } from "../game/components";
@@ -261,6 +262,9 @@ export function currentIssueContext(view: string, dishId?: number | null): Issue
     url: `${location.pathname}${location.search}`,
     viewport: `${window.innerWidth}x${window.innerHeight}`,
     userAgent: navigator.userAgent,
+    // The bundle that was on screen. A bug report that names its build is the
+    // reason this context block exists at all.
+    build: buildLabel(__BUILD__),
   };
   if (typeof dishId === "number") context.dishId = dishId;
   return context;

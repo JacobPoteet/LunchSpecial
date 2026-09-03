@@ -1876,6 +1876,36 @@ textarea.dish-request__input {
   text-decoration: underline;
 }
 
+/* The build marker (src/game/BuildTag.tsx), on every page. Its whole job is to
+   be inside the frame of a screenshot or a screen recording, including one of
+   the check — which is why it is fixed rather than in the flow, and why its
+   z-index outranks .modal (120) and the win toast (120).
+
+   Sitting on top of everything, permanently, puts two obligations on it:
+   pointer-events, so it can never swallow a tap it happens to cover, and a size
+   and weight that stay out of the way. It is quiet on purpose — a build ID is
+   for the person reviewing the picture, not the person playing.
+
+   Monospace, because the point of a sha is comparing it to another one. */
+.build-tag {
+  position: fixed;
+  right: 8px;
+  bottom: 8px;
+  z-index: 200;
+  margin: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(11, 21, 18, 0.86);
+  color: var(--cream);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  line-height: 1.6;
+  opacity: 0.8;
+  pointer-events: none;
+  user-select: none;
+}
+
 /* ---- animations (issue #7) ----
    Sound hookups that pair with these live in src/game/sfx.ts. */
 

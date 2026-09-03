@@ -121,6 +121,15 @@ describe("parseIssueInput", () => {
     expect(ok(parseIssueInput({ title: "t" })).context).toBeUndefined();
   });
 
+  it("keeps the build the reporter was looking at, and skips an empty one", () => {
+    const ctx = ok(
+      parseIssueInput({ title: "t", context: { view: "dishes", build: "v1.7.0 · c61d712" } }),
+    ).context;
+    expect(ctx?.build).toBe("v1.7.0 · c61d712");
+    // Filed from a bundle built before the marker existed.
+    expect(ok(parseIssueInput({ title: "t", context: { view: "dishes" } })).context?.build).toBeUndefined();
+  });
+
   it("drops a dish id that isn't a whole number", () => {
     const ctx = ok(parseIssueInput({ title: "t", context: { view: "dishes", dishId: 1.5 } })).context;
     expect(ctx?.dishId).toBeUndefined();
@@ -161,6 +170,13 @@ describe("buildIssueBody", () => {
     expect(
       buildIssueBody({ title: "t", body: "", labels: [], context: { ...context, dishId: 51 } }, "now"),
     ).toContain("| Dish | #51 |");
+  });
+
+  it("prints a build row only when the composer knew its build", () => {
+    expect(buildIssueBody({ title: "t", body: "", labels: [], context }, "now")).not.toContain("| Build |");
+    expect(
+      buildIssueBody({ title: "t", body: "", labels: [], context: { ...context, build: "v1.7.0" } }, "now"),
+    ).toContain("| Build | `v1.7.0` |");
   });
 
   it("escapes a pipe so it can't break out of its cell", () => {

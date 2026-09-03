@@ -1430,6 +1430,8 @@ export interface IssueContext {
   dishId?: number;
   /** Browser viewport as `1280x800`. */
   viewport: string;
+  /** The bundle that was running, as `buildLabel` writes it. Absent pre-2026-09. */
+  build?: string;
   /** `navigator.userAgent`, untouched. */
   userAgent: string;
 }
