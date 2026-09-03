@@ -2364,6 +2364,58 @@ INSERT INTO clues (dish_id, order_index, text) VALUES
 (386,4,'You push a stick into the top, dunk it in melted sugar, butter and cream, then roll it in chopped peanuts.'),
 (386,5,'America''s fall fairground stick treat, a chewy brown coat over cold fruit, cut into wedges.');
 
+INSERT INTO dishes (id, name, slug, country, region, course, temperature, protein, ingredients) VALUES
+(387,'Pasta e Fagioli','pasta-e-fagioli','Italy','europe','appetizer','hot','vegetarian','["pasta","white bean","tomato","onion","carrot","celery","garlic","olive oil"]'),
+(388,'Italian Wedding Soup','italian-wedding-soup','United States','north-america','appetizer','hot','pork','["pork","beef","chicken broth","spinach","pasta","parmesan","onion"]'),
+(389,'Tomato Tortellini Soup','tomato-tortellini-soup','United States','north-america','appetizer','hot','vegetarian','["pasta","tomato","cream","spinach","garlic","basil","parmesan"]'),
+(390,'Boat Noodles','boat-noodles','Thailand','southeast-asia','entree','hot','beef','["noodles","beef","bean sprouts","fish sauce","basil","star anise","chili","garlic"]'),
+(391,'Fuqi Feipian','fuqi-feipian','China','east-asia','appetizer','cold','beef','["beef","tripe","chili","sichuan peppercorn","soy sauce","peanuts","cilantro","sesame oil"]'),
+(392,'Baked Alaska','baked-alaska','United States','north-america','dessert','cold','vegetarian','["ice cream","egg","sugar","sponge cake","vanilla"]'),
+(393,'Carrot Cake','carrot-cake','United Kingdom','europe','dessert','cold','vegetarian','["carrot","flour","sugar","egg","cream cheese","cinnamon","walnuts"]'),
+(394,'Palabok','palabok','Philippines','southeast-asia','entree','hot','seafood','["noodles","shrimp","pork","egg","garlic","annatto","fish sauce","scallion"]');
+
+INSERT INTO clues (dish_id, order_index, text) VALUES
+(387,1,'A bean and pasta soup from southern Europe.'),
+(387,2,'Poor households cooked it because dried beans cost less than meat and kept all winter in a sack.'),
+(387,3,'Dean Martin rhymed it with drool in a 1953 hit, using the Neapolitan pronunciation.'),
+(387,4,'You simmer white beans with tomato, onion, carrot and celery, then snap dried pasta into the pot by hand.'),
+(387,5,'Italy''s cloudy bean broth, thick with short tubes and finished with raw green oil.'),
+(388,1,'A meatball soup from the American Northeast.'),
+(388,2,'Immigrants from Naples carried the pot over, and church-hall kitchens have ladled it out ever since.'),
+(388,3,'Cooks roll the meatballs down to the size of marbles, since a full-size one would swamp the spoon.'),
+(388,4,'You drop pork and beef balls into chicken broth, then add spinach and pasta the size of grains.'),
+(388,5,'America''s church-supper bowl, greens and meat married in clear broth under grated cheese.'),
+(389,1,'A creamy red first course from North America.'),
+(389,2,'Filled pasta reached American supermarket fridges in the 1980s, and home cooks dropped it straight into the pot.'),
+(389,3,'You get cheese twice, sealed inside the pasta rings and grated over the bowl on top.'),
+(389,4,'The cook simmers crushed tomato with garlic and basil, stirs in cream, then drops the rings in for three minutes.'),
+(389,5,'America''s weeknight bowl, orange-pink and thick, with spinach wilted through it.'),
+(390,1,'A bowl of noodles in dark broth from Southeast Asia.'),
+(390,2,'Canal vendors in Ayutthaya sold it over the side of the hull, one ladle at a time to passing customers.'),
+(390,3,'Vendors stir blood into the broth at the end, which is what turns it almost black.'),
+(390,4,'The cook lays beef over noodles, ladles the star-anise broth on, then piles sprouts and basil on top.'),
+(390,5,'Thailand''s near-black bowl, small enough that eaters stack ten empties beside them.'),
+(391,1,'A cold sliced beef plate from East Asia.'),
+(391,2,'A married couple in Chengdu sold it from a cart in the 1930s, cheaper than the stalls around them.'),
+(391,3,'Cooks build it from what the butcher could not sell, the tripe and tongue and heart.'),
+(391,4,'The cook slices the cold braised meat thin, then floods the plate with chili oil, ground peanuts and cilantro.'),
+(391,5,'China''s cold Sichuan plate, glossy red with oil, named for a husband and wife who are not in it.'),
+(392,1,'A showpiece dessert from North America.'),
+(392,2,'A physicist showed in 1804 that beaten egg white blocks heat, and pastry chefs put the finding to work.'),
+(392,3,'You send it into a hot oven and pull the middle out still frozen, which is the entire trick.'),
+(392,4,'The cook stacks ice cream on a sponge base and seals the whole dome under whipped egg white and sugar.'),
+(392,5,'America''s scorched white peaks, cut open at the table to show the cold middle.'),
+(393,1,'A spiced vegetable dessert from northwestern Europe.'),
+(393,2,'Medieval cooks sweetened puddings with carrot, since sugar cost more than most kitchens could afford.'),
+(393,3,'Bakers ice it with soft cheese instead of buttercream, and the tang is the reason it works.'),
+(393,4,'You fold grated carrot into a batter loose with oil, then stir in cinnamon and chopped walnuts.'),
+(393,5,'Britain''s orange-flecked sponge under a thick white layer, walnut halves set round the rim.'),
+(394,1,'A saucy tangle of noodles from Southeast Asia.'),
+(394,2,'Chinese traders brought noodles to the islands, and cooks there thickened the sauce and dyed it orange.'),
+(394,3,'Cooks crush fried pork skin over the top, so the last thing you taste is crunch and not sauce.'),
+(394,4,'The cook pours a thick annatto gravy over rice noodles, then loads on shrimp, sliced egg and smoked fish.'),
+(394,5,'The Filipino party platter, a shallow tray of noodles under egg wedges and a squeeze of citrus.');
+
 -- Dishes that came in through the player suggestion form. Flagged here rather
 -- than in the INSERT above so the column list stays as it was; the rest of the
 -- catalogue keeps the 0 default. See migrations/0017.
@@ -2378,7 +2430,8 @@ UPDATE dishes SET is_fan_submission = 1
                 'cinnamon-rolls', 'focaccia', 'foie-gras', 'spotted-dick',
                 'coddle', 'sisig', 'cherry-pie', 'pumpkin-pie',
                 'lemon-meringue-pie', 'banoffee-pie', 'fish-pie',
-                'quiche-lorraine', 'lumpia');
+                'quiche-lorraine', 'lumpia',
+                'boat-noodles', 'fuqi-feipian', 'baked-alaska', 'carrot-cake', 'palabok');
 
 
 INSERT INTO schedule (date, dish_id) VALUES

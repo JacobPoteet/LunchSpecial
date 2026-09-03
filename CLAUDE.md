@@ -142,7 +142,7 @@ No OAuth scopes, all no-ops off Discord.
 
 ```
 wrangler.jsonc        assets SPA fallback + run_worker_first:["/api/*"] + D1 binding "DB"
-migrations/           0001_init.sql = dishes/clues/schedule. Additive only. 0037 is the latest
+migrations/           0001_init.sql = dishes/clues/schedule. Additive only. 0038 is the latest
 seed/seed.sql         canonical dish catalogue + a 30-day schedule from 2026-07-17. Idempotent (DELETEs first)
 shared/types.ts       ALL shared types + enums (COURSES, REGIONS…) + MAX_GUESSES + EPOCH_DATE
 worker/index.ts       Hono entry; only /api/* reaches the Worker (assets serve the rest)
