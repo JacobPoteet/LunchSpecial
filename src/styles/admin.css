@@ -63,6 +63,18 @@
   border-color: var(--cherry);
 }
 
+/* The build this back office is running (src/admin/AdminApp.tsx). Not a pill:
+   it isn't a destination or an action, so it sits in the nav as plain text and
+   takes the muted weight that says so. */
+.admin-nav__build {
+  align-self: center;
+  margin-left: auto;
+  color: rgba(246, 237, 217, 0.66);
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+}
+
 .nav-badge {
   display: inline-block;
   margin-left: 7px;

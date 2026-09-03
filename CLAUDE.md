@@ -192,6 +192,8 @@ shared/activity.ts    activity feed (rounds + arrivals + day totals → round st
 shared/announce.ts    the guess-feedback wording, one table feeding colour, glyph and screen reader
 shared/time.ts        GAME_TIMEZONE (America/New_York), gameToday, msUntilGameMidnight, daysBetween,
                       addDays (one copy — the worker routes and src/game/archive.ts both import it)
+shared/build.ts       the build marker's wording (BuildInfo → label / title). Takes the info as an
+                      argument and never reads __BUILD__ — see the marker note in Conventions
 
 worker/routes/discord.ts  /token (OAuth hop), /attachment (score-card PNG), /interactions (signed
                           callbacks, Ed25519-verified or 401), /progress (patch the live message)
@@ -217,7 +219,8 @@ src/App.tsx           path startsWith /admin → lazy AdminApp, else GamePage (n
 src/api.ts            public fetch wrappers + localToday()
 src/game/             GamePage (orchestrator), components.tsx (Modal/GuessRow/ClueTicket/GuessInput/
                       Countdown), SoundToggle.tsx, storage.ts, share.ts, attribution.ts,
-                      ArchiveModal.tsx + archive.ts, AnnouncementModal.tsx + Markdown.tsx, scorecard.ts
+                      ArchiveModal.tsx + archive.ts, AnnouncementModal.tsx + Markdown.tsx, scorecard.ts,
+                      BuildTag.tsx (the always-on build marker)
 src/admin/            AdminApp (session+nav), api.ts, IssueComposer, Dashboard (6 tabs), OverviewPanel, DishReportPanel,
                       MenuMixPanel, PlayersPanel, TrendsPanel, ExperimentsPanel, ActivityPanel
                       (+ MyDataPanel), RequestsView, AnnouncementsPanel, analyticsUi.tsx, DayPicker,
@@ -425,7 +428,7 @@ Two buses, one mute button, and **not one audio file in the repo yet**. Dropping
 - **`GET /issues` returns pull requests too**, and they are dropped in `toIssue` by their `pull_request` key. Nothing else distinguishes a PR row.
 - **A 404 from GitHub almost always means the token, not the name.** GitHub answers 404, not 403, when a token can see the account but not the repo, which is why `githubError` says so out loud.
 - **One surface, not two.** The open-issue list exists to stop you filing a duplicate, and the moment that matters is while you are typing. A separate nav tab would put the check one click away from what it prevents.
-- **The context block is why this isn't a link to `issues/new`.** The view, the URL (which carries the dashboard's `?tab=`), the dish under edit and the viewport ride along, captured when the button is pressed rather than as the modal renders. The checkbox drops them when the issue isn't about a screen.
+- **The context block is why this isn't a link to `issues/new`.** The view, the URL (which carries the dashboard's `?tab=`), the dish under edit, the build and the viewport ride along, captured when the button is pressed rather than as the modal renders. The checkbox drops them when the issue isn't about a screen.
 - **A failed label fetch costs the chips, not the composer.** Labels are a convenience; being unable to file because one of two parallel calls missed would not be.
 
 ## Adding dishes (when asked)
@@ -455,9 +458,11 @@ Finish with `npm test && npm run check`.
 - **Clearing a day** (the Schedule tab's per-row Clear, `PUT /schedule` with a null `dishId`) deletes the schedule row, which is a booking decision and not a hole: an unbooked day runs on the deterministic fallback pick and never 404s
 - Regions enum (near-match buckets): north-america, latin-america, europe, middle-east, africa, south-asia, east-asia, southeast-asia, oceania. Courses: breakfast, appetizer, entree, dessert, drink. Proteins: beef, pork, poultry, seafood, lamb, vegetarian
 - SQL in seed files: escape apostrophes as `''`
+- **The build marker.** Every page of the game carries the commit it was built from, bottom-right (`v1.7.0 · c61d712`, a trailing `*` for a dirty tree), so a screenshot or a screen recording says for itself which build it happened on. **Always on, everywhere, including production** — a marker you have to remember to switch on is one that isn't in the shot you needed it in. Four things hold: (1) it is **fixed at `z-index: 200`, above the modals**, because a shot of the check is the one most worth labelling; (2) `pointer-events: none` and `aria-hidden` — permanently on top of everything, it must never swallow a tap, and to a player it isn't content; (3) it is **not a round mode and not a setting** — nothing about it reaches the server, the beacons or localStorage, and there is no toggle to plumb; (4) the admin nav carries the same label, with the full sha and build time on its `title`
+- **`__BUILD__` is injected by `define` in vite.config.ts**, read from `GITHUB_SHA`/`GITHUB_REF_NAME` first and git second. CI's ordering is load-bearing: `actions/checkout` is shallow and carries no tags, so `git describe` there would fail or name the wrong thing. **No git at all is a supported state** and reads as `dev`. `define` does not run under vitest, which is why every fold in `shared/build.ts` takes a `BuildInfo` argument — **don't let one reach for the global**, and don't reference `__BUILD__` from `worker/` (it's declared for the app project only, in src/vite-env.d.ts). Under `npm run dev` the value is fixed at server start
 - vitest.config.ts exists SEPARATELY from vite.config.ts on purpose (tests must not load the cloudflare plugin). Its `include` covers `worker/` **and** `shared/` — the pure folds all live in one of those two
 - `tsc -b` is incremental and will happily report success on a stale build graph — use `npx tsc -b --force` when you've changed a type in `shared/` and want to trust the answer
-- tsconfig is 3 composite projects; worker code must not use DOM libs; app code gets DOM. Shared/ is included by both
+- tsconfig is 3 composite projects; worker code must not use DOM libs; app code gets DOM. Shared/ is included by both, and the node project lists `shared/build.ts` on its own so vite.config.ts can import the `BuildInfo` type
 - `worker-configuration.d.ts` is generated (gitignored) — run cf-typegen, never hand-edit; Env type comes from it
 - Cookies: HttpOnly+Secure+SameSite=Strict, 7-day HMAC token ("session" payload). Password check is digest-compared (timing-safe-ish)
 - Don't add npm deps casually — the only runtime deps are hono, react, react-dom
