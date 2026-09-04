@@ -938,10 +938,8 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   useEffect(() => {
     if (!tracked || !daily || SURFACE !== "discord") return;
     publishProgress({
+      card: buildScorecard(daily.puzzleNumber, round.guesses, round.status === "won", daily.ingredientCount),
       puzzleNumber: daily.puzzleNumber,
-      guesses: round.guesses,
-      won: round.status === "won",
-      ingredientCount: daily.ingredientCount,
       live: round.status === "playing",
     });
     // Keyed on the guess *count*, like presence: the array's identity changes on

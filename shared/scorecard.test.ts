@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { buildScorecard, progressLine, SCORECARD_FOOTER } from "./scorecard";
-import type { GuessFeedback, MatchLevel } from "./types";
-import { MAX_GUESSES } from "./types";
+import { buildNightScorecard, buildScorecard, progressLine, SCORECARD_FOOTER } from "./scorecard";
+import type { DrinkGuessFeedback, GuessFeedback, MatchLevel } from "./types";
+import { DRINK_MAX_GUESSES, MAX_GUESSES } from "./types";
 
 /**
  * A guess whose four attributes landed as given. The dish carries a deliberately
@@ -83,6 +83,11 @@ describe("progressLine", () => {
     expect(progressLine(false, 26)).toBe("was playing **Lunch Special** · No. 26");
   });
 
+  it("names the room and counts in its own unit", () => {
+    expect(progressLine(true, 12, "night")).toBe("is playing **After Dark** · Night 12");
+    expect(progressLine(false, 12, "night")).toBe("was playing **After Dark** · Night 12");
+  });
+
   it("drops the number when the round hasn't got one", () => {
     expect(progressLine(true, 0)).toBe("is playing **Lunch Special**");
   });
@@ -92,6 +97,74 @@ describe("progressLine", () => {
   it("never says how it's going", () => {
     for (const live of [true, false]) {
       expect(progressLine(live, 26)).not.toMatch(/solved|lost|won|guess|\d\/\d/i);
+    }
+  });
+});
+
+/**
+ * A drink guess whose four tiles landed as given. Loud name and country for the
+ * same reason the dish helper has one: the leak test needs something
+ * unmistakable to look for.
+ */
+function pour(
+  tiles: [MatchLevel, MatchLevel, MatchLevel, MatchLevel],
+  matched: number,
+  correct = false,
+): DrinkGuessFeedback {
+  const [country, spirit, temperature, profile] = tiles;
+  return {
+    correct,
+    drink: { id: 1, name: "Caipirinha" },
+    matchedIngredients: Array.from({ length: matched }, (_, i) => `ingredient-${i}`),
+    unmatchedIngredients: [],
+    attributes: {
+      country: { value: "Brazil", match: country },
+      spirit: { value: "other", match: spirit },
+      temperature: { value: "cold", match: temperature },
+      profile: { value: "sour", match: profile },
+    },
+  };
+}
+
+const pourMiss = pour(["miss", "near", "hit", "miss"], 1);
+
+describe("buildNightScorecard", () => {
+  it("marks the card as drawn in the bar", () => {
+    // The drawing picks its palette off this and nothing else, so a card that
+    // forgot to say where it came from would be painted on diner paper.
+    expect(buildNightScorecard(12, [pourMiss], false, 5).theme).toBe("night");
+    expect(buildScorecard(26, [miss], false, 7).theme).toBe("day");
+  });
+
+  it("counts in nights and out of four", () => {
+    expect(buildNightScorecard(12, [pourMiss, pourMiss], false, 5).subtitle).toBe("Night 12 · X/4");
+    expect(buildNightScorecard(12, [pourMiss], true, 5).subtitle).toBe("Night 12 · 1/4");
+  });
+
+  it("drops the number when the round hasn't got one", () => {
+    expect(buildNightScorecard(0, [pourMiss], false, 5).subtitle).toBe("X/4");
+  });
+
+  it("lays out the four tiles in board order", () => {
+    // Country, spirit, served, profile — the order the bar's rows draw them.
+    expect(buildNightScorecard(12, [pourMiss], false, 5).rows[0].tiles).toEqual([
+      "miss",
+      "near",
+      "hit",
+      "miss",
+    ]);
+  });
+
+  it("says nothing about the drink, in any state", () => {
+    // The same rule and the same guard as the dish card. `pour()` names a real
+    // drink and a real country in every row.
+    for (const won of [true, false]) {
+      for (let n = 1; n <= DRINK_MAX_GUESSES; n++) {
+        const card = buildNightScorecard(12, Array.from({ length: n }, () => pourMiss), won, 5);
+        const text = [card.title, card.subtitle, card.footer, ...card.rows.map((r) => r.pantry)].join(" ");
+        expect(text).not.toMatch(/caipirinha|brazil|cachaca/i);
+        expect(text).toMatch(/^[A-Za-z0-9'·./\s]+$/);
+      }
     }
   });
 });

@@ -75,8 +75,18 @@ const NIGHT_TITLE = "After Dark";
  * It never says how they're doing. The card underneath says that, and a channel
  * scrolling past shouldn't be told someone lost before they've closed the tab.
  */
-export function progressLine(live: boolean, puzzleNumber: number): string {
-  const what = puzzleNumber > 0 ? `**${TITLE}** · No. ${puzzleNumber}` : `**${TITLE}**`;
+export function progressLine(
+  live: boolean,
+  puzzleNumber: number,
+  theme: ScorecardTheme = "day",
+): string {
+  const night = theme === "night";
+  const title = night ? NIGHT_TITLE : TITLE;
+  const unit = night ? "Night" : "No.";
+  const what = puzzleNumber > 0 ? `**${title}** · ${unit} ${puzzleNumber}` : `**${title}**`;
+  // "playing" either way. A channel does not need to be told somebody is
+  // drinking, and the verb is the one part of this line that is about the
+  // person rather than the game.
   return `${live ? "is" : "was"} playing ${what}`;
 }
 

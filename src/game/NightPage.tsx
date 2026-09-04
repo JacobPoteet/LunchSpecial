@@ -25,6 +25,7 @@ import { BuildTag } from "./BuildTag";
 import { SoundToggle } from "./SoundToggle";
 import { currentSurface } from "../discord/bootstrap";
 import { setPresence } from "../discord/presence";
+import { publishProgress, resetProgress } from "../discord/progress";
 import { canShareToChannel, shareToChannel } from "../discord/share";
 import { coasterAnnouncement, drinkGuessAnnouncement } from "../../shared/announce";
 import { TICKET_MS } from "../../shared/audio";
@@ -292,6 +293,27 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
         startedAt: openedAt.current,
       }),
     );
+  }, [tracked, info, round.status, round.guesses.length]);
+
+  // A new board is a new message. Declared ABOVE the publisher so it runs
+  // first: effects fire in order, and a board restored from localStorage
+  // publishes on mount — resetting afterwards would orphan that post. Same rule
+  // as GamePage, and the same bug if it moves.
+  useEffect(() => {
+    resetProgress();
+  }, [night, pinned]);
+
+  // The live message in the launch channel. Same trigger and the same `tracked`
+  // gate as presence; the card it publishes never names the drink.
+  useEffect(() => {
+    if (!tracked || !info || SURFACE !== "discord") return;
+    publishProgress({
+      card: buildNightScorecard(info.nightNumber, round.guesses, round.status === "won", info.ingredientCount),
+      puzzleNumber: info.nightNumber,
+      live: round.status === "playing",
+    });
+    // Keyed on the guess count, like presence: the array's identity changes on
+    // renders that added no guess, and each one would be another upload.
   }, [tracked, info, round.status, round.guesses.length]);
 
   // The tab opens on the same beat as the check. Written out rather than taken

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildPresence, PRESENCE_TEXT_LIMIT, type PresenceInput } from "./presence";
-import { MAX_GUESSES } from "./types";
+import { MAX_GUESSES, ROUND_KINDS } from "./types";
 
 const base: PresenceInput = { kind: "daily", puzzleNumber: 26, status: "playing", guesses: 0 };
 
@@ -49,7 +49,10 @@ describe("buildPresence", () => {
   // haven't played today, so no output may contain anything dish-shaped.
   it("says nothing about the dish, in any state", () => {
     const states: PresenceInput["status"][] = ["playing", "won", "lost"];
-    for (const kind of ["daily", "leftover", "random"] as const) {
+    // Every kind, read off the enum rather than listed: a new mode's label is
+    // exactly the kind of free text this test exists to catch, and a hardcoded
+    // list would have let After Dark's in without comment.
+    for (const kind of ROUND_KINDS) {
       for (const status of states) {
         for (let guesses = 0; guesses <= MAX_GUESSES; guesses++) {
           const { details, state } = buildPresence({ kind, puzzleNumber: 26, status, guesses });
