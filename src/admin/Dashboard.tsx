@@ -4,6 +4,7 @@ import type { AdminDashboard, AnalyticsSummary, ExperimentReport } from "../../s
 import * as api from "./api";
 import type { AdminView } from "./AdminApp";
 import ActivityPanel from "./ActivityPanel";
+import AfterDarkPanel from "./AfterDarkPanel";
 import DishReportPanel from "./DishReportPanel";
 import ExperimentsPanel from "./ExperimentsPanel";
 import MenuMixPanel from "./MenuMixPanel";
@@ -27,12 +28,13 @@ import { SurfaceToggle, type SurfaceFilter } from "./analyticsUi";
  * question about *your* actions rather than about the game, and it's the one you
  * arrive at having already seen a number move.
  */
-export type DashboardTab = "today" | "menu" | "players" | "trends" | "experiments" | "activity";
+export type DashboardTab = "today" | "menu" | "players" | "afterdark" | "trends" | "experiments" | "activity";
 
 const TABS: { key: DashboardTab; label: string }[] = [
   { key: "today", label: "Today" },
   { key: "menu", label: "Menu" },
   { key: "players", label: "Players" },
+  { key: "afterdark", label: "After Dark" },
   { key: "trends", label: "Trends" },
   { key: "experiments", label: "Experiments" },
   { key: "activity", label: "Activity" },
@@ -46,7 +48,15 @@ const DEFAULT_TAB: DashboardTab = "today";
  * doesn't — which the panel says out loud rather than letting the toggle imply it
  * applies to both.
  */
-const SURFACE_AWARE: DashboardTab[] = ["today", "menu", "players", "trends", "experiments", "activity"];
+const SURFACE_AWARE: DashboardTab[] = [
+  "today",
+  "menu",
+  "players",
+  "afterdark",
+  "trends",
+  "experiments",
+  "activity",
+];
 
 const QUERY_KEY = "tab";
 
@@ -210,6 +220,11 @@ export default function Dashboard({
           onPickDate={setDate}
         />
       )}
+      {/* Fetches its own endpoint, so it only runs when its tab is open. The
+          day picker deliberately does not reach it: the bar's unit is a local
+          night, and pointing an ET day picker at it would be the dashboard
+          telling a small lie every time somebody used it. */}
+      {tab === "afterdark" && <AfterDarkPanel surface={surface} />}
       {tab === "trends" && (
         <TrendsPanel
           data={analytics}

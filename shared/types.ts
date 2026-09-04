@@ -1,3 +1,5 @@
+import type { Rate } from "./sample";
+
 // Types shared between the Worker API and the React client.
 
 export const COURSES = ["breakfast", "appetizer", "entree", "dessert", "drink"] as const;
@@ -327,6 +329,106 @@ export interface AdminDrinkInput {
   isActive: boolean;
   isFanSubmission: boolean;
   coasters: string[];
+}
+
+// ---- After Dark: the admin's own tab ----
+//
+// Folded in worker/nightstats.ts. `Rate` carries its own Wilson interval and
+// its denominator, so nothing here ever prints a percentage on its own.
+
+export interface NightServiceDay {
+  night: string;
+  started: number;
+  completed: number;
+  solved: number;
+  shared: number;
+}
+
+export interface NightTotals {
+  started: number;
+  completed: number;
+  solved: number;
+  shared: number;
+  /** Solved over completed. Null when nothing has finished. */
+  winRate: Rate | null;
+  /** Completed over started. */
+  finishRate: Rate | null;
+  /** Shared over completed. */
+  shareRate: Rate | null;
+}
+
+export interface NightDrinkRow {
+  drinkId: number;
+  name: string;
+  country: string;
+  spirit: string;
+  /** Stored on the catalogue, never inferred from the spirit. */
+  isAlcoholic: boolean;
+  started: number;
+  completed: number;
+  solved: number;
+  shared: number;
+  winRate: Rate | null;
+  /** Mean guesses on the rounds that were solved. Null if none were. */
+  avgGuesses: number | null;
+}
+
+/** Win rate split by whether the pour had alcohol in it. */
+export interface AlcoholSplit {
+  boozy: { completed: number; solved: number; winRate: Rate | null };
+  sober: { completed: number; solved: number; winRate: Rate | null };
+}
+
+export interface NightReport {
+  /** Oldest first, one entry per night that recorded anything. */
+  days: NightServiceDay[];
+  totals: NightTotals;
+  /** dist[i] = rounds solved in i+1 guesses. Always DRINK_MAX_GUESSES wide. */
+  guessDistribution: number[];
+  /**
+   * Rounds per LOCAL hour of day, 24 buckets. Only rounds carrying a
+   * `tz_offset` are placed; the rest are counted in `untrackedHour`, which the
+   * panel prints rather than folding into a bucket.
+   */
+  hours: number[];
+  untrackedHour: number;
+  alcohol: AlcoholSplit;
+  drinks: NightDrinkRow[];
+  /** Rounds whose drink could not be resolved. Never assigned to a drink. */
+  untrackedDrink: number;
+}
+
+export interface CrossoverDay {
+  day: string;
+  /** Devices that finished today's Special. The denominator. */
+  finishedLunch: number;
+  /** Of those, how many started that night's Nightcap. */
+  cameToBar: number;
+  rate: Rate | null;
+}
+
+export interface Crossover {
+  days: CrossoverDay[];
+  finishedLunch: number;
+  cameToBar: number;
+  rate: Rate | null;
+}
+
+/** Tonight's pour and tomorrow's, for the top of the After Dark tab. */
+export interface NightBoardTop {
+  tonight: NightEntry;
+  tomorrow: NightEntry;
+  /** Active drinks that have never held a night, past or future. */
+  neverPoured: number;
+  /** Nights booked from tonight forward. */
+  bookedAhead: number;
+}
+
+/** Everything the After Dark tab reads, in one response. */
+export interface AfterDarkReport {
+  board: NightBoardTop;
+  report: NightReport;
+  crossover: Crossover;
 }
 
 /** One night of the bar's board. A null drink runs on the fallback pick. */

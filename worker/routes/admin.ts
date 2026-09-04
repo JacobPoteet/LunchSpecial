@@ -9,6 +9,7 @@ import type {
   AdminDrinkDetail,
   AdminDrinkInput,
   AdminDrinkRow,
+  AfterDarkReport,
   ActivityDayTotal,
   ActivityFeed,
   ActivityRound,
@@ -78,6 +79,13 @@ import {
   type SolveTimeRow,
 } from "../service";
 import { foldGrowth, type GrowthRow } from "../growth";
+import {
+  foldCrossover,
+  foldNightReport,
+  type CrossoverRow,
+  type DrinkMetaRow,
+  type NightRoundRow,
+} from "../nightstats";
 import { foldCountries, type CountryRow } from "../countries";
 import { foldSources, type VisitSourceRow } from "../attribution";
 import { foldDeviceData, type DeviceRoundRow, type DeviceVisitRow } from "../device";
@@ -2206,6 +2214,105 @@ app.post("/drink-preview", async (c) => {
   }
   const token = await createToken(`preview:drink:${drinkId}`, PREVIEW_TTL_MS, c.env.SESSION_SECRET);
   return c.json({ token, url: `/?bar=1&preview=${encodeURIComponent(token)}` });
+});
+
+
+/**
+ * Everything the After Dark tab reads, in one response.
+ *
+ * Its own endpoint rather than more fields on /analytics, because it answers a
+ * different question and a different one only. The surface filter applies (the
+ * bar runs in the Activity too); the day picker does not — the bar's unit is a
+ * night, not an ET day, and pointing an ET day picker at it would be the
+ * dashboard telling a small lie every time somebody used it.
+ */
+app.get("/night-report", async (c) => {
+  const { and: surfAnd } = surfaceClause(c);
+  const today = serverToday();
+
+  const [roundsRes, metaRes, crossRes, boardRes, poolRes] = await c.env.DB.batch([
+    // Grouped as coarsely as the fold allows: one row per distinct combination
+    // rather than one per round, which keeps this to a few hundred rows at any
+    // volume the bar will plausibly see.
+    c.env.DB.prepare(
+      `SELECT play_date, strftime('%Y-%m-%d %H', started_at) AS bucket,
+         completed, solved, shared, guesses, drink_id, tz_offset, COUNT(*) AS n
+       FROM analytics_rounds
+       WHERE kind = 'nightcap' AND started_at IS NOT NULL${surfAnd}
+       GROUP BY play_date, bucket, completed, solved, shared, guesses, drink_id, tz_offset`,
+    ),
+    c.env.DB.prepare(
+      `SELECT d.id, d.name, d.country, d.spirit, d.profile, d.is_alcoholic,
+         (SELECT COUNT(*) FROM drink_schedule s WHERE s.drink_id = d.id) AS times_poured
+       FROM drinks d`,
+    ),
+    // The crossover input: for each device and day, did it finish a Special and
+    // did it start a Nightcap?
+    //
+    // Joined on `play_date` across two kinds whose play_date means different
+    // things: an ET day for lunch, a local night for the bar.
+    //
+    // They agree for the ordinary case, which is the whole of the evening. A
+    // player who eats during day D and drinks between 20:00 and midnight has
+    // both keys on D, and so does one who drinks at 01:00 the next morning --
+    // that is exactly what the night key rolling back over the small hours is
+    // for.
+    //
+    // They disagree in one window: a player who plays LUNCH between midnight
+    // and 03:00 gets the Special dated D+1 while still being out on night D, so
+    // that pairing is not counted. It is a real gap and a small one (it needs
+    // someone to start both halves in the same three-hour window on opposite
+    // sides of the boundary), and closing it would mean pairing night D with
+    // both ET day D and D+1, which double-counts the ordinary case to rescue
+    // the rare one. Reported as it is instead.
+    c.env.DB.prepare(
+      `SELECT player_id, play_date AS day,
+         MAX(kind = 'daily' AND completed = 1) AS finished_lunch,
+         MAX(kind = 'nightcap') AS started_nightcap
+       FROM analytics_rounds
+       WHERE player_id IS NOT NULL AND kind IN ('daily', 'nightcap')${surfAnd}
+       GROUP BY player_id, play_date`,
+    ),
+    c.env.DB
+      .prepare(
+        `SELECT s.night, s.drink_id, d.name FROM drink_schedule s
+         JOIN drinks d ON d.id = s.drink_id WHERE s.night IN (?, ?)`,
+      )
+      .bind(today, addDays(today, 1)),
+    c.env.DB
+      .prepare(
+        `SELECT
+           (SELECT COUNT(*) FROM drinks d
+              WHERE d.is_active = 1
+                AND NOT EXISTS (SELECT 1 FROM drink_schedule s WHERE s.drink_id = d.id)) AS never_poured,
+           (SELECT COUNT(*) FROM drink_schedule WHERE night >= ?) AS booked_ahead`,
+      )
+      .bind(today),
+  ]);
+
+  const booked = new Map(
+    (boardRes.results as { night: string; drink_id: number; name: string }[]).map((r) => [r.night, r]),
+  );
+  const entry = (night: string): NightEntry => {
+    const row = booked.get(night);
+    return { night, drinkId: row?.drink_id ?? null, drinkName: row?.name ?? null };
+  };
+  const pool = (poolRes.results[0] ?? {}) as { never_poured?: number; booked_ahead?: number };
+
+  const payload: AfterDarkReport = {
+    board: {
+      tonight: entry(today),
+      tomorrow: entry(addDays(today, 1)),
+      neverPoured: pool.never_poured ?? 0,
+      bookedAhead: pool.booked_ahead ?? 0,
+    },
+    report: foldNightReport(
+      roundsRes.results as unknown as NightRoundRow[],
+      metaRes.results as unknown as DrinkMetaRow[],
+    ),
+    crossover: foldCrossover(crossRes.results as unknown as CrossoverRow[]),
+  };
+  return c.json(payload);
 });
 
 export default app;

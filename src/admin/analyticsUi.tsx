@@ -59,19 +59,27 @@ export function ago(atMs: number, nowMs: number): string {
 export const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00`;
 
 /**
- * The three game kinds, in display order. The first (daily) is the priority
- * metric — "Today's Special". `cls` ties each to its bar colour in admin.css.
+ * The game kinds, in display order. The first (daily) is the priority metric —
+ * "Today's Special". `cls` ties each to its bar colour in admin.css.
+ *
+ * After Dark takes the neon pink, which is a fourth value inside the existing
+ * "kind" meaning rather than a fifth meaning — the four palettes on this
+ * dashboard (kind, event, rank, annotation) are unchanged.
  */
 export const KIND_META: { key: RoundKind; label: string; cls: string }[] = [
   { key: "daily", label: "Today's Special", cls: "daily" },
   { key: "leftover", label: "Leftovers", cls: "leftover" },
   { key: "random", label: "Chef's Choice", cls: "random" },
+  { key: "nightcap", label: "After Dark", cls: "nightcap" },
 ];
 
 export const kindLabel = (k: RoundKind) => KIND_META.find((m) => m.key === k)?.label ?? k;
 export const kindCls = (k: RoundKind) => KIND_META.find((m) => m.key === k)?.cls ?? k;
 
-export const sumKinds = (s: StartedByKind) => s.daily + s.leftover + s.random;
+// Every kind, so the split always sums to `started`. Written off KIND_META
+// rather than as four named adds, because the last time this was a fixed list
+// adding a kind left it silently short.
+export const sumKinds = (s: StartedByKind) => KIND_META.reduce((t, m) => t + (s[m.key] ?? 0), 0);
 
 /**
  * Country codes come out of the DB as ISO 3166-1 alpha-2 (see migrations/0018);
