@@ -13,8 +13,9 @@ npm run ramen        # same, but pinned to one named dish (/play?special=ramen) 
 npm run lastcall     # THE HAND-OFF HARNESS: seeds a finished, won Special from the real reveal
                      # endpoint, so the page opens on the check with After Dark's band already live.
                      # Pressing it runs the real lights-out sweep into a real Nightcap
-npm run afterdark    # straight into a Nightcap, opening hours ignored
-npm run negroni      # ...pinned to one named drink (?nightcap=negroni)
+npm run afterdark    # straight into a Nightcap on a RANDOM pour, opening hours ignored.
+                     # Rolled pours are ephemeral, so a restarted server always starts clean
+npm run negroni      # ...pinned to one named drink instead (?nightcap=negroni)
 npm run admin        # vite dev + opens /admin: straight to the login, skipping the game (password below)
 npm test             # vitest — worker/**/*.test.ts + shared/**/*.test.ts (every pure fold has one)
 npm run check        # tsc -b (3 project refs: app / worker / node)
@@ -227,6 +228,7 @@ The clock and the door are both awkward to reach on purpose, so there are four w
 
 - **`npm run lastcall`** is the hand-off harness. It seeds a finished, won Special from the *real* reveal endpoint, so the check, the grid and the board underneath show a coherent round, and everything after that point is the genuine flow.
 - `npm run afterdark` / `?barhours=off` ignores opening hours; `npm run negroni` / `?nightcap=<slug>` pins the pour. All dev-only on the client, exactly like `?special=`.
+- **`?nightcap=random` rolls a different pour on every load**, which is what makes the flow re-testable: a rolled pin is ephemeral like any other, so nothing is written and a restarted dev server never hands back the board you just played. "random" is not a slug — the *client* resolves it against `/api/night/drinks` and hands the ordinary pin path a real one, so **the Worker never learns a random branch**. That matters: one drink a night with no archive is the shape of the mode, and a branch that exists for testing is a branch that eventually ships. It is also why `DrinkPoolEntry` carries a slug and `DrinkSummary` does not.
 - **The drink preview token (`preview:drink:<id>`, from the Bar section or the nightly board) is the only way past the clock in production**, and the only one that is untracked. That is the point: the bar is open seven hours a night and "does the tab look right" is a two-in-the-afternoon question. The daily's resolver rejects a drink token and vice versa.
 
 

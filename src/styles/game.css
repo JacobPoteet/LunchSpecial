@@ -2448,39 +2448,65 @@ textarea.dish-request__input {
 }
 
 /* A whole-band button, so the tap target is the band and not the six words in
-   it — the same reason the story toggle is a block. */
+   it — the same reason the story toggle is a block.
+
+   Filled rather than outlined. The first pass made it a quiet ghost band, which
+   is the correct weight for a *secondary* action and the wrong one for the only
+   thing on this screen the player has not seen before: on warm receipt paper a
+   10%-tint outline reads as disabled. It is the loudest control on the check
+   now, louder than share, because share is a thing you already know how to
+   want. */
 .bar-band__btn {
   display: block;
   width: 100%;
-  border: 1.5px solid var(--cherry);
+  border: none;
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--cherry) 10%, transparent);
-  color: var(--ink);
-  padding: 9px 12px;
+  background: linear-gradient(var(--cherry), var(--cherry-dark));
+  color: var(--on-cherry);
+  padding: 11px 14px;
   text-align: left;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  box-shadow:
+    0 0 0 1px var(--cherry-dark),
+    0 2px 0 var(--cherry-dark),
+    0 6px 22px rgba(255, 95, 122, 0.45);
+  transition: transform 0.12s ease, box-shadow 0.15s ease;
 }
 
 /* Touch never fires :hover, and this is the game's main surface — so the press
-   state is what actually confirms the tap on a phone. */
-.bar-band__btn:hover,
+   state is what actually confirms the tap on a phone. It presses INTO the card
+   (the 2px lip collapses), which is the same motion the share button uses. */
+.bar-band__btn:hover {
+  box-shadow:
+    0 0 0 1px var(--cherry-dark),
+    0 2px 0 var(--cherry-dark),
+    0 8px 30px rgba(255, 95, 122, 0.6);
+}
+
 .bar-band__btn:active {
-  background: color-mix(in srgb, var(--cherry) 20%, transparent);
-  border-color: var(--cherry-dark);
+  transform: translateY(2px);
+  box-shadow:
+    0 0 0 1px var(--cherry-dark),
+    0 0 0 var(--cherry-dark),
+    0 3px 14px rgba(255, 95, 122, 0.4);
 }
 
 .bar-band__tag {
   display: block;
   font-family: var(--font-display);
-  font-size: 0.86rem;
-  letter-spacing: 0.01em;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
 }
 
 .bar-band__sub {
   display: block;
-  font-size: 0.75rem;
-  color: var(--ink-soft);
-  margin-top: 2px;
+  font-size: 0.76rem;
+  /* On the filled band the sub-line sits on cherry, not on paper, so --ink-soft
+     would be the wrong pair entirely — and NOT stepped back with opacity, which
+     was the first attempt and dropped it to 3.62 against the fill. Hierarchy
+     here is size and face, not transparency: opacity on text is a contrast
+     change wearing a costume. */
+  color: var(--on-cherry);
+  margin-top: 3px;
 }
 
 @keyframes bar-band-in {
@@ -2499,6 +2525,50 @@ textarea.dish-request__input {
 .icon-btn--bar {
   border-color: var(--cherry);
   color: var(--cherry-dark);
+  font-weight: 700;
+}
+
+/* ---- the way back ----
+   Mirrors `.archive-bar`, which is the diner's existing answer to "you are
+   somewhere other than today, here is the way out". It replaced a pill in the
+   bar's toolbar, which sat among How-to and Sound and read as one more filter
+   rather than as a door — the way back has to look like a way back. */
+.bar-return {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  background: color-mix(in srgb, var(--cherry) 12%, transparent);
+  border: 1.5px dashed var(--cherry);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  margin-bottom: 12px;
+}
+
+.bar-return__tag {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+}
+
+.bar-return__btn {
+  font-family: var(--font-display);
+  background: var(--cherry);
+  color: var(--on-cherry);
+  border: none;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+}
+
+.bar-return__btn:hover,
+.bar-return__btn:active {
+  background: var(--cherry-dark);
+  color: var(--cream);
 }
 
 /* ---- the walk there ---- */
@@ -2747,6 +2817,7 @@ textarea.dish-request__input {
      registered — but stop moving. Colour still shifts on :active. */
   .icon-btn:active,
   .bar-band__btn:active,
+  .bar-return__btn:active,
   .replay-btn:active,
   .archive-bar__btn:active,
   .freeplay-bar__btn:active,

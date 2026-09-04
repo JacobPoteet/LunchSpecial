@@ -18,7 +18,7 @@ import {
   newAnalyticsId,
   postDrinkGuess,
 } from "../api";
-import type { DrinkSummary, NightcapInfo, NightcapReveal, Surface } from "../../shared/types";
+import type { DrinkPoolEntry, NightcapInfo, NightcapReveal, Surface } from "../../shared/types";
 import { DRINK_CLUE_COUNT, DRINK_MAX_GUESSES } from "../../shared/types";
 import { Coaster, DrinkGuessRow, GuessInput, Modal } from "./components";
 import { BuildTag } from "./BuildTag";
@@ -191,6 +191,20 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   // where the only way past either is a signed preview token.
   const ignoreHours = devIgnoresBarHours() || (import.meta.env.DEV && !!pinned);
 
+  /**
+   * `?nightcap=random` rolls a different pour on every load.
+   *
+   * "random" is not a slug, so it is resolved to one against the pool below and
+   * then handed to the ordinary pin path. The Worker never learns a random
+   * branch: one drink a night with no archive is the shape of the mode, and a
+   * branch that exists for testing is a branch that eventually ships. It is
+   * also why this needs no new endpoint — a rolled pin is ephemeral like any
+   * other, so nothing is saved and a restarted dev server starts clean.
+   */
+  const wantsRoll = pinned === "random";
+  const [rolled, setRolled] = useState<string | undefined>(undefined);
+  const effectivePin = wantsRoll ? rolled : pinned;
+
   // Fixed at entry and never recomputed. A player who starts at 02:55 and
   // finishes at 03:10 played THIS night: recomputing would hand them tomorrow's
   // board mid-round, and recomputing at midnight would do it to everybody.
@@ -199,7 +213,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   const ephemeral = isPreview || !!pinned;
   const tracked = !isPreview && !pinned;
 
-  const [drinks, setDrinks] = useState<DrinkSummary[]>([]);
+  const [drinks, setDrinks] = useState<DrinkPoolEntry[]>([]);
   const [info, setInfo] = useState<NightcapInfo | null>(null);
   const [round, setRound] = useState<NightRoundState>(() =>
     ephemeral ? emptyNightRound(night) : loadNightRound(night),
@@ -209,7 +223,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [pending, setPending] = useState<DrinkSummary | null>(null);
+  const [pending, setPending] = useState<DrinkPoolEntry | null>(null);
   const [showTab, setShowTab] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [checkOpened, setCheckOpened] = useState(false);
@@ -241,25 +255,29 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
     if (!barOpen || !lunchDone) return;
     let cancelled = false;
     setLoadError(null);
-    Promise.all([fetchDrinks(), fetchNightcap(night, preview, pinned)])
-      .then(([list, nightcap]) => {
-        if (cancelled) return;
-        setDrinks(list);
-        setInfo(nightcap);
-      })
-      .catch((e: Error) => {
-        if (!cancelled) setLoadError(e.message);
-      });
+    // The pool is fetched first when a roll is wanted, because the pin has to
+    // come out of it. Everywhere else the two are independent.
+    (async () => {
+      const list = await fetchDrinks();
+      if (cancelled) return;
+      setDrinks(list);
+      const pin = wantsRoll ? list[Math.floor(Math.random() * list.length)]?.slug : pinned;
+      if (wantsRoll) setRolled(pin);
+      const nightcap = await fetchNightcap(night, preview, pin);
+      if (!cancelled) setInfo(nightcap);
+    })().catch((e: Error) => {
+      if (!cancelled) setLoadError(e.message);
+    });
     return () => {
       cancelled = true;
     };
-  }, [night, preview, pinned, barOpen, lunchDone]);
+  }, [night, preview, pinned, wantsRoll, barOpen, lunchDone]);
 
   useEffect(() => {
     if (round.status !== "playing" && !reveal) {
-      fetchNightcapReveal(night, preview, pinned).then(setReveal).catch(() => {});
+      fetchNightcapReveal(night, preview, effectivePin).then(setReveal).catch(() => {});
     }
-  }, [round.status, reveal, night, preview, pinned]);
+  }, [round.status, reveal, night, preview, effectivePin]);
 
   // One analytics id per round, exactly as the diner does it. The start beacon
   // fires on the first guess, not here.
@@ -345,7 +363,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   useEffect(() => () => window.clearTimeout(coasterTimer.current), []);
 
   const submitGuess = useCallback(
-    async (drink: DrinkSummary) => {
+    async (drink: DrinkPoolEntry) => {
       if (!info || busy || round.status !== "playing") return;
       setBusy(true);
       setError(null);
@@ -358,7 +376,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
           drinkId: drink.id,
           guessNumber,
           preview,
-          nightcap: pinned,
+          nightcap: effectivePin,
         });
         const next: NightRoundState = {
           ...round,
@@ -424,7 +442,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
         setBusy(false);
       }
     },
-    [info, busy, round, night, preview, pinned, tracked, persist],
+    [info, busy, round, night, preview, effectivePin, tracked, persist],
   );
 
   const guessedIds = useMemo(() => new Set(round.guesses.map((g) => g.drink.id)), [round.guesses]);
@@ -448,7 +466,23 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
         {isPreview && (
           <p className="preview-banner">Admin test pour — nothing is saved, counted or shown to players</p>
         )}
-        {pinned && <p className="preview-banner">Playtest — pinned to “{pinned}”, nothing is saved</p>}
+        {pinned && (
+          <p className="preview-banner">
+            Playtest — {wantsRoll ? "a random pour" : `pinned to “${pinned}”`}, nothing is saved
+          </p>
+        )}
+
+        {/* The way out, as its own band rather than a pill among the toolbar's.
+            It mirrors `.archive-bar`, which is the diner's existing pattern for
+            "you are somewhere other than today, here is the way back" — and it
+            is here because the toolbar pill it replaces read as a filter rather
+            than as a door. */}
+        <div className="bar-return">
+          <span className="bar-return__tag">🍸 After Dark</span>
+          <button className="bar-return__btn" onClick={() => { playSfx("ui-click"); onLeave(); }}>
+            Back to the diner
+          </button>
+        </div>
 
         <div className="menu-card__header">
           <h2 className="menu-card__title">Libations</h2>
@@ -457,9 +491,6 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
             {nightDateLabel(night)}
           </p>
           <div className="menu-card__toolbar">
-            <button className="icon-btn" onClick={() => { playSfx("ui-click"); onLeave(); }}>
-              ← The diner
-            </button>
             {round.status !== "playing" && (
               <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowTab(true); }}>
                 Your tab

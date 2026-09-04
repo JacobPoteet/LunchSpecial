@@ -12,7 +12,7 @@
 import { Hono } from "hono";
 import type {
   DrinkGuessFeedback,
-  DrinkSummary,
+  DrinkPoolEntry,
   NightcapInfo,
   NightcapReveal,
 } from "../../shared/types";
@@ -72,8 +72,8 @@ async function resolveDrink(
  */
 app.get("/drinks", async (c) => {
   const res = await c.env.DB.prepare(
-    "SELECT id, name FROM drinks WHERE is_active = 1 ORDER BY name",
-  ).all<DrinkSummary>();
+    "SELECT id, name, slug FROM drinks WHERE is_active = 1 ORDER BY name",
+  ).all<DrinkPoolEntry>();
   return c.json(res.results);
 });
 

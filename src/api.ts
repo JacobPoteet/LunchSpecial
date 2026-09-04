@@ -7,7 +7,7 @@ import type {
   DishRequestInput,
   DishSummary,
   DrinkGuessFeedback,
-  DrinkSummary,
+  DrinkPoolEntry,
   GuessFeedback,
   NightcapInfo,
   NightcapReveal,
@@ -77,7 +77,7 @@ export function fetchReveal(date: string, preview?: string, random?: string, spe
 // A separate pool endpoint, not a filter on /api/dishes. You cannot order a
 // hamburger at the bar and the autocomplete must not offer you one.
 
-export function fetchDrinks(): Promise<DrinkSummary[]> {
+export function fetchDrinks(): Promise<DrinkPoolEntry[]> {
   return request("/api/night/drinks");
 }
 

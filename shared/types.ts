@@ -191,9 +191,26 @@ export interface RevealInfo {
 // different table — a union type here would push a discriminant check into
 // every consumer to save four interfaces.
 
+/** A drink by identity — what a guess refers to. */
 export interface DrinkSummary {
   id: number;
   name: string;
+}
+
+/**
+ * One drink as the guess pool lists it. Separate from {@link DrinkSummary}
+ * because a pool row is a catalogue entry and a feedback `drink` is a
+ * reference: putting the slug on both would have required every fold that
+ * names a guessed drink to carry one it has no use for.
+ *
+ * The slug is public, exactly as a dish's is via /api/dishes. It is here so the
+ * dev harness can roll a pour and pin it through the existing
+ * `?nightcap=<slug>` path, rather than teaching the Worker a random branch that
+ * must never exist in production — one drink a night with no archive is the
+ * shape of the mode, and a random pour would quietly hand players a second one.
+ */
+export interface DrinkPoolEntry extends DrinkSummary {
+  slug: string;
 }
 
 export interface Drink {
