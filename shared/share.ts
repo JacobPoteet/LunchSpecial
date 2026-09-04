@@ -86,6 +86,23 @@ export function wantsNativeShare(caps: ShareCapabilities): boolean {
 const SQUARE: Record<MatchLevel, string> = { hit: "🟩", near: "🟨", miss: "⬜" };
 
 /**
+ * "2/7", or nothing at all when the denominator was never measured.
+ *
+ * A round saved before `RoundState.ingredientCount` shipped has no count, and
+ * the After Dark tab redraws today's lunch grid from exactly those rounds. It
+ * used to print "2/0", which is a grid claiming two of nothing — worse than a
+ * row of tiles on its own, which is at least true.
+ */
+function pantryCount(matched: number, of: number, glyph: string): string {
+  return of > 0 ? `${matched}/${of}${glyph}` : "";
+}
+
+/** A row is its tiles, plus the pantry column when there is one. */
+function withPantry(tiles: string, pantry: string): string {
+  return pantry ? `${tiles} ${pantry}` : tiles;
+}
+
+/**
  * The lunch grid. NO url: `shareMessage()` appends that once, to the whole
  * message, for every target that takes text. Keeping the fold itself url-free
  * is what lets shared/scorecard.ts draw the same score as a picture without one.
@@ -102,8 +119,7 @@ export function buildShareText(
     const tiles = [a.country.match, a.course.match, a.temperature.match, a.protein.match]
       .map((m) => SQUARE[m])
       .join("");
-    const pantry = g.correct ? "🛎️" : `${g.matchedIngredients.length}/${ingredientCount}🥄`;
-    return `${tiles} ${pantry}`;
+    return withPantry(tiles, g.correct ? "🛎️" : pantryCount(g.matchedIngredients.length, ingredientCount, "🥄"));
   });
   return [`Lunch Special #${puzzleNumber} — ${score}`, ...rows].join("\n");
 }
@@ -138,8 +154,7 @@ export function buildNightShareText(
       .join("");
     // 🥂 for the drink you landed on, 🥃 for the pantry count — the bar's
     // answer to the bell and the spoon.
-    const pour = g.correct ? "🥂" : `${g.matchedIngredients.length}/${ingredientCount}🥃`;
-    return `${tiles} ${pour}`;
+    return withPantry(tiles, g.correct ? "🥂" : pantryCount(g.matchedIngredients.length, ingredientCount, "🥃"));
   });
   const title = nightNumber > 0 ? `After Dark · Night #${nightNumber} — ${score}` : `After Dark — ${score}`;
   return [title, ...rows].join("\n");

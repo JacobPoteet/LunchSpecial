@@ -42,15 +42,21 @@ const PALETTE = {
     /** What the winning row says instead of a pantry count. */
     winWord: "ORDER UP",
   },
+  // Kept in step with `:root[data-after-dark]` in base.css BY HAND, which is the
+  // deliberate trade — the palette is copied rather than read at draw time so
+  // the image outlives the stylesheet. The cost is that it can drift, and it
+  // did: these five sat at their pre-refinement values for two commits, so a
+  // posted card showed a bar nobody was playing in. Re-copy them when the night
+  // tokens move.
   night: {
-    paper: "#201a15",
-    paperEdge: "#453629",
-    ink: "#f2e7d5",
-    inkSoft: "#b6a793",
+    paper: "#1d1714",
+    paperEdge: "#544537",
+    ink: "#f0e6d4",
+    inkSoft: "#b3a591",
     accent: "#ff5f7a",
     hit: "#2e7d4f",
     near: "#e8a53a",
-    miss: "#3a322a",
+    miss: "#6b6055",
     onHit: "#ffffff",
     winWord: "POURED",
   },

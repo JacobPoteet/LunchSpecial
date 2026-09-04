@@ -54,6 +54,7 @@ import {
 } from "./storage";
 import { currentNight, isBarOpen, nightDateLabel, tzOffsetMinutes, untilLastCall, untilOpen } from "./night";
 import { puzzleNumberFor } from "./archive";
+import { visitSource } from "./attribution";
 import { devIgnoresBarHours } from "./devHarness";
 import { localToday } from "../api";
 import { hms } from "../../shared/time";
@@ -83,8 +84,9 @@ function ClosedSign({ onLeave }: { onLeave: () => void }) {
   const ms = useCountdown(untilOpen);
   const { h, m, s } = hms(ms);
   useEffect(() => {
-    // The doors just opened while someone sat on this screen. Nothing reloads
-    // itself; the sign simply stops being true, and the copy below changes.
+    // The doors opening under someone who is already looking at the sign. The
+    // board replaces this the same second (see the latch in NightPage), so the
+    // sound is the handover rather than a thing that happens on its own.
     if (ms <= 0) playSfx("lights-out");
   }, [ms]);
   return (
@@ -233,7 +235,24 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   // The two gates, read once at mount. `barOpen` is deliberately not live: a
   // player admitted at 02:59 keeps their round, because last call is a door and
   // not a timer. The countdown on the closed sign is the live half.
-  const [barOpen] = useState(() => ignoreHours || isPreview || isBarOpen());
+  const [barOpen, setBarOpen] = useState(() => ignoreHours || isPreview || isBarOpen());
+
+  /**
+   * The doors opening while someone waits at them.
+   *
+   * One-way on purpose: this can turn the bar ON and can never turn it off.
+   * Last call is a door, not a timer — a round in progress at 03:00 runs to
+   * completion, and a latch that closed would take a live board away from
+   * whoever was mid-guess. It only runs while the bar is shut, so an open bar
+   * costs nothing.
+   */
+  useEffect(() => {
+    if (barOpen) return;
+    const t = setInterval(() => {
+      if (isBarOpen()) setBarOpen(true);
+    }, 1000);
+    return () => clearInterval(t);
+  }, [barOpen]);
   // Deliberately NOT bypassed by `?barhours=off`, which is about the clock. It
   // used to be, and the cost was that the "Kitchen first" door could not be
   // reached in dev at all — a state nobody can look at is a state nobody
@@ -299,7 +318,12 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   useEffect(() => {
     if (!tracked || !info) return;
     if (!markSeated(localToday())) return;
-    beaconSeated({ playerId: getPlayerId(), surface: SURFACE });
+    // The source rides along exactly as it does in the diner. Usually redundant
+    // — the door is finishing lunch, so the diner has normally already fired
+    // today's visit — but a session whose first tracked board is the bar would
+    // otherwise lose its utm tag, and arrival is the only moment it exists.
+    const source = visitSource();
+    beaconSeated({ playerId: getPlayerId(), surface: SURFACE, ...(source ? { source } : {}) });
   }, [info, tracked]);
 
   // Rich Presence. The copy never names the drink, and "After Dark" is the mode
@@ -675,8 +699,9 @@ function TabModal({
             lunch.guesses,
             lunch.status === "won",
             // Stamped on the round when it was played (storage.ts). A round
-            // saved before that shipped has none, and prints 0 rather than a
-            // denominator nobody measured.
+            // saved before that shipped has none, and 0 makes buildShareText
+            // drop the pantry column rather than print "2/0" — a grid claiming
+            // two of nothing is worse than one that just shows its tiles.
             lunch.ingredientCount ?? 0,
           )
         : null;

@@ -105,6 +105,20 @@ describe("buildShareText", () => {
     expect(buildShareText(26, [lunchGuess()], false, 6)).toContain("X/6");
   });
 
+  it("drops the pantry column when the denominator was never measured", () => {
+    // Rounds saved before RoundState.ingredientCount shipped have no count, and
+    // the After Dark tab redraws today's lunch grid from exactly those. It used
+    // to print "2/0", which is a grid claiming two of nothing.
+    const rows = buildShareText(26, [lunchGuess()], false, 0).split("\n");
+    expect(rows[1]).toBe("🟨🟩🟩⬜");
+    expect(rows[1]).not.toContain("/0");
+  });
+
+  it("still prints the bell on a winning row with no denominator", () => {
+    const rows = buildShareText(26, [lunchGuess({ correct: true })], true, 0).split("\n");
+    expect(rows[1]).toContain("🛎️");
+  });
+
   it("carries no url of its own", () => {
     // shareMessage appends it once, to the whole message. A grid that carried
     // its own would put two in a combined share.
@@ -132,6 +146,12 @@ describe("buildNightShareText", () => {
     expect(rows[1]).toContain("1/5🥃");
     expect(rows[2]).toContain("🥂");
     expect(rows[2]).not.toContain("🥃");
+  });
+
+  it("drops the pantry column when the denominator was never measured", () => {
+    const row = buildNightShareText(12, [nightGuess()], false, 0).split("\n")[1];
+    expect(row).toBe("🟩⬛🟨⬛");
+    expect(row).not.toContain("/0");
   });
 
   it("drops the number on an unnumbered round rather than printing Night #0", () => {
