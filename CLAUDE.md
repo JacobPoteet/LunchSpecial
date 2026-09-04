@@ -176,7 +176,7 @@ Everything else in the game rolls over at midnight ET for everyone. After Dark d
 - **Two tiles differ.** `course` says nothing when every row is a drink and no drink has a `protein`, so the four are **country · spirit · temperature · profile**. Country keeps the three-state near-match; the other three are hit/miss.
 - **`spirit: 'none'` is a value, not an absence** — two mocktails match each other.
 - **`is_alcoholic` is stored, never derived from `spirit`.** Beer and wine have no base spirit and are very much alcoholic; arak is `other` and so is kava. There is a test pinning that pair.
-- **The pool is held between 55% and 75% alcoholic** by `worker/data-integrity.test.ts`, because the mix is a design decision rather than an accident of what got written. It ships at 28/40.
+- **The pool is held between 55% and 75% alcoholic** by `worker/data-integrity.test.ts`, because the mix is a design decision rather than an accident of what got written. It sits at 64/100.
 - **Pool only in migrations. Never `INSERT INTO drink_schedule`** — same rule as `schedule`. An unbooked night runs on the deterministic fallback pour and never 404s.
 - **The ingredient vocabulary is pooled with the kitchen's.** A bar and a kitchen share a pantry, and two spellings of one ingredient means the feedback under-reports for everything holding either.
 
@@ -236,7 +236,7 @@ The clock and the door are both awkward to reach on purpose, so there are four w
 
 ```
 wrangler.jsonc        assets SPA fallback + run_worker_first:["/api/*"] + D1 binding "DB"
-migrations/           0001_init.sql = dishes/clues/schedule. Additive only. 0041 is the latest
+migrations/           0001_init.sql = dishes/clues/schedule. Additive only. 0042 is the latest
 seed/seed.sql         canonical dish AND drink catalogues + a 30-day schedule from 2026-07-17 and a
                       30-night block from NIGHT_EPOCH_DATE. Idempotent (DELETEs first)
 shared/types.ts       ALL shared types + enums (COURSES, REGIONS, SPIRITS, PROFILES…) + MAX_GUESSES
