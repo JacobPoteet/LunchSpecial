@@ -7,6 +7,9 @@
 // that reads `navigator` lives in src/game/share.ts, and the Discord half in
 // src/discord/share.ts.
 
+import type { DrinkGuessFeedback, GuessFeedback, MatchLevel } from "./types";
+import { DRINK_MAX_GUESSES, MAX_GUESSES } from "./types";
+
 export const SHARE_URL = "https://lunchspecial.app";
 
 /**
@@ -21,6 +24,23 @@ export const SHARE_URL = "https://lunchspecial.app";
  */
 export function shareMessage(text: string): string {
   return `${text}\n${SHARE_URL}`;
+}
+
+/**
+ * Stack the grids a player is sharing into one message.
+ *
+ * A tab shared from After Dark carries the night's grid AND the lunch grid
+ * above it, because the door to the bar is finishing lunch: by the time anyone
+ * can press this, both rounds exist and both are theirs.
+ *
+ * One blank line between them and nothing else. A separator rule or a header
+ * would be two more things that have to survive being pasted into a chat box
+ * that reflows, and the grids already separate themselves — each leads with its
+ * own title line. Blank blocks are dropped rather than printed as a gap, so the
+ * same call works for a lone grid.
+ */
+export function joinShareBlocks(blocks: (string | null | undefined)[]): string {
+  return blocks.filter((b): b is string => !!b && b.trim().length > 0).join("\n\n");
 }
 
 /** What the browser will tell us about itself, read once at click time. */
@@ -61,4 +81,81 @@ export function wantsNativeShare(caps: ShareCapabilities): boolean {
   if (!caps.hasShare) return false;
   if (!caps.coarsePointer) return false;
   return caps.canShareText !== false;
+}
+
+const SQUARE: Record<MatchLevel, string> = { hit: "🟩", near: "🟨", miss: "⬜" };
+
+/**
+ * "2/7", or nothing at all when the denominator was never measured.
+ *
+ * A round saved before `RoundState.ingredientCount` shipped has no count, and
+ * the After Dark tab redraws today's lunch grid from exactly those rounds. It
+ * used to print "2/0", which is a grid claiming two of nothing — worse than a
+ * row of tiles on its own, which is at least true.
+ */
+function pantryCount(matched: number, of: number, glyph: string): string {
+  return of > 0 ? `${matched}/${of}${glyph}` : "";
+}
+
+/** A row is its tiles, plus the pantry column when there is one. */
+function withPantry(tiles: string, pantry: string): string {
+  return pantry ? `${tiles} ${pantry}` : tiles;
+}
+
+/**
+ * The lunch grid. NO url: `shareMessage()` appends that once, to the whole
+ * message, for every target that takes text. Keeping the fold itself url-free
+ * is what lets shared/scorecard.ts draw the same score as a picture without one.
+ */
+export function buildShareText(
+  puzzleNumber: number,
+  guesses: GuessFeedback[],
+  won: boolean,
+  ingredientCount: number,
+): string {
+  const score = won ? `${guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
+  const rows = guesses.map((g) => {
+    const a = g.attributes;
+    const tiles = [a.country.match, a.course.match, a.temperature.match, a.protein.match]
+      .map((m) => SQUARE[m])
+      .join("");
+    return withPantry(tiles, g.correct ? "🛎️" : pantryCount(g.matchedIngredients.length, ingredientCount, "🥄"));
+  });
+  return [`Lunch Special #${puzzleNumber} — ${score}`, ...rows].join("\n");
+}
+
+/**
+ * The bar's squares. Same three states, same order, one swap: the miss is black
+ * instead of white.
+ *
+ * That single change is what makes a Nightcap grid readable as a Nightcap at a
+ * glance in a channel where both are being pasted, and it does it without a
+ * second legend to learn — green is still a match, yellow is still close. It
+ * also happens to be the only one of the three that reads as "lights out",
+ * which is the point.
+ */
+const NIGHT_SQUARE: Record<MatchLevel, string> = { hit: "🟩", near: "🟨", miss: "⬛" };
+
+/**
+ * The Nightcap's grid. No url, exactly like buildShareText: joinShareBlocks
+ * stacks the blocks and shareMessage appends the url once, to the whole thing.
+ */
+export function buildNightShareText(
+  nightNumber: number,
+  guesses: DrinkGuessFeedback[],
+  won: boolean,
+  ingredientCount: number,
+): string {
+  const score = won ? `${guesses.length}/${DRINK_MAX_GUESSES}` : `X/${DRINK_MAX_GUESSES}`;
+  const rows = guesses.map((g) => {
+    const a = g.attributes;
+    const tiles = [a.country.match, a.spirit.match, a.temperature.match, a.profile.match]
+      .map((m) => NIGHT_SQUARE[m])
+      .join("");
+    // 🥂 for the drink you landed on, 🥃 for the pantry count — the bar's
+    // answer to the bell and the spoon.
+    return withPantry(tiles, g.correct ? "🥂" : pantryCount(g.matchedIngredients.length, ingredientCount, "🥃"));
+  });
+  const title = nightNumber > 0 ? `After Dark · Night #${nightNumber} — ${score}` : `After Dark — ${score}`;
+  return [title, ...rows].join("\n");
 }

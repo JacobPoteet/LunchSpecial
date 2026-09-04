@@ -6,6 +6,7 @@ import { Hono, type Context } from "hono";
 import { normalizeSource, SOURCE_DIRECT } from "../../shared/attribution";
 import { MAX_GUESSES, ROUND_KINDS, SURFACES, type RoundKind, type Surface } from "../../shared/types";
 import { getSeededDish, getTargetDish, serverToday } from "../db";
+import { getTargetDrink } from "../drinkdb";
 import { isValidDateString } from "../game";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -13,6 +14,11 @@ const app = new Hono<{ Bindings: Env }>();
 interface Base {
   roundId: string;
   puzzleNumber: number;
+  /**
+   * The ET play date, or -- on a `nightcap` -- the LOCAL night key. Stored in
+   * `play_date` either way, which is why nothing may group that column across
+   * kinds. See migrations/0041.
+   */
   date: string;
   kind: RoundKind;
   surface: Surface;
@@ -27,12 +33,48 @@ interface Base {
  * (the feed still falls back to the schedule join for scheduled kinds).
  */
 async function resolveDishId(env: Env, kind: RoundKind, date: string, seed: string | null): Promise<number | null> {
+  if (kind === "nightcap") return null; // a Nightcap has a drink, not a dish
   try {
     const dish = kind === "random" ? (seed ? await getSeededDish(env.DB, seed) : null) : await getTargetDish(env.DB, date);
     return dish?.id ?? null;
   } catch {
     return null; // analytics must never break gameplay
   }
+}
+
+/**
+ * The drink a Nightcap played, resolved the way the bar resolves it: the booked
+ * pour for that night, or the night's deterministic fallback. `date` is the
+ * LOCAL night key here, not an ET day.
+ *
+ * Null for every other kind, and null on any lookup miss — a round with no drink
+ * is reported as untracked rather than assigned to one, the same rule dish_id
+ * follows.
+ */
+async function resolveDrinkId(env: Env, kind: RoundKind, night: string): Promise<number | null> {
+  if (kind !== "nightcap") return null;
+  try {
+    const drink = await getTargetDrink(env.DB, night);
+    return drink?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The device's UTC offset in minutes, east-positive, clamped to the real range.
+ *
+ * Client-supplied, like `source`, so it is re-validated here regardless of what
+ * arrived. Anything outside UTC-12..UTC+14 is dropped to NULL rather than
+ * stored, because an impossible offset in the hour profile is worse than a
+ * missing one: a gap reports as unmeasured, a bad value reports as a place
+ * nobody lives.
+ */
+function tzOffsetOf(body: unknown): number | null {
+  const raw = (body as { tzOffset?: unknown } | null)?.tzOffset;
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return null;
+  const mins = Math.trunc(raw);
+  return mins >= -720 && mins <= 840 ? mins : null;
 }
 
 /**
@@ -187,13 +229,16 @@ app.post("/start", async (c) => {
     typeof raw!.playerId === "string" && raw!.playerId.length >= 8 && raw!.playerId.length <= 64
       ? raw!.playerId
       : null;
-  const dishId = await resolveDishId(c.env, b.kind, b.date, seedOf(raw));
+  const [dishId, drinkId] = await Promise.all([
+    resolveDishId(c.env, b.kind, b.date, seedOf(raw)),
+    resolveDrinkId(c.env, b.kind, b.date),
+  ]);
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, player_id, dish_id, started_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, player_id, dish_id, drink_id, tz_offset, started_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO NOTHING`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), playerId, dishId)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), playerId, dishId, drinkId, tzOffsetOf(raw))
     .run();
   return c.json({ ok: true });
 });
@@ -212,16 +257,19 @@ app.post("/complete", async (c) => {
   // /start already fixed them, so the conflict path leaves them alone. `completed_at`
   // keeps the FIRST completion time (a replayed beacon must not move it) — it's
   // what the admin activity feed timestamps the event with.
-  const dishId = await resolveDishId(c.env, b.kind, b.date, seedOf(raw));
+  const [dishId, drinkId] = await Promise.all([
+    resolveDishId(c.env, b.kind, b.date, seedOf(raw)),
+    resolveDrinkId(c.env, b.kind, b.date),
+  ]);
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, dish_id, started_at, guesses, solved, completed, completed_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, 1, datetime('now'), datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, dish_id, drink_id, tz_offset, started_at, guesses, solved, completed, completed_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, 1, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO UPDATE SET
        guesses = excluded.guesses, solved = excluded.solved, completed = 1,
        completed_at = COALESCE(analytics_rounds.completed_at, excluded.completed_at),
        updated_at = excluded.updated_at`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), dishId, guesses, solved)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), dishId, drinkId, tzOffsetOf(raw), guesses, solved)
     .run();
   return c.json({ ok: true });
 });
@@ -234,15 +282,18 @@ app.post("/share", async (c) => {
   // share's time, like `completed_at` above. `dish_id`/`country` are insert-only;
   // only the share button's kinds (daily/leftover) reach here, so a date lookup
   // suffices.
-  const dishId = await resolveDishId(c.env, b.kind, b.date, seedOf(raw));
+  const [dishId, drinkId] = await Promise.all([
+    resolveDishId(c.env, b.kind, b.date, seedOf(raw)),
+    resolveDrinkId(c.env, b.kind, b.date),
+  ]);
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, dish_id, started_at, shared, shared_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), 1, datetime('now'), datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, dish_id, drink_id, started_at, shared, shared_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), 1, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO UPDATE SET shared = 1,
        shared_at = COALESCE(analytics_rounds.shared_at, excluded.shared_at),
        updated_at = excluded.updated_at`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), dishId)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), dishId, drinkId)
     .run();
   return c.json({ ok: true });
 });

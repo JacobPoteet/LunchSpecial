@@ -56,7 +56,12 @@ async function loadBreakdown(env: Env): Promise<PublicBreakdown> {
          COALESCE(SUM(completed), 0) AS completed,
          COALESCE(SUM(solved), 0) AS solved,
          COALESCE(SUM(shared), 0) AS shared,
-         COALESCE(AVG(CASE WHEN solved = 1 THEN guesses END), 0) AS avgGuesses,
+         -- Excludes Nightcaps deliberately. A Nightcap is out of four and a
+         -- Special is out of six, so averaging them together produces a number
+         -- that is not an average of anything. Same reason as the distribution
+         -- below. The round/completed/solved totals above DO include them,
+         -- because "games played" is a count and counts pool fine.
+         COALESCE(AVG(CASE WHEN solved = 1 AND kind != 'nightcap' THEN guesses END), 0) AS avgGuesses,
          COALESCE(SUM(completed = 1 AND solved = 0), 0) AS fails,
          COUNT(DISTINCT player_id) AS devices,
          COALESCE(SUM(kind = 'daily'), 0) AS daily_started,
@@ -65,14 +70,18 @@ async function loadBreakdown(env: Env): Promise<PublicBreakdown> {
          COALESCE(SUM(kind = 'leftover' AND completed = 1), 0) AS leftover_completed,
          COALESCE(SUM(kind = 'random'), 0) AS random_started,
          COALESCE(SUM(kind = 'random' AND completed = 1), 0) AS random_completed,
+         COALESCE(SUM(kind = 'nightcap'), 0) AS nightcap_started,
+         COALESCE(SUM(kind = 'nightcap' AND completed = 1), 0) AS nightcap_completed,
          COALESCE(SUM(surface = 'web'), 0) AS web_rounds,
          COALESCE(SUM(surface = 'discord'), 0) AS discord_rounds
        FROM analytics_rounds`,
     ),
     env.DB
       .prepare(
+        // Specials only. A "won in 4" out of six and a "won in 4" out of four
+        // are different achievements and this histogram has one x-axis.
         `SELECT guesses, COUNT(*) AS n FROM analytics_rounds
-           WHERE completed = 1 AND solved = 1 AND guesses BETWEEN 1 AND ?
+           WHERE completed = 1 AND solved = 1 AND kind != 'nightcap' AND guesses BETWEEN 1 AND ?
            GROUP BY guesses`,
       )
       .bind(MAX_GUESSES),

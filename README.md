@@ -43,11 +43,11 @@ npm run db:migrate && npm run db:seed
 npm run dev                          # game at :5173/, admin at :5173/admin
 ```
 
-`.dev.vars` holds **Worker** secrets; client build-time vars (currently `VITE_DISCORD_CLIENT_ID`) go in a gitignored `.env.local`, modelled on `.env.example`. You need neither to play the game locally. `npm test` runs the unit tests, `npm run check` typechecks everything.
+`.dev.vars` holds **Worker** secrets; client build-time vars (currently `VITE_DISCORD_CLIENT_ID`) go in a gitignored `.env.local`, modelled on `.env.example`. You need neither to play the game locally. `npm test` runs the unit tests, `npm run check` typechecks everything, and `npm run a11y` runs axe over the running game (it needs `npm run dev` alongside it, and it plays a round first, because the tiles and chips don't exist on an empty board).
 
 ### Debug / testing options
 
-Ways to poke at the game without editing the schedule or touching your saved stats. The first five are things you type at a local dev server; the last is a button in the admin that also works against production:
+Ways to poke at the game without editing the schedule or touching your saved stats. All but the last are things you type at a local dev server; the last is a button in the admin that also works against production:
 
 | Option | What it does |
 |---|---|
@@ -56,9 +56,18 @@ Ways to poke at the game without editing the schedule or touching your saved sta
 | `npm run ramen` | The same thing pinned to **one named dish** (Ramen) instead of a random one, for playtesting a specific board, and the finished-round screen, over and over. |
 | `?special=<slug>` | The pinned-dish mode by URL (e.g. `http://localhost:5173/play?special=pho`). Any active dish's slug works; add another `npm run <dish>` script for one you reach for often. |
 | `npm run admin` | Starts the dev server and opens **`/admin`** straight at the login, skipping the game. |
+| `npm run lastcall` | **The After Dark hand-off.** Seeds a finished, won Special from the real reveal endpoint, so the page opens on the check with the bar's invite already live. Pressing it runs the real lights-out sweep into a Nightcap on a **random drink**. |
+| `npm run afterdark` | Straight into a Nightcap on a **random drink**, opening hours ignored, for working on the bar's board at two in the afternoon. Seeds a finished Special first, since the bar's door is a real gate. |
+| `npm run negroni` | The same pinned to **one named drink**, the bar's answer to `npm run ramen`. |
+| `?nightcap=<slug>` | The pinned-drink mode by URL (e.g. `http://localhost:5173/?bar=1&nightcap=sidecar`). `?nightcap=random` rolls a new one on every load, which is what makes the hand-off re-testable: a rolled pour saves nothing, so a restarted dev server never hands back the board you just played. |
+| `?barhours=off` | Ignores the 20:00–03:00 window on any bar URL. **Only** the clock — the finish-lunch gate still applies, so the "Kitchen first" door stays reachable in dev. A state you can't look at is a state nobody checks. |
 | **Test play ▶** (in `/admin`) | Not a URL you type: a button that mints a signed 24-hour link to the real game, pinned to today's Special (dashboard), a booked day (schedule) or the dish you're editing. It's the door for rehearsing something *already on the menu*, and because the link is signed it's the only one of these that works on a deployed site — records nothing either way, see [Admin panel](#admin-panel-admin). |
 
 A random round sends a seed the API maps to one active dish, so the round holds still and a new seed rolls another. That's the same spoiler-free **Chef's Choice** mode players get in production (never touches the schedule, saves no stats). `?special=<slug>` takes the roll out and names the dish outright, and it's the most throwaway mode of the lot: no localStorage, no lifetime stats, no analytics, honoured by the client in dev only. It exists to rehearse the **end of a round**, so it comes dressed as the daily right down to the check, countdown and share button, with the top banner as the only tell.
+
+The After Dark entrances exist because the bar is only open 20:00–03:00 on your own clock, and a mode you can only work on after eight at night is a mode that doesn't get worked on. They are dev-only and compiled out of production builds; the one way past the clock on a deployed site is the signed **Test pour** link in the admin's Bar section.
+
+`random` is resolved on the **client**, which picks a slug out of the drinks pool and hands the ordinary pinned-drink path a real one. The API never learns a random branch, because one drink a night with no archive is the shape of the mode and a branch that exists for testing is a branch that eventually ships.
 
 ## Deploying to Cloudflare
 
@@ -97,6 +106,18 @@ Setup is four clicks in the Discord Developer Portal (enable Activities, map `/`
 - The `schedule` table maps dates to dishes. If a date has no row, the Worker picks a **deterministic fallback** dish from the active pool, so the game never breaks.
 - Game state and stats live in `localStorage`, with no accounts anywhere.
 - The reveal endpoint is client-initiated after game over (same honesty model as Wordle).
+- **One mode is exempt from the ET rollover, and only one.** [After Dark](#after-dark) runs on the player's own clock. `shared/night.ts` holds that entire departure.
+
+## After Dark
+
+A second daily puzzle behind the first. Finish today's Special and, between **20:00 and 03:00 on your own clock**, the check offers you the bar: one **drink**, **4 guesses**, **3 coasters**, a darker room. There's no archive, so a Nightcap you miss is gone.
+
+- **A night is the local calendar day the evening began on.** Hours 00:00–02:59 belong to the night before, so a round begun at 23:50 and finished at 00:10 is one sitting on one drink.
+- **Last call is a door, not a timer.** The window decides whether the entrance appears; a round already running at 03:00 finishes.
+- **Two of the four tiles change**: country and serving temperature stay, base spirit and flavour profile replace course and protein. Ingredient matching works exactly as it does at lunch.
+- **The drink catalogue is its own set of tables**, never a flag on `dishes`, so nothing can serve a Negroni as Tuesday's lunch Special.
+- **The end-of-round card shares both grids**, the night's under the day's, with a blacked-out miss square so a channel with both pasted into it needs no second legend.
+- It keeps **its own streak**. Nothing about the bar can move a number a lunch player already has.
 
 ## Engagement stats
 
@@ -124,13 +145,15 @@ Every round carries its **kind** (Today's Special / Leftovers / Chef's Choice), 
 
 ## Admin panel (`/admin`)
 
-Password login (Worker secret + HMAC-signed session cookie, 7 days). `npm run admin` starts the dev server and opens it straight away, the way `npm run play` does for a round. Five sections plus a test-play escape hatch:
+Password login (Worker secret + HMAC-signed session cookie, 7 days). `npm run admin` starts the dev server and opens it straight away, the way `npm run play` does for a round. Six sections plus a test-play escape hatch:
 
-- **Dashboard**: today's Special and the countdown to the next one, schedule health (warns under 7 days ahead), content warnings (dishes missing clues/ingredients), and the six engagement tabs described above
+- **Dashboard**: today's Special and the countdown to the next one, schedule health (warns under 7 days ahead), content warnings (dishes missing clues/ingredients), and the seven engagement tabs described above
 - **Dishes**: searchable/filterable table; per-dish editor with canonical-ingredient tag input, 5 ordered clues, a fan-submission credit flag, and a **live player preview**
 - **Schedule**: upcoming board, assign/swap/clear days, **auto-fill 30 days** (least-recently-served, no repeats within 60 days), past days locked
+- **Bar**: the After Dark catalogue and its nightly board. Drink editor with a 3-coaster counter, an alcohol flag the pool's mix is measured against, autofill, a never-poured shuffle, and **Test pour** on every row
 - **Announcements**: write, schedule and retire the notices players see; limited markdown (bold/italic/link only), audience of everyone or returning players, plus per-notice reach
 - **Requests**: inbox of player-suggested dishes (badge = pending count); review, remove, or open one prefilled in a new dish editor
+- **Test pour**: the same, for a drink. It is the only way past the bar's opening hours on a deployed site, which is the point: the bar is open seven hours a night and "does the tab look right" is a two-in-the-afternoon question
 - **Test play**: a signed 24-hour link that opens the real game on one pinned dish — today's Special from the dashboard, a booked day from the schedule, or the dish under edit (**Save + test play**) — without touching daily state or stats
 
 The Activity tab also carries **This device's data**: a review of everything this browser has recorded across rounds, visits and notice views, and a button to delete it. The admin is also a player, and at this volume one person play-testing is a visible fraction of every rate on the dashboard.
@@ -140,6 +163,7 @@ The Activity tab also carries **This device's data**: a review of everything thi
 - `dishes`: name, country, region (drives the yellow "close" country match), course, hot/cold, protein, JSON array of canonical ingredients, fan-submission flag
 - `clues`: 5 per dish, ordered vague → specific (region → origin → what makes it unmistakable → key ingredient → near-giveaway)
 - `schedule`: `date (YYYY-MM-DD) → dish_id`
+- `drinks` + `drink_clues` + `drink_schedule`: the After Dark catalogue. Base spirit and flavour profile in place of course and protein, a stored alcohol flag (beer and wine have no base spirit and plenty of alcohol), 3 coasters per drink, and a schedule keyed by **local night** rather than ET day
 - `dish_requests`: player suggestions, an inbox kept deliberately separate from the `dishes` catalog
 - `announcements` + `announcement_views`: notices and who they reached
 - `experiments`: one row per deliberate change, recording what shipped, when, and the metric it was meant to move
@@ -147,7 +171,7 @@ The Activity tab also carries **This device's data**: a review of everything thi
 
 Ingredient names are canonical (lowercase, singular: `tomato`, not `tomatoes`) so matches line up across dishes. The admin tag input autocompletes against the existing pantry to keep it that way.
 
-The catalog ships two ways: `seed/seed.sql` is the canonical, idempotent snapshot used for local setup, and each batch of new dishes also gets an additive migration so releases can extend the live database without clobbering edits made in `/admin`. A data-integrity test guards both against bad enum values and dishes missing clues or ingredients.
+The catalog ships two ways: `seed/seed.sql` is the canonical, idempotent snapshot used for local setup, and each batch of new dishes also gets an additive migration so releases can extend the live database without clobbering edits made in `/admin`. A data-integrity test guards both against bad enum values and dishes missing clues or ingredients. The same test reads the drinks catalogue against its own 3-beat sheet and holds the pool between 55% and 75% alcoholic, so a batch of nothing but cocktails fails CI on purpose.
 
 
 ## Also in this repo

@@ -6,7 +6,11 @@ import type {
   DailyInfo,
   DishRequestInput,
   DishSummary,
+  DrinkGuessFeedback,
+  DrinkPoolEntry,
   GuessFeedback,
+  NightcapInfo,
+  NightcapReveal,
   RevealInfo,
   RoundKind,
   Surface,
@@ -66,6 +70,42 @@ export function postGuess(body: {
 
 export function fetchReveal(date: string, preview?: string, random?: string, special?: string): Promise<RevealInfo> {
   return request(withParams("/api/reveal", { date, preview, random, special }));
+}
+
+// ---- After Dark ----
+//
+// A separate pool endpoint, not a filter on /api/dishes. You cannot order a
+// hamburger at the bar and the autocomplete must not offer you one.
+
+export function fetchDrinks(): Promise<DrinkPoolEntry[]> {
+  return request("/api/night/drinks");
+}
+
+export function fetchNightcap(night: string, preview?: string, pinned?: string): Promise<NightcapInfo> {
+  return request(withParams("/api/night/info", { night, preview, nightcap: pinned }));
+}
+
+export function postDrinkGuess(body: {
+  night: string;
+  drinkId: number;
+  guessNumber: number;
+  preview?: string;
+  /** Playtest only: the slug this round was pinned to. */
+  nightcap?: string;
+}): Promise<DrinkGuessFeedback> {
+  return request("/api/night/guess", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function fetchNightcapReveal(
+  night: string,
+  preview?: string,
+  pinned?: string,
+): Promise<NightcapReveal> {
+  return request(withParams("/api/night/reveal", { night, preview, nightcap: pinned }));
 }
 
 /** Submit a player's dish suggestion for the menu (lands in the admin inbox). */
@@ -159,6 +199,13 @@ export function beaconStart(b: {
   // A random (Chef's Choice) round's dish is picked from this seed; the server
   // resolves it so the admin feed can name the dish (it's never in the schedule).
   seed?: string;
+  /**
+   * The device's UTC offset in minutes, east-positive. Nightcaps only, and the
+   * only beacon field that is a fact about the player's clock rather than about
+   * the game — the bar's window is local, so without it the hour profile is
+   * noise. Re-validated server-side; see migrations/0041.
+   */
+  tzOffset?: number;
 }): void {
   beacon("/api/rounds/start", b);
 }
@@ -172,6 +219,8 @@ export function beaconComplete(b: {
   guesses: number;
   solved: boolean;
   seed?: string;
+  /** See beaconStart. */
+  tzOffset?: number;
 }): void {
   beacon("/api/rounds/complete", b);
 }

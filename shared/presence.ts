@@ -56,6 +56,10 @@ const MODE_LABEL: Record<RoundKind, string> = {
   daily: "Today's Special",
   leftover: "Leftovers",
   random: "Chef's Choice",
+  // The mode's name, never the drink's. A profile is read by people who have
+  // not played tonight, and the whole-output-space test below covers this line
+  // like the other three.
+  nightcap: "After Dark",
 };
 
 /**

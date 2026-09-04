@@ -1,35 +1,18 @@
 // Shareable emoji summary of a finished round.
 
 import { wantsNativeShare } from "../../shared/share";
-import type { GuessFeedback, MatchLevel } from "../../shared/types";
-import { MAX_GUESSES } from "../../shared/types";
 
-// The message and the target decision are pure folds and live in shared/share.ts
-// (unit-tested in share.test.ts); this module is the half that needs a browser.
-export { SHARE_URL, shareMessage } from "../../shared/share";
-
-const SQUARE: Record<MatchLevel, string> = { hit: "🟩", near: "🟨", miss: "⬜" };
-
-// The score card only — NO url. `shareMessage()` appends it, in the same string,
-// for every target that takes text. Keeping the fold itself url-free is what
-// lets shared/scorecard.ts draw the same score as a picture without one.
-export function buildShareText(
-  puzzleNumber: number,
-  guesses: GuessFeedback[],
-  won: boolean,
-  ingredientCount: number,
-): string {
-  const score = won ? `${guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
-  const rows = guesses.map((g) => {
-    const a = g.attributes;
-    const tiles = [a.country.match, a.course.match, a.temperature.match, a.protein.match]
-      .map((m) => SQUARE[m])
-      .join("");
-    const pantry = g.correct ? "🛎️" : `${g.matchedIngredients.length}/${ingredientCount}🥄`;
-    return `${tiles} ${pantry}`;
-  });
-  return [`Lunch Special #${puzzleNumber} — ${score}`, ...rows].join("\n");
-}
+// Every pure fold lives in shared/share.ts and is unit tested there; this module
+// is the half that needs a browser. The two grids used to sit here despite never
+// touching one, which is why they were the only part of the share path with no
+// test — they moved, and this file re-exports them so nothing else had to change.
+export {
+  SHARE_URL,
+  buildNightShareText,
+  buildShareText,
+  joinShareBlocks,
+  shareMessage,
+} from "../../shared/share";
 
 /**
  * Copy text to the clipboard, with a legacy fallback.

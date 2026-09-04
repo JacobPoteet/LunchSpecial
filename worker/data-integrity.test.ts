@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import Database from "better-sqlite3";
 import { describe, expect, it } from "vitest";
-import { clueBeat } from "../shared/clues";
+import { clueBeat, coasterBeat, type ClueBeat } from "../shared/clues";
 
 // Applies every migration + the seed catalog to a real (in-memory) SQLite
 // database so the schema's own CHECK/UNIQUE constraints do the enforcing —
@@ -290,9 +290,14 @@ function tokens(text: string): string[] {
     .filter((w) => w.length > 3 && !NAME_STOP.has(w));
 }
 
-/** How many dishes each word touches, across every name and ingredient list. */
-function buildWordFrequency(db: Database.Database): Map<string, number> {
-  const rows = db.prepare("SELECT name, ingredients FROM dishes").all() as {
+/**
+ * How many rows each word touches, across every name and ingredient list in one
+ * catalogue. Built per table: a word that is generic among 400 dishes can be
+ * perfectly distinctive among 40 drinks, and pooling the two would let a drink
+ * name hide behind the pantry of a catalogue it has nothing to do with.
+ */
+function buildWordFrequency(db: Database.Database, table = "dishes"): Map<string, number> {
+  const rows = db.prepare(`SELECT name, ingredients FROM ${table}`).all() as {
     name: string;
     ingredients: string;
   }[];
@@ -350,6 +355,28 @@ interface ClueRow {
 }
 
 /**
+ * Which beat sheet a clue is being read against.
+ *
+ * There are two catalogues now and they run different sheets: a dish gets five
+ * clue tickets, a drink gets three coasters. Everything else about the linting
+ * is identical, and it stays identical by being one function rather than two --
+ * a forked copy is how the drinks catalogue would quietly stop enforcing the
+ * banned-praise list six months from now.
+ */
+interface Sheet {
+  budget: (beat: number) => ClueBeat | undefined;
+  /**
+   * The near-giveaway beat: the one that must name the country, and the one
+   * printed under the answer as a definition. Beat 5 for a dish, beat 3 for a
+   * drink.
+   */
+  giveaway: number;
+}
+
+const DISH_SHEET: Sheet = { budget: clueBeat, giveaway: 5 };
+const DRINK_SHEET: Sheet = { budget: coasterBeat, giveaway: 3 };
+
+/**
  * Every hard rule in the beat sheet a machine can decide, for one clue.
  *
  * Errors fail the build. Warnings are the target band only, which is guidance
@@ -357,14 +384,18 @@ interface ClueRow {
  * that reddens over it would get muted within a week. The ceiling is what holds
  * the line against the inflation this file exists to stop.
  */
-function lintClue(row: ClueRow, freq: Map<string, number>): { errors: string[]; warnings: string[] } {
+function lintClue(
+  row: ClueRow,
+  freq: Map<string, number>,
+  sheet: Sheet = DISH_SHEET,
+): { errors: string[]; warnings: string[] } {
   const beat = row.order_index;
   const text = row.text;
   const problems: string[] = [];
   const warnings: string[] = [];
   const folded = fold(text);
 
-  const budget = clueBeat(beat);
+  const budget = sheet.budget(beat);
   if (budget) {
     const { lo, hi, max } = budget;
     if (text.length > max) problems.push(`${text.length} chars, over the ${max} ceiling`);
@@ -402,18 +433,25 @@ function lintClue(row: ClueRow, freq: Map<string, number>): { errors: string[]; 
   if (beat === 1 && namesCountry && !BEAT1_COUNTRY_EXEMPT.has(fold(row.country))) {
     problems.push("beat 1 names the country");
   }
-  if (beat === 5 && !namesCountry) problems.push("beat 5 does not name the country");
+  if (beat === sheet.giveaway && !namesCountry) {
+    problems.push(`beat ${sheet.giveaway} does not name the country`);
+  }
 
   return { errors: problems, warnings };
 }
 
-/** Beat 5 restating beat 4 is the catalogue's most common defect. */
-function beatFiveOverlap(clues: ClueRow[]): number {
-  const four = clues.find((c) => c.order_index === 4);
-  const five = clues.find((c) => c.order_index === 5);
-  if (!four || !five) return 0;
-  const a = contentWords(four.text);
-  const b = contentWords(five.text);
+/**
+ * The near-giveaway restating the beat before it is the catalogue's most common
+ * defect: 186 dishes had it before the backfill. Covering the earlier beat and
+ * asking whether the later one still tells you anything is the manual version;
+ * this is the mechanizable half of it.
+ */
+function tailOverlap(clues: ClueRow[], earlier: number, later: number): number {
+  const first = clues.find((c) => c.order_index === earlier);
+  const second = clues.find((c) => c.order_index === later);
+  if (!first || !second) return 0;
+  const a = contentWords(first.text);
+  const b = contentWords(second.text);
   if (b.size === 0) return 0;
   let shared = 0;
   for (const w of b) if (a.has(w)) shared++;
@@ -451,7 +489,7 @@ describe("the beat sheet", () => {
           failures.push(`${slug} beat ${clue.order_index}: ${problem}`);
         }
       }
-      const overlap = beatFiveOverlap(clues);
+      const overlap = tailOverlap(clues, 4, 5);
       if (overlap > 0.7) {
         failures.push(
           `${slug}: beat 5 shares ${Math.round(overlap * 100)}% of its words with beat 4 (ceiling 70%)`,
@@ -595,5 +633,219 @@ describe("backfill migrations and the seed agree", () => {
     // pins that the migrations parsed at all, so a format change cannot make
     // the check above silently pass by matching nothing.
     expect(touched.size, "no backfill UPDATEs parsed out of migrations/").toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The back bar (After Dark).
+//
+// Same gate, second catalogue. A drink is one `drinks` row plus exactly three
+// `drink_clues` rows, and it is only pourable with three or more ingredients
+// and all three coasters — the same shape as the dish rule, one clue short
+// because a Nightcap gives four guesses and so at most three misses.
+// ---------------------------------------------------------------------------
+
+const SPIRITS = ["gin", "whiskey", "rum", "tequila", "vodka", "brandy", "wine", "beer", "none", "other"];
+const PROFILES = ["sweet", "sour", "bitter", "strong", "creamy"];
+
+describe("back bar data integrity", () => {
+  const db = buildDb();
+
+  it("pours enough drinks to run a bar", () => {
+    const { n } = db.prepare("SELECT COUNT(*) AS n FROM drinks WHERE is_active = 1").get() as {
+      n: number;
+    };
+    // One drink a night with no archive means the pool IS the runway. Below
+    // this the shuffle starts repeating inside a month.
+    expect(n).toBeGreaterThanOrEqual(30);
+  });
+
+  it("keeps the pool mostly, but not entirely, alcoholic", () => {
+    const { n, boozy } = db
+      .prepare("SELECT COUNT(*) AS n, SUM(is_alcoholic) AS boozy FROM drinks WHERE is_active = 1")
+      .get() as { n: number; boozy: number };
+    const share = boozy / n;
+    // A bar that is 95% booze is a different game from one that isn't, and the
+    // mix is a design decision rather than an accident of what got written. The
+    // band is wide because it is a floor and a ceiling, not a target.
+    expect(share, `${boozy}/${n} alcoholic`).toBeGreaterThanOrEqual(0.55);
+    expect(share, `${boozy}/${n} alcoholic`).toBeLessThanOrEqual(0.75);
+  });
+
+  it("gives every drink a valid region bucket", () => {
+    const rows = db.prepare("SELECT slug, region FROM drinks").all() as {
+      slug: string;
+      region: string;
+    }[];
+    const bad = rows.filter((r) => !REGIONS.includes(r.region));
+    expect(bad, `drinks with an invalid region: ${JSON.stringify(bad)}`).toEqual([]);
+  });
+
+  it("gives every drink a valid spirit and profile", () => {
+    // The schema CHECKs these too; this names the offender instead of failing
+    // the whole seed with a constraint error and no row number.
+    const rows = db.prepare("SELECT slug, spirit, profile FROM drinks").all() as {
+      slug: string;
+      spirit: string;
+      profile: string;
+    }[];
+    const bad = rows.filter((r) => !SPIRITS.includes(r.spirit) || !PROFILES.includes(r.profile));
+    expect(bad, `drinks with an invalid spirit/profile: ${JSON.stringify(bad)}`).toEqual([]);
+  });
+
+  it("gives every drink a slug that is lowercase-kebab ASCII", () => {
+    const rows = db.prepare("SELECT slug FROM drinks").all() as { slug: string }[];
+    const bad = rows.filter((r) => !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(r.slug));
+    expect(bad, `drinks with a malformed slug: ${JSON.stringify(bad)}`).toEqual([]);
+  });
+
+  it("gives every drink >= 3 lowercase, non-empty ingredients", () => {
+    const rows = db.prepare("SELECT slug, ingredients FROM drinks").all() as {
+      slug: string;
+      ingredients: string;
+    }[];
+    const bad: string[] = [];
+    for (const r of rows) {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(r.ingredients);
+      } catch {
+        bad.push(`${r.slug}: not valid JSON`);
+        continue;
+      }
+      if (!Array.isArray(parsed) || parsed.length < 3) {
+        bad.push(`${r.slug}: fewer than 3 ingredients`);
+        continue;
+      }
+      for (const ing of parsed) {
+        if (typeof ing !== "string" || ing !== ing.toLowerCase() || ing.trim() !== ing) {
+          bad.push(`${r.slug}: ingredient "${ing}" is not canonical lowercase`);
+        }
+      }
+    }
+    expect(bad, bad.join("\n")).toEqual([]);
+  });
+
+  it("gives every drink exactly 3 coasters, numbered 1..3", () => {
+    const rows = db
+      .prepare(
+        `SELECT d.slug AS slug, GROUP_CONCAT(c.order_index) AS orders, COUNT(c.id) AS n
+         FROM drinks d LEFT JOIN drink_clues c ON c.drink_id = d.id
+         GROUP BY d.id
+         HAVING n != 3`,
+      )
+      .all() as { slug: string; orders: string | null; n: number }[];
+    expect(rows, `drinks without exactly 3 coasters: ${JSON.stringify(rows)}`).toEqual([]);
+  });
+
+  it("keeps is_alcoholic as 0/1 and independent of the base spirit", () => {
+    const bad = db.prepare("SELECT slug FROM drinks WHERE is_alcoholic NOT IN (0, 1)").all();
+    expect(bad, `drinks with a non-boolean alcohol flag: ${JSON.stringify(bad)}`).toEqual([]);
+
+    // Beer and wine have no *base spirit* and are unambiguously alcoholic. This
+    // is the pairing that would be wrong if anyone ever "simplified" the column
+    // into `spirit != 'none'`.
+    const wrong = db
+      .prepare("SELECT slug, spirit FROM drinks WHERE spirit IN ('beer','wine') AND is_alcoholic = 0")
+      .all();
+    expect(wrong, `beer/wine marked non-alcoholic: ${JSON.stringify(wrong)}`).toEqual([]);
+  });
+
+  it("keeps every night pointing at a real drink", () => {
+    const rows = db
+      .prepare(
+        `SELECT s.night AS night FROM drink_schedule s
+         LEFT JOIN drinks d ON d.id = s.drink_id
+         WHERE d.id IS NULL`,
+      )
+      .all();
+    expect(rows, `nights with a dangling drink_id: ${JSON.stringify(rows)}`).toEqual([]);
+  });
+
+  it("never books a drink that isn't pourable", () => {
+    // PUT /drink-schedule refuses these, so a booked one could only have come
+    // from hand-written SQL — which is exactly what the seed is.
+    const rows = db
+      .prepare(
+        `SELECT s.night AS night, d.slug AS slug, COUNT(c.id) AS coasters
+         FROM drink_schedule s
+         JOIN drinks d ON d.id = s.drink_id
+         LEFT JOIN drink_clues c ON c.drink_id = d.id
+         GROUP BY s.night
+         HAVING coasters != 3 OR json_array_length(d.ingredients) < 3`,
+      )
+      .all();
+    expect(rows, `nights booked with an unpourable drink: ${JSON.stringify(rows)}`).toEqual([]);
+  });
+});
+
+describe("the coaster sheet", () => {
+  const db = buildDb();
+  // Its own frequency map. A word that is generic across 400 dishes can be
+  // perfectly distinctive across 40 drinks, and the bar's pantry is not the
+  // kitchen's.
+  const freq = buildWordFrequency(db, "drinks");
+  const rows = db
+    .prepare(
+      `SELECT d.slug AS slug, d.name AS name, d.country AS country,
+              c.order_index AS order_index, c.text AS text
+       FROM drinks d JOIN drink_clues c ON c.drink_id = d.id
+       ORDER BY d.slug, c.order_index`,
+    )
+    .all() as ClueRow[];
+
+  const bySlug = new Map<string, ClueRow[]>();
+  for (const r of rows) {
+    if (!bySlug.has(r.slug)) bySlug.set(r.slug, []);
+    bySlug.get(r.slug)!.push(r);
+  }
+
+  it("keeps every drink on the coaster sheet", () => {
+    const failures: string[] = [];
+    const softened: string[] = [];
+    for (const [slug, clues] of bySlug) {
+      for (const clue of clues) {
+        const { errors, warnings } = lintClue(clue, freq, DRINK_SHEET);
+        for (const warning of warnings) {
+          softened.push(`${slug} coaster ${clue.order_index}: ${warning}`);
+        }
+        for (const problem of errors) {
+          failures.push(`${slug} coaster ${clue.order_index}: ${problem}`);
+        }
+      }
+      // Last call restating the pour is the same defect beat 5 has against
+      // beat 4, one coaster earlier.
+      const overlap = tailOverlap(clues, 2, 3);
+      if (overlap > 0.7) {
+        failures.push(
+          `${slug}: coaster 3 shares ${Math.round(overlap * 100)}% of its words with coaster 2 (ceiling 70%)`,
+        );
+      }
+    }
+    if (softened.length > 0) {
+      console.log(
+        `coaster sheet: ${softened.length} coasters outside their target band (only the ceiling fails)`,
+      );
+    }
+    expect(failures, `\n${failures.join("\n")}\n`).toEqual([]);
+  });
+
+  it("never reuses a five-word phrase across two drinks", () => {
+    const seen = new Map<string, Set<string>>();
+    for (const r of rows) {
+      const words = fold(r.text)
+        .replace(/[^a-z0-9 ]/g, " ")
+        .split(/\s+/)
+        .filter(Boolean);
+      for (let i = 0; i + 5 <= words.length; i++) {
+        const phrase = words.slice(i, i + 5).join(" ");
+        if (!seen.has(phrase)) seen.set(phrase, new Set());
+        seen.get(phrase)!.add(r.slug);
+      }
+    }
+    const shared = [...seen.entries()]
+      .filter(([, slugs]) => slugs.size > 1)
+      .map(([phrase, slugs]) => `"${phrase}" on ${[...slugs].join(", ")}`);
+    expect(shared, `\n${shared.join("\n")}\n`).toEqual([]);
   });
 });

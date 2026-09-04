@@ -19,23 +19,56 @@
 import type { MatchLevel } from "../../shared/types";
 import type { Scorecard } from "../../shared/scorecard";
 
-/** From base.css. Kept in sync by eye — a drift here is a wrong-coloured tile, not a crash. */
-const COLOR = {
-  paper: "#fbf4e0",
-  paperEdge: "#e6d9b8",
-  ink: "#2b2320",
-  inkSoft: "#5b4f45",
-  teal: "#1b4f4a",
-  hit: "#2e7d4f",
-  near: "#e8a53a",
-  miss: "#a99e8f",
+/**
+ * From base.css, one palette per room. Kept in sync by eye — a drift here is a
+ * wrong-coloured tile, not a crash.
+ *
+ * The night set is the same green and mustard against a dark card, because the
+ * two grids have to stay readable as the *same game* when a channel has both
+ * pasted into it. Only the ground, the ink and the miss change, which is the
+ * same swap the text grid makes when it blacks out its miss square.
+ */
+const PALETTE = {
+  day: {
+    paper: "#fbf4e0",
+    paperEdge: "#e6d9b8",
+    ink: "#2b2320",
+    inkSoft: "#5b4f45",
+    accent: "#1b4f4a",
+    hit: "#2e7d4f",
+    near: "#e8a53a",
+    miss: "#a99e8f",
+    onHit: "#fbf4e0",
+    /** What the winning row says instead of a pantry count. */
+    winWord: "ORDER UP",
+  },
+  // Kept in step with `:root[data-after-dark]` in base.css BY HAND, which is the
+  // deliberate trade — the palette is copied rather than read at draw time so
+  // the image outlives the stylesheet. The cost is that it can drift, and it
+  // did: these five sat at their pre-refinement values for two commits, so a
+  // posted card showed a bar nobody was playing in. Re-copy them when the night
+  // tokens move.
+  night: {
+    paper: "#1d1714",
+    paperEdge: "#544537",
+    ink: "#f0e6d4",
+    inkSoft: "#b3a591",
+    accent: "#ff5f7a",
+    hit: "#2e7d4f",
+    near: "#e8a53a",
+    miss: "#6b6055",
+    onHit: "#ffffff",
+    winWord: "POURED",
+  },
 } as const;
 
-const TILE_COLOR: Record<MatchLevel, string> = {
-  hit: COLOR.hit,
-  near: COLOR.near,
-  miss: COLOR.miss,
-};
+type Palette = (typeof PALETTE)[keyof typeof PALETTE];
+
+const tileColor = (c: Palette): Record<MatchLevel, string> => ({
+  hit: c.hit,
+  near: c.near,
+  miss: c.miss,
+});
 
 // Laid out at 2x and drawn at 2x, so the card is crisp on a phone without any
 // devicePixelRatio guesswork — it's an image file, not a live element.
@@ -73,6 +106,11 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
  * to the player.
  */
 export async function drawScorecard(card: Scorecard): Promise<Blob | null> {
+  // The room the card was folded in. Chosen by the fold, not read from the
+  // document: the picture lives in a channel forever and must not depend on
+  // which stylesheet happened to be loaded when it was drawn.
+  const COLOR = PALETTE[card.theme];
+  const TILE_COLOR = tileColor(COLOR);
   const height = heightFor(card.rows.length);
   const canvas = document.createElement("canvas");
   canvas.width = WIDTH * SCALE;
@@ -91,7 +129,7 @@ export async function drawScorecard(card: Scorecard): Promise<Blob | null> {
   ctx.strokeRect(1, 1, WIDTH - 2, height - 2);
 
   ctx.textAlign = "center";
-  ctx.fillStyle = COLOR.teal;
+  ctx.fillStyle = COLOR.accent;
   ctx.font = `700 30px Georgia, "Times New Roman", serif`;
   ctx.fillText(card.title, WIDTH / 2, PAD + 26);
 
@@ -120,9 +158,13 @@ export async function drawScorecard(card: Scorecard): Promise<Blob | null> {
       // rather than the 🛎️ glyph, for the same reason the tiles aren't emoji.
       ctx.fillStyle = COLOR.hit;
       roundRect(ctx, px, y, pantryW, TILE, 6);
-      ctx.fillStyle = COLOR.paper;
+      // Not COLOR.paper: on the night card the paper IS dark, so the pill's
+      // text would vanish into its own fill. The token that means "text on the
+      // hit colour" is the one that survives the theme, exactly as --on-hit
+      // does in the stylesheet.
+      ctx.fillStyle = COLOR.onHit;
       ctx.font = `700 14px Georgia, "Times New Roman", serif`;
-      ctx.fillText("ORDER UP", px + pantryW / 2, y + TILE / 2 + 5);
+      ctx.fillText(COLOR.winWord, px + pantryW / 2, y + TILE / 2 + 5);
     } else {
       ctx.fillStyle = COLOR.inkSoft;
       ctx.font = `600 17px Georgia, "Times New Roman", serif`;

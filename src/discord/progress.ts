@@ -17,8 +17,7 @@
 // Discord's rate limits.
 
 import type { DiscordSDK } from "@discord/embedded-app-sdk";
-import { buildScorecard, type Scorecard } from "../../shared/scorecard";
-import type { GuessFeedback } from "../../shared/types";
+import type { Scorecard } from "../../shared/scorecard";
 
 /**
  * The application command `shareInteraction` invokes. Registered once against
@@ -70,10 +69,13 @@ function mintHandle(): string {
  * past tense and the Worker drops the row that let it be edited.
  */
 export function publishProgress(input: {
+  /**
+   * The already-folded card. Taken rather than folded here because the diner
+   * and the bar fold different feedback shapes into it, and the one thing this
+   * module needs from either is a picture and a number.
+   */
+  card: Scorecard;
   puzzleNumber: number;
-  guesses: GuessFeedback[];
-  won: boolean;
-  ingredientCount: number;
   live: boolean;
 }): void {
   // Deliberately NOT gated on the OAuth token presence uses. Nothing in this
@@ -84,10 +86,9 @@ export function publishProgress(input: {
   if (!sdk || retired) return;
   // Nothing to show yet. The first guess is the moment this becomes interesting
   // to a channel, and posting an empty board before it would be noise.
-  if (input.guesses.length === 0) return;
+  if (input.card.rows.length === 0) return;
 
-  const card = buildScorecard(input.puzzleNumber, input.guesses, input.won, input.ingredientCount);
-  pending = { card, live: input.live, puzzleNumber: input.puzzleNumber };
+  pending = { card: input.card, live: input.live, puzzleNumber: input.puzzleNumber };
   void drain();
 }
 
@@ -146,6 +147,10 @@ async function send(card: Scorecard, live: boolean, puzzleNumber: number): Promi
         "X-Round-Handle": handle ?? "",
         "X-Round-Live": live ? "1" : "0",
         "X-Round-Puzzle": String(puzzleNumber),
+        // Which room, so the Worker's one line of message text names the right
+        // one. Derived from the card rather than passed separately: a card and
+        // a caption disagreeing about the mode is a bug waiting to happen.
+        "X-Round-Mode": card.theme,
       },
       body: image,
     });

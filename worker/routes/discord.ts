@@ -17,7 +17,7 @@
 // token, no image, no player. The upload is forwarded and forgotten.
 
 import { Hono } from "hono";
-import { progressLine } from "../../shared/scorecard";
+import { progressLine, type ScorecardTheme } from "../../shared/scorecard";
 import { avatarUrl, displayName } from "../avatar";
 import { verifyDiscordSignature } from "../discordsig";
 
@@ -284,6 +284,9 @@ app.post("/progress", async (c) => {
   // `live` and `puzzle` decide one line of text; the body is the score card.
   const live = c.req.header("X-Round-Live") !== "0";
   const puzzle = Number(c.req.header("X-Round-Puzzle") ?? 0);
+  // Which room. Whitelisted rather than passed through, like every other
+  // client-supplied field on this Worker: anything unrecognised is the diner.
+  const mode: ScorecardTheme = c.req.header("X-Round-Mode") === "night" ? "night" : "day";
 
   const declared = Number(c.req.header("Content-Length") ?? 0);
   if (declared > MAX_IMAGE_BYTES) return c.json({ error: "Score card too large" }, 413);
@@ -309,7 +312,7 @@ app.post("/progress", async (c) => {
   form.append(
     "payload_json",
     JSON.stringify({
-      content: progressLine(live, Number.isFinite(puzzle) ? puzzle : 0),
+      content: progressLine(live, Number.isFinite(puzzle) ? puzzle : 0, mode),
       attachments: [{ id: 0, filename: "lunch-special.png" }],
     }),
   );

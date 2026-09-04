@@ -22,7 +22,7 @@ describe("foldDeviceData", () => {
         total: 0,
         completed: 0,
         shared: 0,
-        byKind: { daily: 0, leftover: 0, random: 0 },
+        byKind: { daily: 0, leftover: 0, random: 0, nightcap: 0 },
         bySurface: { web: 0, discord: 0 },
         firstAt: null,
         lastAt: null,
@@ -47,7 +47,7 @@ describe("foldDeviceData", () => {
 
   it("zero-fills every kind and surface, so 'none' can't read as 'unknown'", () => {
     const s = foldDeviceData("p1", [row({ kind: "random", surface: "discord", rounds: 3 })], noVisits, 0);
-    expect(s.rounds.byKind).toEqual({ daily: 0, leftover: 0, random: 3 });
+    expect(s.rounds.byKind).toEqual({ daily: 0, leftover: 0, random: 3, nightcap: 0 });
     expect(s.rounds.bySurface).toEqual({ web: 0, discord: 3 });
   });
 
@@ -56,7 +56,7 @@ describe("foldDeviceData", () => {
     // actually remove — so an odd row must not go missing from it.
     const s = foldDeviceData("p1", [row({ kind: "brunch", surface: "kiosk", rounds: 2 })], noVisits, 0);
     expect(s.rounds.total).toBe(2);
-    expect(s.rounds.byKind).toEqual({ daily: 0, leftover: 0, random: 0 });
+    expect(s.rounds.byKind).toEqual({ daily: 0, leftover: 0, random: 0, nightcap: 0 });
     expect(s.rounds.bySurface).toEqual({ web: 0, discord: 0 });
   });
 

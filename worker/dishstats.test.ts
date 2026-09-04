@@ -68,7 +68,7 @@ describe("foldDishStats", () => {
     );
     const d = r.rows[0];
     expect(d.started).toBe(8);
-    expect(d.byKind).toEqual({ daily: 2, leftover: 5, random: 1 });
+    expect(d.byKind).toEqual({ daily: 2, leftover: 5, random: 1, nightcap: 0 });
   });
 
   it("counts shares against the rounds that carried them", () => {

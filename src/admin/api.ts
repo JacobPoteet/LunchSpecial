@@ -6,6 +6,10 @@ import type {
   AdminDishDetail,
   AdminDishInput,
   AdminDishRow,
+  AdminDrinkDetail,
+  AdminDrinkInput,
+  AdminDrinkRow,
+  AfterDarkReport,
   ActivityFeed,
   AnalyticsSummary,
   AnnouncementInput,
@@ -19,6 +23,7 @@ import type {
   IssueBoard,
   IssueInput,
   MenuMix,
+  NightEntry,
   ScheduleEntry,
   Surface,
 } from "../../shared/types";
@@ -191,3 +196,41 @@ export const deleteAnnouncement = (id: number) =>
 export const getIssueBoard = () => request<IssueBoard>("/issues");
 /** Files one issue on GitHub and hands back the created issue, number and all. */
 export const createIssue = (input: IssueInput) => request<Issue>("/issues", json(input));
+
+// ---- After Dark ----
+
+export const getDrinks = () => request<AdminDrinkRow[]>("/drinks");
+export const getDrink = (id: number) => request<AdminDrinkDetail>(`/drinks/${id}`);
+export const createDrink = (input: AdminDrinkInput) => request<{ id: number }>("/drinks", json(input));
+export const updateDrink = (id: number, input: AdminDrinkInput) =>
+  request<{ id: number }>(`/drinks/${id}`, { ...json(input), method: "PUT" });
+export const deleteDrink = (id: number) => request<{ ok: true }>(`/drinks/${id}`, { method: "DELETE" });
+
+/** Pooled across both catalogues — a bar and a kitchen share a pantry. */
+export const getDrinkIngredients = () => request<string[]>("/drink-ingredients");
+
+export const getNights = (from?: string, to?: string) => {
+  const qs = from && to ? `?from=${from}&to=${to}` : "";
+  return request<NightEntry[]>(`/nights${qs}`);
+};
+export const setNight = (night: string, drinkId: number | null) =>
+  request<{ ok: true }>("/nights", { ...json({ night, drinkId }), method: "PUT" });
+export const autofillNights = () => request<{ filled: number }>("/nights/autofill", { method: "POST" });
+export const shuffleNight = (night: string) =>
+  request<{ night: string; drinkId: number; drinkName: string; remaining: number }>(
+    "/nights/shuffle",
+    json({ night }),
+  );
+
+/**
+ * A token for an untracked test pour. The only way past the clock in
+ * production, which is the point: the bar is open seven hours a night and "does
+ * the tab look right" is a two-in-the-afternoon question.
+ */
+export const createDrinkPreview = (drinkId: number) =>
+  request<{ token: string; url: string }>("/drink-preview", json({ drinkId }));
+export const createNightPreview = (night: string) =>
+  request<{ token: string; url: string }>("/drink-preview", json({ night }));
+
+export const getNightReport = (surface?: Surface) =>
+  request<AfterDarkReport>(`/night-report${surface ? `?surface=${surface}` : ""}`);

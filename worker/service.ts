@@ -25,7 +25,7 @@ import {
 
 const HOURS = 24;
 
-const zeroByKind = (): StartedByKind => ({ daily: 0, leftover: 0, random: 0 });
+const zeroByKind = (): StartedByKind => ({ daily: 0, leftover: 0, random: 0, nightcap: 0 });
 
 /**
  * One (UTC hour, kind) group for a single day's ±1-day window. `last_started` is

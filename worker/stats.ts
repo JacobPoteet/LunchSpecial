@@ -102,6 +102,7 @@ export function assembleBreakdown(
       daily: { started: s.daily_started ?? 0, completed: s.daily_completed ?? 0 },
       leftover: { started: s.leftover_started ?? 0, completed: s.leftover_completed ?? 0 },
       random: { started: s.random_started ?? 0, completed: s.random_completed ?? 0 },
+      nightcap: { started: s.nightcap_started ?? 0, completed: s.nightcap_completed ?? 0 },
     },
     surfaces: {
       web: { rounds: s.web_rounds ?? 0, devices: surfaceDevices.web ?? 0 },

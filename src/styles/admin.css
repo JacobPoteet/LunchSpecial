@@ -394,6 +394,7 @@
 .kind-legend__dot--daily { background: var(--mustard); }
 .kind-legend__dot--leftover { background: var(--teal); }
 .kind-legend__dot--random { background: var(--cherry); }
+.kind-legend__dot--nightcap { background: var(--plum); }
 
 .analytics-split {
   display: grid;
@@ -522,6 +523,7 @@
 .spark__seg--daily { background: var(--mustard); }
 .spark__seg--leftover { background: var(--teal); }
 .spark__seg--random { background: var(--cherry); }
+.spark__seg--nightcap { background: var(--plum); }
 
 .spark__tick {
   position: absolute;
@@ -755,6 +757,7 @@
 .hourly__seg--daily { background: var(--mustard); }
 .hourly__seg--leftover { background: var(--teal); }
 .hourly__seg--random { background: var(--cherry); }
+.hourly__seg--nightcap { background: var(--plum); }
 
 /* Hours today hasn't reached yet. Empty because they haven't happened, not
    because nobody played — the tick fades so the eye stops reading them as data. */
@@ -1719,6 +1722,9 @@
 
 .badge--warn { background: var(--near-soft); color: #9a6516; border-color: var(--near); }
 .badge--off { background: var(--miss-soft); color: var(--ink-soft); border-color: var(--miss); }
+/* Alcohol-free. Teal rather than the near/warn mustard: it is a fact about the
+   drink, not a problem with it. */
+.badge--soft { background: var(--hit-soft); color: var(--hit-ink); border-color: var(--hit); }
 /* Sits beside the dish name, not in the Status column — a dish's origin is not
    a state it can fail, and the ready/incomplete read must stay unambiguous. */
 .badge--fan { margin-left: 8px; background: var(--near-soft); color: #9a6516; border-color: var(--near); }
@@ -3140,5 +3146,98 @@
   margin-left: 6px;
   color: var(--ink-soft);
   font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- After Dark tab ----
+ *
+ * No keyframes here, like the rest of this file. The dashboard does not animate
+ * (see CLAUDE.md), which is why admin.css still needs no reduced-motion block.
+ */
+
+.night-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.night-board__label {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.night-board__drink {
+  margin: 2px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+
+.night-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.night-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.night-stat__num {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.night-stat__label {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.night-stat__hint {
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+}
+
+/* One column per local hour. Fixed height so the panel does not resize as the
+   data fills in, and the columns share the row's width rather than scrolling:
+   24 is few enough to fit at 320px. */
+.night-hours {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 110px;
+  margin-bottom: 6px;
+}
+
+.night-hours__col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100%;
+}
+
+.night-hours__bar {
+  width: 100%;
+  min-height: 1px;
+  background: var(--plum);
+  border-radius: 2px 2px 0 0;
+}
+
+.night-hours__tick {
+  font-size: 0.6rem;
+  color: var(--ink-soft);
+  margin-top: 3px;
   font-variant-numeric: tabular-nums;
 }

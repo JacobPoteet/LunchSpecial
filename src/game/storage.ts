@@ -1,7 +1,7 @@
 // localStorage persistence: today's round + lifetime stats. No accounts.
 
-import type { GuessFeedback } from "../../shared/types";
-import { MAX_GUESSES } from "../../shared/types";
+import type { DrinkGuessFeedback, GuessFeedback } from "../../shared/types";
+import { DRINK_MAX_GUESSES, MAX_GUESSES } from "../../shared/types";
 
 export type GameStatus = "playing" | "won" | "lost";
 
@@ -12,6 +12,18 @@ export interface RoundState {
   clues: { index: number; text: string }[];
   /** Anonymous analytics round id; set when the board first opens. */
   analyticsId?: string;
+  /**
+   * How many ingredients the Special had — the denominator in the share grid's
+   * "2/7". It lives on DailyInfo, which only exists in GamePage's memory, so
+   * without it here the After Dark tab could not redraw the lunch grid it
+   * shares alongside its own: the guess rows carry each *guess's* matched
+   * count, which is a lower bound on the Special's and not the number.
+   *
+   * Optional because rounds saved before this shipped do not have it. A grid
+   * rebuilt from one of those omits the pantry column rather than printing a
+   * denominator it made up.
+   */
+  ingredientCount?: number;
 }
 
 export interface Stats {
@@ -247,4 +259,128 @@ export function rememberAnnouncementSeen(id: number): void {
  */
 export function isReturningPlayer(): boolean {
   return loadStats().played > 0;
+}
+
+// ---- After Dark ----
+//
+// The bar keeps its own round and its own record, in its own keys. Two reasons
+// they are not folded into the daily's:
+//
+// 1. The daily streak is a number players already have, and some of them have
+//    had it since July. Nothing about a mode that shipped in September may move
+//    it, which is a stronger statement than "we won't" -- it can't, because the
+//    two never touch the same key.
+// 2. A night is a LOCAL day and `lunch-special:round` is keyed by an ET one.
+//    Storing both under one date would mean one of the two is wrong for most of
+//    the planet.
+
+const NIGHT_STATE_KEY = "lunch-special:nightcap";
+const NIGHT_STATS_KEY = "lunch-special:night-stats";
+
+export interface NightRoundState {
+  /** The local night key this round belongs to. */
+  night: string;
+  status: GameStatus;
+  guesses: DrinkGuessFeedback[];
+  coasters: { index: number; text: string }[];
+  analyticsId?: string;
+}
+
+export interface NightStats {
+  played: number;
+  wins: number;
+  currentStreak: number;
+  maxStreak: number;
+  /** dist[i] = wins in i+1 guesses. Four wide, never six. */
+  dist: number[];
+  lastCompletedNight: string | null;
+}
+
+export function emptyNightRound(night: string): NightRoundState {
+  return { night, status: "playing", guesses: [], coasters: [] };
+}
+
+/**
+ * Tonight's round, or a fresh one.
+ *
+ * Keyed on the night rather than kept as a list: there is no archive, so last
+ * night's board is not something anyone can return to and keeping it would be
+ * storing a thing solely to never show it.
+ */
+export function loadNightRound(night: string): NightRoundState {
+  try {
+    const raw = localStorage.getItem(NIGHT_STATE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as NightRoundState;
+      if (parsed.night === night && Array.isArray(parsed.guesses)) return parsed;
+    }
+  } catch {
+    // corrupted state — start fresh
+  }
+  return emptyNightRound(night);
+}
+
+export function saveNightRound(state: NightRoundState): void {
+  try {
+    localStorage.setItem(NIGHT_STATE_KEY, JSON.stringify(state));
+  } catch {
+    // Storage blocked. The round still plays; it just won't survive a reload.
+  }
+}
+
+export function emptyNightStats(): NightStats {
+  return {
+    played: 0,
+    wins: 0,
+    currentStreak: 0,
+    maxStreak: 0,
+    dist: Array.from({ length: DRINK_MAX_GUESSES }, () => 0),
+    lastCompletedNight: null,
+  };
+}
+
+export function loadNightStats(): NightStats {
+  try {
+    const raw = localStorage.getItem(NIGHT_STATS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as NightStats;
+      if (typeof parsed.played === "number" && Array.isArray(parsed.dist)) return parsed;
+    }
+  } catch {
+    // corrupted stats — start fresh
+  }
+  return emptyNightStats();
+}
+
+/**
+ * Record a finished Nightcap, once per night.
+ *
+ * The streak counts consecutive *nights*, and a night the bar was open and you
+ * did not come is a broken streak exactly as a missed day is for lunch. Nothing
+ * here reads or writes the daily's stats.
+ */
+export function recordNightResult(night: string, won: boolean, guessCount: number): NightStats {
+  const stats = loadNightStats();
+  if (stats.lastCompletedNight === night) return stats;
+  stats.played += 1;
+  if (won) {
+    stats.wins += 1;
+    stats.currentStreak = stats.lastCompletedNight === previousDate(night) ? stats.currentStreak + 1 : 1;
+    stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
+    if (guessCount >= 1 && guessCount <= stats.dist.length) stats.dist[guessCount - 1] += 1;
+  } else {
+    stats.currentStreak = 0;
+  }
+  stats.lastCompletedNight = night;
+  try {
+    localStorage.setItem(NIGHT_STATS_KEY, JSON.stringify(stats));
+  } catch {
+    // As above — a blocked write costs the record, not the round.
+  }
+  return stats;
+}
+
+/** Has this device already settled its tab tonight? */
+export function nightRoundFinished(night: string): boolean {
+  return loadNightRound(night).status !== "playing";
 }

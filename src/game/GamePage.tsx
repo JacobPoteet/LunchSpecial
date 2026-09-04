@@ -21,8 +21,11 @@ import AnnouncementModal from "./AnnouncementModal";
 import ArchiveModal from "./ArchiveModal";
 import { BuildTag } from "./BuildTag";
 import { dateLabel, isPastPuzzleDate } from "./archive";
+import { currentNight, useBarInvite, type BarInvite } from "./night";
+import { useCheckOpening } from "./roundLifecycle";
 import { visitSource } from "./attribution";
 import { currentSurface, surfaceUrl } from "../discord/bootstrap";
+import { devUrl } from "./devHarness";
 import { setPresence } from "../discord/presence";
 import { publishProgress, resetProgress } from "../discord/progress";
 import { canShareToChannel, shareToChannel } from "../discord/share";
@@ -43,6 +46,7 @@ import {
   loadRound,
   loadStats,
   markHowToSeen,
+  nightRoundFinished,
   markSeated,
   recordResult,
   rememberAnnouncementSeen,
@@ -63,14 +67,6 @@ const SURFACE = currentSurface();
 function newSeed(): string {
   return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
-
-// The check doesn't slam into view the moment a round ends — Wordle's trick.
-// The board gets a beat to land first (the winning row's drop, the bell) with a
-// toast over it, then the receipt prints. Without the toast the pause just
-// reads as lag, so the two ship together. Keep WIN in sync with the
-// `win-toast` animation's total run time in game.css.
-const WIN_CHECK_DELAY_MS = 1700;
-const LOSS_CHECK_DELAY_MS = 800;
 
 /** Wordle's "Genius / Magnificent / …", in diner. Indexed by guess count. */
 const WIN_TOASTS = [
@@ -125,7 +121,7 @@ function HowToModal({ onClose }: { onClose: () => void }) {
             green from the mustard still has something here that maps onto what
             they're looking at. */}
         <div className="legend">
-          <span className="chip" style={{ background: "var(--hit)", color: "#fff" }}>✓ match (green)</span>
+          <span className="chip" style={{ background: "var(--hit)", color: "var(--on-hit)" }}>✓ match (green)</span>
           <span className="chip" style={{ background: "var(--near)" }}>~ close — same region (yellow)</span>
           <span className="chip" style={{ background: "var(--miss-soft)", color: "var(--ink-soft)" }}>
             × miss (gray)
@@ -375,6 +371,49 @@ function KitchenClosed({ detail, onRetry }: { detail: string | null; onRetry: ()
   );
 }
 
+/**
+ * The door to After Dark, on the check.
+ *
+ * Three rules it exists to obey, all of them about not shoving anyone through:
+ *
+ * 1. **It is never a fourth button in the replay row.** The check is the tallest
+ *    card in the game at 375px and that row already holds up to three. This is
+ *    its own band underneath, and it is quiet.
+ * 2. **It fades in a beat after the check settles**, not with it. Someone
+ *    reading their result should get to finish reading it; the animation's
+ *    delay is what makes this an offer rather than an interruption.
+ * 3. **It never navigates on its own.** Nothing about the bar happens until
+ *    this is pressed.
+ *
+ * `soon` is deliberately not a button. There is nothing to press yet, and a
+ * disabled control that becomes enabled in two hours is worse than a sentence.
+ */
+function BarBand({ invite, onEnter }: { invite: BarInvite; onEnter: () => void }) {
+  if (invite === "none") return null;
+  if (invite === "soon") {
+    return (
+      <p className="bar-band bar-band--soon">🍸 After Dark opens at 8, your time.</p>
+    );
+  }
+  const settled = invite === "settled";
+  return (
+    <div className="bar-band">
+      <button
+        className="bar-band__btn"
+        onClick={() => {
+          playSfx("ui-click");
+          onEnter();
+        }}
+      >
+        <span className="bar-band__tag">🍸 {settled ? "Your tab is at the bar" : "The bar's open"}</span>
+        <span className="bar-band__sub">
+          {settled ? "Go back and take another look" : "One drink, four guesses, gone by morning"}
+        </span>
+      </button>
+    </div>
+  );
+}
+
 type ShareState = "idle" | "working" | "channel" | "sent" | "copied" | "failed";
 
 /**
@@ -416,6 +455,8 @@ function ResultModal({
   kind,
   canShare,
   canArchive,
+  barInvite,
+  onEnterBar,
   onNewGame,
   onArchive,
   onClose,
@@ -434,6 +475,9 @@ function ResultModal({
   kind: RoundKind;
   canShare: boolean;
   canArchive: boolean;
+  /** Whether, and how, to offer After Dark. Hidden outside the daily. */
+  barInvite: BarInvite;
+  onEnterBar: () => void;
   onNewGame: () => void;
   onArchive: () => void;
   onClose: () => void;
@@ -543,6 +587,7 @@ function ResultModal({
           )}
         </div>
       )}
+      <BarBand invite={barInvite} onEnter={onEnterBar} />
     </>
   );
   return (
@@ -581,7 +626,7 @@ function ResultModal({
   );
 }
 
-export default function GamePage() {
+export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   const search = useMemo(() => new URLSearchParams(window.location.search), []);
   const preview = useMemo(() => search.get("preview") ?? undefined, [search]);
   const isPreview = preview !== undefined;
@@ -655,20 +700,15 @@ export default function GamePage() {
   const [pending, setPending] = useState<DishSummary | null>(null);
   const [showHowTo, setShowHowTo] = useState(() => !hasSeenHowTo());
   const [showStats, setShowStats] = useState(false);
-  const [showResult, setShowResult] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   // Unseen notices from the kitchen, oldest first, shown one after another.
   const [notices, setNotices] = useState<Announcement[]>([]);
   const [noticeIndex, setNoticeIndex] = useState(0);
-  // Win banner shown during the beat before the check opens.
-  const [toast, setToast] = useState<string | null>(null);
-  // Whether the check has already been auto-opened for this round, so closing it
-  // doesn't make it spring back.
-  const [checkOpened, setCheckOpened] = useState(false);
-  // A round that was already finished when the page loaded (restored from
-  // localStorage, or an archive day you've played) was celebrated on the day it
-  // was played — reopening it should be instant, not a victory lap.
-  const restoredFinished = useRef(round.status !== "playing");
+  // The end-of-round choreography — the beat before the check prints, the win
+  // toast over it, and the instant open for a round restored from storage.
+  // Shared with the bar; see src/game/roundLifecycle.ts.
+  const check = useCheckOpening(round.status, round.guesses.length, (n) => WIN_TOASTS[n - 1] ?? WIN_TOASTS[0]);
+  const { toast, showCheck: showResult, setShowCheck: setShowResult } = check;
   // When this sitting started, for the elapsed timer on a Discord profile. This
   // sitting, not the round: a board restored from localStorage was begun on a
   // page load we no longer have, and dating the timer to it would report hours.
@@ -701,6 +741,20 @@ export default function GamePage() {
   );
   const dailyDone = dailyStatus !== "playing";
   const canArchive = !isPreview && (dailyDone || isArchive || isRandom);
+
+  // After Dark. Read once at mount — whether tonight's Nightcap is settled can
+  // only change by going to the bar, which unmounts this page.
+  const playedTonight = useMemo(() => nightRoundFinished(currentNight()), []);
+  const invite = useBarInvite(playedTonight);
+  // The BAND is the hand-off, so it belongs to the daily's check and nowhere
+  // else: a Leftover or a Chef's Choice is a side door, and offering the bar at
+  // the end of one would be offering it off a round that isn't today's.
+  const barInvite: BarInvite = isDaily && dailyDone ? invite : "none";
+  // The PILL is navigation, so it belongs anywhere a player who has already
+  // finished lunch might be standing — including a Leftover, where the bar was
+  // otherwise two hops away (back to today, then the pill). `tracked` keeps it
+  // off a preview and a playtest, which are rehearsals and not rounds.
+  const barPill: BarInvite = tracked && dailyDone ? invite : "none";
 
   // ---- Notices from the kitchen ----
   //
@@ -764,10 +818,10 @@ export default function GamePage() {
   // Navigation between modes is URL-driven (the app has no router). Every hop
   // goes through surfaceUrl() so a Discord Activity keeps its iframe params —
   // otherwise the new URL loses `frame_id` and the round logs as a web play.
-  const goToday = useCallback(() => window.location.assign(surfaceUrl("/")), []);
-  const goRandom = useCallback(() => window.location.assign(surfaceUrl("/?random")), []);
+  const goToday = useCallback(() => window.location.assign(surfaceUrl(devUrl("/"))), []);
+  const goRandom = useCallback(() => window.location.assign(surfaceUrl(devUrl("/?random"))), []);
   const openArchiveDate = useCallback(
-    (d: string) => window.location.assign(surfaceUrl(d === today ? "/" : `/?date=${d}`)),
+    (d: string) => window.location.assign(surfaceUrl(devUrl(d === today ? "/" : `/?date=${d}`))),
     [today],
   );
 
@@ -778,13 +832,13 @@ export default function GamePage() {
     openedAt.current = Date.now(); // a fresh dish is a fresh sitting
     setReveal(null);
     setError(null);
-    setShowResult(false);
     // The next round is played fresh in this session, so it earns the full
     // toast-then-check treatment again.
-    setCheckOpened(false);
-    setToast(null);
-    restoredFinished.current = false;
+    check.reset();
     setDaily(null); // triggers a reload below with the new seed
+    // `check` is a stable bag of setters; keying on it would rebuild newGame
+    // every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
   useEffect(() => {
@@ -812,29 +866,6 @@ export default function GamePage() {
       fetchReveal(date, preview, random, playtest).then(setReveal).catch(() => {});
     }
   }, [round.status, reveal, date, preview, random, playtest]);
-
-  // Open the check once per round, after a beat so the finished board is the
-  // first thing you see. A win holds a toast through the pause; a loss just
-  // gets enough time for the last guess row to land.
-  useEffect(() => {
-    if (round.status === "playing" || checkOpened) return;
-    if (restoredFinished.current) {
-      setCheckOpened(true);
-      setShowResult(true);
-      return;
-    }
-    const won = round.status === "won";
-    if (won) setToast(WIN_TOASTS[round.guesses.length - 1] ?? WIN_TOASTS[0]);
-    const t = setTimeout(
-      () => {
-        setToast(null);
-        setCheckOpened(true);
-        setShowResult(true);
-      },
-      won ? WIN_CHECK_DELAY_MS : LOSS_CHECK_DELAY_MS,
-    );
-    return () => clearTimeout(t);
-  }, [round.status, round.guesses.length, checkOpened]);
 
   // Assign an anonymous analytics id once per round so start/complete/share
   // beacons can be linked. Every tracked kind gets one — daily, leftover, and
@@ -914,10 +945,8 @@ export default function GamePage() {
   useEffect(() => {
     if (!tracked || !daily || SURFACE !== "discord") return;
     publishProgress({
+      card: buildScorecard(daily.puzzleNumber, round.guesses, round.status === "won", daily.ingredientCount),
       puzzleNumber: daily.puzzleNumber,
-      guesses: round.guesses,
-      won: round.status === "won",
-      ingredientCount: daily.ingredientCount,
       live: round.status === "playing",
     });
     // Keyed on the guess *count*, like presence: the array's identity changes on
@@ -964,6 +993,9 @@ export default function GamePage() {
           guesses: [...round.guesses, feedback],
           clues: feedback.clue ? [...round.clues, feedback.clue] : round.clues,
           status: feedback.correct ? "won" : guessNumber >= MAX_GUESSES ? "lost" : "playing",
+          // Stamped on every save so the grid can be redrawn from storage alone
+          // — the After Dark tab shares today's lunch grid beside its own.
+          ingredientCount: daily.ingredientCount,
         };
         setRound(next);
         setPending(null);
@@ -1113,6 +1145,17 @@ export default function GamePage() {
             {round.status !== "playing" && (
               <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowResult(true); }}>Your check</button>
             )}
+            {/* A returning player who finished lunch at noon shouldn't have to
+                reopen their check to find the bar. Only while it's actually
+                open — a pill that explains itself is a band, not a pill. */}
+            {(barPill === "open" || barPill === "settled") && (
+              <button
+                className="icon-btn icon-btn--bar"
+                onClick={() => { playSfx("ui-click"); onEnterBar(); }}
+              >
+                🍸 After Dark
+              </button>
+            )}
             <SoundToggle />
           </div>
         </div>
@@ -1230,6 +1273,8 @@ export default function GamePage() {
           kind={analyticsKind}
           canShare={dressedAsDaily || isArchive}
           canArchive={canArchive}
+          barInvite={barInvite}
+          onEnterBar={onEnterBar}
           onNewGame={newGame}
           onArchive={() => {
             setShowResult(false);

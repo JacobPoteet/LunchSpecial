@@ -10,6 +10,12 @@ Daily Wordle-style game: guess the diner's "Special" (a world dish). 1950s diner
 npm run dev          # vite dev (Worker runs in workerd via @cloudflare/vite-plugin), http://localhost:5173
 npm run play         # vite dev + opens /play: a fresh round on a RANDOM dish, nothing saved (dev-only free play)
 npm run ramen        # same, but pinned to one named dish (/play?special=ramen) — playtest a specific board
+npm run lastcall     # THE HAND-OFF HARNESS: seeds a finished, won Special from the real reveal
+                     # endpoint, so the page opens on the check with After Dark's band already live.
+                     # Pressing it runs the real lights-out sweep into a real Nightcap
+npm run afterdark    # straight into a Nightcap on a RANDOM pour, opening hours ignored.
+                     # Rolled pours are ephemeral, so a restarted server always starts clean
+npm run negroni      # ...pinned to one named drink instead (?nightcap=negroni)
 npm run admin        # vite dev + opens /admin: straight to the login, skipping the game (password below)
 npm test             # vitest — worker/**/*.test.ts + shared/**/*.test.ts (every pure fold has one)
 npm run check        # tsc -b (3 project refs: app / worker / node)
@@ -138,17 +144,109 @@ No OAuth scopes, all no-ops off Discord.
 - **Portal (manual, one-time):** create app → Client ID into `VITE_DISCORD_CLIENT_ID` → enable Activities → URL Mapping `/` → `lunchspecial.app` → an OAuth2 redirect URI (`https://127.0.0.1` is fine) → `wrangler secret put DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET`. For the progress message: `npm run discord:register`, set the Interactions Endpoint URL to `https://lunchspecial.app/api/discord/interactions`, and put `DISCORD_PUBLIC_KEY` on the Worker.
 - **Dev testing inside real Discord:** Discord can't reach localhost. `npm run dev` + `npm run tunnel`, then point the portal's URL Mapping at the printed `*.trycloudflare.com` URL. (`cloudflared` installed separately.)
 
+## After Dark
+
+A second daily puzzle behind the first: one **drink** a night, **4 guesses**, **3 coasters**, between **20:00 and 03:00 on the player's own clock**. The lights go down, the palette swaps, and it's gone by morning. `docs/index.html` owns the vocabulary — the *Nightcap* (Night #N), a *coaster* (the bar's clue ticket), the *tab* (the bar's check), and *Libations* (the card heading, where the diner's says Today's Menu). **After Dark is the mode, not the menu**: it names the glowing marquee and nothing else on the board, because a heading that repeats the sign two inches under it is a heading doing no work.
+
+### The clock is the only genuinely new idea
+
+Everything else in the game rolls over at midnight ET for everyone. After Dark deliberately breaks that, and the break is contained in **`shared/night.ts`** — nothing outside it decides when the bar is open or which night a round belongs to, and every fold takes the clock as an argument rather than reading one (same rule `shared/build.ts` follows about `__BUILD__`).
+
+- **The night key is the local calendar day the evening began on.** Hours 00:00–02:59 belong to the night before, which is the whole reason this isn't a date string: a round begun at 23:50 and finished at 00:10 is one sitting on one drink.
+- **It is fixed at entry and never recomputed.** Recomputing would hand a player who starts at 02:55 tomorrow's board mid-round, and recomputing at midnight would do it to everybody.
+- **Last call is a door, not a timer.** The window governs whether the *entrance* appears. A round in progress at 03:00 runs to completion — nothing is wired to kill a live board on a clock tick.
+- **The Worker can't know a player's local time and doesn't try.** `isPlayableNight` checks the claimed night is within ±1 day of ET's, which covers every real UTC offset. Same posture, and the same worst case (a wound-forward clock gets tomorrow's drink early), as `isAllowedRequestDate`'s ±2 on the daily.
+- **`NIGHT_EPOCH_DATE` must be on or before the day this ships.** A future epoch closes the bar completely, because `isPlayableNight` refuses anything earlier than it. That is not hypothetical; a launch-dated epoch did exactly this in testing.
+
+### The door
+
+**Gated on finishing today's Special**, the way the archive unlocks. Say so plainly on the closed sign — a locked door with no reason on it is the most annoying screen in any game. The gate is also what makes the crossover metric exact: everyone in its denominator could have walked through.
+
+- The invite is **its own band under the check's replay row, never a fourth button in it** — the check is the tallest card in the game at 375px.
+- It **fades in a beat after the check settles**, not with it. Someone reading their result gets to finish reading it; that delay is the difference between an offer and an interruption.
+- It **turns on live**: a player who finished at 19:58 with the check open sees it at 20:00 (`useBarInvite` polls, like `useNewDayAvailable`).
+- A **toolbar pill** on the board covers the returning player who finished lunch at noon and shouldn't have to reopen their check to find the bar.
+- **`soon` is a sentence, not a disabled button.** There is nothing to press yet, and a control that becomes enabled in two hours is worse than a line of copy.
+- **Nothing about the bar happens until the band is pressed.** No auto-navigation, ever.
+
+### Drinks are their own tables
+
+`drinks` / `drink_clues` / `drink_schedule` (migrations 0039–0040), never a `kind` column on `dishes`. The deciding argument is the failure mode: about ten queries read the dish pool as `WHERE is_active = 1` with no kind filter, retrofitting `AND kind='dish'` onto all of them works right up until someone adds the eleventh, and you find out when a Negroni goes out as Tuesday's lunch Special.
+
+- **Two tiles differ.** `course` says nothing when every row is a drink and no drink has a `protein`, so the four are **country · spirit · temperature · profile**. Country keeps the three-state near-match; the other three are hit/miss.
+- **`spirit: 'none'` is a value, not an absence** — two mocktails match each other.
+- **`is_alcoholic` is stored, never derived from `spirit`.** Beer and wine have no base spirit and are very much alcoholic; arak is `other` and so is kava. There is a test pinning that pair.
+- **The pool is held between 55% and 75% alcoholic** by `worker/data-integrity.test.ts`, because the mix is a design decision rather than an accident of what got written. It ships at 28/40.
+- **Pool only in migrations. Never `INSERT INTO drink_schedule`** — same rule as `schedule`. An unbooked night runs on the deterministic fallback pour and never 404s.
+- **The ingredient vocabulary is pooled with the kitchen's.** A bar and a kitchen share a pantry, and two spellings of one ingredient means the feedback under-reports for everything holding either.
+
+### The coaster sheet
+
+Three coasters, one per miss, because four guesses means at most three misses — a fourth row could never print and the writer would still have to fill it. **Not the five-beat sheet with two beats deleted:** it folds origin and build into one middle beat. The names, jobs and budgets live once in `shared/clues.ts` (`COASTER_BEATS`), imported by both the linter and the admin editor's live counter.
+
+| # | Beat | The handle it hands over |
+|---|---|---|
+| 1 | **The room** | The region, and what kind of drink is in the glass. Never the country |
+| 2 | **The pour** | Who mixed it and what goes in. Two sentences allowed; it is the only one |
+| 3 | **Last call** | The country, and what it looks like in front of you |
+
+Every hard rule from the dish beat sheet applies unchanged — banned openers, praise, hedges, the one-name-word cap, no em dashes, the five-word phrase rule. `lintClue` takes the sheet it is reading against rather than being forked, because a forked copy is how the drinks catalogue quietly stops enforcing the banned-praise list six months from now.
+
+### Sharing both grids
+
+The tab shares the **night's grid and the lunch grid above it**. It can, because the door is finishing lunch: by the time anyone can press it, both rounds exist and both are theirs.
+
+- **Night tiles keep the same three states with a black miss** (`⬛` not `⬜`), and the pantry glyph is `🥃` with `🥂` for the winning pour. One swap, so a channel with both pasted into it stays legible without a second legend.
+- **A share is attributed to the card you pressed it on.** The combined message fires the *nightcap* round's share beacon and leaves the lunch round's `shared` flag alone — marking both would inflate a figure the dashboard already reads, from an action taken hours later on a different screen.
+- `joinShareBlocks` stacks them and `shareMessage` appends the url **once, to the whole message**. Both grid folds are url-free for that reason and live in `shared/share.ts` (they never touched a browser and were the only untested part of the share path).
+- `RoundState.ingredientCount` is stamped on every saved lunch round so the tab can redraw that grid from storage alone. The guess rows only carry each *guess's* matched count, which is a lower bound and not the number.
+
+### The theme is a token swap
+
+`<html data-after-dark>` (precedent: `data-discord-layout="pip"`), and `base.css` redefines the tokens under `:root[data-after-dark]`. Every component inherits and none needed touching — there is no bar-specific copy of a guess row, which is what stops the two boards drifting.
+
+- **Scoped to the attribute, never a media query.** This is a place in the game, not a device preference: a player on a dark-mode phone is not at the bar, and a player at the bar in daylight is.
+- **Measure the surface as it is PAINTED, not the token.** `.menu-card` laid a 35% near-white gradient over `--paper` and `.guess-row` a 75% one, so a card whose token read `#1d1714` actually painted `#6e6962` and every guess row came out near-white. The tokens were right and the board still looked washed out. `--paper-sheen`, `--paper-stipple` and `--row-fill` are tokens now for that reason: **a theme cannot swap what a rule hardcodes.**
+- **`--hit` stays at the daytime value.** A lighter green separated better from the dark card and dropped white text under 4.5:1, and the tile's text is the half that has to be readable.
+- **`--paper-edge` is a hairline, not a frame** (the card's frame is `--cherry-dark`). It has to be *lighter* than what it sits on: a guess row is read by its border and not its fill, so darkening it erased the rows. Daytime separates row from card by 1.04 and its border by 1.36; the night edge is tuned to 1.41.
+- `--on-hit` / `--on-near` / `--paper-bright` replaced literal hexes. That is the third literal-hex contrast failure this codebase has had and the third time the fix was to name the pair. **Check contrast before picking a colour, and never paint a one-off hex where a token belongs.**
+- `npm run a11y` scans three bar states. Run it after any change to the night palette — a token swap changes every pair at once, and the only cheap way to know they all still clear is to measure them on the painted page.
+
+### What the dashboard must not do with a Nightcap
+
+`kind = 'nightcap'` is a fourth `RoundKind`, and **two columns change meaning under it**: `play_date` holds the LOCAL night key rather than an ET day, and `guesses` is out of four rather than six.
+
+- **Never pool a Nightcap with a Special on either.** A "won in 4" out of four and a "won in 4" out of six are different achievements and one x-axis cannot hold both. Every guess distribution and every guesses-average in `routes/admin.ts` and `routes/stats.ts` excludes `nightcap`; the bar's own distribution is four wide and lives on its own tab. Counts (rounds, completed, solved) pool fine.
+- **`tz_offset` is the only beacon field that is a fact about the player's clock.** Without it the hour profile can only be drawn in ET, where every player's 9pm lands in a different bucket and the shape is noise. Coarser than the country already on every row; re-validated server-side like `source`, and an impossible offset is dropped to NULL — a gap reports as unmeasured, a bad value reports as a place nobody lives.
+- **The After Dark tab has no day picker.** The bar's unit is a local night; pointing an ET day picker at it would be the dashboard telling a small lie every time somebody used it.
+- **The crossover's denominator is devices that *finished* a Special**, not devices that visited, and it counts devices rather than rounds. One known gap, documented at the query: a player who starts *lunch* between midnight and 03:00 gets the Special dated D+1 while still being out on night D, so that pairing is missed. Closing it would mean pairing each night with two ET days, which double-counts the ordinary case to rescue the rare one.
+- **After Dark takes `--plum` in the kind palette.** A fourth value inside an existing meaning, not a fifth meaning — the four palettes (kind, event, rank, annotation) are unchanged. Deliberately not `--neon-pink`, which is the sign out front: it is built to glow on a dark board and reads 2.67 on the admin's cream paper, where `--plum` reads 7.86.
+
+### Testing the bar
+
+The clock and the door are both awkward to reach on purpose, so there are four ways past them and only one of them exists in production:
+
+- **`npm run lastcall`** is the hand-off harness. It seeds a finished, won Special from the *real* reveal endpoint, so the check, the grid and the board underneath show a coherent round, and everything after that point is the genuine flow.
+- `npm run afterdark` / `?barhours=off` ignores opening hours; `npm run negroni` / `?nightcap=<slug>` pins the pour. All dev-only on the client, exactly like `?special=`. **`?barhours=off` bypasses the clock and nothing else** — it used to bypass the finish-lunch gate too, which made the "Kitchen first" door unreachable in dev, and a state nobody can look at is a state nobody checks. The two harness scripts seed a won Special instead, so the common case still lands on the board.
+- **`?nightcap=random` rolls a different pour on every load**, which is what makes the flow re-testable: a rolled pin is ephemeral like any other, so nothing is written and a restarted dev server never hands back the board you just played. "random" is not a slug — the *client* resolves it against `/api/night/drinks` and hands the ordinary pin path a real one, so **the Worker never learns a random branch**. That matters: one drink a night with no archive is the shape of the mode, and a branch that exists for testing is a branch that eventually ships. It is also why `DrinkPoolEntry` carries a slug and `DrinkSummary` does not.
+- **The drink preview token (`preview:drink:<id>`, from the Bar section or the nightly board) is the only way past the clock in production**, and the only one that is untracked. That is the point: the bar is open seven hours a night and "does the tab look right" is a two-in-the-afternoon question. The daily's resolver rejects a drink token and vice versa.
+
+
 ## Layout
 
 ```
 wrangler.jsonc        assets SPA fallback + run_worker_first:["/api/*"] + D1 binding "DB"
-migrations/           0001_init.sql = dishes/clues/schedule. Additive only. 0038 is the latest
-seed/seed.sql         canonical dish catalogue + a 30-day schedule from 2026-07-17. Idempotent (DELETEs first)
-shared/types.ts       ALL shared types + enums (COURSES, REGIONS…) + MAX_GUESSES + EPOCH_DATE
+migrations/           0001_init.sql = dishes/clues/schedule. Additive only. 0041 is the latest
+seed/seed.sql         canonical dish AND drink catalogues + a 30-day schedule from 2026-07-17 and a
+                      30-night block from NIGHT_EPOCH_DATE. Idempotent (DELETEs first)
+shared/types.ts       ALL shared types + enums (COURSES, REGIONS, SPIRITS, PROFILES…) + MAX_GUESSES
+                      + DRINK_MAX_GUESSES + EPOCH_DATE + NIGHT_EPOCH_DATE
 worker/index.ts       Hono entry; only /api/* reaches the Worker (assets serve the rest)
 worker/game.ts        PURE game logic (feedback, puzzleNumber, date validation, fallback pick)
 worker/auth.ts        HMAC tokens: session cookie + preview tokens (stateless, SESSION_SECRET-signed)
 worker/db.ts          row mapping, getTargetDish (schedule row else deterministic fallback), serverToday
+worker/drinkdb.ts     the same for drinks. Separate so neither can be aimed at the other's table
+worker/nightcap.ts    PURE drink feedback (country/spirit/temperature/profile + ingredients)
 ```
 
 **Every module below is a pure fold with a unit test beside it.** Query in the route, fold in the module, assert on the fold.
@@ -169,6 +267,8 @@ worker/players.ts     repeat visits (foldRetention)
 worker/device.ts      one device's rows, the review shown before a wipe
 worker/shuffle.ts     the unserved-dish pick behind the Tomorrow's Special shuffle
 worker/stats.ts       public-badge folds (shields.io endpoint payload, compact counts, breakdown)
+worker/nightstats.ts  After Dark's own reads: night service, four-wide distribution, LOCAL hour
+                      profile, boozy/sober split, per-drink report, and the crossover
 worker/discordsig.ts  Ed25519 check that an interaction came from Discord (raw body!)
 worker/github.ts      issue composer folds (repo string, input validation, the posted body,
                       GitHub's JSON → our shapes). No fetch — the route does the talking
@@ -190,11 +290,17 @@ shared/schedule.ts    the admin specials board — schedule window × catalogue 
                       nearest-other-serving gap; board gap summary; name → dish; picker search
 shared/activity.ts    activity feed (rounds + arrivals + day totals → round states, durations, visits)
 shared/announce.ts    the guess-feedback wording, one table feeding colour, glyph and screen reader
+shared/night.ts       the After Dark clock — night key, the 20:00-03:00 window, last call,
+                      night numbering, and what the Worker will accept. The ONE place the
+                      game's fixed-ET rollover is deliberately broken
 shared/time.ts        GAME_TIMEZONE (America/New_York), gameToday, msUntilGameMidnight, daysBetween,
                       addDays (one copy — the worker routes and src/game/archive.ts both import it)
 shared/build.ts       the build marker's wording (BuildInfo → label / title). Takes the info as an
                       argument and never reads __BUILD__ — see the marker note in Conventions
 
+worker/routes/nightcap.ts /api/night/*: drinks pool, info, guess, reveal. Its own router because
+                          the two modes share no table, clue count or guess ceiling — and above
+                          all no pool
 worker/routes/discord.ts  /token (OAuth hop), /attachment (score-card PNG), /interactions (signed
                           callbacks, Ed25519-verified or 401), /progress (patch the live message)
 worker/routes/public.ts   /api/dishes, /daily, /guess, /reveal — never leak target except via /reveal
@@ -217,11 +323,15 @@ src/discord/          bootstrap.ts = frame_id detect + SDK ready + portrait lock
                       presence.ts · progress.ts · share.ts · social.ts (see above)
 src/App.tsx           path startsWith /admin → lazy AdminApp, else GamePage (no router lib)
 src/api.ts            public fetch wrappers + localToday()
+src/game/             NightPage (the bar board), night.ts (the browser's half of the clock),
+                      LightsOut.tsx (the walk there), devHarness.ts (dev-only entrances),
+                      roundLifecycle.ts (the end-of-round choreography, shared by both boards)
 src/game/             GamePage (orchestrator), components.tsx (Modal/GuessRow/ClueTicket/GuessInput/
                       Countdown), SoundToggle.tsx, storage.ts, share.ts, attribution.ts,
                       ArchiveModal.tsx + archive.ts, AnnouncementModal.tsx + Markdown.tsx, scorecard.ts,
                       BuildTag.tsx (the always-on build marker)
-src/admin/            AdminApp (session+nav), api.ts, IssueComposer, Dashboard (6 tabs), OverviewPanel, DishReportPanel,
+src/admin/            BarView (drink list + editor + nightly board), AfterDarkPanel (the 7th tab)
+src/admin/            AdminApp (session+nav), api.ts, IssueComposer, Dashboard (7 tabs), OverviewPanel, DishReportPanel,
                       MenuMixPanel, PlayersPanel, TrendsPanel, ExperimentsPanel, ActivityPanel
                       (+ MyDataPanel), RequestsView, AnnouncementsPanel, analyticsUi.tsx, DayPicker,
                       DishList, DishEditor, ScheduleView
@@ -447,6 +557,8 @@ Four things that hold regardless:
 - **Pool only. Never `INSERT INTO schedule`.** New dishes land in the active pool; `/admin` autofill assigns dates.
 - **Fan submissions** get `UPDATE dishes SET is_fan_submission = 1 WHERE slug IN (…)` in both files, keyed by slug. Leave the `INSERT INTO dishes` column lists alone — the column defaults to 0.
 
+**Adding drinks is the same job against the other catalogue, and it has its own skill: `create-drinks`.** One `drinks` row plus exactly 3 `drink_clues` rows, ≥3 ingredients, written against the coaster sheet in that skill's section 3 (the bartender's voice, the three beats, the budgets, and the fourteen rules — twelve of which the linter enforces). Rows go in `seed/seed.sql` *and* an additive migration keyed by slug, INSERTs only, and **never a `drink_schedule` row**. Keep the pool inside the 55–75% alcoholic band the linter enforces — if a batch is all cocktails, it will fail CI, and correctly.
+
 Finish with `npm test && npm run check`.
 
 ## Conventions / gotchas
@@ -484,7 +596,7 @@ Target is WCAG 2.1 AA, scoped to the game. `/admin` is a password-gated single-u
 
 ## Documentation
 
-**The wiki is the only source of truth for documentation.** The repo carries agent instructions (this file), the beat sheet the clue linter enforces (`.claude/skills/create-dishes/SKILL.md`), the asset licence log (`ASSETS.md`), the landing page (`README.md`), and directory READMEs next to what they describe. Everything else — architecture, game design, interface, data, features, Discord, operations — is a wiki note.
+**The wiki is the only source of truth for documentation.** The repo carries agent instructions (this file), the two beat sheets the clue linter enforces (`.claude/skills/create-dishes/SKILL.md` and `.claude/skills/create-drinks/SKILL.md`), the asset licence log (`ASSETS.md`), the landing page (`README.md`), and directory READMEs next to what they describe. Everything else — architecture, game design, interface, data, features, Discord, operations — is a wiki note.
 
 - **Don't create a new top-level `.md` in the repo.** If a change wants one, it wants a wiki note. `ACCESSIBILITY.md` and `CLUES.md` were both folded into the wiki in Aug 2026 for exactly this reason
 - **Never write the wiki's file path into the repo.** Not in a comment, not in a doc, not in a commit message. Say "the wiki". The location is held in agent memory and in `.claude/wiki-path.local`, which `.gitignore` already covers via `*.local`
@@ -502,4 +614,4 @@ Three passes, every time, before `gh pr create`:
 
 ## Verify a change
 
-`npm test && npm run check`, then dev server (`npm run a11y` in a second terminal while it's up), then by hand: play a full round (guess wrong twice → clue tickets appear → guess right → receipt modal), check /admin dashboard/editor/schedule, and mobile at 375px (no horizontal scroll). For UI changes also run the keyboard-only and reduced-motion passes (unplug the mouse and play a full round opening every modal; then DevTools → Rendering → emulate `prefers-reduced-motion: reduce` and confirm nothing moves and nothing sticks), plus 320px and 200% zoom. Seeded local answer for 2026-07-17 is Hamburger (id 51); schedule table maps the rest.
+`npm test && npm run check`, then dev server (`npm run a11y` in a second terminal while it's up), then by hand: play a full round (guess wrong twice → clue tickets appear → guess right → receipt modal), **then `npm run lastcall` and walk the hand-off into a Nightcap**, check /admin dashboard/editor/schedule and the Bar section, and mobile at 375px (no horizontal scroll). For UI changes also run the keyboard-only and reduced-motion passes (unplug the mouse and play a full round opening every modal; then DevTools → Rendering → emulate `prefers-reduced-motion: reduce` and confirm nothing moves and nothing sticks), plus 320px and 200% zoom. Seeded local answer for 2026-07-17 is Hamburger (id 51); schedule table maps the rest.

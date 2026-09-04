@@ -90,8 +90,8 @@
   width: 100%;
   max-width: 600px;
   background:
-    radial-gradient(rgba(120, 96, 60, 0.07) 1px, transparent 1.4px) 0 0 / 7px 7px,
-    linear-gradient(rgba(255, 252, 240, 0.35), rgba(214, 196, 152, 0.18)),
+    radial-gradient(var(--paper-stipple) 1px, transparent 1.4px) 0 0 / 7px 7px,
+    var(--paper-sheen),
     var(--paper);
   border: 2px solid var(--cherry-dark);
   border-radius: 8px;
@@ -310,7 +310,7 @@
   flex: 1;
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  background: #fffdf6;
+  background: var(--paper-bright);
   padding: 11px 14px;
   font-size: 1.05rem;
   color: var(--ink);
@@ -344,7 +344,7 @@
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: #fffdf6;
+  background: var(--paper-bright);
   border: 2px solid var(--ink);
   border-radius: var(--radius);
   max-height: 264px;
@@ -398,7 +398,7 @@
 
 .guess-row {
   border: 1px solid var(--paper-edge);
-  background: rgba(255, 253, 246, 0.75);
+  background: var(--row-fill);
   border-radius: 6px;
   padding: 10px 12px;
 }
@@ -471,12 +471,15 @@
 
 .attr-tile--hit {
   background: var(--hit);
-  color: #fff;
+  color: var(--on-hit);
 }
 
 .attr-tile--near {
   background: var(--near);
-  color: var(--ink);
+  /* Not --ink. Under After Dark that is a pale cream, which reads 1.9:1 on
+     mustard — the same failure --mustard-ink exists to prevent, one theme
+     later. --on-near is a fixed dark ink because --near is mustard in both. */
+  color: var(--on-near);
 }
 
 .attr-tile--miss {
@@ -577,7 +580,7 @@
 
 .ticket {
   position: relative;
-  background: #fff;
+  background: var(--paper-bright);
   border-radius: 4px;
   box-shadow: 0 3px 10px rgba(20, 17, 16, 0.18);
   padding: 10px 14px 12px;
@@ -663,7 +666,7 @@
 }
 
 .modal--receipt {
-  background: #fffef9;
+  background: var(--paper-bright);
   border-radius: 4px;
   font-variant-numeric: tabular-nums;
 }
@@ -758,7 +761,7 @@
 .modal__footer {
   flex: 0 0 auto;
   padding: 12px 20px 16px;
-  background: #fffef9;
+  background: var(--paper-bright);
   border-top: 2px dashed var(--paper-edge);
   box-shadow: 0 -12px 20px -14px rgba(43, 35, 32, 0.5);
 }
@@ -1389,7 +1392,9 @@ textarea.dish-request__input {
 
 .preview-banner {
   background: var(--mustard);
-  color: var(--ink);
+  /* Not --ink: under After Dark that is a pale cream, and cream on mustard is
+     1.7:1. Same token and same reason as the near tile. */
+  color: var(--on-near);
   font-family: var(--font-display);
   font-size: 0.78rem;
   letter-spacing: 0.14em;
@@ -1655,7 +1660,7 @@ textarea.dish-request__input {
 }
 
 .archive-cal__swatch--unplayed {
-  background: #fffdf6;
+  background: var(--paper-bright);
 }
 
 /* The footer's rule and shadow do the separating now — a trailing margin here
@@ -1687,7 +1692,7 @@ textarea.dish-request__input {
   height: 32px;
   border: 1.5px solid var(--paper-edge);
   border-radius: 7px;
-  background: #fffdf6;
+  background: var(--paper-bright);
   color: var(--ink);
   font-family: var(--font-display);
   font-size: 1.1rem;
@@ -1732,7 +1737,7 @@ textarea.dish-request__input {
   height: 34px;
   border: 1.5px solid var(--paper-edge);
   border-radius: 7px;
-  background: #fffdf6;
+  background: var(--paper-bright);
   color: var(--ink);
   display: flex;
   flex-direction: column;
@@ -2411,6 +2416,347 @@ textarea.dish-request__input {
   animation: label-swap 0.2s ease;
 }
 
+/* ==========================================================================
+   After Dark
+   ==========================================================================
+   The palette is a token swap in base.css and everything above this point
+   inherits it untouched. What is left is the handful of things the bar has and
+   the diner does not: the door on the check, the walk through it, the room's
+   own signage, and last call. */
+
+/* ---- the door, on the check ---- */
+
+/* Its own band under the replay row, never a fourth button in it. The check is
+   the tallest card in the game at 375px and that row already holds three. */
+.bar-band {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--paper-edge);
+  /* Fades in a BEAT after the check has settled, not with it. Someone reading
+     their result gets to finish reading it; that delay is the difference
+     between an offer and an interruption. */
+  animation: bar-band-in 0.5s ease-out 1.1s both;
+}
+
+.bar-band--soon {
+  margin: 10px 0 0;
+  padding-top: 10px;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  text-align: center;
+  font-style: italic;
+}
+
+/* A whole-band button, so the tap target is the band and not the six words in
+   it — the same reason the story toggle is a block.
+
+   Filled rather than outlined. The first pass made it a quiet ghost band, which
+   is the correct weight for a *secondary* action and the wrong one for the only
+   thing on this screen the player has not seen before: on warm receipt paper a
+   10%-tint outline reads as disabled. It is the loudest control on the check
+   now, louder than share, because share is a thing you already know how to
+   want. */
+.bar-band__btn {
+  display: block;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius);
+  background: linear-gradient(var(--cherry), var(--cherry-dark));
+  color: var(--on-cherry);
+  padding: 11px 14px;
+  text-align: left;
+  box-shadow:
+    0 0 0 1px var(--cherry-dark),
+    0 2px 0 var(--cherry-dark),
+    0 6px 22px rgba(255, 95, 122, 0.45);
+  transition: transform 0.12s ease, box-shadow 0.15s ease;
+}
+
+/* Touch never fires :hover, and this is the game's main surface — so the press
+   state is what actually confirms the tap on a phone. It presses INTO the card
+   (the 2px lip collapses), which is the same motion the share button uses. */
+.bar-band__btn:hover {
+  box-shadow:
+    0 0 0 1px var(--cherry-dark),
+    0 2px 0 var(--cherry-dark),
+    0 8px 30px rgba(255, 95, 122, 0.6);
+}
+
+.bar-band__btn:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 0 0 1px var(--cherry-dark),
+    0 0 0 var(--cherry-dark),
+    0 3px 14px rgba(255, 95, 122, 0.4);
+}
+
+.bar-band__tag {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.bar-band__sub {
+  display: block;
+  font-size: 0.76rem;
+  /* On the filled band the sub-line sits on cherry, not on paper, so --ink-soft
+     would be the wrong pair entirely — and NOT stepped back with opacity, which
+     was the first attempt and dropped it to 3.62 against the fill. Hierarchy
+     here is size and face, not transparency: opacity on text is a contrast
+     change wearing a costume. */
+  color: var(--on-cherry);
+  margin-top: 3px;
+}
+
+@keyframes bar-band-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The toolbar pill, for a returning player who finished lunch at noon and
+   shouldn't have to reopen their check to find the bar. */
+.icon-btn--bar {
+  border-color: var(--cherry);
+  color: var(--cherry-dark);
+  font-weight: 700;
+}
+
+/* ---- the way back ----
+   Mirrors `.archive-bar`, which is the diner's existing answer to "you are
+   somewhere other than today, here is the way out". It replaced a pill in the
+   bar's toolbar, which sat among How-to and Sound and read as one more filter
+   rather than as a door — the way back has to look like a way back. */
+.bar-return {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  background: color-mix(in srgb, var(--cherry) 12%, transparent);
+  border: 1.5px dashed var(--cherry);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  margin-bottom: 12px;
+}
+
+.bar-return__tag {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+}
+
+.bar-return__btn {
+  font-family: var(--font-display);
+  background: var(--cherry);
+  color: var(--on-cherry);
+  border: none;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+}
+
+.bar-return__btn:hover,
+.bar-return__btn:active {
+  background: var(--cherry-dark);
+  color: var(--cream);
+}
+
+/* ---- the walk there ---- */
+
+/* Fixed and above everything including the build marker's neighbours, because
+   for its second and a half it IS the page. Pointer events off: there is
+   nothing to press and a stray tap should land on whatever arrives next. */
+.lights-out {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+/* Closes from both edges rather than fading, so it reads as a room being shut
+   up for the night instead of a page loading. */
+.lights-out__scrim {
+  position: absolute;
+  inset: 0;
+  background: #0b0907;
+  animation: lights-out-scrim 1.4s ease-in-out both;
+}
+
+.lights-out__sign {
+  position: relative;
+  margin: 0;
+  font-family: var(--font-script);
+  font-size: clamp(2.2rem, 11vw, 4rem);
+  color: #ff5f7a;
+  text-shadow:
+    0 0 8px rgba(255, 95, 122, 0.9),
+    0 0 26px rgba(255, 95, 122, 0.6),
+    0 0 60px rgba(255, 95, 122, 0.35);
+  animation: neon-buzz 1.4s ease-out both;
+}
+
+@keyframes lights-out-scrim {
+  0% {
+    clip-path: inset(0 50% 0 50%);
+  }
+  35%,
+  100% {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Two stutters before it holds, which is what a tube actually does. Kept to
+   opacity so it costs no layout on the one frame everything else is mounting. */
+@keyframes neon-buzz {
+  0%,
+  30% {
+    opacity: 0;
+  }
+  38% {
+    opacity: 1;
+  }
+  44% {
+    opacity: 0.25;
+  }
+  52% {
+    opacity: 1;
+  }
+  58% {
+    opacity: 0.5;
+  }
+  66%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ---- the room ---- */
+
+/* The same room with the lights off. The art stays and goes DOWN rather than
+   away: it is the diner after hours, not a different building.
+
+   Measured off the image itself rather than guessed. Raw, it averages
+   luminance 92 / saturation 34; the daytime treatment lands it at 66 / 18.
+   This lands at ~36 / 9 before the scrim below, which puts it just under the
+   card's ~35 once that scrim is on. The first attempt at this used
+   `saturate(0.42)` and drained it to 3.8 — technically dark, and the reason it
+   read as a black rectangle rather than as a room. Keeping the colour is what
+   makes it recognisably the same place, so the brightness does the dimming and
+   the saturation is barely touched. The sepia warms what is left toward
+   tungsten, since the lights that are still on in here are not daylight. */
+.scene--bar::before {
+  filter: blur(3px) brightness(0.4) saturate(0.8) sepia(0.18);
+}
+
+/* The daytime vignette clears to nothing at the centre. This one dims the
+   centre too, so the card sits in a pool of light instead of on an evenly lit
+   wall, and it warms from teal toward the tungsten of the room. Kept off the
+   floor deliberately — pushed any harder it takes back the colour the filter
+   above exists to keep. */
+.scene--bar::after {
+  background: radial-gradient(
+    ellipse 120% 90% at 50% 30%,
+    rgba(22, 17, 14, 0.28) 30%,
+    rgba(14, 11, 9, 0.68) 72%,
+    rgba(8, 6, 5, 0.88) 100%
+  );
+}
+
+/* The sign out front, turned up.
+   `.marquee__script` is already built like neon — a near-white hot core inside
+   a pink halo — so the bar does not RECOLOUR it; flat cherry made it dimmer and
+   less like a tube. It adds light instead: a white core stop and two more halo
+   stops falling off further. This is the one thing in the room that is meant to
+   be brighter at night than it is at lunch. */
+.marquee--bar .marquee__script {
+  color: #fff2f5;
+  text-shadow:
+    0 0 4px #ffffff,
+    0 0 11px rgba(255, 95, 122, 1),
+    0 0 26px rgba(255, 95, 122, 0.9),
+    0 0 56px rgba(255, 95, 122, 0.75),
+    0 0 104px rgba(255, 95, 122, 0.45);
+}
+
+.menu-card--bar {
+  border-color: var(--paper-edge);
+}
+
+/* A glass instead of the cloche. Same slot, same size, so the header's rhythm
+   is unchanged between the two boards. */
+.special-line--bar .special-line__glass {
+  font-size: 2rem;
+  line-height: 1;
+  width: 44px;
+  text-align: center;
+}
+
+.win-toast--bar {
+  background: var(--cherry);
+  color: var(--on-cherry);
+}
+
+/* A coaster, not a ticket: square-ish, no perforation, and it slides in from
+   the side rather than chattering out of a printer. */
+.ticket--coaster {
+  border-style: solid;
+  border-color: var(--paper-edge);
+  background: color-mix(in srgb, var(--cherry) 6%, var(--paper));
+}
+
+/* ---- last call ---- */
+
+/* Only inside the final hour and only while a round is live — see NightPage.
+   Quiet, because it is a fact and not an alarm: the round you are in will
+   finish regardless, since last call is a door and not a timer. */
+.lastcall-bar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+  padding: 5px 10px;
+  border: 1px dashed var(--cherry-dark);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--cherry) 8%, transparent);
+}
+
+.lastcall-bar__tag {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- the signs on the door ---- */
+
+.closed--bar {
+  border-color: var(--paper-edge);
+}
+
+.bar-countdown {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  color: var(--cherry);
+  margin: 6px 0 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.bar-countdown b {
+  font-weight: inherit;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .modal-backdrop,
   .modal,
@@ -2450,7 +2796,14 @@ textarea.dish-request__input {
   .countdown__sec,
   .archive-cal__day:not(.archive-cal__day--empty),
   .newday-bar,
-  .share-btn__label {
+  .share-btn__label,
+  /* After Dark. The band still appears and the sign still says After Dark;
+     neither moves. The walk to the bar is skipped entirely rather than
+     shortened — App.tsx checks the same preference and goes straight there, so
+     these two are the belt to that braces. */
+  .bar-band,
+  .lights-out__scrim,
+  .lights-out__sign {
     animation: none !important;
   }
 
@@ -2463,6 +2816,8 @@ textarea.dish-request__input {
   /* Presses keep their state change — it's the only confirmation a tap
      registered — but stop moving. Colour still shifts on :active. */
   .icon-btn:active,
+  .bar-band__btn:active,
+  .bar-return__btn:active,
   .replay-btn:active,
   .archive-bar__btn:active,
   .freeplay-bar__btn:active,
