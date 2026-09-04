@@ -26,13 +26,18 @@ export type MatchLevel = "hit" | "near" | "miss";
 
 /**
  * The kind of round, for analytics: the daily Special, a "leftover" (an archive
- * replay of a past puzzle), or a "chef's special" (a random recipe). Preview
- * (admin test play) is never tracked, so it isn't a kind here.
+ * replay of a past puzzle), a "chef's special" (a random recipe), or a Nightcap
+ * (After Dark). Preview and playtest are never tracked, so they aren't kinds.
+ *
+ * `nightcap` is not just another value. Two columns change meaning under it:
+ * `play_date` holds a LOCAL night key rather than an ET day, and `guesses` is
+ * out of four rather than six. Nothing may pool it with the other three on
+ * either -- see the guess-distribution queries in worker/routes/admin.ts.
  */
-export const ROUND_KINDS = ["daily", "leftover", "random"] as const;
+export const ROUND_KINDS = ["daily", "leftover", "random", "nightcap"] as const;
 export type RoundKind = (typeof ROUND_KINDS)[number];
 
-/** Games started, split by round kind. The three always sum to `started`. */
+/** Games started, split by round kind. The four always sum to `started`. */
 export type StartedByKind = Record<RoundKind, number>;
 
 /**

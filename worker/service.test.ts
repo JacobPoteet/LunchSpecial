@@ -53,7 +53,7 @@ describe("foldDayService", () => {
     expect(startedAt(s, 16)).toBe(0);
   });
 
-  it("keeps the three kinds separate in the same hour", () => {
+  it("keeps the kinds separate in the same hour", () => {
     const s = foldDayService(
       [
         row("2026-07-24", 16, "daily", 5),
@@ -62,7 +62,7 @@ describe("foldDayService", () => {
       ],
       "2026-07-24",
     );
-    expect(s.hourly[12].startedByKind).toEqual({ daily: 5, leftover: 2, random: 1 });
+    expect(s.hourly[12].startedByKind).toEqual({ daily: 5, leftover: 2, random: 1, nightcap: 0 });
     expect(s.allKinds.started).toBe(8);
   });
 

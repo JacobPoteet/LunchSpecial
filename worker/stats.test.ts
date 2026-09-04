@@ -70,6 +70,7 @@ describe("assembleBreakdown", () => {
       daily: { started: 0, completed: 0 },
       leftover: { started: 0, completed: 0 },
       random: { started: 0, completed: 0 },
+      nightcap: { started: 0, completed: 0 },
     });
     expect(b.surfaces).toEqual({
       web: { rounds: 0, devices: 0 },
@@ -111,6 +112,7 @@ describe("assembleBreakdown", () => {
       daily: { started: 100, completed: 80 },
       leftover: { started: 30, completed: 25 },
       random: { started: 10, completed: 4 },
+      nightcap: { started: 0, completed: 0 },
     });
   });
 });

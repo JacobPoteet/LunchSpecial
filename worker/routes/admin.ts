@@ -812,7 +812,7 @@ app.get("/menu-mix", async (c) => {
   return c.json(mix);
 });
 
-const zeroByKind = (): StartedByKind => ({ daily: 0, leftover: 0, random: 0 });
+const zeroByKind = (): StartedByKind => ({ daily: 0, leftover: 0, random: 0, nightcap: 0 });
 
 /**
  * Optional surface filter (web / discord) for the analytics reads. Absent or
@@ -868,9 +868,13 @@ app.get("/analytics", async (c) => {
        COALESCE(SUM(shared), 0) AS shared,
        COALESCE(SUM(completed = 1 AND solved = 0), 0) AS fails
      FROM analytics_rounds WHERE play_date = ? AND kind = 'daily'${surfAnd}`;
+  // Specials only, and that `kind != 'nightcap'` is load-bearing rather than
+  // tidy: a Nightcap gives four guesses, so a "won in 4" from the bar and a
+  // "won in 4" from the diner are different achievements sharing one x-axis.
+  // The bar's own distribution is four wide and lives on the After Dark tab.
   const distSql = (where: string) =>
     `SELECT guesses, COUNT(*) AS n FROM analytics_rounds
-       WHERE completed = 1 AND solved = 1 AND guesses BETWEEN 1 AND ?${where}${surfAnd}
+       WHERE completed = 1 AND solved = 1 AND kind != 'nightcap' AND guesses BETWEEN 1 AND ?${where}${surfAnd}
        GROUP BY guesses`;
 
   const [
@@ -1054,6 +1058,7 @@ app.get("/analytics", async (c) => {
     daily: at.started_daily ?? 0,
     leftover: at.started_leftover ?? 0,
     random: at.started_random ?? 0,
+    nightcap: at.started_nightcap ?? 0,
   };
 
   // Fold the started_at buckets into ET days, splitting `started` by kind.

@@ -39,7 +39,7 @@ export interface DishMetaRow {
   last_served: string | null;
 }
 
-const zeroByKind = (): StartedByKind => ({ daily: 0, leftover: 0, random: 0 });
+const zeroByKind = (): StartedByKind => ({ daily: 0, leftover: 0, random: 0, nightcap: 0 });
 
 /**
  * Fold grouped rounds into one row per dish, hardest first.

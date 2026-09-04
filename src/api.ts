@@ -6,7 +6,11 @@ import type {
   DailyInfo,
   DishRequestInput,
   DishSummary,
+  DrinkGuessFeedback,
+  DrinkSummary,
   GuessFeedback,
+  NightcapInfo,
+  NightcapReveal,
   RevealInfo,
   RoundKind,
   Surface,
@@ -66,6 +70,42 @@ export function postGuess(body: {
 
 export function fetchReveal(date: string, preview?: string, random?: string, special?: string): Promise<RevealInfo> {
   return request(withParams("/api/reveal", { date, preview, random, special }));
+}
+
+// ---- After Dark ----
+//
+// A separate pool endpoint, not a filter on /api/dishes. You cannot order a
+// hamburger at the bar and the autocomplete must not offer you one.
+
+export function fetchDrinks(): Promise<DrinkSummary[]> {
+  return request("/api/night/drinks");
+}
+
+export function fetchNightcap(night: string, preview?: string, pinned?: string): Promise<NightcapInfo> {
+  return request(withParams("/api/night/info", { night, preview, nightcap: pinned }));
+}
+
+export function postDrinkGuess(body: {
+  night: string;
+  drinkId: number;
+  guessNumber: number;
+  preview?: string;
+  /** Playtest only: the slug this round was pinned to. */
+  nightcap?: string;
+}): Promise<DrinkGuessFeedback> {
+  return request("/api/night/guess", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export function fetchNightcapReveal(
+  night: string,
+  preview?: string,
+  pinned?: string,
+): Promise<NightcapReveal> {
+  return request(withParams("/api/night/reveal", { night, preview, nightcap: pinned }));
 }
 
 /** Submit a player's dish suggestion for the menu (lands in the admin inbox). */
