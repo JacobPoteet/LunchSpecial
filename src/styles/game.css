@@ -90,8 +90,8 @@
   width: 100%;
   max-width: 600px;
   background:
-    radial-gradient(rgba(120, 96, 60, 0.07) 1px, transparent 1.4px) 0 0 / 7px 7px,
-    linear-gradient(rgba(255, 252, 240, 0.35), rgba(214, 196, 152, 0.18)),
+    radial-gradient(var(--paper-stipple) 1px, transparent 1.4px) 0 0 / 7px 7px,
+    var(--paper-sheen),
     var(--paper);
   border: 2px solid var(--cherry-dark);
   border-radius: 8px;
@@ -398,7 +398,7 @@
 
 .guess-row {
   border: 1px solid var(--paper-edge);
-  background: rgba(255, 253, 246, 0.75);
+  background: var(--row-fill);
   border-radius: 6px;
   padding: 10px 12px;
 }
@@ -2575,20 +2575,31 @@ textarea.dish-request__input {
 
 /* ---- the room ---- */
 
-/* No backdrop art. The diner's scene layer is a lit photograph of a room the
-   player is no longer in, and dimming it with a scrim looked like the image had
-   failed to load rather than like a different place. */
-.scene--bar::before,
-.scene--bar::after {
-  display: none;
+/* The same room with the lights off. The backdrop stays and goes DOWN rather
+   than away: deleting it made the bar a flat colour field, which reads as a
+   page whose art failed to load rather than as a place. Two more stops of
+   exposure, most of the colour drained, and a touch more blur, so the diner is
+   still legible behind the card and stops competing with it. */
+.scene--bar::before {
+  filter: blur(3px) brightness(0.3) saturate(0.42);
 }
 
-.marquee--bar .marquee__script {
-  color: var(--cherry);
-  text-shadow:
-    0 0 10px rgba(255, 95, 122, 0.55),
-    0 0 34px rgba(255, 95, 122, 0.3);
+/* The daytime vignette clears to nothing at the centre. This one dims the
+   centre too, so the card sits in a pool of light instead of on an evenly lit
+   wall, and it warms from teal toward the near-black of the room. */
+.scene--bar::after {
+  background: radial-gradient(
+    ellipse 120% 90% at 50% 30%,
+    rgba(20, 16, 14, 0.34) 30%,
+    rgba(13, 10, 9, 0.72) 72%,
+    rgba(7, 5, 4, 0.9) 100%
+  );
 }
+
+/* The marquee is left alone on purpose. `.marquee__script` is already a neon
+   sign: a near-white hot core inside a pink halo, which is what neon actually
+   looks like. Recolouring it to flat cherry made it dimmer and less like a
+   tube, so the bar just inherits it. */
 
 .menu-card--bar {
   border-color: var(--paper-edge);

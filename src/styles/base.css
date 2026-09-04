@@ -69,6 +69,16 @@
      the a11y scan reported them at 1.2:1. One token, measured in both rooms. */
   --paper-bright: #fffdf6;
 
+  /* The printed-menu texture, as tokens rather than literals inside the rules
+     that use them. This was the whole reason the night board looked washed out
+     while every measured token said it was dark: `.menu-card` laid a 35%
+     near-white gradient over --paper and `.guess-row` a 75% one, so the card
+     that read #201a15 in the stylesheet actually painted #6e6962 and the rows
+     came out near-white. A theme cannot swap what a rule hardcodes. */
+  --paper-sheen: linear-gradient(rgba(255, 252, 240, 0.35), rgba(214, 196, 152, 0.18));
+  --paper-stipple: rgba(120, 96, 60, 0.07);
+  --row-fill: rgba(255, 253, 246, 0.75);
+
   --font-display: "Alfa Slab One", "Arial Black", sans-serif;
   --font-script: "Yellowtail", "Brush Script MT", cursive;
   --font-body: Georgia, "Times New Roman", serif;
@@ -135,13 +145,19 @@ select {
  * on a dark-mode phone is not at the bar, and a player at the bar in daylight
  * is.
  *
- * Every pair here was measured rather than picked (WCAG AA, 4.5:1 for text):
+ * Every pair here was measured against the surface as it is PAINTED, not
+ * against the token. That distinction is the whole reason this palette got a
+ * second pass: `.menu-card` laid a 35% near-white gradient over --paper and
+ * `.guess-row` a 75% one, so a card whose token said #1d1714 actually painted
+ * #6e6962 and the rows came out near-white. Every number below is the
+ * composite (WCAG AA, 4.5:1 for text):
  *
- *   ink / paper            14.07      on-hit / hit          5.05
- *   ink-soft / paper        7.33      on-near / near        7.24
- *   hit-ink / hit-soft      8.28      ink-soft / miss-soft  6.59
- *   on-cherry / cherry      6.03      mustard-ink / paper  10.20
- *   teal / paper            6.82      ink / cream          15.20
+ *   ink / card              12.70      on-hit / hit          5.05
+ *   ink / guess row         10.49      on-near / near        7.24
+ *   mustard-ink / card       9.31      hit-ink / hit-soft    8.28
+ *   teal / card              6.95      ink-soft / miss-soft  6.42
+ *   ink-soft / card          6.51      on-cherry / cherry    6.03
+ *   ink-soft / guess row     5.38      ink / cream          15.29
  *
  * --hit is deliberately UNCHANGED from the daytime value. A lighter green
  * separated better from the dark card but dropped white text under 4.5, and the
@@ -149,13 +165,21 @@ select {
  * channel, never the only one (the glyph and the hidden word carry it too).
  */
 :root[data-after-dark] {
-  --cream: #17120e;
-  --paper: #201a15;
-  --paper-edge: #453629;
-  --ink: #f2e7d5;
-  --ink-soft: #b6a793;
-  --teal: #4fb3a5;
-  --teal-dark: #0d1f1d;
+  --cream: #14100e;
+  --paper: #1d1714;
+  /* Not the card's frame -- that is --cherry-dark. This is the hairline round a
+     guess row, a miss tile and the modal footer's dashes, so it has to be
+     LIGHTER than what it sits on. Darkening it erased the guess rows, since a
+     row is read by its border and not its fill: the daytime row separates from
+     the card by 1.04 and its border by 1.36. This lands at 1.41. */
+  --paper-edge: #544537;
+  --ink: #f0e6d4;
+  --ink-soft: #b3a591;
+  --teal: #57bdae;
+  /* Sits behind the backdrop art and under the admin shell. Warm near-black
+     rather than the daytime's dark teal, so the unfilled edges of the scene
+     match the room instead of the diner. */
+  --teal-dark: #100c0a;
   /* The accent swaps cherry for the neon out front. Cherry on a dark ground is
      a bruise; the sign is the one thing in the room that is supposed to glow. */
   --cherry: #ff5f7a;
@@ -178,7 +202,14 @@ select {
   /* Lifted off --paper rather than dropped below it: brighter stock stays
      brighter, which is what makes a receipt read as a separate object on the
      card behind it. --ink on this is 11.5:1. */
-  --paper-bright: #2a231d;
+  --paper-bright: #262019;
+
+  /* Warm light on dark stock, then a deepening toward the foot of the card.
+     A fraction of the daytime sheen's strength: paper catches light, a bar top
+     absorbs it. */
+  --paper-sheen: linear-gradient(rgba(255, 236, 205, 0.05), rgba(0, 0, 0, 0.22));
+  --paper-stipple: rgba(255, 232, 196, 0.035);
+  --row-fill: rgba(255, 240, 214, 0.07);
 
   --shadow-card: 0 18px 60px rgba(0, 0, 0, 0.7);
 }
