@@ -21,6 +21,7 @@ import AnnouncementModal from "./AnnouncementModal";
 import ArchiveModal from "./ArchiveModal";
 import { BuildTag } from "./BuildTag";
 import { dateLabel, isPastPuzzleDate } from "./archive";
+import { currentNight, useBarInvite, type BarInvite } from "./night";
 import { useCheckOpening } from "./roundLifecycle";
 import { visitSource } from "./attribution";
 import { currentSurface, surfaceUrl } from "../discord/bootstrap";
@@ -44,6 +45,7 @@ import {
   loadRound,
   loadStats,
   markHowToSeen,
+  nightRoundFinished,
   markSeated,
   recordResult,
   rememberAnnouncementSeen,
@@ -118,7 +120,7 @@ function HowToModal({ onClose }: { onClose: () => void }) {
             green from the mustard still has something here that maps onto what
             they're looking at. */}
         <div className="legend">
-          <span className="chip" style={{ background: "var(--hit)", color: "#fff" }}>✓ match (green)</span>
+          <span className="chip" style={{ background: "var(--hit)", color: "var(--on-hit)" }}>✓ match (green)</span>
           <span className="chip" style={{ background: "var(--near)" }}>~ close — same region (yellow)</span>
           <span className="chip" style={{ background: "var(--miss-soft)", color: "var(--ink-soft)" }}>
             × miss (gray)
@@ -368,6 +370,49 @@ function KitchenClosed({ detail, onRetry }: { detail: string | null; onRetry: ()
   );
 }
 
+/**
+ * The door to After Dark, on the check.
+ *
+ * Three rules it exists to obey, all of them about not shoving anyone through:
+ *
+ * 1. **It is never a fourth button in the replay row.** The check is the tallest
+ *    card in the game at 375px and that row already holds up to three. This is
+ *    its own band underneath, and it is quiet.
+ * 2. **It fades in a beat after the check settles**, not with it. Someone
+ *    reading their result should get to finish reading it; the animation's
+ *    delay is what makes this an offer rather than an interruption.
+ * 3. **It never navigates on its own.** Nothing about the bar happens until
+ *    this is pressed.
+ *
+ * `soon` is deliberately not a button. There is nothing to press yet, and a
+ * disabled control that becomes enabled in two hours is worse than a sentence.
+ */
+function BarBand({ invite, onEnter }: { invite: BarInvite; onEnter: () => void }) {
+  if (invite === "none") return null;
+  if (invite === "soon") {
+    return (
+      <p className="bar-band bar-band--soon">🍸 After Dark opens at 8, your time.</p>
+    );
+  }
+  const settled = invite === "settled";
+  return (
+    <div className="bar-band">
+      <button
+        className="bar-band__btn"
+        onClick={() => {
+          playSfx("ui-click");
+          onEnter();
+        }}
+      >
+        <span className="bar-band__tag">🍸 {settled ? "Your tab is at the bar" : "The bar's open"}</span>
+        <span className="bar-band__sub">
+          {settled ? "Go back and take another look" : "One drink, four guesses, gone by morning"}
+        </span>
+      </button>
+    </div>
+  );
+}
+
 type ShareState = "idle" | "working" | "channel" | "sent" | "copied" | "failed";
 
 /**
@@ -409,6 +454,8 @@ function ResultModal({
   kind,
   canShare,
   canArchive,
+  barInvite,
+  onEnterBar,
   onNewGame,
   onArchive,
   onClose,
@@ -427,6 +474,9 @@ function ResultModal({
   kind: RoundKind;
   canShare: boolean;
   canArchive: boolean;
+  /** Whether, and how, to offer After Dark. Hidden outside the daily. */
+  barInvite: BarInvite;
+  onEnterBar: () => void;
   onNewGame: () => void;
   onArchive: () => void;
   onClose: () => void;
@@ -536,6 +586,7 @@ function ResultModal({
           )}
         </div>
       )}
+      <BarBand invite={barInvite} onEnter={onEnterBar} />
     </>
   );
   return (
@@ -574,7 +625,7 @@ function ResultModal({
   );
 }
 
-export default function GamePage() {
+export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   const search = useMemo(() => new URLSearchParams(window.location.search), []);
   const preview = useMemo(() => search.get("preview") ?? undefined, [search]);
   const isPreview = preview !== undefined;
@@ -689,6 +740,14 @@ export default function GamePage() {
   );
   const dailyDone = dailyStatus !== "playing";
   const canArchive = !isPreview && (dailyDone || isArchive || isRandom);
+
+  // After Dark. Read once at mount — whether tonight's Nightcap is settled can
+  // only change by going to the bar, which unmounts this page.
+  const playedTonight = useMemo(() => nightRoundFinished(currentNight()), []);
+  const invite = useBarInvite(playedTonight);
+  // Only ever offered off a finished daily. Not on a Leftover, a Chef's Choice
+  // or a preview: those are side doors, and the bar's own door is the check.
+  const barInvite: BarInvite = isDaily && dailyDone ? invite : "none";
 
   // ---- Notices from the kitchen ----
   //
@@ -929,6 +988,9 @@ export default function GamePage() {
           guesses: [...round.guesses, feedback],
           clues: feedback.clue ? [...round.clues, feedback.clue] : round.clues,
           status: feedback.correct ? "won" : guessNumber >= MAX_GUESSES ? "lost" : "playing",
+          // Stamped on every save so the grid can be redrawn from storage alone
+          // — the After Dark tab shares today's lunch grid beside its own.
+          ingredientCount: daily.ingredientCount,
         };
         setRound(next);
         setPending(null);
@@ -1078,6 +1140,17 @@ export default function GamePage() {
             {round.status !== "playing" && (
               <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowResult(true); }}>Your check</button>
             )}
+            {/* A returning player who finished lunch at noon shouldn't have to
+                reopen their check to find the bar. Only while it's actually
+                open — a pill that explains itself is a band, not a pill. */}
+            {(barInvite === "open" || barInvite === "settled") && (
+              <button
+                className="icon-btn icon-btn--bar"
+                onClick={() => { playSfx("ui-click"); onEnterBar(); }}
+              >
+                🍸 After Dark
+              </button>
+            )}
             <SoundToggle />
           </div>
         </div>
@@ -1195,6 +1268,8 @@ export default function GamePage() {
           kind={analyticsKind}
           canShare={dressedAsDaily || isArchive}
           canArchive={canArchive}
+          barInvite={barInvite}
+          onEnterBar={onEnterBar}
           onNewGame={newGame}
           onArchive={() => {
             setShowResult(false);

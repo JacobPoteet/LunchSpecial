@@ -12,6 +12,18 @@ export interface RoundState {
   clues: { index: number; text: string }[];
   /** Anonymous analytics round id; set when the board first opens. */
   analyticsId?: string;
+  /**
+   * How many ingredients the Special had — the denominator in the share grid's
+   * "2/7". It lives on DailyInfo, which only exists in GamePage's memory, so
+   * without it here the After Dark tab could not redraw the lunch grid it
+   * shares alongside its own: the guess rows carry each *guess's* matched
+   * count, which is a lower bound on the Special's and not the number.
+   *
+   * Optional because rounds saved before this shipped do not have it. A grid
+   * rebuilt from one of those omits the pantry column rather than printing a
+   * denominator it made up.
+   */
+  ingredientCount?: number;
 }
 
 export interface Stats {

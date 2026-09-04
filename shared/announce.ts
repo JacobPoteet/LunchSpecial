@@ -13,7 +13,7 @@
  * hold. Nothing here reads the target dish — the same rule the board follows.
  */
 
-import type { AttributeFeedback, GuessFeedback, MatchLevel } from "./types";
+import type { AttributeFeedback, DrinkAttributeFeedback, DrinkGuessFeedback, GuessFeedback, MatchLevel } from "./types";
 
 /**
  * The verdict, in words. Also what the tiles carry in their own hidden text
@@ -97,4 +97,60 @@ export function guessAnnouncement(input: {
  */
 export function clueAnnouncement(index: number, text: string): string {
   return `Clue ${index}: ${text}`;
+}
+
+// ---- After Dark ----
+//
+// The bar's board changes in the same three places and needs the same two
+// sentences. Two of the four tiles differ, the noun is a drink rather than a
+// dish, and the paper is a coaster rather than a ticket -- so the wording is
+// its own fold rather than a parameterised version of the one above, which
+// would have ended up taking a label table, a noun and a verb to save eight
+// lines.
+
+/** Tile order on the bar's board, left to right. */
+const DRINK_ATTRIBUTES: Array<[keyof DrinkAttributeFeedback, string]> = [
+  ["country", "country"],
+  ["spirit", "base spirit"],
+  ["temperature", "served"],
+  ["profile", "profile"],
+];
+
+/**
+ * One Nightcap guess, as a sentence.
+ *
+ * Says "the Nightcap", never the drink's name on a win beyond the one already
+ * guessed -- the same rule the board follows, and the reason a screen reader
+ * user hears exactly what a sighted player sees.
+ */
+export function drinkGuessAnnouncement(input: {
+  guess: DrinkGuessFeedback;
+  ingredientCount: number;
+  guessNumber: number;
+  maxGuesses: number;
+}): string {
+  const { guess, ingredientCount, guessNumber, maxGuesses } = input;
+  const name = guess.drink.name;
+  if (guess.correct) {
+    return `${name} is tonight's Nightcap. Solved in ${count(guessNumber, "guess", "guesses")}.`;
+  }
+
+  const tiles = DRINK_ATTRIBUTES.map(([key, label]) => {
+    const cell = guess.attributes[key];
+    return `${label} ${MATCH_WORDS[cell.match]}`;
+  }).join(", ");
+
+  const remaining = maxGuesses - guessNumber;
+  const tail = remaining === 0 ? "No guesses left." : `${count(remaining, "guess", "guesses")} left.`;
+
+  return (
+    `Guess ${guessNumber} of ${maxGuesses}: ${name}. ` +
+    `${guess.matchedIngredients.length} of ${ingredientCount} ingredients match. ` +
+    `${tiles}. ${tail}`
+  );
+}
+
+/** The coaster, announced on its own once it has slid across the bar. */
+export function coasterAnnouncement(index: number, text: string): string {
+  return `Coaster ${index}: ${text}`;
 }

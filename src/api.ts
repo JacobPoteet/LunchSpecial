@@ -199,6 +199,13 @@ export function beaconStart(b: {
   // A random (Chef's Choice) round's dish is picked from this seed; the server
   // resolves it so the admin feed can name the dish (it's never in the schedule).
   seed?: string;
+  /**
+   * The device's UTC offset in minutes, east-positive. Nightcaps only, and the
+   * only beacon field that is a fact about the player's clock rather than about
+   * the game — the bar's window is local, so without it the hour profile is
+   * noise. Re-validated server-side; see migrations/0041.
+   */
+  tzOffset?: number;
 }): void {
   beacon("/api/rounds/start", b);
 }
@@ -212,6 +219,8 @@ export function beaconComplete(b: {
   guesses: number;
   solved: boolean;
   seed?: string;
+  /** See beaconStart. */
+  tzOffset?: number;
 }): void {
   beacon("/api/rounds/complete", b);
 }

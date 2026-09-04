@@ -47,7 +47,11 @@ describe("the SFX registry", () => {
   // the music is just permanently quieter and the dip stops meaning anything.
   it("reserves ducking for the moments that matter", () => {
     const ducks = NAMES.filter((n) => SFX[n].duck);
-    expect(ducks.sort()).toEqual(["receipt-print", "round-lost", "win-bell"]);
+    // Five, and each one ends a round or changes the room: the check printing,
+    // running out, the bell, the pour that is the bar's bell, and the lights
+    // going down on the way to it. Anything smaller than that stays out —
+    // a list that grows is the bed getting permanently quieter.
+    expect(ducks.sort()).toEqual(["lights-out", "pour", "receipt-print", "round-lost", "win-bell"]);
   });
 
   // The one deliberate alias: the call site says what happened, the loader

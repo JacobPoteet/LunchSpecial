@@ -12,6 +12,7 @@ import {
   type LocalClock,
 } from "./night";
 import { NIGHT_EPOCH_DATE } from "./types";
+import { addDays } from "./time";
 
 /**
  * A local wall clock, built by hand. Every test here states an hour and a
@@ -131,9 +132,10 @@ describe("nightNumber", () => {
 
   it("counts nights, not lunches", () => {
     // Deliberately its own epoch: numbering the first Nightcap off the lunch
-    // count would claim nights that never happened.
-    expect(nightNumber("2026-09-12")).toBe(2);
-    expect(nightNumber("2026-10-11")).toBe(31);
+    // count would claim nights that never happened. Written relative to the
+    // epoch so moving it (which launch day will) doesn't redden this.
+    expect(nightNumber(addDays(NIGHT_EPOCH_DATE, 1))).toBe(2);
+    expect(nightNumber(addDays(NIGHT_EPOCH_DATE, 30))).toBe(31);
   });
 });
 
@@ -155,7 +157,12 @@ describe("isPlayableNight", () => {
   });
 
   it("refuses nights before the bar existed", () => {
-    expect(isPlayableNight("2026-09-10", "2026-09-11")).toBe(false);
+    // The epoch must sit on or before launch day for exactly this reason: a
+    // future one closes the bar completely, which is what a launch-dated epoch
+    // did in testing.
+    const before = addDays(NIGHT_EPOCH_DATE, -1);
+    expect(isPlayableNight(before, NIGHT_EPOCH_DATE)).toBe(false);
+    expect(isPlayableNight(NIGHT_EPOCH_DATE, NIGHT_EPOCH_DATE)).toBe(true);
   });
 
   it("refuses anything that isn't a date", () => {

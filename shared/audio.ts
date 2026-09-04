@@ -49,7 +49,14 @@ export type SfxName =
   | "option-tick" // arrow-keying through the dish list
   | "new-day-bell" // a new Special went up while the tab sat open
   | "share-success" // the check went to the clipboard or the channel
-  | "error"; // the kitchen is closed, or a guess failed
+  | "error" // the kitchen is closed, or a guess failed
+  // After Dark. Named for what happens, not what it sounds like, exactly as
+  // above -- `coaster-slide` shares a file with `ticket-print` today and the
+  // day it stops sharing one is the day the call sites need to already be
+  // saying different things.
+  | "lights-out" // the diner dims and the neon comes up
+  | "coaster-slide" // a coaster comes across the bar
+  | "pour"; // the winning drink goes into the glass
 
 export interface SfxSpec {
   /** Filename inside `src/assets/sfx/`. */
@@ -94,6 +101,9 @@ export const SFX: Record<SfxName, SfxSpec> = {
   "option-tick": { file: "option-tick.wav", gain: 0.25 },
   "new-day-bell": { file: "win-bell.wav", gain: 0.8 },
   "share-success": { file: "share-success.wav", gain: 0.6 },
+  "lights-out": { file: "lights-out.wav", gain: 0.7, duck: true },
+  "coaster-slide": { file: "ticket-print.wav", gain: 0.6 },
+  "pour": { file: "pour.wav", gain: 0.85, duck: true },
   error: { file: "error.wav", gain: 0.5 },
 };
 
@@ -276,6 +286,14 @@ export interface ArcInput {
   hasClue: boolean;
   /** Overridable only so the tests don't have to track {@link TILE_COUNT}. */
   tiles?: number;
+  /**
+   * The bar's arc rather than the diner's. Same shape and the same timings --
+   * the tiles flip on the same dial, because it is the same board with the
+   * lights off -- swapping only the two sounds that name a piece of the
+   * fiction: a coaster slides where a ticket prints, and a drink is poured
+   * where the service bell rings.
+   */
+  night?: boolean;
 }
 
 /**
@@ -293,6 +311,8 @@ export function guessArc(input: ArcInput): ArcStep[] {
   const tiles = input.tiles ?? TILE_COUNT;
   const steps: ArcStep[] = [];
 
+  const night = input.night === true;
+
   if (input.correct) steps.push({ sfx: "guess-correct", delayMs: 0, rate: 1 });
 
   for (let i = 0; i < tiles; i++) {
@@ -303,12 +323,12 @@ export function guessArc(input: ArcInput): ArcStep[] {
     });
   }
 
-  if (input.correct) steps.push({ sfx: "win-bell", delayMs: WIN_BELL_MS, rate: 1 });
+  if (input.correct) steps.push({ sfx: night ? "pour" : "win-bell", delayMs: WIN_BELL_MS, rate: 1 });
 
   steps.push({ sfx: "chip-land", delayMs: CHIP_LAND_MS, rate: 1 });
 
   if (input.lost) steps.push({ sfx: "round-lost", delayMs: ROUND_LOST_MS, rate: 1 });
-  if (input.hasClue) steps.push({ sfx: "ticket-print", delayMs: TICKET_MS, rate: 1 });
+  if (input.hasClue) steps.push({ sfx: night ? "coaster-slide" : "ticket-print", delayMs: TICKET_MS, rate: 1 });
 
   return steps.sort((a, b) => a.delayMs - b.delayMs);
 }

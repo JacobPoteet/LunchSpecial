@@ -52,6 +52,15 @@
      --cream, which is what the admin clue-budget warning needs. */
   --mustard-ink: #8a5a12;
 
+  /* Text on the two attribute tiles that carry a solid fill. These were literal
+     hexes inside game.css and GamePage's legend, which is precisely how both
+     earlier AA failures happened -- and it would have happened a third time
+     under After Dark, where --ink is a pale cream that reads 1.9:1 on mustard.
+     Naming them is what let the night palette be *measured* rather than hoped
+     at: on-hit/hit is 5.05 and on-near/near is 7.24 in both themes. */
+  --on-hit: #fff;
+  --on-near: #2b2320;
+
   --font-display: "Alfa Slab One", "Arial Black", sans-serif;
   --font-script: "Yellowtail", "Brush Script MT", cursive;
   --font-body: Georgia, "Times New Roman", serif;
@@ -104,4 +113,67 @@ select {
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ---- After Dark ----
+ *
+ * The bar is a token swap, not a second stylesheet. Every component below this
+ * file inherits it and none of them needed touching, which is the whole reason
+ * the theme is done this way -- there is no bar-specific copy of a guess row,
+ * so the two boards cannot drift.
+ *
+ * Scoped to an attribute stamped on <html> by BarScene, deliberately not to a
+ * media query. This is a place in the game, not a device preference: a player
+ * on a dark-mode phone is not at the bar, and a player at the bar in daylight
+ * is.
+ *
+ * Every pair here was measured rather than picked (WCAG AA, 4.5:1 for text):
+ *
+ *   ink / paper            14.07      on-hit / hit          5.05
+ *   ink-soft / paper        7.33      on-near / near        7.24
+ *   hit-ink / hit-soft      8.28      ink-soft / miss-soft  6.59
+ *   on-cherry / cherry      6.03      mustard-ink / paper  10.20
+ *   teal / paper            6.82      ink / cream          15.20
+ *
+ * --hit is deliberately UNCHANGED from the daytime value. A lighter green
+ * separated better from the dark card but dropped white text under 4.5, and the
+ * tile's text is the part that has to be readable -- the fill is the fast
+ * channel, never the only one (the glyph and the hidden word carry it too).
+ */
+:root[data-after-dark] {
+  --cream: #17120e;
+  --paper: #201a15;
+  --paper-edge: #453629;
+  --ink: #f2e7d5;
+  --ink-soft: #b6a793;
+  --teal: #4fb3a5;
+  --teal-dark: #0d1f1d;
+  /* The accent swaps cherry for the neon out front. Cherry on a dark ground is
+     a bruise; the sign is the one thing in the room that is supposed to glow. */
+  --cherry: #ff5f7a;
+  --cherry-dark: #c9354a;
+  --mustard: #e8a53a;
+  --chrome: #55606a;
+
+  --hit: #2e7d4f;
+  --hit-soft: #16301f;
+  --near: #e8a53a;
+  --near-soft: #33260f;
+  --miss: #6b6055;
+  --miss-soft: #2a231d;
+
+  --hit-ink: #7fd8a0;
+  --on-cherry: #2b1016;
+  --mustard-ink: #f0c069;
+  --on-hit: #fff;
+  --on-near: #2b2320;
+
+  --shadow-card: 0 18px 60px rgba(0, 0, 0, 0.7);
+}
+
+/* The page behind the card. Set here rather than left to body's --teal-dark so
+   the swap covers the whole viewport the instant the attribute lands, including
+   the strip below a short board. */
+:root[data-after-dark] body {
+  background: var(--cream);
 }

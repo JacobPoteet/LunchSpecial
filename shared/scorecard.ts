@@ -19,8 +19,8 @@
 // barred. Tile colours and counts are safe; they say how it went, not what it
 // was.
 
-import type { GuessFeedback, MatchLevel } from "./types";
-import { MAX_GUESSES } from "./types";
+import type { DrinkGuessFeedback, GuessFeedback, MatchLevel } from "./types";
+import { DRINK_MAX_GUESSES, MAX_GUESSES } from "./types";
 
 /** One guess: how its four attributes landed, and how much of the pantry it hit. */
 export interface ScorecardRow {
@@ -35,8 +35,17 @@ export interface ScorecardRow {
   correct: boolean;
 }
 
+/**
+ * Which room the card was drawn in. The drawing reads it for its palette; the
+ * fold reads it for the title. Two values rather than a boolean because a card
+ * is a picture of a place and "not day" is not a place.
+ */
+export type ScorecardTheme = "day" | "night";
+
 /** Everything the card puts on screen. No field is free text. */
 export interface Scorecard {
+  /** Palette to draw it in. See {@link ScorecardTheme}. */
+  theme: ScorecardTheme;
   /** The diner's name, not the dish's. */
   title: string;
   /** "No. 26 · 4/6" — which Special, and how it went. */
@@ -50,6 +59,7 @@ export interface Scorecard {
 export const SCORECARD_FOOTER = "lunchspecial.app";
 
 const TITLE = "Lunch Special";
+const NIGHT_TITLE = "After Dark";
 
 /**
  * The one line of text above the card in the channel.
@@ -89,12 +99,51 @@ export function buildScorecard(
   // same conditional presence.ts needs, for the same reason.
   const subtitle = puzzleNumber > 0 ? `No. ${puzzleNumber} · ${score}` : score;
   return {
+    theme: "day",
     title: TITLE,
     subtitle,
     rows: guesses.map((g) => {
       const a = g.attributes;
       return {
         tiles: [a.country.match, a.course.match, a.temperature.match, a.protein.match],
+        pantry: g.correct ? "" : `${g.matchedIngredients.length}/${ingredientCount}`,
+        correct: g.correct,
+      };
+    }),
+    footer: SCORECARD_FOOTER,
+  };
+}
+
+/**
+ * The same card for a Nightcap.
+ *
+ * A sibling rather than a parameter on the one above, because the two take
+ * different feedback shapes: two of the four tiles are different attributes.
+ * Everything the card actually shows is identical in structure, which is why
+ * one `Scorecard` type serves both and only `theme` tells the drawing apart.
+ *
+ * The same rule governs it as governs presence and the text grid: **it never
+ * names the drink.** A card lands in a channel where most people have not
+ * played tonight, and "No. 12 · 3/4" says how it went without saying what it
+ * was.
+ */
+export function buildNightScorecard(
+  nightNumber: number,
+  guesses: DrinkGuessFeedback[],
+  won: boolean,
+  ingredientCount: number,
+  maxGuesses: number = DRINK_MAX_GUESSES,
+): Scorecard {
+  const score = won ? `${guesses.length}/${maxGuesses}` : `X/${maxGuesses}`;
+  const subtitle = nightNumber > 0 ? `Night ${nightNumber} · ${score}` : score;
+  return {
+    theme: "night",
+    title: NIGHT_TITLE,
+    subtitle,
+    rows: guesses.map((g) => {
+      const a = g.attributes;
+      return {
+        tiles: [a.country.match, a.spirit.match, a.temperature.match, a.profile.match],
         pantry: g.correct ? "" : `${g.matchedIngredients.length}/${ingredientCount}`,
         correct: g.correct,
       };

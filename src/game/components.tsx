@@ -2,7 +2,7 @@
 // autocomplete input, modal shell, countdown.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { DishSummary, GuessFeedback, MatchLevel } from "../../shared/types";
+import type { DishSummary, DrinkGuessFeedback, DrinkSummary, GuessFeedback, MatchLevel } from "../../shared/types";
 import { MATCH_MARKS, MATCH_WORDS } from "../../shared/announce";
 import { gameToday, hms, msUntilGameMidnight } from "../../shared/time";
 import { playSfx, setMuffled } from "../audio";
@@ -325,16 +325,26 @@ export function ClueTicket({ index, text }: { index: number; text: string }) {
   );
 }
 
-export function GuessInput({
+/**
+ * The order bar. Takes anything with an id and a name, so the diner passes
+ * dishes and the bar passes drinks — the search, the hand-drawn listbox and the
+ * keyboard handling are identical and there was never a reason for two of them.
+ * Which pool it is given is the caller's business, and the pools never mix.
+ */
+export function GuessInput<T extends { id: number; name: string }>({
   dishes,
   excludeIds,
   disabled,
   onGuess,
+  placeholder = "Order a dish… (type to search)",
+  label = "Guess a dish",
 }: {
-  dishes: DishSummary[];
+  dishes: T[];
   excludeIds: Set<number>;
   disabled: boolean;
-  onGuess: (dish: DishSummary) => void;
+  onGuess: (dish: T) => void;
+  placeholder?: string;
+  label?: string;
 }) {
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
@@ -375,7 +385,7 @@ export function GuessInput({
     }
   }, [disabled]);
 
-  const pick = (dish: DishSummary) => {
+  const pick = (dish: T) => {
     setText("");
     setOpen(false);
     interacted.current = true;
@@ -390,8 +400,8 @@ export function GuessInput({
           type="text"
           value={text}
           disabled={disabled}
-          placeholder="Order a dish… (type to search)"
-          aria-label="Guess a dish"
+          placeholder={placeholder}
+          aria-label={label}
           autoCapitalize="off"
           autoCorrect="off"
           onChange={(e) => {
@@ -543,5 +553,102 @@ export function Countdown({ compact }: { compact?: boolean }) {
         {h}:{m}:{secs}
       </strong>
     </p>
+  );
+}
+
+// ---- After Dark ----
+//
+// The bar's board reuses every class the diner's does, because the theme is a
+// token swap and not a second stylesheet: a guess row is a guess row with the
+// lights off. What differs is the two middle tiles and the paper the clue
+// arrives on.
+
+const DRINK_ATTR_LABELS = ["Country", "Spirit", "Served", "Profile"];
+
+export function DrinkGuessRow({
+  guess,
+  drink,
+  ingredientCount,
+}: {
+  guess?: DrinkGuessFeedback;
+  drink?: DrinkSummary;
+  ingredientCount: number;
+}) {
+  // Same optimistic row as the diner's: the order goes in immediately with
+  // placeholder tiles so the drop-in never waits on the network, and the parent
+  // swaps the filled guess onto the SAME element by key so it doesn't replay.
+  if (!guess) {
+    return (
+      <div className="guess-row guess-row--pending">
+        <p className="guess-row__name">
+          <span className="guess-row__dish">{drink?.name}</span>
+          <span className="leader" aria-hidden="true" />
+          <span className="guess-row__count">asking the bar…</span>
+        </p>
+        <div className="attr-tiles">
+          {DRINK_ATTR_LABELS.map((label) => (
+            <div key={label} className="attr-tile attr-tile--pending">
+              <span className="attr-tile__label">{label}</span>
+              <span className="attr-tile__value">·&nbsp;·&nbsp;·</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  const a = guess.attributes;
+  return (
+    <div className={guess.correct ? "guess-row guess-row--correct" : "guess-row"}>
+      <p className="guess-row__name">
+        <span className="guess-row__dish">
+          {guess.correct ? "🍸 " : ""}
+          {guess.drink.name}
+        </span>
+        <span className="leader" aria-hidden="true" />
+        <span className="guess-row__count">
+          {guess.matchedIngredients.length}/{ingredientCount} ingredients
+        </span>
+      </p>
+      <div className="attr-tiles">
+        <AttrTile label="Country" value={a.country.value} match={a.country.match} index={0} />
+        {/* A spiritless drink says so in the tile rather than showing "none",
+            which reads as missing data on a row where every other cell is a
+            value. It is a value: two mocktails match each other. */}
+        <AttrTile
+          label="Spirit"
+          value={a.spirit.value === "none" ? "no spirit" : a.spirit.value}
+          match={a.spirit.match}
+          index={1}
+        />
+        <AttrTile label="Served" value={a.temperature.value} match={a.temperature.match} index={2} />
+        <AttrTile label="Profile" value={a.profile.value} match={a.profile.match} index={3} />
+      </div>
+      <div className="chips">
+        {guess.matchedIngredients.map((ing, i) => (
+          <span key={ing} className="chip chip--match" style={{ "--i": i } as React.CSSProperties}>
+            ✓ {ing}
+          </span>
+        ))}
+        {guess.unmatchedIngredients.map((ing, i) => (
+          <span
+            key={ing}
+            className="chip chip--matchless"
+            style={{ "--i": guess.matchedIngredients.length + i } as React.CSSProperties}
+          >
+            {ing}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** A coaster slid across the bar. The bar's clue ticket. */
+export function Coaster({ index, text }: { index: number; text: string }) {
+  return (
+    <div className="ticket ticket--coaster">
+      <p className="ticket__head">On the house — coaster #{index}</p>
+      <p className="ticket__text">{text}</p>
+    </div>
   );
 }

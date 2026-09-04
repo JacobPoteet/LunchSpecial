@@ -79,8 +79,16 @@ export const DRINK_CLUE_COUNT = 3;
  */
 export const NIGHT_REPEAT_WINDOW_DAYS = 21;
 
-/** Night #1. Its own epoch: the bar opened long after the diner did. */
-export const NIGHT_EPOCH_DATE = "2026-09-11";
+/**
+ * Night #1. Its own epoch: the bar opened long after the diner did, and
+ * numbering the first Nightcap off the lunch count would claim nights that
+ * never happened.
+ *
+ * It must be on or before the day After Dark ships. isPlayableNight refuses any
+ * night earlier than this, so an epoch dated into the future closes the bar
+ * completely — which is exactly what a launch-day date did in testing.
+ */
+export const NIGHT_EPOCH_DATE = "2026-09-03";
 
 /**
  * A drink's base spirit, and the tile that replaces `course` (every drink is
