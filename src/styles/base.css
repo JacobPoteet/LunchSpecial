@@ -25,6 +25,13 @@
   --mustard: #e8a53a;
   --chrome: #cfd8dc;
   --neon-pink: #ff5f7a;
+  /* After Dark's slot in the dashboard's *kind* palette, beside mustard, teal
+     and cherry. Not --neon-pink: the sign out front is meant to glow on a dark
+     board, and the same value on the admin's cream paper reads 2.67 and looks
+     like a highlighter. This reads 7.86 there, which sits it naturally between
+     cherry's 4.67 and teal's 8.45, and it is far enough round the wheel from
+     cherry to be told apart in a stacked bar. */
+  --plum: #7d2f5c;
 
   /* feedback */
   --hit: #2e7d4f;

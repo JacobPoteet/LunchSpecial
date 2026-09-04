@@ -713,7 +713,7 @@ app.delete("/announcements/:id", async (c) => {
 app.get("/dashboard", async (c) => {
   const today = serverToday();
   const tomorrow = addDays(today, 1);
-  const [todayRes, tomorrowRes, upcomingRes, dishesRes, noticeRes] = await c.env.DB.batch([
+  const [todayRes, tomorrowRes, upcomingRes, dishesRes, noticeRes, tonightRes] = await c.env.DB.batch([
     c.env.DB
       .prepare("SELECT s.dish_id, d.name FROM schedule s JOIN dishes d ON d.id = s.dish_id WHERE s.date = ?")
       .bind(today),
@@ -735,9 +735,15 @@ app.get("/dashboard", async (c) => {
            WHERE is_active = 1 AND end_date >= ? ORDER BY start_date, id`,
       )
       .bind(today),
+    // Tonight's pour. Keyed on the ET day, which is the admin's own night —
+    // see the note on AdminDashboard.tonight.
+    c.env.DB
+      .prepare("SELECT s.drink_id, d.name FROM drink_schedule s JOIN drinks d ON d.id = s.drink_id WHERE s.night = ?")
+      .bind(today),
   ]);
   const todayRow = todayRes.results[0] as { dish_id: number; name: string } | undefined;
   const tomorrowRow = tomorrowRes.results[0] as { dish_id: number; name: string } | undefined;
+  const tonightRow = tonightRes.results[0] as { drink_id: number; name: string } | undefined;
 
   const scheduledSet = new Set((upcomingRes.results as { date: string }[]).map((r) => r.date));
   let scheduledAhead = 0;
@@ -788,6 +794,7 @@ app.get("/dashboard", async (c) => {
   const dashboard: AdminDashboard = {
     today: { date: today, dishId: todayRow?.dish_id ?? null, dishName: todayRow?.name ?? null },
     tomorrow: { date: tomorrow, dishId: tomorrowRow?.dish_id ?? null, dishName: tomorrowRow?.name ?? null },
+    tonight: { night: today, drinkId: tonightRow?.drink_id ?? null, drinkName: tonightRow?.name ?? null },
     scheduledAhead,
     firstGap,
     liveAnnouncements,

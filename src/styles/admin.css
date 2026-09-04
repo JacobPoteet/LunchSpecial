@@ -394,7 +394,7 @@
 .kind-legend__dot--daily { background: var(--mustard); }
 .kind-legend__dot--leftover { background: var(--teal); }
 .kind-legend__dot--random { background: var(--cherry); }
-.kind-legend__dot--nightcap { background: var(--neon-pink); }
+.kind-legend__dot--nightcap { background: var(--plum); }
 
 .analytics-split {
   display: grid;
@@ -523,7 +523,7 @@
 .spark__seg--daily { background: var(--mustard); }
 .spark__seg--leftover { background: var(--teal); }
 .spark__seg--random { background: var(--cherry); }
-.spark__seg--nightcap { background: var(--neon-pink); }
+.spark__seg--nightcap { background: var(--plum); }
 
 .spark__tick {
   position: absolute;
@@ -757,7 +757,7 @@
 .hourly__seg--daily { background: var(--mustard); }
 .hourly__seg--leftover { background: var(--teal); }
 .hourly__seg--random { background: var(--cherry); }
-.hourly__seg--nightcap { background: var(--neon-pink); }
+.hourly__seg--nightcap { background: var(--plum); }
 
 /* Hours today hasn't reached yet. Empty because they haven't happened, not
    because nobody played — the tick fades so the eye stops reading them as data. */
@@ -3231,7 +3231,7 @@
 .night-hours__bar {
   width: 100%;
   min-height: 1px;
-  background: var(--neon-pink);
+  background: var(--plum);
   border-radius: 2px 2px 0 0;
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import * as api from "./api";
-import type { AdminDashboard, AnalyticsSummary, DashboardSpecial } from "../../shared/types";
+import type { AdminDashboard, AnalyticsSummary, DashboardSpecial, NightEntry } from "../../shared/types";
 import { PLAYTIME_CAP_MINUTES } from "../../shared/types";
 import { gameHour, hms, msUntilGameMidnight } from "../../shared/time";
 import type { AdminView } from "./AdminApp";
@@ -382,6 +382,59 @@ function TodaysSpecial({
  *    the gap the panel is warning about — and the count it reports afterwards is
  *    how much of the unserved catalogue is left to roll through.
  */
+/**
+ * Tonight's Nightcap, beside today's Special.
+ *
+ * The After Dark tab owns the bar's numbers; this card exists because "what is
+ * on tonight" is a *today* question, and the Today tab is where you look when
+ * you want to know what players are getting right now. It is the same shape as
+ * the Special card above it, deliberately — two things are on today, and they
+ * should read as two of a kind.
+ *
+ * Test pour is the only way past the clock in production, which is exactly why
+ * it is here: the bar is open seven hours a night and "does tonight's pour look
+ * right" is a two-in-the-afternoon question.
+ */
+function TonightsNightcap({ tonight }: { tonight: NightEntry }) {
+  const [error, setError] = useState<string | null>(null);
+
+  const testPour = async () => {
+    setError(null);
+    try {
+      const { url } = await api.createNightPreview(tonight.night);
+      window.open(url, "_blank", "noopener");
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
+  return (
+    <section className="panel">
+      <h2>Tonight's Nightcap</h2>
+      {tonight.drinkName ? (
+        <>
+          <p className="dash-big">{tonight.drinkName}</p>
+          <p className="dash-note">Pouring from 8pm, the player's own clock</p>
+        </>
+      ) : (
+        <>
+          <p className="dash-big">Nothing booked</p>
+          <p className="dash-note">
+            Players get the fallback pour tonight, which is a real drink and not an error — book one
+            on the nightly board, or test pour to see which one they're getting.
+          </p>
+        </>
+      )}
+      <div className="btn-row">
+        <button className="btn btn--ghost" onClick={() => void testPour()}>
+          Test pour ▶
+        </button>
+      </div>
+      {error && <p className="form-error">{error}</p>}
+    </section>
+  );
+}
+
 function TomorrowsSpecial({
   tomorrow,
   onNavigate,
@@ -560,6 +613,8 @@ export default function OverviewPanel({
           onOpenDish={onOpenDish}
           onShuffled={onTomorrowChange}
         />
+
+        <TonightsNightcap tonight={data.tonight} />
 
         <section className={lowSchedule ? "panel panel--warn" : "panel"}>
           <h2>Schedule health</h2>

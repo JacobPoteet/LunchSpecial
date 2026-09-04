@@ -12,7 +12,7 @@ import {
   type LocalClock,
 } from "./night";
 import { NIGHT_EPOCH_DATE } from "./types";
-import { addDays } from "./time";
+import { addDays, gameToday } from "./time";
 
 /**
  * A local wall clock, built by hand. Every test here states an hour and a
@@ -136,6 +136,25 @@ describe("nightNumber", () => {
     // epoch so moving it (which launch day will) doesn't redden this.
     expect(nightNumber(addDays(NIGHT_EPOCH_DATE, 1))).toBe(2);
     expect(nightNumber(addDays(NIGHT_EPOCH_DATE, 30))).toBe(31);
+  });
+});
+
+describe("NIGHT_EPOCH_DATE", () => {
+  // The one test here that reads a real clock, and deliberately so: it is not
+  // asserting a fold, it is asserting a fact about the repository that cannot
+  // be checked any other way.
+  //
+  // isPlayableNight refuses every night before the epoch, so an epoch dated
+  // into the future does not degrade the bar -- it closes it completely, for
+  // everyone, silently. That is not hypothetical: a launch-dated epoch did
+  // exactly this during development, and the symptom was a board that loaded
+  // and then said the bar was closed at nine at night.
+  //
+  // It cannot flake. A date already in the past stays in the past, so this only
+  // ever goes red for the person who just moved the epoch forward, which is
+  // precisely who needs to hear about it.
+  it("is never dated into the future, which would close the bar entirely", () => {
+    expect(NIGHT_EPOCH_DATE <= gameToday()).toBe(true);
   });
 });
 

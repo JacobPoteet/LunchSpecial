@@ -90,7 +90,7 @@ export const NIGHT_REPEAT_WINDOW_DAYS = 21;
  * night earlier than this, so an epoch dated into the future closes the bar
  * completely — which is exactly what a launch-day date did in testing.
  */
-export const NIGHT_EPOCH_DATE = "2026-09-03";
+export const NIGHT_EPOCH_DATE = "2026-09-04";
 
 /**
  * A drink's base spirit, and the tile that replaces `course` (every drink is
@@ -582,6 +582,15 @@ export interface DashboardAnnouncement {
 
 export interface AdminDashboard {
   today: DashboardSpecial;
+  /**
+   * Tonight's pour, beside today's Special.
+   *
+   * `night` is an ET day here, not a local night key. The admin is one person in
+   * one timezone asking "what is on tonight", and answering it in ET is the
+   * honest approximation — a player in Auckland is already on the next night,
+   * which the After Dark tab says out loud rather than pretending otherwise.
+   */
+  tonight: NightEntry;
   /** Tomorrow's booking — a null dishName means players would get the fallback pick. */
   tomorrow: DashboardSpecial;
   scheduledAhead: number;

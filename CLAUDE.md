@@ -220,7 +220,7 @@ The tab shares the **night's grid and the lunch grid above it**. It can, because
 - **`tz_offset` is the only beacon field that is a fact about the player's clock.** Without it the hour profile can only be drawn in ET, where every player's 9pm lands in a different bucket and the shape is noise. Coarser than the country already on every row; re-validated server-side like `source`, and an impossible offset is dropped to NULL — a gap reports as unmeasured, a bad value reports as a place nobody lives.
 - **The After Dark tab has no day picker.** The bar's unit is a local night; pointing an ET day picker at it would be the dashboard telling a small lie every time somebody used it.
 - **The crossover's denominator is devices that *finished* a Special**, not devices that visited, and it counts devices rather than rounds. One known gap, documented at the query: a player who starts *lunch* between midnight and 03:00 gets the Special dated D+1 while still being out on night D, so that pairing is missed. Closing it would mean pairing each night with two ET days, which double-counts the ordinary case to rescue the rare one.
-- **After Dark takes `--neon-pink` in the kind palette.** A fourth value inside an existing meaning, not a fifth meaning — the four palettes (kind, event, rank, annotation) are unchanged.
+- **After Dark takes `--plum` in the kind palette.** A fourth value inside an existing meaning, not a fifth meaning — the four palettes (kind, event, rank, annotation) are unchanged. Deliberately not `--neon-pink`, which is the sign out front: it is built to glow on a dark board and reads 2.67 on the admin's cream paper, where `--plum` reads 7.86.
 
 ### Testing the bar
 
@@ -557,7 +557,7 @@ Four things that hold regardless:
 - **Pool only. Never `INSERT INTO schedule`.** New dishes land in the active pool; `/admin` autofill assigns dates.
 - **Fan submissions** get `UPDATE dishes SET is_fan_submission = 1 WHERE slug IN (…)` in both files, keyed by slug. Leave the `INSERT INTO dishes` column lists alone — the column defaults to 0.
 
-**Adding drinks is the same job against the other catalogue**: one `drinks` row plus exactly 3 `drink_clues` rows, ≥3 ingredients, written against the coaster sheet above. Rows go in `seed/seed.sql` *and* an additive migration keyed by slug, INSERTs only, and **never a `drink_schedule` row**. Keep the pool inside the 55–75% alcoholic band the linter enforces — if a batch is all cocktails, it will fail CI, and correctly.
+**Adding drinks is the same job against the other catalogue, and it has its own skill: `create-drinks`.** One `drinks` row plus exactly 3 `drink_clues` rows, ≥3 ingredients, written against the coaster sheet in that skill's section 3 (the bartender's voice, the three beats, the budgets, and the fourteen rules — twelve of which the linter enforces). Rows go in `seed/seed.sql` *and* an additive migration keyed by slug, INSERTs only, and **never a `drink_schedule` row**. Keep the pool inside the 55–75% alcoholic band the linter enforces — if a batch is all cocktails, it will fail CI, and correctly.
 
 Finish with `npm test && npm run check`.
 
@@ -596,7 +596,7 @@ Target is WCAG 2.1 AA, scoped to the game. `/admin` is a password-gated single-u
 
 ## Documentation
 
-**The wiki is the only source of truth for documentation.** The repo carries agent instructions (this file), the beat sheet the clue linter enforces (`.claude/skills/create-dishes/SKILL.md`), the asset licence log (`ASSETS.md`), the landing page (`README.md`), and directory READMEs next to what they describe. Everything else — architecture, game design, interface, data, features, Discord, operations — is a wiki note.
+**The wiki is the only source of truth for documentation.** The repo carries agent instructions (this file), the two beat sheets the clue linter enforces (`.claude/skills/create-dishes/SKILL.md` and `.claude/skills/create-drinks/SKILL.md`), the asset licence log (`ASSETS.md`), the landing page (`README.md`), and directory READMEs next to what they describe. Everything else — architecture, game design, interface, data, features, Discord, operations — is a wiki note.
 
 - **Don't create a new top-level `.md` in the repo.** If a change wants one, it wants a wiki note. `ACCESSIBILITY.md` and `CLUES.md` were both folded into the wiki in Aug 2026 for exactly this reason
 - **Never write the wiki's file path into the repo.** Not in a comment, not in a doc, not in a commit message. Say "the wiki". The location is held in agent memory and in `.claude/wiki-path.local`, which `.gitignore` already covers via `*.local`
