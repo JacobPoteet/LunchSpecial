@@ -35,12 +35,20 @@ export interface ShufflePick {
   name: string;
 }
 
-/** Every active, schedulable dish that has never held a schedule row, id-ordered. */
-export function unservedDishes(rows: ShuffleDishRow[]): ShufflePick[] {
+/**
+ * Every active, schedulable dish that has never held a schedule row, id-ordered.
+ *
+ * `requiredClues` is 5 for a dish and 3 for a drink (After Dark books its nights
+ * off the same fold). It is a parameter rather than two copies of this function
+ * because point 2 above -- never offer something the write would refuse -- is
+ * the part that has to stay true for both, and a forked copy is where that
+ * stops being true.
+ */
+export function unservedDishes(rows: ShuffleDishRow[], requiredClues = 5): ShufflePick[] {
   return rows
     .filter((d) => {
       if (d.ever_scheduled) return false;
-      if (d.clue_count !== 5) return false;
+      if (d.clue_count !== requiredClues) return false;
       let ingredients: unknown;
       try {
         ingredients = JSON.parse(d.ingredients);

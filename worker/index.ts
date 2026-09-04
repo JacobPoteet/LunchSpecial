@@ -5,6 +5,7 @@ import { Hono } from "hono";
 import adminRoutes from "./routes/admin";
 import analyticsRoutes from "./routes/analytics";
 import discordRoutes from "./routes/discord";
+import nightcapRoutes from "./routes/nightcap";
 import publicRoutes from "./routes/public";
 import statsRoutes from "./routes/stats";
 
@@ -19,6 +20,9 @@ app.route("/api/admin", adminRoutes);
 app.route("/api/rounds", analyticsRoutes);
 // OAuth token exchange for the Discord Activity's Rich Presence. See routes/discord.ts.
 app.route("/api/discord", discordRoutes);
+// After Dark, the bar half of the game. Its own router because it shares no
+// table, clue count or guess ceiling with the daily — and above all no pool.
+app.route("/api/night", nightcapRoutes);
 app.route("/api/stats", statsRoutes);
 app.route("/api", publicRoutes);
 

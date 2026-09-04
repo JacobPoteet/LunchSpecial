@@ -67,6 +67,13 @@ export const DRINK_MAX_GUESSES = 4;
 /** Coasters per drink, one per miss. Beats 1-3 of the drinks beat sheet. */
 export const DRINK_CLUE_COUNT = 3;
 
+/**
+ * Autofill skips a drink poured within this many nights. The dish board uses 60;
+ * the bar holds 40 drinks against the kitchen's several hundred, so a 60-night
+ * window would leave autofill with nothing to place inside a month.
+ */
+export const NIGHT_REPEAT_WINDOW_DAYS = 21;
+
 /** Night #1. Its own epoch: the bar opened long after the diner did. */
 export const NIGHT_EPOCH_DATE = "2026-09-11";
 
@@ -162,6 +169,80 @@ export interface RevealInfo {
   isFanSubmission: boolean;
 }
 
+// ---- After Dark: the drink shapes ----
+//
+// Deliberately parallel to the dish shapes rather than shared with them. Two of
+// the four attributes differ, the clue count differs, and the guess pool is a
+// different table — a union type here would push a discriminant check into
+// every consumer to save four interfaces.
+
+export interface DrinkSummary {
+  id: number;
+  name: string;
+}
+
+export interface Drink {
+  id: number;
+  name: string;
+  slug: string;
+  country: string;
+  region: Region;
+  spirit: Spirit;
+  temperature: Temperature;
+  profile: Profile;
+  ingredients: string[];
+  /** Stored, not derived from `spirit` — see the column comment in 0039. */
+  isAlcoholic: boolean;
+  isActive: boolean;
+  isFanSubmission: boolean;
+}
+
+/** A drink's four tiles, the bar's answer to {@link AttributeFeedback}. */
+export interface DrinkAttributeFeedback {
+  country: { value: string; match: MatchLevel };
+  spirit: { value: Spirit; match: MatchLevel };
+  temperature: { value: Temperature; match: MatchLevel };
+  profile: { value: Profile; match: MatchLevel };
+}
+
+export interface DrinkGuessFeedback {
+  correct: boolean;
+  drink: DrinkSummary;
+  matchedIngredients: string[];
+  unmatchedIngredients: string[];
+  attributes: DrinkAttributeFeedback;
+  /** Revealed after an incorrect guess (guesses 1–3). */
+  coaster?: { index: number; text: string };
+}
+
+/**
+ * Tonight's Nightcap, as the board needs it before the first guess.
+ *
+ * `night` is the LOCAL night key the client asked for, echoed back so the round
+ * and its localStorage slot agree on which night this is even if the player
+ * crosses midnight mid-round.
+ */
+export interface NightcapInfo {
+  night: string;
+  nightNumber: number;
+  maxGuesses: number;
+  ingredientCount: number;
+}
+
+export interface NightcapReveal {
+  id: number;
+  name: string;
+  country: string;
+  region: Region;
+  spirit: Spirit;
+  temperature: Temperature;
+  profile: Profile;
+  isAlcoholic: boolean;
+  ingredients: string[];
+  coasters: string[];
+  isFanSubmission: boolean;
+}
+
 // ---- Admin API shapes ----
 
 export interface AdminDishRow extends Dish {
@@ -202,6 +283,44 @@ export interface ScheduleEntry {
   date: string;
   dishId: number | null;
   dishName: string | null;
+}
+
+// ---- Admin: the back bar ----
+
+export interface AdminDrinkRow extends Drink {
+  coasterCount: number;
+  /** Most recent night on or before tonight, or null if never poured. */
+  lastPoured: string | null;
+  /** Earliest night after tonight, or null if nothing is booked. */
+  nextBooked: string | null;
+  timesPoured: number;
+  /** Meets booking requirements: >= 3 ingredients and exactly 3 coasters. */
+  pourable: boolean;
+}
+
+export interface AdminDrinkDetail extends Drink {
+  coasters: string[];
+}
+
+export interface AdminDrinkInput {
+  name: string;
+  country: string;
+  region: Region;
+  spirit: Spirit;
+  temperature: Temperature;
+  profile: Profile;
+  ingredients: string[];
+  isAlcoholic: boolean;
+  isActive: boolean;
+  isFanSubmission: boolean;
+  coasters: string[];
+}
+
+/** One night of the bar's board. A null drink runs on the fallback pick. */
+export interface NightEntry {
+  night: string;
+  drinkId: number | null;
+  drinkName: string | null;
 }
 
 /** What a player submits when suggesting a dish for the menu. */
