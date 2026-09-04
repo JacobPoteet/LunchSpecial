@@ -2575,31 +2575,51 @@ textarea.dish-request__input {
 
 /* ---- the room ---- */
 
-/* The same room with the lights off. The backdrop stays and goes DOWN rather
-   than away: deleting it made the bar a flat colour field, which reads as a
-   page whose art failed to load rather than as a place. Two more stops of
-   exposure, most of the colour drained, and a touch more blur, so the diner is
-   still legible behind the card and stops competing with it. */
+/* The same room with the lights off. The art stays and goes DOWN rather than
+   away: it is the diner after hours, not a different building.
+
+   Measured off the image itself rather than guessed. Raw, it averages
+   luminance 92 / saturation 34; the daytime treatment lands it at 66 / 18.
+   This lands at ~36 / 9 before the scrim below, which puts it just under the
+   card's ~35 once that scrim is on. The first attempt at this used
+   `saturate(0.42)` and drained it to 3.8 — technically dark, and the reason it
+   read as a black rectangle rather than as a room. Keeping the colour is what
+   makes it recognisably the same place, so the brightness does the dimming and
+   the saturation is barely touched. The sepia warms what is left toward
+   tungsten, since the lights that are still on in here are not daylight. */
 .scene--bar::before {
-  filter: blur(3px) brightness(0.3) saturate(0.42);
+  filter: blur(3px) brightness(0.4) saturate(0.8) sepia(0.18);
 }
 
 /* The daytime vignette clears to nothing at the centre. This one dims the
    centre too, so the card sits in a pool of light instead of on an evenly lit
-   wall, and it warms from teal toward the near-black of the room. */
+   wall, and it warms from teal toward the tungsten of the room. Kept off the
+   floor deliberately — pushed any harder it takes back the colour the filter
+   above exists to keep. */
 .scene--bar::after {
   background: radial-gradient(
     ellipse 120% 90% at 50% 30%,
-    rgba(20, 16, 14, 0.34) 30%,
-    rgba(13, 10, 9, 0.72) 72%,
-    rgba(7, 5, 4, 0.9) 100%
+    rgba(22, 17, 14, 0.28) 30%,
+    rgba(14, 11, 9, 0.68) 72%,
+    rgba(8, 6, 5, 0.88) 100%
   );
 }
 
-/* The marquee is left alone on purpose. `.marquee__script` is already a neon
-   sign: a near-white hot core inside a pink halo, which is what neon actually
-   looks like. Recolouring it to flat cherry made it dimmer and less like a
-   tube, so the bar just inherits it. */
+/* The sign out front, turned up.
+   `.marquee__script` is already built like neon — a near-white hot core inside
+   a pink halo — so the bar does not RECOLOUR it; flat cherry made it dimmer and
+   less like a tube. It adds light instead: a white core stop and two more halo
+   stops falling off further. This is the one thing in the room that is meant to
+   be brighter at night than it is at lunch. */
+.marquee--bar .marquee__script {
+  color: #fff2f5;
+  text-shadow:
+    0 0 4px #ffffff,
+    0 0 11px rgba(255, 95, 122, 1),
+    0 0 26px rgba(255, 95, 122, 0.9),
+    0 0 56px rgba(255, 95, 122, 0.75),
+    0 0 104px rgba(255, 95, 122, 0.45);
+}
 
 .menu-card--bar {
   border-color: var(--paper-edge);

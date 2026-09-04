@@ -76,12 +76,22 @@ export default function App() {
     );
   }
 
-  if (room === "bar") return <NightPage onLeave={leaveBar} />;
-
+  // The backdrop's URL is a hashed asset path, so it can only reach CSS from
+  // here. It wraps BOTH rooms deliberately: the bar is the same room with the
+  // lights off, and `.scene--bar::before` dims and desaturates this exact image
+  // rather than replacing it. Returning NightPage outside this div is what made
+  // the bar a flat black field — `var(--scene-art)` resolved to nothing, so
+  // there was no picture left for the filter to act on.
   return (
     <div style={{ ["--scene-art" as string]: `url(${sceneUrl})` }}>
-      <GamePage onEnterBar={enterBar} />
-      {room === "dimming" && <LightsOut />}
+      {room === "bar" ? (
+        <NightPage onLeave={leaveBar} />
+      ) : (
+        <>
+          <GamePage onEnterBar={enterBar} />
+          {room === "dimming" && <LightsOut />}
+        </>
+      )}
     </div>
   );
 }

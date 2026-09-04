@@ -145,7 +145,7 @@ No OAuth scopes, all no-ops off Discord.
 
 ## After Dark
 
-A second daily puzzle behind the first: one **drink** a night, **4 guesses**, **3 coasters**, between **20:00 and 03:00 on the player's own clock**. The lights go down, the palette swaps, and it's gone by morning. `docs/index.html` owns the vocabulary — the *Nightcap* (Night #N), a *coaster* (the bar's clue ticket), the *tab* (the bar's check).
+A second daily puzzle behind the first: one **drink** a night, **4 guesses**, **3 coasters**, between **20:00 and 03:00 on the player's own clock**. The lights go down, the palette swaps, and it's gone by morning. `docs/index.html` owns the vocabulary — the *Nightcap* (Night #N), a *coaster* (the bar's clue ticket), the *tab* (the bar's check), and *Libations* (the card heading, where the diner's says Today's Menu). **After Dark is the mode, not the menu**: it names the glowing marquee and nothing else on the board, because a heading that repeats the sign two inches under it is a heading doing no work.
 
 ### The clock is the only genuinely new idea
 

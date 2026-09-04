@@ -451,7 +451,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
         {pinned && <p className="preview-banner">Playtest — pinned to “{pinned}”, nothing is saved</p>}
 
         <div className="menu-card__header">
-          <h2 className="menu-card__title">After Dark</h2>
+          <h2 className="menu-card__title">Libations</h2>
           <p className="menu-card__meta">
             {info && info.nightNumber > 0 ? <>Night No. {info.nightNumber} — </> : null}
             {nightDateLabel(night)}
