@@ -2102,9 +2102,8 @@ app.put("/nights", async (c) => {
 /**
  * Fill empty nights in the next 30 with least-recently-poured drinks.
  *
- * The repeat window is NIGHT_REPEAT_WINDOW_DAYS rather than the dish board's 60:
- * the bar holds 40 drinks against the kitchen's several hundred, and a 60-day
- * window would leave autofill with nothing to place inside a month.
+ * The repeat window is NIGHT_REPEAT_WINDOW_DAYS rather than the dish board's 60.
+ * See the constant: it was forced when the bar held 40 drinks and is headroom now.
  */
 app.post("/nights/autofill", async (c) => {
   const today = serverToday();

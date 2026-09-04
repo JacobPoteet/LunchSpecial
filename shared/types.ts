@@ -75,9 +75,11 @@ export const DRINK_MAX_GUESSES = 4;
 export const DRINK_CLUE_COUNT = 3;
 
 /**
- * Autofill skips a drink poured within this many nights. The dish board uses 60;
- * the bar holds 40 drinks against the kitchen's several hundred, so a 60-night
- * window would leave autofill with nothing to place inside a month.
+ * Autofill skips a drink poured within this many nights. The dish board uses 60.
+ * The bar was set to 21 when it held 40 drinks, where a 60-night window would
+ * have left autofill nothing to place inside a month. The pool is 100 now, so
+ * the number is headroom rather than a forced choice; it stays until a night
+ * board actually wants the wider gap.
  */
 export const NIGHT_REPEAT_WINDOW_DAYS = 21;
 
