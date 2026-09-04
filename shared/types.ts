@@ -47,6 +47,55 @@ export const MAX_GUESSES = 6;
 /** Date of puzzle #1. */
 export const EPOCH_DATE = "2026-07-17";
 
+// ---- After Dark ----
+//
+// The bar's half of the game: one drink a night, four guesses, three coasters,
+// between 20:00 and 03:00 on the player's own clock. The clock itself is
+// shared/night.ts; these are the numbers the rest of the codebase needs.
+
+/**
+ * Guesses on a Nightcap. Four, not six — a shorter round is most of what makes
+ * the mode feel like a different game rather than lunch with the lights off.
+ *
+ * MAX_GUESSES stays the validators' ceiling, so nothing that accepts a guess
+ * count needs to know which mode it came from. What must never happen is the
+ * two being *pooled*: a "won in 4" out of six and a "won in 4" out of four are
+ * different achievements, and any aggregate touching guesses splits on kind.
+ */
+export const DRINK_MAX_GUESSES = 4;
+
+/** Coasters per drink, one per miss. Beats 1-3 of the drinks beat sheet. */
+export const DRINK_CLUE_COUNT = 3;
+
+/** Night #1. Its own epoch: the bar opened long after the diner did. */
+export const NIGHT_EPOCH_DATE = "2026-09-11";
+
+/**
+ * A drink's base spirit, and the tile that replaces `course` (every drink is
+ * the same course, so the tile said nothing).
+ *
+ * `none` carries alcoholic-vs-not for free on the board: a mocktail is spirit
+ * `none`. It does NOT mean non-alcoholic — beer and wine are their own values —
+ * which is why {@link Drink.isAlcoholic} is stored rather than derived.
+ */
+export const SPIRITS = [
+  "gin",
+  "whiskey",
+  "rum",
+  "tequila",
+  "vodka",
+  "brandy",
+  "wine",
+  "beer",
+  "none",
+  "other",
+] as const;
+export type Spirit = (typeof SPIRITS)[number];
+
+/** How it drinks. Replaces `protein`, which no drink has. */
+export const PROFILES = ["sweet", "sour", "bitter", "strong", "creamy"] as const;
+export type Profile = (typeof PROFILES)[number];
+
 export interface DishSummary {
   id: number;
   name: string;
