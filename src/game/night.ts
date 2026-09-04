@@ -6,14 +6,7 @@
 // __BUILD__ global.
 
 import { useEffect, useState } from "react";
-import {
-  barIsOpen,
-  localClock,
-  msUntilLastCall,
-  msUntilOpen,
-  nightKey,
-  nightNumber,
-} from "../../shared/night";
+import { barIsOpen, localClock, msUntilLastCall, msUntilOpen, nightKey } from "../../shared/night";
 import { devIgnoresBarHours } from "./devHarness";
 
 export { BAR_CLOSE_HOUR, BAR_OPEN_HOUR, nightNumber } from "../../shared/night";
@@ -57,12 +50,6 @@ export function untilLastCall(): number {
  */
 export function tzOffsetMinutes(): number {
   return -new Date().getTimezoneOffset();
-}
-
-/** "Night No. 12" for the board, or an empty string for an unnumbered round. */
-export function nightLabel(night: string): string {
-  const n = nightNumber(night);
-  return n > 0 ? `Night No. ${n}` : "";
 }
 
 /**

@@ -52,7 +52,7 @@ import {
   type NightRoundState,
   type NightStats,
 } from "./storage";
-import { currentNight, nightDateLabel, tzOffsetMinutes, untilLastCall, untilOpen } from "./night";
+import { currentNight, isBarOpen, nightDateLabel, tzOffsetMinutes, untilLastCall, untilOpen } from "./night";
 import { puzzleNumberFor } from "./archive";
 import { devIgnoresBarHours } from "./devHarness";
 import { localToday } from "../api";
@@ -219,7 +219,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   // The two gates, read once at mount. `barOpen` is deliberately not live: a
   // player admitted at 02:59 keeps their round, because last call is a door and
   // not a timer. The countdown on the closed sign is the live half.
-  const [barOpen] = useState(() => ignoreHours || isPreview || untilOpen() === 0);
+  const [barOpen] = useState(() => ignoreHours || isPreview || isBarOpen());
   const [lunchDone] = useState(
     () => ignoreHours || isPreview || loadRound(localToday()).status !== "playing",
   );
