@@ -43,11 +43,11 @@ npm run db:migrate && npm run db:seed
 npm run dev                          # game at :5173/, admin at :5173/admin
 ```
 
-`.dev.vars` holds **Worker** secrets; client build-time vars (currently `VITE_DISCORD_CLIENT_ID`) go in a gitignored `.env.local`, modelled on `.env.example`. You need neither to play the game locally. `npm test` runs the unit tests, `npm run check` typechecks everything.
+`.dev.vars` holds **Worker** secrets; client build-time vars (currently `VITE_DISCORD_CLIENT_ID`) go in a gitignored `.env.local`, modelled on `.env.example`. You need neither to play the game locally. `npm test` runs the unit tests, `npm run check` typechecks everything, and `npm run a11y` runs axe over the running game (it needs `npm run dev` alongside it, and it plays a round first, because the tiles and chips don't exist on an empty board).
 
 ### Debug / testing options
 
-Ways to poke at the game without editing the schedule or touching your saved stats. The first five are things you type at a local dev server; the last is a button in the admin that also works against production:
+Ways to poke at the game without editing the schedule or touching your saved stats. All but the last are things you type at a local dev server; the last is a button in the admin that also works against production:
 
 | Option | What it does |
 |---|---|
@@ -56,14 +56,18 @@ Ways to poke at the game without editing the schedule or touching your saved sta
 | `npm run ramen` | The same thing pinned to **one named dish** (Ramen) instead of a random one, for playtesting a specific board, and the finished-round screen, over and over. |
 | `?special=<slug>` | The pinned-dish mode by URL (e.g. `http://localhost:5173/play?special=pho`). Any active dish's slug works; add another `npm run <dish>` script for one you reach for often. |
 | `npm run admin` | Starts the dev server and opens **`/admin`** straight at the login, skipping the game. |
-| `npm run lastcall` | **The After Dark hand-off.** Seeds a finished, won Special from the real reveal endpoint, so the page opens on the check with the bar's invite already live. Pressing it runs the real lights-out sweep into a real Nightcap. |
-| `npm run afterdark` | Straight into a Nightcap with the opening hours ignored, for working on the bar's board at two in the afternoon. |
-| `npm run negroni` | The same pinned to **one named drink**, the bar's answer to `npm run ramen`. `?nightcap=<slug>` by URL. |
+| `npm run lastcall` | **The After Dark hand-off.** Seeds a finished, won Special from the real reveal endpoint, so the page opens on the check with the bar's invite already live. Pressing it runs the real lights-out sweep into a Nightcap on a **random drink**. |
+| `npm run afterdark` | Straight into a Nightcap on a **random drink**, opening hours ignored, for working on the bar's board at two in the afternoon. |
+| `npm run negroni` | The same pinned to **one named drink**, the bar's answer to `npm run ramen`. |
+| `?nightcap=<slug>` | The pinned-drink mode by URL (e.g. `http://localhost:5173/?bar=1&nightcap=sidecar`). `?nightcap=random` rolls a new one on every load, which is what makes the hand-off re-testable: a rolled pour saves nothing, so a restarted dev server never hands back the board you just played. |
+| `?barhours=off` | Ignores the 20:00–03:00 window and the finish-lunch gate on any bar URL. |
 | **Test play ▶** (in `/admin`) | Not a URL you type: a button that mints a signed 24-hour link to the real game, pinned to today's Special (dashboard), a booked day (schedule) or the dish you're editing. It's the door for rehearsing something *already on the menu*, and because the link is signed it's the only one of these that works on a deployed site — records nothing either way, see [Admin panel](#admin-panel-admin). |
 
 A random round sends a seed the API maps to one active dish, so the round holds still and a new seed rolls another. That's the same spoiler-free **Chef's Choice** mode players get in production (never touches the schedule, saves no stats). `?special=<slug>` takes the roll out and names the dish outright, and it's the most throwaway mode of the lot: no localStorage, no lifetime stats, no analytics, honoured by the client in dev only. It exists to rehearse the **end of a round**, so it comes dressed as the daily right down to the check, countdown and share button, with the top banner as the only tell.
 
-The three After Dark entrances exist because the bar is only open 20:00–03:00 on your own clock, and a mode you can only work on after eight at night is a mode that doesn't get worked on. They are dev-only and compiled out of production builds; the one way past the clock on a deployed site is the signed **Test pour** link in the admin's Bar section.
+The After Dark entrances exist because the bar is only open 20:00–03:00 on your own clock, and a mode you can only work on after eight at night is a mode that doesn't get worked on. They are dev-only and compiled out of production builds; the one way past the clock on a deployed site is the signed **Test pour** link in the admin's Bar section.
+
+`random` is resolved on the **client**, which picks a slug out of the drinks pool and hands the ordinary pinned-drink path a real one. The API never learns a random branch, because one drink a night with no archive is the shape of the mode and a branch that exists for testing is a branch that eventually ships.
 
 ## Deploying to Cloudflare
 
