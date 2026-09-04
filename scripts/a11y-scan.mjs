@@ -42,7 +42,7 @@ const FATAL = new Set(["serious", "critical"]);
 const TARGET_SLUG = "ramen";
 const WRONG_GUESS = "Spaghetti Carbonara";
 
-/** The same, for After Dark. `?barhours=off` is what makes it reachable at noon. */
+/** The same, for After Dark. `handoff=1` is what makes it reachable at noon. */
 const TARGET_DRINK = "negroni";
 const WRONG_POUR = "Margarita";
 
@@ -103,7 +103,10 @@ const SCANS = [
   {
     name: "bar, mid-round (night palette, tiles, coaster)",
     async setup(page) {
-      await page.goto(`${BASE}/?bar=1&barhours=off&nightcap=${TARGET_DRINK}`, {
+      // `handoff=1` seeds a finished Special and waives the clock. Both are
+      // needed: the bar's door is a real gate, so `barhours=off` alone now
+      // lands on "Kitchen first" rather than the board.
+      await page.goto(`${BASE}/?bar=1&handoff=1&nightcap=${TARGET_DRINK}`, {
         waitUntil: "domcontentloaded",
       });
       await page.waitForSelector(BAR_INPUT);
@@ -120,10 +123,20 @@ const SCANS = [
     },
   },
   {
-    name: "the bar's closed sign",
+    name: "the bar's closed sign (hours, or the door)",
     async setup(page) {
-      // Without the dev override, and outside opening hours this is what a
-      // player meets. It carries a live countdown and two colours of its own.
+      // What a player meets at the bar without a way in. Which of the two signs
+      // renders depends on the clock — "the bar's closed" outside opening
+      // hours, "Kitchen first" inside them with lunch unplayed — and they are
+      // the same component with different copy, so either is a valid scan.
+      //
+      // The lunch round is cleared first, which is what makes this
+      // deterministic. Without it, a CI run that happened to start between
+      // 20:00 and 03:00 UTC found the bar open AND lunch finished by the states
+      // above, went straight to the board, and timed out waiting for a sign
+      // that was never going to appear.
+      await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
+      await page.evaluate(() => localStorage.removeItem("lunch-special:round"));
       await page.goto(`${BASE}/?bar=1`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector(".closed--bar");
     },

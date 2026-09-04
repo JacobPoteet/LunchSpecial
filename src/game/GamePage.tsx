@@ -25,6 +25,7 @@ import { currentNight, useBarInvite, type BarInvite } from "./night";
 import { useCheckOpening } from "./roundLifecycle";
 import { visitSource } from "./attribution";
 import { currentSurface, surfaceUrl } from "../discord/bootstrap";
+import { devUrl } from "./devHarness";
 import { setPresence } from "../discord/presence";
 import { publishProgress, resetProgress } from "../discord/progress";
 import { canShareToChannel, shareToChannel } from "../discord/share";
@@ -745,9 +746,15 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // only change by going to the bar, which unmounts this page.
   const playedTonight = useMemo(() => nightRoundFinished(currentNight()), []);
   const invite = useBarInvite(playedTonight);
-  // Only ever offered off a finished daily. Not on a Leftover, a Chef's Choice
-  // or a preview: those are side doors, and the bar's own door is the check.
+  // The BAND is the hand-off, so it belongs to the daily's check and nowhere
+  // else: a Leftover or a Chef's Choice is a side door, and offering the bar at
+  // the end of one would be offering it off a round that isn't today's.
   const barInvite: BarInvite = isDaily && dailyDone ? invite : "none";
+  // The PILL is navigation, so it belongs anywhere a player who has already
+  // finished lunch might be standing — including a Leftover, where the bar was
+  // otherwise two hops away (back to today, then the pill). `tracked` keeps it
+  // off a preview and a playtest, which are rehearsals and not rounds.
+  const barPill: BarInvite = tracked && dailyDone ? invite : "none";
 
   // ---- Notices from the kitchen ----
   //
@@ -811,10 +818,10 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // Navigation between modes is URL-driven (the app has no router). Every hop
   // goes through surfaceUrl() so a Discord Activity keeps its iframe params —
   // otherwise the new URL loses `frame_id` and the round logs as a web play.
-  const goToday = useCallback(() => window.location.assign(surfaceUrl("/")), []);
-  const goRandom = useCallback(() => window.location.assign(surfaceUrl("/?random")), []);
+  const goToday = useCallback(() => window.location.assign(surfaceUrl(devUrl("/"))), []);
+  const goRandom = useCallback(() => window.location.assign(surfaceUrl(devUrl("/?random"))), []);
   const openArchiveDate = useCallback(
-    (d: string) => window.location.assign(surfaceUrl(d === today ? "/" : `/?date=${d}`)),
+    (d: string) => window.location.assign(surfaceUrl(devUrl(d === today ? "/" : `/?date=${d}`))),
     [today],
   );
 
@@ -1141,7 +1148,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
             {/* A returning player who finished lunch at noon shouldn't have to
                 reopen their check to find the bar. Only while it's actually
                 open — a pill that explains itself is a band, not a pill. */}
-            {(barInvite === "open" || barInvite === "settled") && (
+            {(barPill === "open" || barPill === "settled") && (
               <button
                 className="icon-btn icon-btn--bar"
                 onClick={() => { playSfx("ui-click"); onEnterBar(); }}

@@ -37,6 +37,37 @@ export function devIgnoresBarHours(): boolean {
 }
 
 /**
+ * The dev-only flags, carried across an in-app navigation.
+ *
+ * The game has no router, so every mode switch assigns a fresh URL and the
+ * query string goes with it. That is precisely the problem `surfaceUrl` exists
+ * to solve for Discord's iframe params, and the dev flags have it for the same
+ * reason and with the same shape of symptom: leaving the bar dropped
+ * `?barhours=off`, so the diner recomputed the clock, decided the bar was shut,
+ * and offered no way back in. Untestable during the day, which is the only time
+ * anyone is testing.
+ *
+ * Params already on `url` win, so a caller can still override one. Production
+ * returns the url untouched — every flag here is behind `import.meta.env.DEV`,
+ * so the whole body folds away.
+ */
+const CARRIED = ["barhours", "handoff", "nightcap"] as const;
+
+export function devUrl(url: string): string {
+  if (!import.meta.env.DEV) return url;
+  const here = params();
+  const carried = new URLSearchParams();
+  for (const key of CARRIED) {
+    const value = here.get(key);
+    if (value !== null) carried.set(key, value);
+  }
+  if ([...carried].length === 0) return url;
+  const [path, query] = url.split("?");
+  if (query) for (const [key, value] of new URLSearchParams(query)) carried.set(key, value);
+  return `${path}?${carried.toString()}`;
+}
+
+/**
  * Put a finished, won Special in localStorage so the page opens on the check.
  *
  * The winning guess is the *real* Special, fetched from the same reveal

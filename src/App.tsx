@@ -3,6 +3,7 @@ import GamePage from "./game/GamePage";
 import NightPage from "./game/NightPage";
 import LightsOut, { LIGHTS_OUT_MS, prefersReducedMotion } from "./game/LightsOut";
 import { surfaceUrl } from "./discord/bootstrap";
+import { devUrl } from "./game/devHarness";
 import sceneUrl from "./assets/art/diner-backdrop.png";
 
 const AdminApp = lazy(() => import("./admin/AdminApp"));
@@ -32,40 +33,53 @@ export default function App() {
   // behind the admin branch's early return.
   const [room, setRoom] = useState<Room>(() => (urlWantsBar() ? "bar" : "diner"));
 
-  // Mirror the room into the URL without a history entry, so a reload lands
-  // where the player was. Deliberately replaceState rather than a navigation:
-  // navigating would unmount the whole app and lose the sweep, which is the one
-  // thing the transition exists to show.
+  // Back and forward. The bar is one history entry past the diner (see
+  // openBar), so the browser's own back gesture is a real way out of it — which
+  // matters most on a phone, where it is the primary one and the game's main
+  // surface.
   useEffect(() => {
     if (isAdmin) return;
+    const onPop = () => setRoom(urlWantsBar() ? "bar" : "diner");
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [isAdmin]);
+
+  /**
+   * Arrive in the bar, and leave a way back.
+   *
+   * pushState, NOT replaceState. Replacing overwrote the diner's history entry,
+   * so pressing back from the bar skipped straight past the check to whatever
+   * preceded the game — on a fresh visit, off the site entirely. The URL still
+   * carries `bar=1` either way, so a reload lands where the player was.
+   */
+  const openBar = useCallback(() => {
     try {
       const url = new URL(window.location.href);
-      if (room === "bar") url.searchParams.set("bar", "1");
-      else if (room === "diner") url.searchParams.delete("bar");
-      else return; // mid-sweep: the URL follows the destination, not the journey
-      window.history.replaceState(null, "", url);
+      url.searchParams.set("bar", "1");
+      window.history.pushState(null, "", url);
     } catch {
-      // Non-fatal — a reload just lands in the diner.
+      // Non-fatal — the room still changes, a reload just lands in the diner.
     }
-  }, [room, isAdmin]);
+    setRoom("bar");
+  }, []);
 
   const enterBar = useCallback(() => {
     // A player who has asked for less motion gets the same destination with no
     // journey, rather than a shorter journey.
     if (prefersReducedMotion()) {
-      setRoom("bar");
+      openBar();
       return;
     }
     setRoom("dimming");
-    window.setTimeout(() => setRoom("bar"), LIGHTS_OUT_MS);
-  }, []);
+    window.setTimeout(openBar, LIGHTS_OUT_MS);
+  }, [openBar]);
 
   // Leaving is a plain navigation rather than a state flip. The diner has a
   // how-to, an archive, notices and a rollover watcher, all of which read their
   // world at mount — reusing a GamePage that has been sitting behind a modal
   // since 8pm would be the subtler of the two bugs.
   const leaveBar = useCallback(() => {
-    window.location.assign(surfaceUrl("/"));
+    window.location.assign(surfaceUrl(devUrl("/")));
   }, []);
 
   if (isAdmin) {

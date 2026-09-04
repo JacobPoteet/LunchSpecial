@@ -234,9 +234,13 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   // player admitted at 02:59 keeps their round, because last call is a door and
   // not a timer. The countdown on the closed sign is the live half.
   const [barOpen] = useState(() => ignoreHours || isPreview || isBarOpen());
-  const [lunchDone] = useState(
-    () => ignoreHours || isPreview || loadRound(localToday()).status !== "playing",
-  );
+  // Deliberately NOT bypassed by `?barhours=off`, which is about the clock. It
+  // used to be, and the cost was that the "Kitchen first" door could not be
+  // reached in dev at all — a state nobody can look at is a state nobody
+  // checks. `npm run lastcall` and `npm run afterdark` both seed a won Special,
+  // so the common case still lands on the board; clearing the lunch round is
+  // how you go and look at the door.
+  const [lunchDone] = useState(() => isPreview || loadRound(localToday()).status !== "playing");
 
   const lastCall = useCountdown(untilLastCall);
 
