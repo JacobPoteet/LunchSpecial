@@ -21,6 +21,7 @@ import AnnouncementModal from "./AnnouncementModal";
 import ArchiveModal from "./ArchiveModal";
 import { BuildTag } from "./BuildTag";
 import { dateLabel, isPastPuzzleDate } from "./archive";
+import { useCheckOpening } from "./roundLifecycle";
 import { visitSource } from "./attribution";
 import { currentSurface, surfaceUrl } from "../discord/bootstrap";
 import { setPresence } from "../discord/presence";
@@ -63,14 +64,6 @@ const SURFACE = currentSurface();
 function newSeed(): string {
   return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
-
-// The check doesn't slam into view the moment a round ends — Wordle's trick.
-// The board gets a beat to land first (the winning row's drop, the bell) with a
-// toast over it, then the receipt prints. Without the toast the pause just
-// reads as lag, so the two ship together. Keep WIN in sync with the
-// `win-toast` animation's total run time in game.css.
-const WIN_CHECK_DELAY_MS = 1700;
-const LOSS_CHECK_DELAY_MS = 800;
 
 /** Wordle's "Genius / Magnificent / …", in diner. Indexed by guess count. */
 const WIN_TOASTS = [
@@ -655,20 +648,15 @@ export default function GamePage() {
   const [pending, setPending] = useState<DishSummary | null>(null);
   const [showHowTo, setShowHowTo] = useState(() => !hasSeenHowTo());
   const [showStats, setShowStats] = useState(false);
-  const [showResult, setShowResult] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   // Unseen notices from the kitchen, oldest first, shown one after another.
   const [notices, setNotices] = useState<Announcement[]>([]);
   const [noticeIndex, setNoticeIndex] = useState(0);
-  // Win banner shown during the beat before the check opens.
-  const [toast, setToast] = useState<string | null>(null);
-  // Whether the check has already been auto-opened for this round, so closing it
-  // doesn't make it spring back.
-  const [checkOpened, setCheckOpened] = useState(false);
-  // A round that was already finished when the page loaded (restored from
-  // localStorage, or an archive day you've played) was celebrated on the day it
-  // was played — reopening it should be instant, not a victory lap.
-  const restoredFinished = useRef(round.status !== "playing");
+  // The end-of-round choreography — the beat before the check prints, the win
+  // toast over it, and the instant open for a round restored from storage.
+  // Shared with the bar; see src/game/roundLifecycle.ts.
+  const check = useCheckOpening(round.status, round.guesses.length, (n) => WIN_TOASTS[n - 1] ?? WIN_TOASTS[0]);
+  const { toast, showCheck: showResult, setShowCheck: setShowResult } = check;
   // When this sitting started, for the elapsed timer on a Discord profile. This
   // sitting, not the round: a board restored from localStorage was begun on a
   // page load we no longer have, and dating the timer to it would report hours.
@@ -778,13 +766,13 @@ export default function GamePage() {
     openedAt.current = Date.now(); // a fresh dish is a fresh sitting
     setReveal(null);
     setError(null);
-    setShowResult(false);
     // The next round is played fresh in this session, so it earns the full
     // toast-then-check treatment again.
-    setCheckOpened(false);
-    setToast(null);
-    restoredFinished.current = false;
+    check.reset();
     setDaily(null); // triggers a reload below with the new seed
+    // `check` is a stable bag of setters; keying on it would rebuild newGame
+    // every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
   useEffect(() => {
@@ -812,29 +800,6 @@ export default function GamePage() {
       fetchReveal(date, preview, random, playtest).then(setReveal).catch(() => {});
     }
   }, [round.status, reveal, date, preview, random, playtest]);
-
-  // Open the check once per round, after a beat so the finished board is the
-  // first thing you see. A win holds a toast through the pause; a loss just
-  // gets enough time for the last guess row to land.
-  useEffect(() => {
-    if (round.status === "playing" || checkOpened) return;
-    if (restoredFinished.current) {
-      setCheckOpened(true);
-      setShowResult(true);
-      return;
-    }
-    const won = round.status === "won";
-    if (won) setToast(WIN_TOASTS[round.guesses.length - 1] ?? WIN_TOASTS[0]);
-    const t = setTimeout(
-      () => {
-        setToast(null);
-        setCheckOpened(true);
-        setShowResult(true);
-      },
-      won ? WIN_CHECK_DELAY_MS : LOSS_CHECK_DELAY_MS,
-    );
-    return () => clearTimeout(t);
-  }, [round.status, round.guesses.length, checkOpened]);
 
   // Assign an anonymous analytics id once per round so start/complete/share
   // beacons can be linked. Every tracked kind gets one — daily, leftover, and
