@@ -86,3 +86,51 @@ export const CLUE_BEATS: readonly ClueBeat[] = [
 export function clueBeat(beat: number): ClueBeat | undefined {
   return CLUE_BEATS[beat - 1];
 }
+
+// ---- After Dark: the three coasters ----
+//
+// A Nightcap gives four guesses, so at most three misses, so three clues. That
+// is not the five-beat sheet with two beats deleted: five beats compressed into
+// three is a worse structure than three written as three, and the deletion
+// would have to fall on beat 2 or beat 4, which are the two that carry the most
+// weight.
+//
+// What the three do instead is fold origin and build into one middle beat. The
+// bar's whole register is shorter than the kitchen's -- a cook has forty
+// seconds, a bartender has the time it takes to pour -- so the middle coaster
+// is the only one allowed two sentences.
+
+export const COASTER_BEATS: readonly ClueBeat[] = [
+  {
+    beat: 1,
+    name: "The room",
+    job: "The region, and what kind of drink it is. Never the country.",
+    lo: 35,
+    hi: 70,
+    max: 85,
+    maxSentences: 1,
+  },
+  {
+    beat: 2,
+    name: "The pour",
+    job: "Who mixed it and what goes in the glass.",
+    lo: 65,
+    hi: 125,
+    max: 140,
+    maxSentences: 2,
+  },
+  {
+    beat: 3,
+    name: "Last call",
+    job: "The country, and what it looks like in front of you.",
+    lo: 45,
+    hi: 100,
+    max: 115,
+    maxSentences: 2,
+  },
+];
+
+/** The coaster table for `drink_clues.order_index` N, or undefined outside 1..3. */
+export function coasterBeat(beat: number): ClueBeat | undefined {
+  return COASTER_BEATS[beat - 1];
+}
