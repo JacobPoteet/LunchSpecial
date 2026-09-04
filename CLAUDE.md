@@ -166,6 +166,11 @@ Everything else in the game rolls over at midnight ET for everyone. After Dark d
 - It **fades in a beat after the check settles**, not with it. Someone reading their result gets to finish reading it; that delay is the difference between an offer and an interruption.
 - It **turns on live**: a player who finished at 19:58 with the check open sees it at 20:00 (`useBarInvite` polls, like `useNewDayAvailable`).
 - A **toolbar pill** on the board covers the returning player who finished lunch at noon and shouldn't have to reopen their check to find the bar.
+- **The band's flare lights its edges, never its fill.** A halo outside the border box, a lit
+  hairline inside it and a nudge on the arrow, one 2.6s beat, delayed past the entrance so the
+  two never overlap. A white sheen sweeping across the band was the first attempt and measured
+  `--on-cherry` at 3.68 while it crossed the text, down from 4.85 — a moving light over text is a
+  contrast change, same lesson as `--paper-sheen` below.
 - **`soon` is a sentence, not a disabled button.** There is nothing to press yet, and a control that becomes enabled in two hours is worse than a line of copy.
 - **Nothing about the bar happens until the band is pressed.** No auto-navigation, ever.
 

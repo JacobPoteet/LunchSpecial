@@ -378,7 +378,7 @@ function KitchenClosed({ detail, onRetry }: { detail: string | null; onRetry: ()
  *
  * 1. **It is never a fourth button in the replay row.** The check is the tallest
  *    card in the game at 375px and that row already holds up to three. This is
- *    its own band underneath, and it is quiet.
+ *    its own band underneath.
  * 2. **It fades in a beat after the check settles**, not with it. Someone
  *    reading their result should get to finish reading it; the animation's
  *    delay is what makes this an offer rather than an interruption.
@@ -387,6 +387,13 @@ function KitchenClosed({ detail, onRetry }: { detail: string | null; onRetry: ()
  *
  * `soon` is deliberately not a button. There is nothing to press yet, and a
  * disabled control that becomes enabled in two hours is worse than a sentence.
+ *
+ * The flare on it — the halo, the lit tube inside the edge, the arrow's nudge —
+ * is one 2.6s heartbeat shared by all three, starting only once the entrance
+ * has finished. It is the sign out front, shrunk to fit on a receipt: the bar
+ * is the one thing on this screen the player has not seen before, and a band
+ * that just sits there gets read as a footer. None of it touches the text's
+ * background, so the fill stays at its measured 4.85 for the whole cycle.
  */
 function BarBand({ invite, onEnter }: { invite: BarInvite; onEnter: () => void }) {
   if (invite === "none") return null;
@@ -405,10 +412,13 @@ function BarBand({ invite, onEnter }: { invite: BarInvite; onEnter: () => void }
           onEnter();
         }}
       >
-        <span className="bar-band__tag">🍸 {settled ? "Your tab is at the bar" : "The bar's open"}</span>
-        <span className="bar-band__sub">
-          {settled ? "Go back and take another look" : "One drink, four guesses, gone by morning"}
+        <span className="bar-band__text">
+          <span className="bar-band__tag">🍸 {settled ? "Your tab is at the bar" : "The bar's open"}</span>
+          <span className="bar-band__sub">
+            {settled ? "Go back and take another look" : "One drink, four guesses, gone by morning"}
+          </span>
         </span>
+        <span className="bar-band__arrow" aria-hidden="true">→</span>
       </button>
     </div>
   );

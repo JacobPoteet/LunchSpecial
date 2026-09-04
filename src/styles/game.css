@@ -2429,6 +2429,7 @@ textarea.dish-request__input {
 /* Its own band under the replay row, never a fourth button in it. The check is
    the tallest card in the game at 375px and that row already holds three. */
 .bar-band {
+  position: relative;
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1px dashed var(--paper-edge);
@@ -2436,6 +2437,25 @@ textarea.dish-request__input {
      their result gets to finish reading it; that delay is the difference
      between an offer and an interruption. */
   animation: bar-band-in 0.5s ease-out 1.1s both;
+}
+
+/* The halo, and the reason it hangs off the BAND rather than off the button:
+   an outer glow that breathes has to be an opacity animation on its own layer,
+   or it fights the button's own box-shadow, which :hover and :active both
+   rewrite. Only the spill renders — a non-inset box-shadow is clipped to
+   outside its box and this layer has no fill of its own — so it lights the
+   receipt around the door without touching a single pixel the text sits on. */
+.bar-band:not(.bar-band--soon)::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 11px;
+  bottom: 0;
+  border-radius: var(--radius);
+  box-shadow: 0 0 26px 4px rgba(255, 95, 122, 0.55);
+  pointer-events: none;
+  animation: bar-band-halo 2.6s ease-in-out 1.7s infinite backwards;
 }
 
 .bar-band--soon {
@@ -2457,7 +2477,10 @@ textarea.dish-request__input {
    now, louder than share, because share is a thing you already know how to
    want. */
 .bar-band__btn {
-  display: block;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
   border: none;
   border-radius: var(--radius);
@@ -2490,11 +2513,46 @@ textarea.dish-request__input {
     0 3px 14px rgba(255, 95, 122, 0.4);
 }
 
+/* The tube. A hot hairline just inside the dark outer ring, brightening on the
+   same beat as the halo — that pairing is what a lit sign looks like and a flat
+   fill does not. Inside the border box and behind nothing: it is a border on an
+   empty layer, so it can pulse without ever lightening the fill under the
+   words. That constraint is the whole design here — a white sheen sweeping
+   across the band was the first attempt and, measured, an 18% wipe drops
+   --on-cherry from 4.85 to 3.68 for as long as it is over the text. */
+.bar-band__btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--paper-bright);
+  border-radius: inherit;
+  opacity: 0.2;
+  pointer-events: none;
+  animation: bar-band-tube 2.6s ease-in-out 1.7s infinite backwards;
+}
+
+.bar-band__text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Says "this goes somewhere" without spending a word on it, and nudges on the
+   beat. aria-hidden: the two lines beside it already name the destination. */
+.bar-band__arrow {
+  flex: none;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--on-cherry);
+  animation: bar-band-arrow 2.6s ease-in-out 1.7s infinite;
+}
+
 .bar-band__tag {
   display: block;
   font-family: var(--font-display);
   font-size: 1rem;
   letter-spacing: 0.02em;
+  /* A dark shadow under light text, so it only ever raises contrast. */
+  text-shadow: 0 1px 0 var(--cherry-dark);
 }
 
 .bar-band__sub {
@@ -2517,6 +2575,40 @@ textarea.dish-request__input {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* One 2.6s heartbeat, three layers on it, all starting at 1.7s — after the
+   band's own entrance has finished, so the arrival and the pulse never overlap
+   and the flare reads as a sign switching on rather than as the page settling.
+   Nothing here moves the band's box: no layout, no reflow behind the check. */
+@keyframes bar-band-halo {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes bar-band-tube {
+  0%,
+  100% {
+    opacity: 0.18;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes bar-band-arrow {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: translateX(4px);
   }
 }
 
@@ -2802,9 +2894,23 @@ textarea.dish-request__input {
      shortened — App.tsx checks the same preference and goes straight there, so
      these two are the belt to that braces. */
   .bar-band,
+  .bar-band:not(.bar-band--soon)::after,
+  .bar-band__btn::before,
+  .bar-band__arrow,
   .lights-out__scrim,
   .lights-out__sign {
     animation: none !important;
+  }
+
+  /* The band keeps its flare, it just stops breathing: the halo and the tube
+     hold at the bright end of their cycle rather than switching off, since the
+     point of both is that the door is lit. */
+  .bar-band:not(.bar-band--soon)::after {
+    opacity: 0.7;
+  }
+
+  .bar-band__btn::before {
+    opacity: 0.5;
   }
 
   /* The panel still opens, it just snaps rather than sliding. */
