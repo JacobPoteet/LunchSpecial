@@ -310,7 +310,7 @@
   flex: 1;
   border: 2px solid var(--ink);
   border-radius: var(--radius);
-  background: #fffdf6;
+  background: var(--paper-bright);
   padding: 11px 14px;
   font-size: 1.05rem;
   color: var(--ink);
@@ -344,7 +344,7 @@
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: #fffdf6;
+  background: var(--paper-bright);
   border: 2px solid var(--ink);
   border-radius: var(--radius);
   max-height: 264px;
@@ -580,7 +580,7 @@
 
 .ticket {
   position: relative;
-  background: #fff;
+  background: var(--paper-bright);
   border-radius: 4px;
   box-shadow: 0 3px 10px rgba(20, 17, 16, 0.18);
   padding: 10px 14px 12px;
@@ -666,7 +666,7 @@
 }
 
 .modal--receipt {
-  background: #fffef9;
+  background: var(--paper-bright);
   border-radius: 4px;
   font-variant-numeric: tabular-nums;
 }
@@ -761,7 +761,7 @@
 .modal__footer {
   flex: 0 0 auto;
   padding: 12px 20px 16px;
-  background: #fffef9;
+  background: var(--paper-bright);
   border-top: 2px dashed var(--paper-edge);
   box-shadow: 0 -12px 20px -14px rgba(43, 35, 32, 0.5);
 }
@@ -1392,7 +1392,9 @@ textarea.dish-request__input {
 
 .preview-banner {
   background: var(--mustard);
-  color: var(--ink);
+  /* Not --ink: under After Dark that is a pale cream, and cream on mustard is
+     1.7:1. Same token and same reason as the near tile. */
+  color: var(--on-near);
   font-family: var(--font-display);
   font-size: 0.78rem;
   letter-spacing: 0.14em;
@@ -1658,7 +1660,7 @@ textarea.dish-request__input {
 }
 
 .archive-cal__swatch--unplayed {
-  background: #fffdf6;
+  background: var(--paper-bright);
 }
 
 /* The footer's rule and shadow do the separating now — a trailing margin here
@@ -1690,7 +1692,7 @@ textarea.dish-request__input {
   height: 32px;
   border: 1.5px solid var(--paper-edge);
   border-radius: 7px;
-  background: #fffdf6;
+  background: var(--paper-bright);
   color: var(--ink);
   font-family: var(--font-display);
   font-size: 1.1rem;
@@ -1735,7 +1737,7 @@ textarea.dish-request__input {
   height: 34px;
   border: 1.5px solid var(--paper-edge);
   border-radius: 7px;
-  background: #fffdf6;
+  background: var(--paper-bright);
   color: var(--ink);
   display: flex;
   flex-direction: column;

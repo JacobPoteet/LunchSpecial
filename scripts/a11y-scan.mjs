@@ -42,7 +42,12 @@ const FATAL = new Set(["serious", "critical"]);
 const TARGET_SLUG = "ramen";
 const WRONG_GUESS = "Spaghetti Carbonara";
 
+/** The same, for After Dark. `?barhours=off` is what makes it reachable at noon. */
+const TARGET_DRINK = "negroni";
+const WRONG_POUR = "Margarita";
+
 const INPUT = 'input[aria-label="Guess a dish"]';
+const BAR_INPUT = 'input[aria-label="Guess a drink"]';
 
 /**
  * The scans, in the order a player meets them. Each returns after leaving the
@@ -61,8 +66,12 @@ const SCANS = [
   {
     name: "board, before a guess",
     async setup(page) {
-      await page.click(".modal__close");
-      await page.waitForSelector('[role="dialog"]', { state: "detached" });
+      // Dismiss everything, not just the how-to. A live notice from the kitchen
+      // queues up behind it, so closing exactly one dialog leaves a dialog on
+      // screen and the wait below never resolves — which is a scan that fails
+      // on any day somebody has posted a note, and passes in CI because CI's
+      // database has none.
+      await closeAllModals(page);
       await page.waitForSelector(INPUT);
     },
   },
@@ -86,10 +95,47 @@ const SCANS = [
       await page.waitForSelector(".modal--receipt");
     },
   },
+  // After Dark runs the SAME components under a different palette, which is
+  // exactly why it has to be scanned rather than assumed: the whole night theme
+  // is a token swap, so every contrast pair in the game changes value at once
+  // and the only cheap way to know they all still clear is to measure them on
+  // the painted page.
+  {
+    name: "bar, mid-round (night palette, tiles, coaster)",
+    async setup(page) {
+      await page.goto(`${BASE}/?bar=1&barhours=off&nightcap=${TARGET_DRINK}`, {
+        waitUntil: "domcontentloaded",
+      });
+      await page.waitForSelector(BAR_INPUT);
+      await pour(page, WRONG_POUR);
+      await page.waitForSelector(".attr-tile--revealed");
+      await page.waitForSelector(".ticket--coaster");
+    },
+  },
+  {
+    name: "the tab (night game over)",
+    async setup(page) {
+      await pour(page, "Negroni");
+      await page.waitForSelector(".modal--receipt");
+    },
+  },
+  {
+    name: "the bar's closed sign",
+    async setup(page) {
+      // Without the dev override, and outside opening hours this is what a
+      // player meets. It carries a live countdown and two colours of its own.
+      await page.goto(`${BASE}/?bar=1`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector(".closed--bar");
+    },
+  },
   {
     name: "menu archive calendar",
     async setup(page) {
-      // Only reachable once a round is settled, which is why it comes last.
+      // Back to the diner, and only reachable once a round is settled — which
+      // it is, since the pinned round above finished it.
+      await page.goto(`${BASE}/?special=${TARGET_SLUG}`, { waitUntil: "domcontentloaded" });
+      await guess(page, "Ramen");
+      await page.waitForSelector(".modal--receipt");
       await page.click(".modal__close");
       await page.waitForSelector(".modal--receipt", { state: "detached" });
       await page.click('button:has-text("Menu archive")');
@@ -98,9 +144,34 @@ const SCANS = [
   },
 ];
 
+/**
+ * Close every open modal, in order, until none is left.
+ *
+ * The game queues them deliberately (the how-to, then any unseen notices, then
+ * an auto-opened check), so "close the dialog" is not a single action. Bounded
+ * rather than a while(true): if a modal ever fails to close, a hung scan is a
+ * worse failure than a loud one.
+ */
+async function closeAllModals(page) {
+  for (let i = 0; i < 6; i++) {
+    const open = await page.locator('[role="dialog"]').count();
+    if (open === 0) return;
+    await page.click(".modal__close");
+    await page.waitForTimeout(400); // the exit animation, plus the next one's entrance
+  }
+  throw new Error("modals kept reopening — something is queueing them without end");
+}
+
 /** Type a dish name, take the first autocomplete option, submit. */
 async function guess(page, name) {
   await page.fill(INPUT, name);
+  await page.waitForSelector(".guess-input__option");
+  await page.click(".guess-input__option >> nth=0");
+}
+
+/** The same at the bar. Different pool, same input. */
+async function pour(page, name) {
+  await page.fill(BAR_INPUT, name);
   await page.waitForSelector(".guess-input__option");
   await page.click(".guess-input__option >> nth=0");
 }

@@ -61,6 +61,14 @@
   --on-hit: #fff;
   --on-near: #2b2320;
 
+  /* The brightest stock in the diner: receipt paper, ticket paper, the fill of
+     an input, an unplayed calendar cell. It was three literals within one part
+     in 255 of each other (#fffdf6, #fffef9, #fff), which is imperceptible as a
+     difference and load-bearing as a theme: under After Dark those eight rules
+     kept painting a near-white ground while the ink above them went cream, and
+     the a11y scan reported them at 1.2:1. One token, measured in both rooms. */
+  --paper-bright: #fffdf6;
+
   --font-display: "Alfa Slab One", "Arial Black", sans-serif;
   --font-script: "Yellowtail", "Brush Script MT", cursive;
   --font-body: Georgia, "Times New Roman", serif;
@@ -167,6 +175,10 @@ select {
   --mustard-ink: #f0c069;
   --on-hit: #fff;
   --on-near: #2b2320;
+  /* Lifted off --paper rather than dropped below it: brighter stock stays
+     brighter, which is what makes a receipt read as a separate object on the
+     card behind it. --ink on this is 11.5:1. */
+  --paper-bright: #2a231d;
 
   --shadow-card: 0 18px 60px rgba(0, 0, 0, 0.7);
 }
