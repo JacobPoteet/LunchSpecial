@@ -54,6 +54,16 @@
   --hit-ink: #276843;
   --on-cherry: #fdf8ee;
 
+  /* The fill a cherry button takes under the pointer. Daytime this is
+     --cherry-dark and always was; it is a token because the direction is a
+     property of the THEME, not of the button. In the diner a press deepens the
+     colour, at the bar it brightens -- and reusing --cherry-dark there put
+     --on-cherry on 3.44:1 in every cherry hover the night theme owns, which is
+     how this arrived (a11y scan, the tab's share button under the cursor).
+     --cherry-dark keeps its other jobs, the card frame and the button lip,
+     where nothing sits on top of it. */
+  --cherry-hover: #8f1f2e;
+
   /* Third of the same kind: --mustard on cream is 1.9:1, so mustard can fill a
      shape but can never be small type. This reads 5.4 on --paper and 5.1 on
      --cream, which is what the admin clue-budget warning needs. */
@@ -203,6 +213,12 @@ select {
 
   --hit-ink: #7fd8a0;
   --on-cherry: #2b1016;
+  /* Up, not down. The daytime hover darkens cherry, which under this palette
+     lands on the OLD cherry (#c9354a, now --cherry-dark) and drops --on-cherry
+     to 3.44 -- a fail the moment a pointer rests on the tab's share button. A
+     lit sign gets brighter when you reach for it anyway: 7.56 on --on-cherry,
+     7.59 on --paper, 8.10 on --cream, so all three hover pairings clear. */
+  --cherry-hover: #ff8496;
   --mustard-ink: #f0c069;
   --on-hit: #fff;
   --on-near: #2b2320;
