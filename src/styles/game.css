@@ -183,8 +183,8 @@
 }
 
 .icon-btn:hover {
-  background: var(--cherry-dark);
-  border-color: var(--cherry-dark);
+  background: var(--cherry-hover);
+  border-color: var(--cherry-hover);
   color: var(--paper);
 }
 
@@ -212,8 +212,8 @@
 }
 
 .sound-btn:hover {
-  background: var(--cherry-dark);
-  border-color: var(--cherry-dark);
+  background: var(--cherry-hover);
+  border-color: var(--cherry-hover);
   color: var(--paper);
 }
 
@@ -1059,7 +1059,7 @@
 }
 
 .share-btn--primary:hover {
-  background: var(--cherry-dark);
+  background: var(--cherry-hover);
 }
 
 .share-btn--primary:active {
@@ -1557,7 +1557,7 @@ textarea.dish-request__input {
 }
 
 .newday-bar__btn:hover {
-  background: var(--cherry-dark);
+  background: var(--cherry-hover);
 }
 
 /* ---- kitchen's closed (initial load failed) ---- */
@@ -2659,7 +2659,7 @@ textarea.dish-request__input {
 
 .bar-return__btn:hover,
 .bar-return__btn:active {
-  background: var(--cherry-dark);
+  background: var(--cherry-hover);
   color: var(--cream);
 }
 
