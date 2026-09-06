@@ -16,6 +16,7 @@
 //    the intervals are the honest part.
 
 import { DRINK_MAX_GUESSES } from "../shared/types";
+import { BAR_CLOSE_HOUR, BAR_OPEN_HOUR } from "../shared/night";
 // The response shapes live in shared/types.ts like every other admin payload:
 // the app project cannot import from worker/, and the panel needs them.
 import type {
@@ -38,10 +39,17 @@ export interface NightRoundRow {
   /** Guesses used, or null on a round that never finished. */
   guesses: number | null;
   drink_id: number | null;
-  /** Minutes east of UTC, or null on a round recorded before it was collected. */
-  tz_offset: number | null;
-  /** UTC hour bucket the round started in, "YYYY-MM-DD HH". */
-  bucket: string;
+  /**
+   * The hour the player's own clock showed when the round started, 0-23, or
+   * null on a round recorded before `tz_offset` was collected.
+   *
+   * Computed in SQL from the full `started_at` and the stored offset, NOT here
+   * from a UTC hour bucket. The bucket cannot answer it: a UTC hour spans two
+   * different local hours in every half-hour zone (India +5:30, Nepal +5:45,
+   * Newfoundland -3:30, Chatham +12:45), so deriving the hour from the bucket
+   * put every one of those players an hour early, every time.
+   */
+  local_hour: number | null;
   n: number;
 }
 
@@ -51,9 +59,7 @@ export interface DrinkMetaRow {
   name: string;
   country: string;
   spirit: string;
-  profile: string;
   is_alcoholic: number;
-  times_poured: number;
 }
 
 /** Sum a field across grouped rows. */
@@ -61,20 +67,9 @@ function sum(rows: NightRoundRow[], pick: (r: NightRoundRow) => number): number 
   return rows.reduce((t, r) => t + pick(r), 0);
 }
 
-/**
- * The local hour a round started in.
- *
- * `bucket` is a UTC hour ("2026-09-04 23"); the offset is minutes east of UTC.
- * Offsets are not all whole hours (India is +330, Nepal +345), so this floors to
- * the hour the player's clock actually showed rather than rounding — 21:45 local
- * is the nine o'clock hour, not the ten.
- */
-export function localHourOf(bucket: string, tzOffset: number | null): number | null {
-  if (tzOffset === null || !Number.isFinite(tzOffset)) return null;
-  const utcHour = Number(bucket.slice(11, 13));
-  if (!Number.isInteger(utcHour)) return null;
-  const minutes = utcHour * 60 + tzOffset;
-  return ((Math.floor(minutes / 60) % 24) + 24) % 24;
+/** Whether a local hour falls inside the bar's own opening window. */
+function insideBarHours(hour: number): boolean {
+  return hour >= BAR_OPEN_HOUR || hour < BAR_CLOSE_HOUR;
 }
 
 export function foldNightReport(rows: NightRoundRow[], meta: DrinkMetaRow[]): NightReport {
@@ -82,6 +77,7 @@ export function foldNightReport(rows: NightRoundRow[], meta: DrinkMetaRow[]): Ni
   const dist = Array.from({ length: DRINK_MAX_GUESSES }, () => 0);
   const hours = Array.from({ length: 24 }, () => 0);
   let untrackedHour = 0;
+  let outsideHours = 0;
   let untrackedDrink = 0;
 
   const byDrink = new Map<number, NightDrinkRow>();
@@ -113,9 +109,17 @@ export function foldNightReport(rows: NightRoundRow[], meta: DrinkMetaRow[]): Ni
       if (r.guesses >= 1 && r.guesses <= DRINK_MAX_GUESSES) dist[r.guesses - 1] += r.n;
     }
 
-    const hour = localHourOf(r.bucket, r.tz_offset);
-    if (hour === null) untrackedHour += r.n;
-    else hours[hour] += r.n;
+    const hour = r.local_hour;
+    if (hour === null || !Number.isInteger(hour) || hour < 0 || hour > 23) {
+      untrackedHour += r.n;
+    } else {
+      hours[hour] += r.n;
+      // Started outside 20:00-03:00 on the player's own clock. The door cannot
+      // open then, so this is a wound-forward clock, a bad offset, or a round
+      // whose start beacon landed either side of the boundary — a count worth
+      // seeing rather than a shape worth explaining away.
+      if (!insideBarHours(hour)) outsideHours += r.n;
+    }
 
     const info = r.drink_id === null ? undefined : metaById.get(r.drink_id);
     if (!info) {
@@ -198,6 +202,7 @@ export function foldNightReport(rows: NightRoundRow[], meta: DrinkMetaRow[]): Ni
     guessDistribution: dist,
     hours,
     untrackedHour,
+    outsideHours,
     alcohol,
     drinks,
     untrackedDrink,
@@ -214,25 +219,38 @@ export interface CrossoverRow {
 }
 
 /**
- * The headline: of the devices that finished a Special, how many went on to the
- * bar that night.
+ * The headline: of the devices that could have gone to the bar, how many did.
  *
- * The denominator is devices that **finished lunch**, not devices that visited,
- * because finishing lunch is literally the door — everyone in the denominator
- * could have walked through it. That is the one thing the gate bought us
- * analytically, and it is why this number means something a funnel rung
- * normally cannot.
+ * Two things decide the denominator, and both of them are about ELIGIBILITY
+ * rather than about who happened to be around:
+ *
+ * 1. **Only nights the bar existed.** The caller narrows to
+ *    `play_date >= NIGHT_EPOCH_DATE` before this runs. Lunch has been served
+ *    since EPOCH_DATE and the bar opened weeks later; every device that
+ *    finished a Special in between is a device that could not have walked
+ *    through a door that was not there, and counting them was the single
+ *    biggest thing wrong with this number.
+ * 2. **Only nights that are over.** A device that finished lunch at noon today
+ *    is not a no-show at a bar that opens at eight. Nights from `openFrom`
+ *    forward are held out of the pooled rate and reported as `pending` — the
+ *    same censoring the retention curve does, for the same reason: a
+ *    denominator you are still filling drags every rate it touches downwards.
+ *
+ * Inside that window the denominator is devices that **finished lunch**, not
+ * devices that visited, because finishing lunch is literally the door. That is
+ * what the gate bought us analytically, and it is why this number means
+ * something a funnel rung normally cannot.
  *
  * Devices, not rounds. A player who opened the bar twice is one person who came
  * back for a drink, and rounds-per-device is a different question.
  *
  * A device that played the bar WITHOUT finishing lunch cannot exist through the
- * front door, but can exist in the data: an admin preview is untracked, but a
- * player who finished lunch on their phone and drank on their laptop is two
- * devices. Those land in `cameToBar` only if they also finished lunch, so the
- * rate can never exceed 100%.
+ * front door, but can exist in the data: a player who finished lunch on their
+ * phone and drank on their laptop is two devices. Those are counted apart as
+ * `barOnly` rather than being quietly dropped — a rising `barOnly` is the tell
+ * that the rate below is measuring devices where it means people.
  */
-export function foldCrossover(rows: CrossoverRow[]): Crossover {
+export function foldCrossover(rows: CrossoverRow[], openFrom: string): Crossover {
   const byDay = new Map<string, { lunch: Set<string>; bar: Set<string> }>();
   for (const r of rows) {
     const d = byDay.get(r.day) ?? { lunch: new Set<string>(), bar: new Set<string>() };
@@ -244,19 +262,44 @@ export function foldCrossover(rows: CrossoverRow[]): Crossover {
   const days: CrossoverDay[] = [];
   let finishedLunch = 0;
   let cameToBar = 0;
+  let barOnly = 0;
+  const pending = { nights: 0, finishedLunch: 0, cameToBar: 0 };
+
   for (const [day, sets] of [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
     let crossed = 0;
-    for (const id of sets.bar) if (sets.lunch.has(id)) crossed++;
+    let only = 0;
+    for (const id of sets.bar) {
+      if (sets.lunch.has(id)) crossed++;
+      else only++;
+    }
+    // A night dated today or later is still being played somewhere on earth.
+    const settled = day < openFrom;
     days.push({
       day,
+      settled,
       finishedLunch: sets.lunch.size,
       cameToBar: crossed,
-      rate: rate(crossed, sets.lunch.size),
+      barOnly: only,
+      rate: settled ? rate(crossed, sets.lunch.size) : null,
     });
-    finishedLunch += sets.lunch.size;
-    cameToBar += crossed;
+    if (settled) {
+      finishedLunch += sets.lunch.size;
+      cameToBar += crossed;
+      barOnly += only;
+    } else {
+      pending.nights++;
+      pending.finishedLunch += sets.lunch.size;
+      pending.cameToBar += crossed;
+    }
   }
 
-  // Pooled, like every other rate on the dashboard.
-  return { days, finishedLunch, cameToBar, rate: rate(cameToBar, finishedLunch) };
+  // Pooled over the settled nights, like every other rate on the dashboard.
+  return {
+    days,
+    finishedLunch,
+    cameToBar,
+    barOnly,
+    rate: rate(cameToBar, finishedLunch),
+    pending: pending.nights > 0 ? pending : null,
+  };
 }

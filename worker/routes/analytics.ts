@@ -4,7 +4,14 @@
 
 import { Hono, type Context } from "hono";
 import { normalizeSource, SOURCE_DIRECT } from "../../shared/attribution";
-import { MAX_GUESSES, ROUND_KINDS, SURFACES, type RoundKind, type Surface } from "../../shared/types";
+import {
+  DRINK_MAX_GUESSES,
+  MAX_GUESSES,
+  ROUND_KINDS,
+  SURFACES,
+  type RoundKind,
+  type Surface,
+} from "../../shared/types";
 import { getSeededDish, getTargetDish, serverToday } from "../db";
 import { getTargetDrink } from "../drinkdb";
 import { isValidDateString } from "../game";
@@ -247,9 +254,14 @@ app.post("/complete", async (c) => {
   const raw = (await c.req.json().catch(() => null)) as (Partial<Base> & { guesses?: number; solved?: boolean }) | null;
   const b = base(raw);
   if (!b) return c.json({ error: "Invalid analytics payload" }, 400);
+  // The ceiling is the one the round was actually played under. A Nightcap
+  // gives four, and a 5 or a 6 landing on a `nightcap` row would be counted in
+  // `completed` and `solved` but dropped from a distribution that is four wide
+  // — a chart whose bars no longer sum to the number printed above them.
+  const maxGuesses = b.kind === "nightcap" ? DRINK_MAX_GUESSES : MAX_GUESSES;
   const guesses = Number(raw!.guesses);
-  if (!Number.isInteger(guesses) || guesses < 1 || guesses > MAX_GUESSES) {
-    return c.json({ error: "guesses must be 1-6" }, 400);
+  if (!Number.isInteger(guesses) || guesses < 1 || guesses > maxGuesses) {
+    return c.json({ error: `guesses must be 1-${maxGuesses}` }, 400);
   }
   const solved = raw!.solved === true ? 1 : 0;
   // Upsert so a missed /start (e.g. a round begun before analytics shipped) still

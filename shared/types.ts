@@ -411,6 +411,12 @@ export interface NightReport {
    */
   hours: number[];
   untrackedHour: number;
+  /**
+   * Rounds whose local hour sits outside 20:00-03:00. The door cannot open
+   * then, so these are clock skew rather than late drinkers, and they are
+   * placed on the chart AND counted here rather than being hidden.
+   */
+  outsideHours: number;
   alcohol: AlcoholSplit;
   drinks: NightDrinkRow[];
   /** Rounds whose drink could not be resolved. Never assigned to a drink. */
@@ -419,18 +425,36 @@ export interface NightReport {
 
 export interface CrossoverDay {
   day: string;
-  /** Devices that finished today's Special. The denominator. */
+  /**
+   * Whether the night is over everywhere. An unsettled night is still being
+   * played, so it carries no rate and is held out of the pooled headline.
+   */
+  settled: boolean;
+  /** Devices that finished that day's Special. The denominator. */
   finishedLunch: number;
   /** Of those, how many started that night's Nightcap. */
   cameToBar: number;
+  /** Devices at the bar with no finished Special on the same key. */
+  barOnly: number;
   rate: Rate | null;
 }
 
-export interface Crossover {
-  days: CrossoverDay[];
+/** Nights still in progress, held out of the headline rather than dragging it. */
+export interface CrossoverPending {
+  nights: number;
   finishedLunch: number;
   cameToBar: number;
+}
+
+export interface Crossover {
+  /** Every night the bar has existed, oldest first. */
+  days: CrossoverDay[];
+  /** Settled nights only — see foldCrossover for what that excludes and why. */
+  finishedLunch: number;
+  cameToBar: number;
+  barOnly: number;
   rate: Rate | null;
+  pending: CrossoverPending | null;
 }
 
 /** Tonight's pour and tomorrow's, for the top of the After Dark tab. */

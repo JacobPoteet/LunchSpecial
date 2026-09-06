@@ -394,17 +394,21 @@ export function HourlyByKind({ hours, nowHour }: { hours: AnalyticsHour[]; nowHo
         const n = totals[i];
         const future = nowHour !== null && h.hour > nowHour;
         const tip = KIND_META.map((k) => `${k.label}: ${h.startedByKind[k.key]}`).join(", ");
+        // The bar's height rides on the column as a custom property so the
+        // count above it can be positioned OUT of the flow and still sit on
+        // top of the bar. In the flow it was a flex sibling competing for the
+        // column's fixed height, so an hour that printed its count drew a
+        // shorter bar than an identical hour that did not.
+        const barHeight = `${n === 0 ? 0 : 6 + (n / max) * 94}%`;
         return (
           <div
             className={`hourly__col${future ? " hourly__col--future" : ""}`}
             key={h.hour}
             title={future ? `${hourLabel(h.hour)} ET — not yet` : `${hourLabel(h.hour)} ET — ${n} started (${tip})`}
+            style={{ "--h": barHeight } as React.CSSProperties}
           >
             {n > 0 && <span className="hourly__num">{n}</span>}
-            <span
-              className="hourly__bar hourly__bar--stacked"
-              style={{ height: `${n === 0 ? 0 : 6 + (n / max) * 94}%` }}
-            >
+            <span className="hourly__bar hourly__bar--stacked" style={{ height: "var(--h)" }}>
               {KIND_META.map((k) => {
                 const seg = h.startedByKind[k.key];
                 if (seg === 0) return null;
