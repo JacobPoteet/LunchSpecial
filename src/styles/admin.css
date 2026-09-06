@@ -706,7 +706,7 @@
   align-items: flex-end;
   gap: 2px;
   height: 90px;
-  padding-bottom: 14px;
+  padding: 12px 0 14px;
   position: relative;
 }
 
@@ -721,12 +721,16 @@
   position: relative;
 }
 
+/* Sits above the bar without being in the flow with it — `--h` on the column
+   is the bar's own height, so this rides on top of it whatever it is. See the
+   note on the column in analyticsUi.tsx for what being in the flow cost. */
 .hourly__num {
+  position: absolute;
+  bottom: calc(var(--h, 0%) + 2px);
   font-size: 0.6rem;
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
   line-height: 1;
-  margin-bottom: 2px;
 }
 
 .hourly__bar {
@@ -3210,34 +3214,66 @@
 
 /* One column per local hour. Fixed height so the panel does not resize as the
    data fills in, and the columns share the row's width rather than scrolling:
-   24 is few enough to fit at 320px. */
+   24 is few enough to fit at 320px.
+
+   The axis label and the value label are BOTH absolutely positioned, and that
+   is load-bearing rather than tidy. In the flow they were flex siblings of the
+   bar inside a fixed-height column, so they took height off it: an hour
+   carrying a printed tick drew a shorter bar than the hour beside it holding
+   exactly the same number, and the chart encoded which labels happened to be
+   drawn instead of how many people were drinking. `padding` on the track is
+   what reserves the room they used to steal. Same reason `.hourly__tick` is
+   positioned; see the note there. */
 .night-hours {
   display: flex;
   align-items: flex-end;
   gap: 2px;
   height: 110px;
+  padding: 12px 0 14px;
   margin-bottom: 6px;
 }
 
 .night-hours__col {
   flex: 1;
+  min-width: 4px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
   height: 100%;
+  position: relative;
+}
+
+/* Hours the door is shut. The columns are still drawn and still carry their
+   counts — a round that lands here is real and hiding it would be the lie —
+   but the ground says they are outside the window. */
+.night-hours__col--shut::before {
+  content: "";
+  position: absolute;
+  inset: -12px 0 -14px;
+  background: rgba(27, 79, 74, 0.06);
 }
 
 .night-hours__bar {
   width: 100%;
-  min-height: 1px;
   background: var(--plum);
   border-radius: 2px 2px 0 0;
+  position: relative;
+}
+
+.night-hours__num {
+  position: absolute;
+  top: -12px;
+  font-size: 0.6rem;
+  line-height: 1;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
 }
 
 .night-hours__tick {
+  position: absolute;
+  bottom: -14px;
   font-size: 0.6rem;
   color: var(--ink-soft);
-  margin-top: 3px;
   font-variant-numeric: tabular-nums;
 }

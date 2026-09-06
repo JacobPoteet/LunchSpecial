@@ -553,6 +553,9 @@ export default function TrendsPanel({
                     <th title="Today's Special">Special</th>
                     <th>Leftovers</th>
                     <th title="Chef's Choice">Chef's</th>
+                    {/* Started counts every kind, so every kind needs a column
+                        or the row does not add up. */}
+                    <th title="After Dark">Night</th>
                     <th title="Players first seen this day">New</th>
                     <th title="Players who first played earlier">Ret.</th>
                     <th>Completed</th>
@@ -569,6 +572,7 @@ export default function TrendsPanel({
                       <td>{d.startedByKind.daily}</td>
                       <td>{d.startedByKind.leftover}</td>
                       <td>{d.startedByKind.random}</td>
+                      <td>{d.startedByKind.nightcap}</td>
                       {/* "—" = before tracking shipped. Not a zero. */}
                       <td title={d.newPlayers === null ? `Player tracking started ${playerTrackingStart}` : undefined}>
                         {d.newPlayers ?? "—"}

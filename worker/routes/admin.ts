@@ -47,6 +47,7 @@ import {
   EXPERIMENT_METRICS,
   DRINK_CLUE_COUNT,
   MAX_GUESSES,
+  NIGHT_EPOCH_DATE,
   NIGHT_REPEAT_WINDOW_DAYS,
   PROFILES,
   PROTEINS,
@@ -872,7 +873,8 @@ app.get("/analytics", async (c) => {
        COALESCE(SUM(completed = 1 AND solved = 0), 0) AS fails,
        COALESCE(SUM(kind = 'daily'), 0) AS started_daily,
        COALESCE(SUM(kind = 'leftover'), 0) AS started_leftover,
-       COALESCE(SUM(kind = 'random'), 0) AS started_random
+       COALESCE(SUM(kind = 'random'), 0) AS started_random,
+       COALESCE(SUM(kind = 'nightcap'), 0) AS started_nightcap
      FROM analytics_rounds${surfWhere}`;
   // The selected day's Special — the daily puzzle only, so replays/random never
   // dilute its completion, win rate, or guess distribution.
@@ -2240,17 +2242,24 @@ app.get("/night-report", async (c) => {
     // Grouped as coarsely as the fold allows: one row per distinct combination
     // rather than one per round, which keeps this to a few hundred rows at any
     // volume the bar will plausibly see.
+    // `local_hour` is computed HERE rather than in the fold, and the whole
+    // reason is half-hour zones. A UTC hour bucket spans two local hours in
+    // India (+5:30), Nepal (+5:45), Newfoundland (-3:30) and Chatham (+12:45),
+    // so no amount of arithmetic on the bucket can say which of the two the
+    // player's clock showed. `started_at` still has the minutes, so shifting it
+    // by the stored offset gives the hour exactly.
     c.env.DB.prepare(
-      `SELECT play_date, strftime('%Y-%m-%d %H', started_at) AS bucket,
-         completed, solved, shared, guesses, drink_id, tz_offset, COUNT(*) AS n
+      `SELECT play_date,
+         CASE WHEN tz_offset IS NULL THEN NULL ELSE
+           CAST(strftime('%H', started_at, printf('%+d minutes', tz_offset)) AS INTEGER)
+         END AS local_hour,
+         completed, solved, shared, guesses, drink_id, COUNT(*) AS n
        FROM analytics_rounds
        WHERE kind = 'nightcap' AND started_at IS NOT NULL${surfAnd}
-       GROUP BY play_date, bucket, completed, solved, shared, guesses, drink_id, tz_offset`,
+       GROUP BY play_date, local_hour, completed, solved, shared, guesses, drink_id`,
     ),
     c.env.DB.prepare(
-      `SELECT d.id, d.name, d.country, d.spirit, d.profile, d.is_alcoholic,
-         (SELECT COUNT(*) FROM drink_schedule s WHERE s.drink_id = d.id) AS times_poured
-       FROM drinks d`,
+      `SELECT d.id, d.name, d.country, d.spirit, d.is_alcoholic FROM drinks d`,
     ),
     // The crossover input: for each device and day, did it finish a Special and
     // did it start a Nightcap?
@@ -2271,14 +2280,24 @@ app.get("/night-report", async (c) => {
     // sides of the boundary), and closing it would mean pairing night D with
     // both ET day D and D+1, which double-counts the ordinary case to rescue
     // the rare one. Reported as it is instead.
-    c.env.DB.prepare(
-      `SELECT player_id, play_date AS day,
-         MAX(kind = 'daily' AND completed = 1) AS finished_lunch,
-         MAX(kind = 'nightcap') AS started_nightcap
-       FROM analytics_rounds
-       WHERE player_id IS NOT NULL AND kind IN ('daily', 'nightcap')${surfAnd}
-       GROUP BY player_id, play_date`,
-    ),
+    //
+    // Narrowed to NIGHT_EPOCH_DATE forward, which is the fix for the number
+    // this panel used to print. Lunch has been served since EPOCH_DATE and the
+    // bar opened weeks later; without the bound, every device that finished a
+    // Special before After Dark existed sat in the denominator of "did anyone
+    // come back for a drink", and none of them could have. The pooled rate was
+    // reading eligibility as refusal.
+    c.env.DB
+      .prepare(
+        `SELECT player_id, play_date AS day,
+           MAX(kind = 'daily' AND completed = 1) AS finished_lunch,
+           MAX(kind = 'nightcap') AS started_nightcap
+         FROM analytics_rounds
+         WHERE player_id IS NOT NULL AND kind IN ('daily', 'nightcap')
+           AND play_date >= ?${surfAnd}
+         GROUP BY player_id, play_date`,
+      )
+      .bind(NIGHT_EPOCH_DATE),
     c.env.DB
       .prepare(
         `SELECT s.night, s.drink_id, d.name FROM drink_schedule s
@@ -2316,7 +2335,10 @@ app.get("/night-report", async (c) => {
       roundsRes.results as unknown as NightRoundRow[],
       metaRes.results as unknown as DrinkMetaRow[],
     ),
-    crossover: foldCrossover(crossRes.results as unknown as CrossoverRow[]),
+    // ET today is what "still being played" means here: tonight's key is
+    // today's date almost everywhere, and a device far enough east to be on
+    // tomorrow's already is censored by the same comparison.
+    crossover: foldCrossover(crossRes.results as unknown as CrossoverRow[], today),
   };
   return c.json(payload);
 });

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   foldCrossover,
   foldNightReport,
-  localHourOf,
   type CrossoverRow,
   type DrinkMetaRow,
   type NightRoundRow,
@@ -16,8 +15,7 @@ const row = (over: Partial<NightRoundRow> = {}): NightRoundRow => ({
   shared: 0,
   guesses: 2,
   drink_id: 1,
-  tz_offset: -300,
-  bucket: "2026-09-21 02", // 21:00 in UTC-5
+  local_hour: 21,
   n: 1,
   ...over,
 });
@@ -27,36 +25,8 @@ const meta = (over: Partial<DrinkMetaRow> = {}): DrinkMetaRow => ({
   name: "Negroni",
   country: "Italy",
   spirit: "gin",
-  profile: "bitter",
   is_alcoholic: 1,
-  times_poured: 1,
   ...over,
-});
-
-describe("localHourOf", () => {
-  it("shifts a UTC bucket into the player's own evening", () => {
-    // 02:00 UTC is 21:00 in New York — the hour the bar is busiest, and
-    // nowhere near the 2am the raw bucket would put it in.
-    expect(localHourOf("2026-09-21 02", -300)).toBe(21);
-  });
-
-  it("wraps forwards and backwards across midnight", () => {
-    expect(localHourOf("2026-09-21 23", 120)).toBe(1);
-    expect(localHourOf("2026-09-21 01", -180)).toBe(22);
-  });
-
-  it("floors a half-hour zone to the hour the clock actually showed", () => {
-    // India is +5:30. 15:00 UTC is 20:30 there, which is the eight o'clock
-    // hour — the bar had just opened, and rounding up would say it hadn't.
-    expect(localHourOf("2026-09-21 15", 330)).toBe(20);
-    // Nepal, +5:45, on the same logic.
-    expect(localHourOf("2026-09-21 15", 345)).toBe(20);
-  });
-
-  it("refuses to place a round with no offset", () => {
-    // Unmeasured, not midnight. The report counts these separately.
-    expect(localHourOf("2026-09-21 02", null)).toBe(null);
-  });
 });
 
 describe("foldNightReport", () => {
@@ -87,8 +57,24 @@ describe("foldNightReport", () => {
     expect(r.totals.completed).toBe(0);
   });
 
+  it("places a round on the hour the player's own clock showed", () => {
+    const r = foldNightReport([row({ local_hour: 21, n: 3 })], [meta()]);
+    expect(r.hours[21]).toBe(3);
+    expect(r.hours[2]).toBe(0);
+    expect(r.untrackedHour).toBe(0);
+    expect(r.outsideHours).toBe(0);
+  });
+
+  it("counts a round started outside opening hours without hiding it", () => {
+    // The door cannot open at 4pm, so this is a wound-forward clock rather
+    // than an early drinker. It is still drawn; it is also still counted.
+    const r = foldNightReport([row({ local_hour: 16, n: 2 })], [meta()]);
+    expect(r.hours[16]).toBe(2);
+    expect(r.outsideHours).toBe(2);
+  });
+
   it("counts a round with no offset apart rather than at midnight", () => {
-    const r = foldNightReport([row({ tz_offset: null }), row()], [meta()]);
+    const r = foldNightReport([row({ local_hour: null }), row()], [meta()]);
     expect(r.untrackedHour).toBe(1);
     expect(r.hours[0]).toBe(0);
     expect(r.hours[21]).toBe(1);
@@ -161,8 +147,10 @@ describe("foldCrossover", () => {
     ...over,
   });
 
+  const settled = (rows: CrossoverRow[]) => foldCrossover(rows, "9999-01-01");
+
   it("counts devices that did both, over devices that finished lunch", () => {
-    const r = foldCrossover([
+    const r = settled([
       c({ player_id: "a", finished_lunch: 1, started_nightcap: 1 }),
       c({ player_id: "b", finished_lunch: 1 }),
       c({ player_id: "c", finished_lunch: 1 }),
@@ -176,7 +164,7 @@ describe("foldCrossover", () => {
   it("counts a device once however many rounds it played", () => {
     // The question is how many people came back for a drink, not how many
     // drinks got poured.
-    const r = foldCrossover([
+    const r = settled([
       c({ player_id: "a", finished_lunch: 1, started_nightcap: 1 }),
       c({ player_id: "a", finished_lunch: 1, started_nightcap: 1 }),
     ]);
@@ -187,29 +175,57 @@ describe("foldCrossover", () => {
   it("never lets the rate exceed 100% when a device drank without eating here", () => {
     // Impossible through the front door, possible across two devices. It is
     // not in the denominator, so it must not be in the numerator either.
-    const r = foldCrossover([
+    const r = settled([
       c({ player_id: "a", finished_lunch: 1 }),
       c({ player_id: "b", finished_lunch: 0, started_nightcap: 1 }),
     ]);
     expect(r.finishedLunch).toBe(1);
     expect(r.cameToBar).toBe(0);
     expect(r.rate?.pct).toBe(0);
+    // Counted apart rather than dropped: it is the tell that this measures
+    // devices where the sentence above it says people.
+    expect(r.barOnly).toBe(1);
   });
 
   it("pools across days rather than averaging their rates", () => {
-    const r = foldCrossover([
-      c({ day: "d1", player_id: "a", finished_lunch: 1, started_nightcap: 1 }),
-      c({ day: "d2", player_id: "b", finished_lunch: 1 }),
-      c({ day: "d2", player_id: "c", finished_lunch: 1 }),
-      c({ day: "d2", player_id: "d", finished_lunch: 1 }),
+    const r = settled([
+      c({ day: "2026-09-05", player_id: "a", finished_lunch: 1, started_nightcap: 1 }),
+      c({ day: "2026-09-06", player_id: "b", finished_lunch: 1 }),
+      c({ day: "2026-09-06", player_id: "c", finished_lunch: 1 }),
+      c({ day: "2026-09-06", player_id: "d", finished_lunch: 1 }),
     ]);
     // 1 of 4 pooled, not the mean of 100% and 0%.
     expect(r.rate?.pct).toBe(25);
-    expect(r.days.map((d) => d.day)).toEqual(["d1", "d2"]);
+    expect(r.days.map((d) => d.day)).toEqual(["2026-09-05", "2026-09-06"]);
+  });
+
+  it("holds a night still being played out of the pooled rate", () => {
+    // A device that finished lunch at noon is not a no-show at a bar that
+    // opens at eight. Tonight is reported, and reported separately.
+    const r = foldCrossover(
+      [
+        c({ day: "2026-09-05", player_id: "a", finished_lunch: 1, started_nightcap: 1 }),
+        c({ day: "2026-09-06", player_id: "b", finished_lunch: 1 }),
+        c({ day: "2026-09-06", player_id: "c", finished_lunch: 1 }),
+      ],
+      "2026-09-06",
+    );
+    expect(r.finishedLunch).toBe(1);
+    expect(r.cameToBar).toBe(1);
+    expect(r.rate?.pct).toBe(100);
+    expect(r.pending).toEqual({ nights: 1, finishedLunch: 2, cameToBar: 0 });
+    expect(r.days.map((d) => d.settled)).toEqual([true, false]);
+    // An unsettled night quotes no rate of its own either.
+    expect(r.days[1].rate).toBe(null);
+  });
+
+  it("reports no pending night once every night is over", () => {
+    const r = settled([c({ finished_lunch: 1, started_nightcap: 1 })]);
+    expect(r.pending).toBe(null);
   });
 
   it("reports no rate at all on a day nobody finished lunch", () => {
-    const r = foldCrossover([c({ finished_lunch: 0, started_nightcap: 0 })]);
+    const r = settled([c({ finished_lunch: 0, started_nightcap: 0 })]);
     expect(r.rate).toBe(null);
   });
 });
