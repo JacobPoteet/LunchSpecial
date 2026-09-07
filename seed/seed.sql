@@ -2416,6 +2416,22 @@ INSERT INTO clues (dish_id, order_index, text) VALUES
 (394,4,'The cook pours a thick annatto gravy over rice noodles, then loads on shrimp, sliced egg and smoked fish.'),
 (394,5,'The Filipino party platter, a shallow tray of noodles under egg wedges and a squeeze of citrus.');
 
+INSERT INTO dishes (id, name, slug, country, region, course, temperature, protein, ingredients) VALUES
+(395,'Zurek','zurek','Poland','europe','appetizer','hot','pork','["rye flour","sausage","egg","potato","marjoram","garlic","sour cream"]'),
+(396,'Blooming Onion','blooming-onion','United States','north-america','appetizer','hot','vegetarian','["onion","flour","buttermilk","paprika","cayenne pepper","mayonnaise","horseradish"]');
+
+INSERT INTO clues (dish_id, order_index, text) VALUES
+(395,1,'A pale sour soup from central Europe.'),
+(395,2,'Peasant households soured rye flour in a crock because it cost nothing, and ate the soup right through Lent.'),
+(395,3,'Some villages bury a pot of it on Holy Saturday, a mock funeral for forty days of Lent.'),
+(395,4,'You stir the soured rye starter into stock with marjoram and garlic, then drop in sausage and half a boiled egg.'),
+(395,5,'Poland''s cloudy white bowl, sometimes served in a round loaf with its top sliced off.'),
+(396,1,'A fried starter meant for sharing, from the American South.'),
+(396,2,'A Tampa chain put it on the opening menu in 1988 and dressed its dining rooms up as Australian.'),
+(396,3,'One vegetable feeds a whole table, and diners tear it apart with their fingers rather than a fork.'),
+(396,4,'You soak the cut onion in buttermilk, dredge it in flour spiked with paprika and cayenne, and fry it whole.'),
+(396,5,'America''s steakhouse starter, a fried bulb splayed open into petals around a cup of dipping sauce.');
+
 -- Dishes that came in through the player suggestion form. Flagged here rather
 -- than in the INSERT above so the column list stays as it was; the rest of the
 -- catalogue keeps the 0 default. See migrations/0017.
@@ -2431,7 +2447,8 @@ UPDATE dishes SET is_fan_submission = 1
                 'coddle', 'sisig', 'cherry-pie', 'pumpkin-pie',
                 'lemon-meringue-pie', 'banoffee-pie', 'fish-pie',
                 'quiche-lorraine', 'lumpia',
-                'boat-noodles', 'fuqi-feipian', 'baked-alaska', 'carrot-cake', 'palabok');
+                'boat-noodles', 'fuqi-feipian', 'baked-alaska', 'carrot-cake', 'palabok',
+                'zurek', 'blooming-onion', 'haggis', 'halo-halo');
 
 
 INSERT INTO schedule (date, dish_id) VALUES

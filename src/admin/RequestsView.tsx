@@ -5,21 +5,25 @@ import { Modal } from "../game/components";
 import * as api from "./api";
 
 /**
- * Build the exact "add dishes:" line the CLAUDE.md workflow understands, so the
- * whole inbox can be pasted into a chat with Claude to generate them at once.
- * Each entry is `Name (Country)`, country dropped when unknown.
+ * Build the exact `/create-dishes` line the skill understands, so the whole
+ * inbox can be pasted into a chat with Claude to generate them at once. Each
+ * entry is `Name (Country)`, country dropped when unknown.
  *
  * The fan-submission note rides along because everything in this inbox came from
  * a player: pasting the line without it produces dishes that are silently
- * untagged, and the credit then has to be added by hand, dish by dish. The
- * "add dishes:" prefix stays at the front — that's the phrase the workflow keys
- * on — so the note goes after the list.
+ * untagged, and the credit then has to be added by hand, dish by dish.
+ *
+ * The prefix is the slash command rather than the old "add dishes:" phrase.
+ * Both land on the same workflow, but the command loads the skill outright
+ * where the prose form leaves the model to notice it should. A slash command is
+ * only read as one at the very start of the message, so the note goes after the
+ * list and the command keeps the front.
  */
 function buildCopyText(requests: DishRequest[]): string {
   const list = requests
     .map((r) => (r.country ? `${r.name} (${r.country})` : r.name))
     .join(", ");
-  return `add dishes: ${list}\n\nThese are all fan submissions — tag them (is_fan_submission = 1).`;
+  return `/create-dishes ${list}\n\nThese are all fan submissions — tag them (is_fan_submission = 1).`;
 }
 
 export default function RequestsView({
@@ -114,8 +118,8 @@ export default function RequestsView({
       {error && <p className="form-error">{error}</p>}
 
       <p className="dash-note" style={{ marginTop: 0 }}>
-        Player-submitted from the receipt after a round. "Copy all for Claude" gives you an{" "}
-        <code>add dishes:</code> line you can paste into a chat to generate them in one go.
+        Player-submitted from the receipt after a round. "Copy all for Claude" gives you a{" "}
+        <code>/create-dishes</code> line you can paste into a chat to generate them in one go.
       </p>
 
       {rows.length === 0 ? (
