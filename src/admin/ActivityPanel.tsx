@@ -6,7 +6,7 @@ import type {
   DeviceDataSummary,
   RoundKind,
 } from "../../shared/types";
-import { ACTIVITY_MAX, ACTIVITY_PAGE, ROUND_KINDS } from "../../shared/types";
+import { ACTIVITY_MAX, ACTIVITY_PAGE, ROUND_KINDS, maxGuessesFor } from "../../shared/types";
 import {
   EMPTY_FILTER,
   ROUND_STATES,
@@ -148,14 +148,19 @@ function MineToggle({
 /**
  * "3 Today's Special · 1 Leftovers · 4 Chef's Choice", skipping the kinds at
  * zero. Labels keep their dashboard casing rather than being lowercased into a
- * sentence — they're the names of the three game modes, and "1 leftovers" reads
- * like a broken plural where "1 Leftovers" reads like the mode it is.
+ * sentence — they're the names of the game modes, and "1 leftovers" reads like a
+ * broken plural where "1 Leftovers" reads like the mode it is.
+ *
+ * Written off `ROUND_KINDS` rather than a list spelled out here, for the same
+ * reason `sumKinds` is: this was a hardcoded three and After Dark's rounds were
+ * counted in `total` while being missing from the sentence under it — a device
+ * that had played nothing but Nightcaps read as "5 rounds" with no breakdown at
+ * all, in the one panel whose whole job is reviewing what a delete will remove.
  */
 function kindBreakdown(byKind: DeviceDataSummary["rounds"]["byKind"]): string {
-  const parts = KIND_ORDER.filter((k) => byKind[k] > 0).map((k) => `${byKind[k]} ${kindLabel(k)}`);
+  const parts = ROUND_KINDS.filter((k) => byKind[k] > 0).map((k) => `${byKind[k]} ${kindLabel(k)}`);
   return parts.join(" · ");
 }
-const KIND_ORDER = ["daily", "leftover", "random"] as const;
 
 /** An ISO instant as the same ET wall clock the feed above prints. */
 const etStamp = (iso: string) => `${gameTimestamp(new Date(iso))} ET`;
@@ -420,13 +425,23 @@ function Arc({ round }: { round: ActivityRoundView }) {
   );
 }
 
-/** What the round ended up doing, in words, plus how long it took. */
+/**
+ * What the round ended up doing, in words, plus how long it took.
+ *
+ * A win carries its ceiling ("Solved in 3/4") because the log interleaves every
+ * mode: a Nightcap gives four guesses and a Special six, so a bare "Solved in 3"
+ * is two different achievements one row apart. Same rule the guess distributions
+ * obey by refusing to share an axis, applied to the one place the two do sit
+ * side by side. A loss doesn't need it — a round is only out of guesses once it
+ * has used all of them, so the number printed there *is* the ceiling.
+ */
 function Result({ round, now }: { round: ActivityRoundView; now: number }) {
+  const ceiling = maxGuessesFor(round.kind);
   const headline =
     round.state === "solved"
       ? round.guesses === null
         ? "Solved"
-        : `Solved in ${round.guesses}`
+        : `Solved in ${round.guesses}/${ceiling}`
       : round.state === "lost"
         ? round.guesses === null
           ? "Gave up"
@@ -913,16 +928,27 @@ export default function ActivityPanel({
             {kindLabel(r.kind)}
           </td>
           <td>
-            {/* Random rounds ignore the schedule, so a puzzle number doesn't
-                apply — only the day it was played. */}
-            {r.dishId !== null && r.dishName ? (
+            {/* A Nightcap played a drink, so it names the pour and links
+                nowhere: the dish report is a report on dishes, and handing it a
+                drink id would open some unrelated dish's card. Random rounds
+                ignore the schedule, so a puzzle number doesn't apply to them —
+                only the day it was played. */}
+            {r.kind === "nightcap" ? (
+              <span className="ev-when">{r.drinkName ?? "—"}</span>
+            ) : r.dishId !== null && r.dishName ? (
               <button className="link-btn ev-when" onClick={() => onOpenDishReport(r.dishId as number)}>
                 {r.dishName}
               </button>
             ) : (
               <span className="ev-when">{r.dishName ?? "—"}</span>
             )}
-            <span className="ev-sub">{r.kind === "random" ? r.date : `#${r.puzzleNumber} · ${r.date}`}</span>
+            <span className="ev-sub">
+              {r.kind === "random"
+                ? r.date
+                : r.kind === "nightcap"
+                  ? `Night #${r.puzzleNumber} · ${r.date}`
+                  : `#${r.puzzleNumber} · ${r.date}`}
+            </span>
           </td>
           <td>
             <Result round={r} now={now} />
@@ -955,7 +981,11 @@ export default function ActivityPanel({
               <BeaconList round={r} />
               <p className="dash-note">
                 Round <code className="ev-player">{r.roundId}</code> · played {r.playedDay} ET
-                {r.date !== r.playedDay && ` · puzzle dated ${r.date}`}
+                {/* A Nightcap's date is the local night it belongs to, not a
+                    puzzle date, and it differs from the ET day whenever the
+                    round ran past midnight — which is most of them. */}
+                {r.date !== r.playedDay &&
+                  (r.kind === "nightcap" ? ` · night of ${r.date}` : ` · puzzle dated ${r.date}`)}
               </p>
             </td>
           </tr>
@@ -1015,7 +1045,7 @@ export default function ActivityPanel({
                 <th>When</th>
                 <th title="Started · finished · shared">Arc</th>
                 <th>Game</th>
-                <th>Dish</th>
+                <th title="The dish, or the pour on a Nightcap">Dish or drink</th>
                 <th>Result</th>
                 <th>Where</th>
                 <th title="Anonymous per-device id">Device</th>

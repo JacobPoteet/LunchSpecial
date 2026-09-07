@@ -1237,9 +1237,16 @@ app.get("/dish-report", async (c) => {
     // Grouped by outcome as well as dish so one query covers win rate, the guess
     // histogram, DNF and shares. Cardinality is bounded by dishes × kinds ×
     // outcomes, which stays in the hundreds at any volume this game will see.
+    //
+    // Nightcaps are excluded outright. A Nightcap has a drink and never a
+    // `dish_id`, so every one of them would land in `untracked` — which this
+    // panel prints as "rounds that predate dish tracking", a sentence that is
+    // false about a round played last night. The bar's own report is on the
+    // After Dark tab, off `drink_id`.
     c.env.DB.prepare(
       `SELECT dish_id, kind, completed, solved, shared, guesses, COUNT(*) AS n
-         FROM analytics_rounds WHERE started_at IS NOT NULL${surfAnd}
+         FROM analytics_rounds
+        WHERE started_at IS NOT NULL AND kind != 'nightcap'${surfAnd}
          GROUP BY dish_id, kind, completed, solved, shared, guesses`,
     ),
     // Catalogue detail for naming the rows, plus how often each dish has actually
@@ -1431,7 +1438,7 @@ app.delete("/experiments/:id", async (c) => {
 
 /** The columns one round needs, before the dish-name join wraps them. */
 const ACTIVITY_COLS =
-  `round_id, puzzle_number, play_date, kind, surface, player_id, country, dish_id,
+  `round_id, puzzle_number, play_date, kind, surface, player_id, country, dish_id, drink_id,
    started_at, completed, completed_at, shared, shared_at, guesses, solved,
    COALESCE(shared_at, completed_at, updated_at, started_at) AS last_at`;
 
@@ -1445,6 +1452,8 @@ interface ActivityRoundRow {
   country: string | null;
   dish_id: number | null;
   dish_name: string | null;
+  drink_id: number | null;
+  drink_name: string | null;
   started_at: string;
   completed: number;
   completed_at: string | null;
@@ -1499,9 +1508,18 @@ app.get("/recent-rounds", async (c) => {
   // only way a `random` (Chef's Choice) dish, which is never scheduled, can be
   // resolved. Pre-0012 rows have no dish_id, so fall back to the old
   // schedule-by-date join for scheduled kinds (random stays blank for those).
+  //
+  // **A `nightcap` is excluded from that fallback, and it is not an optimisation.**
+  // Its `play_date` holds a LOCAL NIGHT KEY rather than an ET day (migrations/0041),
+  // so the join finds whatever lunch Special was booked for the same calendar date
+  // and every Nightcap in the feed was named after a dish nobody at the bar played.
+  // A drink comes off `drink_id` and the `drinks` table, which is the only place
+  // it has ever been recorded.
   const [roundsRes, roundDaysRes, visitDaysRes] = await c.env.DB.batch([
     c.env.DB.prepare(
-      `SELECT e.*, COALESCE(dd.name, CASE WHEN e.kind = 'random' THEN NULL ELSE ds.name END) AS dish_name
+      `SELECT e.*,
+         COALESCE(dd.name, CASE WHEN e.kind IN ('random', 'nightcap') THEN NULL ELSE ds.name END) AS dish_name,
+         dr.name AS drink_name
          FROM (
            SELECT ${ACTIVITY_COLS} FROM analytics_rounds
             WHERE started_at IS NOT NULL${surfAnd}${mineAnd}${dayAnd}
@@ -1509,6 +1527,7 @@ app.get("/recent-rounds", async (c) => {
             LIMIT ?
          ) e
          LEFT JOIN dishes dd ON dd.id = e.dish_id
+         LEFT JOIN drinks dr ON dr.id = e.drink_id
          LEFT JOIN schedule s ON s.date = e.play_date
          LEFT JOIN dishes ds ON ds.id = s.dish_id
         ORDER BY e.last_at DESC, e.round_id`,
@@ -1538,6 +1557,7 @@ app.get("/recent-rounds", async (c) => {
     country: r.country,
     dishId: r.dish_id,
     dishName: r.dish_name,
+    drinkName: r.drink_name,
     startedAt: instant(r.started_at),
     completed: r.completed === 1,
     // Deliberately not COALESCEd onto updated_at: pre-migrations/0011 rows
