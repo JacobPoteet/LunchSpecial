@@ -71,6 +71,18 @@ export const EPOCH_DATE = "2026-07-17";
  */
 export const DRINK_MAX_GUESSES = 4;
 
+/**
+ * The ceiling the round was actually played under — four at the bar, six at
+ * lunch.
+ *
+ * One expression rather than a `kind === "nightcap" ?` written out wherever a
+ * guess count is validated or printed. Every caller that shows a guess count
+ * beside another kind's needs it, because a bare "solved in 4" means two
+ * different things depending on which board it came off.
+ */
+export const maxGuessesFor = (kind: RoundKind): number =>
+  kind === "nightcap" ? DRINK_MAX_GUESSES : MAX_GUESSES;
+
 /** Coasters per drink, one per miss. Beats 1-3 of the drinks beat sheet. */
 export const DRINK_CLUE_COUNT = 3;
 
@@ -1483,8 +1495,21 @@ export interface ActivityRound {
   /** ISO 3166-1 alpha-2 from the edge (migrations/0018); null on pre-0018 rounds. */
   country: string | null;
   dishId: number | null;
-  /** The dish played, from `dish_id`, falling back to the schedule for pre-0012 rows. */
+  /**
+   * The dish played, from `dish_id`, falling back to the schedule for pre-0012
+   * rows. **Always null on a `nightcap`**, which played a drink: `play_date`
+   * holds a local night key there, and the schedule fallback joins on that
+   * column, so a Nightcap would otherwise be named after the lunch Special that
+   * happened to be booked for the same date.
+   */
   dishName: string | null;
+  /**
+   * The drink poured, from `drink_id` — the only place a Nightcap's target has
+   * ever been recorded. Null on every other kind, and null on a Nightcap whose
+   * drink has since left the catalogue, which reads as unnamed rather than
+   * being assigned to something else.
+   */
+  drinkName: string | null;
   /** When the first guess landed, as an ISO-8601 UTC instant ("2026-07-20T14:32:07Z"). */
   startedAt: string;
   /** Reached game over. True even when `completedAt` is null (pre-0011 rows). */

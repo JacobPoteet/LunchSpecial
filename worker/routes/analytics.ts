@@ -4,14 +4,7 @@
 
 import { Hono, type Context } from "hono";
 import { normalizeSource, SOURCE_DIRECT } from "../../shared/attribution";
-import {
-  DRINK_MAX_GUESSES,
-  MAX_GUESSES,
-  ROUND_KINDS,
-  SURFACES,
-  type RoundKind,
-  type Surface,
-} from "../../shared/types";
+import { ROUND_KINDS, SURFACES, maxGuessesFor, type RoundKind, type Surface } from "../../shared/types";
 import { getSeededDish, getTargetDish, serverToday } from "../db";
 import { getTargetDrink } from "../drinkdb";
 import { isValidDateString } from "../game";
@@ -258,7 +251,7 @@ app.post("/complete", async (c) => {
   // gives four, and a 5 or a 6 landing on a `nightcap` row would be counted in
   // `completed` and `solved` but dropped from a distribution that is four wide
   // — a chart whose bars no longer sum to the number printed above them.
-  const maxGuesses = b.kind === "nightcap" ? DRINK_MAX_GUESSES : MAX_GUESSES;
+  const maxGuesses = maxGuessesFor(b.kind);
   const guesses = Number(raw!.guesses);
   if (!Number.isInteger(guesses) || guesses < 1 || guesses > maxGuesses) {
     return c.json({ error: `guesses must be 1-${maxGuesses}` }, 400);

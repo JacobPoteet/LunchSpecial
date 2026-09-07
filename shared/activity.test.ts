@@ -28,6 +28,7 @@ function round(over: Partial<ActivityRound> = {}): ActivityRound {
     country: "US",
     dishId: 51,
     dishName: "Hamburger",
+    drinkName: null,
     startedAt,
     completed: false,
     completedAt: null,
