@@ -507,7 +507,7 @@ Notices written in the admin, shown as a modal on **Today's Special only** — n
 
 After any finished round the check shows "Suggest a dish for the menu", POSTing `{ name, country?, note?, surface, playerId? }` to the **public** `POST /api/requests`. Anonymous, same trust model as analytics; an exact same-device name is silently ignored. Rows land in `dish_requests`, an inbox separate from the `dishes` catalogue. Field caps in `DISH_REQUEST_LIMITS`.
 
-Admin **Requests** tab (nav badge = pending count): review, Remove, Clear all, **Add as dish** (opens a New Dish editor prefilled with name+country; on first save the source request is auto-removed via `requestId`), and **Copy all for Claude** → an `add dishes: Name (Country), …` line.
+Admin **Requests** tab (nav badge = pending count): review, Remove, Clear all, **Add as dish** (opens a New Dish editor prefilled with name+country; on first save the source request is auto-removed via `requestId`), and **Copy all for Claude** → a `/create-dishes Name (Country), …` line, which invokes the skill outright rather than leaving the model to spot the prose form.
 
 `dishes.is_fan_submission` is a **credit only** — nothing about scheduling, the fallback pick, feedback or analytics reads it. It rides on `RevealInfo`, so the stamp can only appear after game over. **"Add as dish" pre-ticks it.** The check's stamp sits at the very bottom directly on top of the suggest button and **carries the section break itself** (`--promoted` drops the dashed rule the collapsed form normally draws), because the check is the tallest card in the game at 375px. Mustard, not cherry, so it can't outrank the verdict. The dish list shows a `★ fan` badge beside the name (not in the Status column — origin isn't a state a dish can fail).
 
@@ -555,7 +555,7 @@ Two buses, one mute button, and **not one audio file in the repo yet**. Dropping
 
 ## Adding dishes (when asked)
 
-The user says **"add dishes: Pho (Vietnam), Bibimbap (South Korea)"**. Minimum is the **name**; country helps. Infer the rest, but **ask, don't guess, when a field is genuinely ambiguous** (regional protein variants, mostly).
+The user says **"/create-dishes Pho (Vietnam), Bibimbap (South Korea)"** (the admin Requests tab's **Copy all for Claude** writes exactly that line), or the same request in prose. Minimum is the **name**; country helps. Infer the rest, but **ask, don't guess, when a field is genuinely ambiguous** (regional protein variants, mostly).
 
 **The `create-dishes` skill is the workflow, and its section 3 is the beat sheet** — the voice, the five beats, the character budgets, the fourteen hard rules and the two tests. Read it before writing a clue. `worker/data-integrity.test.ts` enforces the mechanizable half for every dish in the catalogue and fails in CI.
 
@@ -567,7 +567,7 @@ Four things that hold regardless:
 - **Renaming a dish in /admin regenerates its slug, and every backfill migration is keyed by slug.** A rename after a migration is written means that migration's `UPDATE`s match nothing and fail silently: seven US regional dishes were renamed in Aug 2026 and sat on pre-beat-sheet clue text in prod for a week while the repo and CI showed the rewrite. Re-aim the text at the new slug (migration 0034) rather than renaming prod back. `RETIRED_SLUGS` / `RENAMED_SLUGS` in `worker/data-integrity.test.ts` are how a slug leaves the catalogue without anyone editing a migration prod has already applied.
 - **Rows go in two places:** appended to `seed/seed.sql` (canonical) *and* an additive `migrations/000N_add_<batch>.sql` — INSERTs only, no `DELETE`s, dish **keyed by slug** not a hardcoded id. CI applies it on the next `v*` release. Never re-run the seed against prod.
 - **Pool only. Never `INSERT INTO schedule`.** New dishes land in the active pool; `/admin` autofill assigns dates.
-- **Fan submissions** get `UPDATE dishes SET is_fan_submission = 1 WHERE slug IN (…)` in both files, keyed by slug. Leave the `INSERT INTO dishes` column lists alone — the column defaults to 0.
+- **Fan submissions** get `UPDATE dishes SET is_fan_submission = 1 WHERE slug IN (…)` in both files, keyed by slug. Leave the `INSERT INTO dishes` column lists alone — the column defaults to 0. **A suggested dish the catalogue already has still takes the credit**: its slug joins the `UPDATE`, with no row and no clues. The stamp follows the suggestion rather than the `INSERT`. Say so in the migration comment, or the missing INSERT reads as an oversight.
 
 **Adding drinks is the same job against the other catalogue, and it has its own skill: `create-drinks`.** One `drinks` row plus exactly 3 `drink_clues` rows, ≥3 ingredients, written against the coaster sheet in that skill's section 3 (the bartender's voice, the three beats, the budgets, and the fourteen rules — twelve of which the linter enforces). Rows go in `seed/seed.sql` *and* an additive migration keyed by slug, INSERTs only, and **never a `drink_schedule` row**. Keep the pool inside the 55–75% alcoholic band the linter enforces — if a batch is all cocktails, it will fail CI, and correctly.
 

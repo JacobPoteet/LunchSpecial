@@ -1,6 +1,6 @@
 ---
 name: create-dishes
-description: Add dishes to the Lunch Special catalogue, or rewrite an existing dish's clues, following the beat sheet in section 3. Use when the user says "add dishes: Pho (Vietnam), Bibimbap (South Korea)", asks for a new dish batch, pastes suggestions from the admin Requests tab, or asks to rewrite/fix/backfill the clues on dishes that already exist. For clue options the user will paste into /admin themselves, with no file written, use suggest-clue instead.
+description: Add dishes to the Lunch Special catalogue, or rewrite an existing dish's clues, following the beat sheet in section 3. Use when the user asks for a new dish batch in any form ("/create-dishes Pho (Vietnam), Bibimbap (South Korea)", or the older "add dishes:" phrasing), pastes suggestions from the admin Requests tab, or asks to rewrite/fix/backfill the clues on dishes that already exist. For clue options the user will paste into /admin themselves, with no file written, use suggest-clue instead.
 ---
 
 # Adding dishes to Lunch Special
@@ -25,6 +25,12 @@ flip. One question covering the whole batch beats five questions one at a time.
 If the user says the dishes came from players, tag them: `is_fan_submission = 1`, set by an
 `UPDATE ... WHERE slug IN (…)` keyed by slug in both the seed and the migration. Never touch the
 `INSERT INTO dishes` column lists for it; the column defaults to 0.
+
+**A batch usually contains a dish the catalogue already has, and it still takes the credit.** No
+new row, no clues, just its slug added to the `UPDATE`. The stamp follows the suggestion rather
+than the INSERT: someone asked for that dish, and it not being new is a fact about the menu, not
+about them. Say in the migration comment which dish it was and that it already existed, so the
+missing INSERT reads as a decision. Migration 0036 is the worked example.
 
 ## 2. Fill the row
 

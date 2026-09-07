@@ -2,7 +2,9 @@
 -- country HIT with six shared ingredients, and the two American soups are honest
 -- country misses. Plus five dishes from the player suggestion form, credited at
 -- the bottom. Halo-Halo was also suggested but is already dish 303, so it gets no
--- row and no retroactive credit.
+-- row and no retroactive credit. (Superseded: migration 0043 gives it the
+-- credit. A suggested dish already in the catalogue was suggested just the
+-- same, and the stamp follows the suggestion rather than the INSERT.)
 
 INSERT INTO dishes (name, slug, country, region, course, temperature, protein, ingredients) VALUES
 ('Pasta e Fagioli','pasta-e-fagioli','Italy','europe','appetizer','hot','vegetarian','["pasta","white bean","tomato","onion","carrot","celery","garlic","olive oil"]'),
