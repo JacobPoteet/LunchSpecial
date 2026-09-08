@@ -22,15 +22,13 @@ import { verifyToken } from "../auth";
 import { serverToday } from "../db";
 import { getCoasters, getDrinkById, getDrinkBySlug, getTargetDrink } from "../drinkdb";
 import { computeDrinkFeedback } from "../nightcap";
+import { classifyDrinkPreview } from "../showcase";
 
 const app = new Hono<{ Bindings: Env }>();
 
-/** The preview-token payload prefix for a drink. See POST /api/admin/preview. */
-const DRINK_PREVIEW = "preview:drink:";
-
 /**
- * Which drink is being played. Precedence: an admin preview token, then a named
- * slug (playtesting), then the night itself.
+ * Which drink is being played. Precedence: an admin token (a drink preview or a
+ * showcase link), then a named slug (playtesting), then the night itself.
  *
  * There is no `random` branch. Chef's Choice has no bar equivalent by design —
  * one drink a night and no archive is the whole shape of the mode, and a
@@ -43,12 +41,18 @@ async function resolveDrink(
   pinned: string | undefined,
 ) {
   if (preview) {
-    const payload = await verifyToken(preview, env.SESSION_SECRET);
-    if (!payload || !payload.startsWith(DRINK_PREVIEW)) {
-      return { error: "Invalid or expired preview link" as const };
+    const kind = classifyDrinkPreview(await verifyToken(preview, env.SESSION_SECRET));
+    if (kind.kind === "invalid") return { error: "Invalid or expired preview link" as const };
+    if (kind.kind === "drink") {
+      const drink = await getDrinkById(env.DB, kind.id);
+      return drink ? { drink } : { error: "Preview drink not found" as const };
     }
-    const drink = await getDrinkById(env.DB, Number(payload.slice(DRINK_PREVIEW.length)));
-    return drink ? { drink } : { error: "Preview drink not found" as const };
+    // A showcase link names no drink, so it falls through to the night's real
+    // pour — which is the whole difference between it and a drink preview. What
+    // it lifts is the *clock*, which was never enforced here anyway: the bar's
+    // opening hours are a client-side reading of the player's own wall clock,
+    // and the Worker has only ever checked that the claimed night is plausible.
+    // So the check below is the ordinary one, unchanged and still applied.
   }
   if (pinned) {
     // A drink named outright (`?nightcap=<slug>`, npm run negroni). Spoiler-free

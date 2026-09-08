@@ -181,8 +181,21 @@ function shareLabel(state: ShareState, surface: Surface): string {
 
 export default function NightPage({ onLeave }: { onLeave: () => void }) {
   const search = useMemo(() => new URLSearchParams(window.location.search), []);
-  const preview = useMemo(() => search.get("preview") ?? undefined, [search]);
+  // A showcase link is a preview token by another name, so it rides the same
+  // parameter from here down and every gate, every `ephemeral` and every
+  // `tracked` below reads it without a second branch. The two are kept apart in
+  // the URL because the diner needs to tell them apart — a `?preview=` there is
+  // a *dish* token and would be rejected by the kitchen's resolver.
+  //
+  // What the Worker does with it differs: a drink preview names one pour, a
+  // showcase names none and gets the night's real one. See worker/showcase.ts.
+  const preview = useMemo(() => search.get("preview") ?? search.get("showcase") ?? undefined, [search]);
   const isPreview = preview !== undefined;
+  // The one place the two are told apart. Everything else about a showcase is a
+  // preview — untracked, ephemeral, past the clock — but the banner is written
+  // for whoever is reading it, and "admin test pour" is addressed to you. The
+  // person holding a showcase link has never seen this game.
+  const isShowcase = useMemo(() => search.has("showcase") && !search.has("preview"), [search]);
   // `?nightcap=<slug>` pins the pour, dev only on the client for the same
   // reason `?special=` is: the slugs are public, but the entrance isn't.
   const pinned = useMemo(() => {
@@ -492,7 +505,11 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
 
       <main className="menu-card menu-card--bar">
         {isPreview && (
-          <p className="preview-banner">Admin test pour — nothing is saved, counted or shown to players</p>
+          <p className="preview-banner">
+            {isShowcase
+              ? "Preview link — the bar's normally open 8pm to 3am. Nothing here is saved."
+              : "Admin test pour — nothing is saved, counted or shown to players"}
+          </p>
         )}
         {pinned && (
           <p className="preview-banner">

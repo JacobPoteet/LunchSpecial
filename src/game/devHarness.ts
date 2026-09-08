@@ -8,8 +8,9 @@
 // ninety seconds in the game and, without this, seeing it required playing a
 // full six-guess round after eight in the evening.
 
-import type { GuessFeedback, RevealInfo } from "../../shared/types";
+import type { RevealInfo } from "../../shared/types";
 import { gameToday } from "../../shared/time";
+import { wonRoundFromReveal } from "./showcase";
 import { loadRound, saveRound } from "./storage";
 
 function params(): URLSearchParams {
@@ -88,26 +89,10 @@ export async function applyHandoffHarness(): Promise<void> {
   try {
     const res = await fetch(`/api/reveal?date=${today}`);
     if (!res.ok) return;
-    const reveal = (await res.json()) as RevealInfo;
-    const winning: GuessFeedback = {
-      correct: true,
-      dish: { id: reveal.id, name: reveal.name },
-      matchedIngredients: reveal.ingredients,
-      unmatchedIngredients: [],
-      attributes: {
-        country: { value: reveal.country, match: "hit" },
-        course: { value: reveal.course, match: "hit" },
-        temperature: { value: reveal.temperature, match: "hit" },
-        protein: { value: reveal.protein, match: "hit" },
-      },
-    };
-    saveRound({
-      date: today,
-      status: "won",
-      guesses: [winning],
-      clues: [],
-      ingredientCount: reveal.ingredients.length,
-    });
+    // The same builder the showcase link uses. Where the two differ is what
+    // happens next: this one SAVES, because it is seeding your own browser on
+    // purpose and the round should survive a reload.
+    saveRound(wonRoundFromReveal((await res.json()) as RevealInfo, today));
   } catch {
     // The harness is a convenience. If the kitchen isn't answering, the page
     // still loads — as an ordinary unplayed board, which is a legible failure.

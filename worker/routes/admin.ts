@@ -105,6 +105,7 @@ import {
 } from "../auth";
 import { getTargetDish, rowToDish, serverToday, type DishDbRow } from "../db";
 import { getTargetDrink, rowToDrink, type DrinkDbRow } from "../drinkdb";
+import { SHOWCASE_PAYLOAD, SHOWCASE_TTL_DAYS, showcaseTtlMs } from "../showcase";
 import { isValidDateString } from "../game";
 import {
   etDayOfHourBucket,
@@ -2242,6 +2243,51 @@ app.post("/drink-preview", async (c) => {
   }
   const token = await createToken(`preview:drink:${drinkId}`, PREVIEW_TTL_MS, c.env.SESSION_SECRET);
   return c.json({ token, url: `/?bar=1&preview=${encodeURIComponent(token)}` });
+});
+
+/**
+ * A showcase link (`/?showcase=…`) — the demo link.
+ *
+ * Lands on a finished, won Special with the bar's band already lit, so someone
+ * who has never played sees the hand-off into After Dark without waiting for
+ * 8pm or playing six guesses to earn the door. Every gate in this game was
+ * built for a player who comes back daily; a stranger with five minutes trips
+ * all three of them.
+ *
+ * Three things it deliberately is:
+ *
+ * 1. **Untracked.** It is a preview in every sense the beacons care about — no
+ *    round is recorded, no visit fires, and it cannot move a dashboard figure.
+ *    That is what keeps `outsideHours` on the After Dark tab a reading of
+ *    wound-forward clocks rather than a bucket full of demos.
+ * 2. **Pointed at the real pour.** It names no drink, unlike a drink preview,
+ *    so it serves whatever is actually on tap that night.
+ * 3. **Longer-lived than a preview.** 24h suits "does the tab look right"; a
+ *    link you put in an email has to survive the reply.
+ *
+ * And one thing it is not: revocable. The token is stateless HMAC, so there is
+ * no list to strike it from — killing one early means rotating SESSION_SECRET,
+ * which invalidates every session and every other preview at the same time.
+ * That is why the lifetimes are a closed set and why the response says when it
+ * dies, rather than leaving the caller to guess.
+ */
+app.post("/showcase", async (c) => {
+  let body: { days?: unknown };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
+  const ttl = showcaseTtlMs(body.days);
+  if (ttl === null) {
+    return c.json({ error: `days must be one of ${SHOWCASE_TTL_DAYS.join(", ")}` }, 400);
+  }
+  const token = await createToken(SHOWCASE_PAYLOAD, ttl, c.env.SESSION_SECRET);
+  return c.json({
+    token,
+    url: `/?showcase=${encodeURIComponent(token)}`,
+    expiresAt: new Date(Date.now() + ttl).toISOString(),
+  });
 });
 
 
