@@ -1,6 +1,6 @@
 // The browser's half of the showcase link.
 //
-// `?showcase=<token>` opens the game on a finished, won Special with the bar's
+// `?s=<token>` opens the game on a finished, won Special with the bar's
 // invitation already lit. It is the link you hand somebody who has never played
 // and has five minutes: it lifts the clock, the finish-lunch gate and the
 // one-round-a-day rule at once, and what it puts in front of them is the
@@ -29,7 +29,7 @@ import type { RoundState } from "./storage";
 /** The token on this page load, or undefined. */
 export function showcaseToken(): string | undefined {
   try {
-    return new URLSearchParams(window.location.search).get("showcase") ?? undefined;
+    return new URLSearchParams(window.location.search).get("s") ?? undefined;
   } catch {
     return undefined;
   }
@@ -85,7 +85,7 @@ export function seededShowcaseRound(): RoundState | null {
  * The token is not verified here and does not need to be: everything this does
  * on its own is cosmetic, and the only thing it unlocks — the bar, past its
  * clock — is resolved by the Worker against the signature on every request. A
- * forged `?showcase=` value seeds a check and then gets "Invalid or expired
+ * forged `?s=` value seeds a check and then gets "Invalid or expired
  * preview link" at the door.
  */
 export async function applyShowcase(): Promise<void> {

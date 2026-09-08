@@ -21,7 +21,7 @@ function mount() {
 // Embedded App SDK is never downloaded. See src/discord/bootstrap.ts.
 //
 // The two seeds alongside it are no-ops on every URL carrying neither
-// `?handoff=1` nor `?showcase=…` (and the harness is a no-op in production
+// `?handoff=1` nor `?s=…` (and the harness is a no-op in production
 // besides). Both have to run BEFORE the mount, because GamePage reads its round
 // in a useState initialiser and a board that is already finished at first
 // render opens its check instantly instead of replaying a win nobody watched.

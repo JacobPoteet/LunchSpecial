@@ -2246,7 +2246,7 @@ app.post("/drink-preview", async (c) => {
 });
 
 /**
- * A showcase link (`/?showcase=…`) — the demo link.
+ * A showcase link (`/?s=…`) — the demo link.
  *
  * Lands on a finished, won Special with the bar's band already lit, so someone
  * who has never played sees the hand-off into After Dark without waiting for
@@ -2283,9 +2283,11 @@ app.post("/showcase", async (c) => {
     return c.json({ error: `days must be one of ${SHOWCASE_TTL_DAYS.join(", ")}` }, 400);
   }
   const token = await createToken(SHOWCASE_PAYLOAD, ttl, c.env.SESSION_SECRET);
+  // `?s=`, not `?s=`. Seven characters of a link somebody has to paste
+  // into an email, spent on a word only this app would read.
   return c.json({
     token,
-    url: `/?showcase=${encodeURIComponent(token)}`,
+    url: `/?s=${encodeURIComponent(token)}`,
     expiresAt: new Date(Date.now() + ttl).toISOString(),
   });
 });
