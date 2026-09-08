@@ -21,9 +21,107 @@ import { shortDate } from "./analyticsUi";
 
 type BarPage = { view: "list" } | { view: "editor"; id: number | null } | { view: "board" };
 
-/** Open a preview in a new tab. The one way past the clock in production. */
+/** Open a preview in a new tab. A signed token is the only way past the clock. */
 function openPour(url: string) {
   window.open(url, "_blank", "noopener");
+}
+
+// ---------------------------------------------------------------------------
+// The showcase link
+// ---------------------------------------------------------------------------
+
+/**
+ * Mint a link for somebody who has never played.
+ *
+ * It lands them on a finished, won Special with the bar's band already lit, so
+ * the walk into After Dark is one press away instead of six guesses and a wait
+ * until eight in the evening. Untracked, so a run of these cannot move a figure
+ * on the dashboard.
+ *
+ * Two things this panel has to say out loud, because neither is recoverable
+ * once the link is sent: it cannot be revoked before it expires (the token is
+ * stateless — see the route), and anyone it is forwarded to gets in for the
+ * same window.
+ */
+function ShowcaseLink() {
+  const [days, setDays] = useState(7);
+  const [link, setLink] = useState<{ url: string; expiresAt: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const mint = () => {
+    setBusy(true);
+    setError(null);
+    setCopied(false);
+    api.createShowcase(days).then(
+      (r) => {
+        setBusy(false);
+        // The route returns a path; a link you paste into an email needs the
+        // origin on the front. Admin and game are one Worker, so this is it.
+        setLink({ url: new URL(r.url, window.location.origin).toString(), expiresAt: r.expiresAt });
+      },
+      (e: Error) => {
+        setBusy(false);
+        setError(e.message);
+      },
+    );
+  };
+
+  const copy = () => {
+    if (!link) return;
+    // The input below is visible and selectable, so a refusal here is something
+    // you can still recover by hand — no hidden-textarea fallback needed the way
+    // the game's share button needs one inside Discord's iframe.
+    navigator.clipboard.writeText(link.url).then(
+      () => setCopied(true),
+      () => setError("Couldn't reach the clipboard — select the link and copy it."),
+    );
+  };
+
+  return (
+    <div className="panel" style={{ marginBottom: 12 }}>
+      <div className="btn-row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <label htmlFor="showcase-days">Good for</label>
+        <select
+          id="showcase-days"
+          value={days}
+          onChange={(e) => setDays(Number(e.target.value))}
+        >
+          <option value={7}>7 days</option>
+          <option value={30}>30 days</option>
+        </select>
+        <button className="btn btn--red" onClick={mint} disabled={busy} aria-busy={busy}>
+          {link ? "New link" : "Create showcase link"}
+        </button>
+      </div>
+
+      {error && <p className="form-error">{error}</p>}
+
+      {link && (
+        <div className="btn-row" style={{ gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+          <input readOnly value={link.url} onFocus={(e) => e.currentTarget.select()} style={{ flex: "1 1 320px" }} aria-label="Showcase link" />
+          <button className="btn btn--ghost" onClick={copy}>
+            {copied ? "Copied!" : "Copy"}
+          </button>
+          <button className="btn btn--ghost" onClick={() => openPour(link.url)}>
+            Open
+          </button>
+        </div>
+      )}
+
+      <p className="dash-note">
+        {link ? (
+          <>
+            Expires {new Date(link.expiresAt).toLocaleString()}. It <b>can't be revoked early</b>, and
+            anyone it's forwarded to gets in until then.{" "}
+          </>
+        ) : null}
+        Opens on a finished Special with the bar's door lit, whatever the hour. Nothing it does is
+        recorded — no round, no visit, no figure on the dashboard.
+      </p>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -36,6 +134,9 @@ function DrinkList({ onOpen, onBoard }: { onOpen: (id: number | null) => void; o
   const [q, setQ] = useState("");
   const [spirit, setSpirit] = useState<Spirit | "">("");
   const [only, setOnly] = useState<"" | "unpourable" | "never" | "sober">("");
+  // Folded away by default: minting a demo link is an occasional job, and the
+  // catalogue is what you came here for.
+  const [showcasing, setShowcasing] = useState(false);
 
   const load = useCallback(() => {
     api.getDrinks().then(setRows, (e: Error) => setError(e.message));
@@ -70,6 +171,13 @@ function DrinkList({ onOpen, onBoard }: { onOpen: (id: number | null) => void; o
       <div className="btn-row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
         <h2>The back bar</h2>
         <div className="btn-row">
+          <button
+            className="btn btn--ghost"
+            onClick={() => setShowcasing((v) => !v)}
+            aria-expanded={showcasing}
+          >
+            Showcase link
+          </button>
           <button className="btn btn--ghost" onClick={onBoard}>
             Nightly board
           </button>
@@ -78,6 +186,8 @@ function DrinkList({ onOpen, onBoard }: { onOpen: (id: number | null) => void; o
           </button>
         </div>
       </div>
+
+      {showcasing && <ShowcaseLink />}
 
       <div className="btn-row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
         <input

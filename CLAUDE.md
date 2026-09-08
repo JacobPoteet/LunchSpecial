@@ -244,7 +244,22 @@ The clock and the door are both awkward to reach on purpose, so there are four w
 - **`npm run lastcall`** is the hand-off harness. It seeds a finished, won Special from the *real* reveal endpoint, so the check, the grid and the board underneath show a coherent round, and everything after that point is the genuine flow.
 - `npm run afterdark` / `?barhours=off` ignores opening hours; `npm run negroni` / `?nightcap=<slug>` pins the pour. All dev-only on the client, exactly like `?special=`. **`?barhours=off` bypasses the clock and nothing else** — it used to bypass the finish-lunch gate too, which made the "Kitchen first" door unreachable in dev, and a state nobody can look at is a state nobody checks. The two harness scripts seed a won Special instead, so the common case still lands on the board.
 - **`?nightcap=random` rolls a different pour on every load**, which is what makes the flow re-testable: a rolled pin is ephemeral like any other, so nothing is written and a restarted dev server never hands back the board you just played. "random" is not a slug — the *client* resolves it against `/api/night/drinks` and hands the ordinary pin path a real one, so **the Worker never learns a random branch**. That matters: one drink a night with no archive is the shape of the mode, and a branch that exists for testing is a branch that eventually ships. It is also why `DrinkPoolEntry` carries a slug and `DrinkSummary` does not.
-- **The drink preview token (`preview:drink:<id>`, from the Bar section or the nightly board) is the only way past the clock in production**, and the only one that is untracked. That is the point: the bar is open seven hours a night and "does the tab look right" is a two-in-the-afternoon question. The daily's resolver rejects a drink token and vice versa.
+- **A signed token is the only way past the clock in production**, and both kinds are untracked. That is the point: the bar is open seven hours a night and "does the tab look right" is a two-in-the-afternoon question. `worker/showcase.ts` holds the vocabulary and the two folds; the daily's resolver rejects either drink token and vice versa.
+  - **The drink preview (`preview:drink:<id>`**, from the Bar section or the nightly board) names **one pour** and lands on `/?bar=1&preview=…`. 24h. For checking a specific drink's board.
+  - **The showcase link (`preview:bar`**, from the Bar section) names **no drink**, so it falls through to the night's real pour, and lands in the **diner** on `/?showcase=…`. 7 or 30 days. For sending to someone who has never played.
+
+### The showcase link
+
+`/?showcase=<token>` opens the game on a finished, won Special with the bar's band already lit. It is the demo link, and it exists because **every gate in this game was built for a player who comes back daily** — the clock, finishing lunch, and one round a day. A stranger with five minutes trips all three.
+
+- **It is seeded before React mounts** (`applyShowcase` in `src/main.tsx`, beside the dev harness), because GamePage reads its round in a `useState` initialiser and a board already finished at first render opens its check *instantly* rather than replaying a win the viewer never watched. Seeding after mount would run the full win choreography over an empty board.
+- **Nothing is written.** The round lives in a module variable, never localStorage — a link forwarded to a real player must not hand them a won round or clobber one in progress. The dev harness makes the opposite choice deliberately (it is seeding your own browser and wants a reload to survive), which is why `wonRoundFromReveal` is shared and the `saveRound` call is not.
+- **Untracked, like a preview.** That is what stops a run of demo links filling the After Dark tab's `outsideHours` bucket, which exists to report wound-forward clocks.
+- **`isShowcase` is deliberately not folded into `isPreview`.** A preview rehearses a *specific* dish that isn't today's and is *dressed* as the daily to do it; a showcase **is** today's. Sharing a flag would need a carve-out at the puzzle number, the archive and the rollover watcher.
+- **The clock override is cosmetic and client-side only.** It decides whether the invitation is drawn, never whether the Worker pours — the signature does that. The bar's hours were never enforced server-side anyway (`isPlayableNight` checks the night is plausible, not the hour).
+- **The band alone isn't enough — the pill rides along too** (`(tracked || isShowcase) && dailyDone`), or closing the check strands a visitor one dismissed modal away from the thing they were sent to see.
+- **It cannot be revoked.** Stateless HMAC has no list to strike a token from; killing one early means rotating `SESSION_SECRET`, which invalidates every session and every other preview at once. That is why the lifetimes are a **closed set** (`SHOWCASE_TTL_DAYS`), why the mint route **400s rather than clamping** an unoffered value, and why the admin panel prints the expiry and says both limitations out loud. Anyone the link is forwarded to gets in for the same window.
+- **Leaving the bar drops the token** — `leaveBar` hard-assigns `/`, so a visitor lands on a clean, ordinary diner and can play for real. That also means a showcase token can never leak into the daily's resolver, which would reject it.
 
 
 ## Layout
@@ -262,6 +277,8 @@ worker/auth.ts        HMAC tokens: session cookie + preview tokens (stateless, S
 worker/db.ts          row mapping, getTargetDish (schedule row else deterministic fallback), serverToday
 worker/drinkdb.ts     the same for drinks. Separate so neither can be aimed at the other's table
 worker/nightcap.ts    PURE drink feedback (country/spirit/temperature/profile + ingredients)
+worker/showcase.ts    PURE preview-token vocabulary: the showcase payload, the lifetimes it
+                      signs, and what a verified drink token is asking for
 ```
 
 **Every module below is a pure fold with a unit test beside it.** Query in the route, fold in the module, assert on the fold.
@@ -325,7 +342,7 @@ worker/routes/stats.ts    /api/stats — public, no auth, aggregate-only, sends 
                           /api/stats/badge?metric=rounds|solved|solveRate|shared — shields.io schema
 worker/routes/analytics.ts  the beacon handlers, mounted at /api/rounds/* (see "Beacon paths" below)
 worker/routes/admin.ts    /api/admin/*: login/logout/session, dish CRUD, ingredients vocab, schedule
-                          GET/PUT, autofill, schedule/shuffle, preview token, dashboard, analytics
+                          GET/PUT, autofill, schedule/shuffle, preview + showcase tokens, dashboard, analytics
                           aggregates + /recent-rounds, /menu-mix, /dish-report, /device-data GET+DELETE,
                           /experiments CRUD, /announcements CRUD, /issues GET+POST
 
@@ -340,6 +357,7 @@ src/App.tsx           path startsWith /admin → lazy AdminApp, else GamePage (n
 src/api.ts            public fetch wrappers + localToday()
 src/game/             NightPage (the bar board), night.ts (the browser's half of the clock),
                       LightsOut.tsx (the walk there), devHarness.ts (dev-only entrances),
+                      showcase.ts (the demo link's pre-mount seed — production, unlike devHarness),
                       roundLifecycle.ts (the end-of-round choreography, shared by both boards)
 src/game/             GamePage (orchestrator), components.tsx (Modal/GuessRow/ClueTicket/GuessInput/
                       Countdown), SoundToggle.tsx, storage.ts, share.ts, attribution.ts,
@@ -376,11 +394,13 @@ The server accepts a **playable date**: today (±2 days of ET now, for clock and
 | Chef's Choice | `?random=<seed>` | no | no | `random` | **no** |
 | Preview | `?preview=<token>` | no | no | **none** | no |
 | Playtest | `?special=<slug>` | no | no | **none** | no |
+| Showcase | `?showcase=<token>` | no | no | **none** | yes |
 
 - **Archive** unlocks once today's Special is finished; the calendar shows every puzzle EPOCH→today with per-day status. Rounds persist per-date in `lunch-special:archive`. See `src/game/ArchiveModal.tsx` + archive.ts + storage.ts.
 - **Preview** is admin test play, minted by `POST /api/admin/preview` (24h TTL), reachable from the Today tab's Special card, each schedule row, and "Save + test play" in the dish editor. **It is the one mode that records nothing** — `tracked` is false, so no beacon fires and it can't move any dashboard figure. That's why the dashboard links to a preview token rather than to `/`.
 - **Chef's Choice** is spoiler-free (never touches `schedule`), so it ships in prod. Nothing gates it server-side; dev keeps `/play` and `?freeplay` as convenience entrances.
 - **Playtest** pins a dish by slug (`getDishBySlug`, resolved in `resolveTarget` ahead of `random`). The worker takes `?special=` unconditionally (slugs are already public via `/api/dishes`), but **the client only honours it behind `import.meta.env.DEV`**. An unknown slug 400s onto the closed-kitchen sign.
+- **Showcase** is the demo link sent to someone who has never played: today's real Special, seeded as already won, with After Dark unlocked whatever the hour. See "The showcase link" under After Dark.
 - **Preview and playtest are dressed as the daily** — real puzzle number, "Daily Special" line, countdown, share button, stats panel, 📅 Play again (`dressedAsDaily` in GamePage, taken by the check as `asDaily`). Only the top banner marks them, because the end-of-round screen is the part most worth trying before players reach it. Finishing one unlocks the archive. Two seams are deliberate: the stats panel shows the numbers you walked in with, and the share button copies a real grid but fires no beacon.
 
 ### Sharing a finished round

@@ -232,5 +232,15 @@ export const createDrinkPreview = (drinkId: number) =>
 export const createNightPreview = (night: string) =>
   request<{ token: string; url: string }>("/drink-preview", json({ night }));
 
+/**
+ * The showcase link — the one you send to somebody who has never played.
+ *
+ * Untracked like a preview, but pointed at the night's real pour rather than
+ * one named drink, seeded onto a finished Special so the bar's door is already
+ * lit, and alive for days rather than hours. Not revocable: see the route.
+ */
+export const createShowcase = (days: number) =>
+  request<{ token: string; url: string; expiresAt: string }>("/showcase", json({ days }));
+
 export const getNightReport = (surface?: Surface) =>
   request<AfterDarkReport>(`/night-report${surface ? `?surface=${surface}` : ""}`);

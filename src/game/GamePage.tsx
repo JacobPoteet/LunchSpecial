@@ -57,6 +57,7 @@ import {
   type RoundState,
   type Stats,
 } from "./storage";
+import { seededShowcaseRound } from "./showcase";
 import clocheUrl from "../assets/art/ai-cloche.svg";
 
 // Web vs Discord Activity — stable for the page's lifetime, so resolve it once
@@ -642,6 +643,14 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   const isPreview = preview !== undefined;
   const today = useMemo(() => localToday(), []);
 
+  // A showcase link (`?showcase=<token>`): the real daily, seeded as already
+  // won, with the bar's door lit. Deliberately NOT folded into `isPreview` — a
+  // preview rehearses a *specific* dish that isn't today's and is dressed as the
+  // daily to do it, where a showcase IS today's, and the difference shows up in
+  // half a dozen places (the puzzle number, the archive, the rollover watcher)
+  // that would each need a carve-out if the two shared a flag.
+  const isShowcase = useMemo(() => search.has("showcase"), [search]);
+
   // Archive: ?date=<past puzzle> replays an earlier Special (saved on its own,
   // separate from the daily streak). Only genuine past puzzle dates qualify.
   const archiveDateParam = useMemo(() => search.get("date") ?? undefined, [search]);
@@ -678,11 +687,16 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // A random round is keyed by a random seed; a new seed = a new random dish.
   const [seed, setSeed] = useState(() => newSeed());
   const random = isRandom ? seed : undefined;
-  // Preview, random and playtest are throwaway: no localStorage or stats.
-  const ephemeral = isPreview || isRandom || !!playtest;
-  // Preview and playtest are test tools rather than games — they record no
-  // analytics at all (a random round still does, as a chef's special).
-  const tracked = !isPreview && !playtest;
+  // Preview, random, playtest and showcase are throwaway: no localStorage or
+  // stats. A showcase link is often opened by somebody who plays the game for
+  // real afterwards, so it must not leave a won round in their browser.
+  const ephemeral = isPreview || isRandom || !!playtest || isShowcase;
+  // Preview, playtest and showcase are test and demo tools rather than games —
+  // they record no analytics at all (a random round still does, as a chef's
+  // special). Keeping the showcase untracked is what stops a run of demo links
+  // filling the After Dark tab's `outsideHours` bucket, which exists to report
+  // wound-forward clocks.
+  const tracked = !isPreview && !playtest && !isShowcase;
   // Preview and playtest both exist to rehearse the real finish, so they're
   // *dressed* as the daily wherever that shows: puzzle number, countdown, share
   // button, stats panel. Only the banner up top gives either away. Underneath
@@ -694,9 +708,13 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
 
   const [dishes, setDishes] = useState<DishSummary[]>([]);
   const [daily, setDaily] = useState<DailyInfo | null>(null);
-  const [round, setRound] = useState<RoundState>(() =>
-    isDaily ? loadRound(date) : isArchive ? loadArchiveRound(date) : emptyRound(date),
-  );
+  const [round, setRound] = useState<RoundState>(() => {
+    // Seeded before the mount (see src/main.tsx), so the check opens instantly
+    // rather than running the win choreography over a board nobody played.
+    // Falls back to an unplayed board if the kitchen didn't answer.
+    if (isShowcase) return seededShowcaseRound() ?? emptyRound(date);
+    return isDaily ? loadRound(date) : isArchive ? loadArchiveRound(date) : emptyRound(date);
+  });
   const [reveal, setReveal] = useState<RevealInfo | null>(null);
   const [stats, setStats] = useState<Stats>(() => loadStats());
   const [error, setError] = useState<string | null>(null);
@@ -736,10 +754,11 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // dated slot; preview/random → nowhere.
   const persist = useCallback(
     (next: RoundState) => {
+      if (isShowcase) return; // a demo link leaves nothing behind
       if (isDaily) saveRound(next);
       else if (isArchive) saveArchiveRound(next);
     },
-    [isDaily, isArchive],
+    [isDaily, isArchive, isShowcase],
   );
 
   // Whether today's daily is finished — the archive unlocks only after that.
@@ -755,7 +774,12 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // After Dark. Read once at mount — whether tonight's Nightcap is settled can
   // only change by going to the bar, which unmounts this page.
   const playedTonight = useMemo(() => nightRoundFinished(currentNight()), []);
-  const invite = useBarInvite(playedTonight);
+  const clockInvite = useBarInvite(playedTonight);
+  // A showcase link holds the door open regardless of the hour. This is the one
+  // place the client's reading of the bar's clock is overridden, and it is
+  // cosmetic: it decides whether the invitation is drawn, never whether the
+  // Worker pours. The signature on the token is what actually gets you in.
+  const invite: BarInvite = isShowcase ? "open" : clockInvite;
   // The BAND is the hand-off, so it belongs to the daily's check and nowhere
   // else: a Leftover or a Chef's Choice is a side door, and offering the bar at
   // the end of one would be offering it off a round that isn't today's.
@@ -763,8 +787,10 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // The PILL is navigation, so it belongs anywhere a player who has already
   // finished lunch might be standing — including a Leftover, where the bar was
   // otherwise two hops away (back to today, then the pill). `tracked` keeps it
-  // off a preview and a playtest, which are rehearsals and not rounds.
-  const barPill: BarInvite = tracked && dailyDone ? invite : "none";
+  // off a preview and a playtest, which are rehearsals and not rounds; a
+  // showcase is the exception, because closing the check would otherwise strand
+  // a visitor one dismissed modal away from the thing they were sent to see.
+  const barPill: BarInvite = (tracked || isShowcase) && dailyDone ? invite : "none";
 
   // ---- Notices from the kitchen ----
   //
@@ -1108,6 +1134,15 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           <p className="preview-banner">Admin test play — nothing is saved, counted or shown to players</p>
         )}
         {playtest && <p className="preview-banner">Playtest — pinned to “{playtest}”, nothing is saved</p>}
+        {/* A showcase visitor arrives on a board somebody else won, which needs
+            saying: without it the check reads as a bug they caused. Addressed to
+            a stranger, unlike the two above, which are addressed to the admin. */}
+        {isShowcase && (
+          <p className="preview-banner">
+            Preview link — today's Special is shown already solved, so you can see the whole game.
+            Nothing here is saved.
+          </p>
+        )}
         {/* Sits above every other bar: if the day has turned, that reframes
             whatever mode the player is in, so it needs to be read first. */}
         {newDayAvailable && (
