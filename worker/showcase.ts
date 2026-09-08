@@ -19,8 +19,13 @@
 /**
  * The showcase token's whole payload. No id follows it, which is what makes it
  * resolve the night's real pour instead of a drink someone picked in advance.
+ *
+ * Two characters, and no colon in them. A showcase link is the only token in
+ * this app a person reads, and `preview:bar` cost 11 characters plus three more
+ * for the `%3A` the colon forces on every URL it appears in. The drink preview's
+ * payload keeps its readable prefix: nobody emails one.
  */
-export const SHOWCASE_PAYLOAD = "preview:bar";
+export const SHOWCASE_PAYLOAD = "sc";
 
 /** The drink-preview prefix, which a showcase must never be mistaken for. */
 export const DRINK_PREVIEW_PREFIX = "preview:drink:";

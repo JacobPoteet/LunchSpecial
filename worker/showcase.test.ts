@@ -52,11 +52,12 @@ describe("classifyDrinkPreview", () => {
     expect(classifyDrinkPreview(null)).toEqual({ kind: "invalid" });
   });
 
-  it("matches the showcase exactly, so no longer prefix falls through to it", () => {
-    // If a `preview:bartender:…` payload were ever minted, it must not be read
-    // as a showcase. Exact equality is what guarantees that.
-    expect(classifyDrinkPreview("preview:bar:7")).toEqual({ kind: "invalid" });
-    expect(classifyDrinkPreview("preview:bartender")).toEqual({ kind: "invalid" });
+  it("matches the showcase exactly, so no longer payload falls through to it", () => {
+    // The payload is two characters, which makes an accidental prefix match
+    // cheap to create. Exact equality is what rules every one of these out.
+    expect(classifyDrinkPreview("sc:7")).toEqual({ kind: "invalid" });
+    expect(classifyDrinkPreview("scx")).toEqual({ kind: "invalid" });
+    expect(classifyDrinkPreview("s")).toEqual({ kind: "invalid" });
   });
 
   it("rejects a drink preview with no usable id", () => {

@@ -189,13 +189,13 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   //
   // What the Worker does with it differs: a drink preview names one pour, a
   // showcase names none and gets the night's real one. See worker/showcase.ts.
-  const preview = useMemo(() => search.get("preview") ?? search.get("showcase") ?? undefined, [search]);
+  const preview = useMemo(() => search.get("preview") ?? search.get("s") ?? undefined, [search]);
   const isPreview = preview !== undefined;
   // The one place the two are told apart. Everything else about a showcase is a
   // preview — untracked, ephemeral, past the clock — but the banner is written
   // for whoever is reading it, and "admin test pour" is addressed to you. The
   // person holding a showcase link has never seen this game.
-  const isShowcase = useMemo(() => search.has("showcase") && !search.has("preview"), [search]);
+  const isShowcase = useMemo(() => search.has("s") && !search.has("preview"), [search]);
   // `?nightcap=<slug>` pins the pour, dev only on the client for the same
   // reason `?special=` is: the slugs are public, but the entrance isn't.
   const pinned = useMemo(() => {

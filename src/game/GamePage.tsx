@@ -643,13 +643,13 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   const isPreview = preview !== undefined;
   const today = useMemo(() => localToday(), []);
 
-  // A showcase link (`?showcase=<token>`): the real daily, seeded as already
+  // A showcase link (`?s=<token>`): the real daily, seeded as already
   // won, with the bar's door lit. Deliberately NOT folded into `isPreview` — a
   // preview rehearses a *specific* dish that isn't today's and is dressed as the
   // daily to do it, where a showcase IS today's, and the difference shows up in
   // half a dozen places (the puzzle number, the archive, the rollover watcher)
   // that would each need a carve-out if the two shared a flag.
-  const isShowcase = useMemo(() => search.has("showcase"), [search]);
+  const isShowcase = useMemo(() => search.has("s"), [search]);
 
   // Archive: ?date=<past puzzle> replays an earlier Special (saved on its own,
   // separate from the daily streak). Only genuine past puzzle dates qualify.
