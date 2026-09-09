@@ -96,3 +96,31 @@ export function carryDemo(url: string, entrance: DemoEntrance, token?: string): 
   const qs = params.toString();
   return qs ? `${rawPath}?${qs}` : rawPath;
 }
+
+/**
+ * Should this page load ask for a read-only session?
+ *
+ * The rule this replaced said a full session is never demoted by a query
+ * parameter, which sounded protective and was the opposite. `/admin?demo=1` has
+ * exactly two visitors: a stranger following the link off the demo band, and the
+ * owner checking what that stranger sees. The owner is the one with a session
+ * cookie, so the owner was the only person who never saw the demo — they got the
+ * full back office, with every delete button live, and no way to tell from
+ * looking at it.
+ *
+ * A preview that shows you something other than what it is previewing is worse
+ * than no preview. So the URL wins, always, and it wins by actually swapping the
+ * cookie rather than by drawing a read-only skin over a session that can still
+ * write. What the owner sees is then what a visitor gets, byte for byte, which
+ * is the only version of this worth having.
+ *
+ * The cost is that previewing the demo signs you out of the full back office.
+ * That is one password field to undo, and it is stated on the banner rather than
+ * left to be discovered.
+ */
+export function demoSessionNeeded(
+  urlAsksForDemo: boolean,
+  role: "full" | "readonly" | null,
+): boolean {
+  return urlAsksForDemo && role !== "readonly";
+}

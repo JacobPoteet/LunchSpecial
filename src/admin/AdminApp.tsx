@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { buildLabel, buildTitle } from "../../shared/build";
-import { DEMO_PATH } from "../../shared/demo";
+import { DEMO_PATH, demoSessionNeeded } from "../../shared/demo";
 import type { DishFilter } from "../../shared/dishfilter";
 import type { IssueContext } from "../../shared/types";
 import * as api from "./api";
@@ -77,6 +77,9 @@ export default function AdminApp() {
   // below trusts it for safety — the Worker refuses every write by method — but
   // it decides which controls are worth drawing. See src/admin/readonly.ts.
   const [readOnly, setReadOnly] = useState(false);
+  // Set when previewing the demo cost you a full session, so the banner can say
+  // so rather than leaving you to discover it at the first disabled control.
+  const [demoSwap, setDemoSwap] = useState(false);
   const [view, setView] = useState<AdminView>("dashboard");
   // undefined = not editing; null = new dish; number = existing dish
   const [editing, setEditing] = useState<number | null | undefined>(undefined);
@@ -100,29 +103,28 @@ export default function AdminApp() {
   }, []);
 
   useEffect(() => {
-    // `/admin?demo=1` is the link on the demo's banner. It asks for a read-only
-    // session only when there isn't one already: an admin who follows the link
-    // out of curiosity keeps the full session they arrived with, rather than
-    // being quietly demoted by a query parameter.
+    // `/admin?demo=1` is the link on the demo's banner, and it ALWAYS lands you
+    // in the demo — replacing a full session if you had one. See
+    // demoSessionNeeded: the owner is the only person who ever checks this URL
+    // and was the only person it never showed the demo to.
     const wantsDemo = new URLSearchParams(window.location.search).has("demo");
     api.getSession().then(
       async ({ loggedIn, readOnly: ro }) => {
-        if (loggedIn) {
-          setReadOnly(ro);
-          setSession("in");
-          return;
+        const role = loggedIn ? (ro ? "readonly" : "full") : null;
+        if (demoSessionNeeded(wantsDemo, role)) {
+          try {
+            await api.demoSession();
+            setReadOnly(true);
+            setSession("in");
+            // Only worth saying to somebody who just lost a full session.
+            setDemoSwap(role === "full");
+            return;
+          } catch {
+            // Falls through to whatever session actually exists.
+          }
         }
-        if (!wantsDemo) {
-          setSession("out");
-          return;
-        }
-        try {
-          await api.demoSession();
-          setReadOnly(true);
-          setSession("in");
-        } catch {
-          setSession("out");
-        }
+        setReadOnly(role === "readonly");
+        setSession(role === null ? "out" : "in");
       },
       () => setSession("out"),
     );
@@ -224,7 +226,24 @@ export default function AdminApp() {
                 </button>
               )}
               {readOnly ? (
-                <button onClick={() => window.location.assign(DEMO_PATH)}>Back to the demo</button>
+                <>
+                  <button onClick={() => window.location.assign(DEMO_PATH)}>Back to the demo</button>
+                  {/* The way out of the preview. Drops the read-only cookie and
+                      shows the password form, so an admin is never stranded in
+                      a back office that cannot write. */}
+                  <button
+                    className="admin-nav__action"
+                    onClick={() => {
+                      api.logout().finally(() => {
+                        setReadOnly(false);
+                        setDemoSwap(false);
+                        setSession("out");
+                      });
+                    }}
+                  >
+                    Clock in
+                  </button>
+                </>
               ) : (
                 <button
                   onClick={() => {
@@ -254,6 +273,15 @@ export default function AdminApp() {
         {session === "in" && readOnly && (
           <p className="readonly-banner">
             Read-only demo — live production data. Nothing here can be changed.
+            {demoSwap && (
+              <>
+                {" "}
+                <span className="readonly-banner__swap">
+                  This is exactly what a visitor sees, so your full session was swapped for it —
+                  clock in again to get it back.
+                </span>
+              </>
+            )}
           </p>
         )}
         {session === "in" && (

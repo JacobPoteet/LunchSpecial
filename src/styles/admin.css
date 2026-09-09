@@ -2267,6 +2267,14 @@
    Nothing on this dashboard animates (src/styles/admin.css declares no
    keyframes, which is why it needs no reduced-motion block); this doesn't
    either. */
+/* The half of the banner only an admin ever reads: previewing the demo swapped
+   the session they arrived with. Lighter than the sentence it follows, because
+   it is a footnote to it rather than a second warning. */
+.readonly-banner__swap {
+  font-weight: 400;
+  opacity: 0.85;
+}
+
 .readonly-banner {
   background: var(--mustard);
   /* --on-near rather than --ink: the same value on this paper, but it is the

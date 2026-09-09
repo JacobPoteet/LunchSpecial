@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { carryDemo, DEMO_PATH, demoEntrance, type DemoEntrance } from "./demo";
+import { carryDemo, DEMO_PATH, demoEntrance, demoSessionNeeded, type DemoEntrance } from "./demo";
 
 const search = (qs: string) => new URLSearchParams(qs);
 
@@ -76,5 +76,28 @@ describe("carryDemo", () => {
       const once = carryDemo("/", e, "abc");
       expect(carryDemo(once, e, "abc")).toBe(once);
     }
+  });
+});
+
+describe("demoSessionNeeded", () => {
+  it("mints one for a stranger with no session", () => {
+    expect(demoSessionNeeded(true, null)).toBe(true);
+  });
+
+  it("REPLACES a full session, so the owner sees what a visitor sees", () => {
+    // The regression this exists for. Keeping the full session here meant the
+    // one person who ever checks the demo was the one person who never saw it:
+    // the back office rendered at full privilege, every write button live.
+    expect(demoSessionNeeded(true, "full")).toBe(true);
+  });
+
+  it("does not re-mint when the session is already read-only", () => {
+    expect(demoSessionNeeded(true, "readonly")).toBe(false);
+  });
+
+  it("leaves an ordinary /admin visit alone", () => {
+    expect(demoSessionNeeded(false, null)).toBe(false);
+    expect(demoSessionNeeded(false, "full")).toBe(false);
+    expect(demoSessionNeeded(false, "readonly")).toBe(false);
   });
 });
