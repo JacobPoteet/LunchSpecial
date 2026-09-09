@@ -17,6 +17,7 @@ import {
 } from "../../shared/dishfilter";
 import { gameToday } from "../../shared/time";
 import * as api from "./api";
+import { useReadOnly } from "./readonly";
 
 /**
  * The dish list, which is really a shortlist builder. The job it exists for
@@ -164,6 +165,7 @@ export default function DishList({
   /** A filter handed in by a link (the Menu tab). A new object replaces what's on screen. */
   incomingFilter?: Partial<DishFilter> | null;
 }) {
+  const readOnly = useReadOnly();
   const [rows, setRows] = useState<AdminDishRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<DishFilter>(() =>
@@ -235,9 +237,11 @@ export default function DishList({
     <section className="panel">
       <div className="btn-row" style={{ justifyContent: "space-between", marginBottom: 14 }}>
         <h2 style={{ margin: 0 }}>Dishes</h2>
-        <button className="btn btn--red" onClick={() => onOpenDish(null)}>
-          + New dish
-        </button>
+        {!readOnly && (
+          <button className="btn btn--red" onClick={() => onOpenDish(null)}>
+            + New dish
+          </button>
+        )}
       </div>
 
       <div className="dish-filters">

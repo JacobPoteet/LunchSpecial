@@ -62,7 +62,15 @@ const json = (body: unknown): RequestInit => ({
 
 export const login = (password: string) => request<{ ok: true }>("/login", json({ password }));
 export const logout = () => request<{ ok: true }>("/logout", { method: "POST" });
-export const getSession = () => request<{ loggedIn: boolean }>("/session");
+export const getSession = () => request<{ loggedIn: boolean; readOnly: boolean }>("/session");
+
+/**
+ * Open the back office read-only, with no password.
+ *
+ * The public demo's door (shared/demo.ts). Every write is refused server-side by
+ * method, in one middleware — see worker/adminsession.ts.
+ */
+export const demoSession = () => request<{ ok: true }>("/demo-session", { method: "POST" });
 export const getDashboard = () => request<AdminDashboard>("/dashboard");
 /**
  * Optionally filter engagement to one surface (web / discord); omit for all.

@@ -2259,6 +2259,30 @@
 
 .btn--link:hover { color: var(--teal-dark); }
 
+/* The read-only demo's banner. Said once at the top of the shell rather than
+   beside each control it governs, and mustard rather than cherry because it is
+   news about the screen and not an error on it — the same distinction
+   .preview-banner draws in the game.
+
+   Nothing on this dashboard animates (src/styles/admin.css declares no
+   keyframes, which is why it needs no reduced-motion block); this doesn't
+   either. */
+.readonly-banner {
+  background: var(--mustard);
+  /* --on-near rather than --ink: the same value on this paper, but it is the
+     token that is *defined* as readable on mustard, and it stays that way if
+     the back office ever inherits a theme. Same pair, same reason, as
+     .preview-banner in the game. */
+  color: var(--on-near);
+  border-radius: 8px;
+  padding: 9px 14px;
+  margin-bottom: 14px;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
 .form-error {
   background: var(--cherry);
   color: #fff;

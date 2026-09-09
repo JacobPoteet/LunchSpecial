@@ -20,6 +20,7 @@ import {
 } from "../../shared/activity";
 import { gameClock, gameTimestamp } from "../../shared/time";
 import * as api from "./api";
+import { useReadOnly } from "./readonly";
 import { Modal } from "../game/components";
 import { peekPlayerId } from "../game/storage";
 import DayPicker from "./DayPicker";
@@ -205,6 +206,7 @@ function MyDataPanel({
   /** A wipe landed: the feed above is now stale. */
   onChanged: () => void;
 }) {
+  const readOnly = useReadOnly();
   const [summary, setSummary] = useState<DeviceDataSummary | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -343,9 +345,15 @@ function MyDataPanel({
                 <button className="btn btn--ghost btn--small" onClick={onShowMine}>
                   Show these rows
                 </button>
-                <button className="btn btn--red btn--small" onClick={() => setConfirming(true)} disabled={busy}>
-                  Delete all of it
-                </button>
+                {/* The review still works read-only, and is worth keeping: it is
+                    the panel's whole argument. The wipe is the one control in
+                    this back office with no undo and prod D1 has no automatic
+                    backup, so a visitor is not offered it at all. */}
+                {!readOnly && (
+                  <button className="btn btn--red btn--small" onClick={() => setConfirming(true)} disabled={busy}>
+                    Delete all of it
+                  </button>
+                )}
               </>
             )}
           </div>

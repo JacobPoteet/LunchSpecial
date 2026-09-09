@@ -3,6 +3,7 @@ import type { DishRequest } from "../../shared/types";
 import type { DishDraft } from "./AdminApp";
 import { Modal } from "../game/components";
 import * as api from "./api";
+import { useReadOnly } from "./readonly";
 
 /**
  * Build the exact `/create-dishes` line the skill understands, so the whole
@@ -33,6 +34,7 @@ export default function RequestsView({
   onAddAsDish: (draft: DishDraft) => void;
   onCountChange: (count: number) => void;
 }) {
+  const readOnly = useReadOnly();
   const [rows, setRows] = useState<DishRequest[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -108,9 +110,11 @@ export default function RequestsView({
             <button className="btn" onClick={copy}>
               {copied ? "Copied!" : "📋 Copy all for Claude"}
             </button>
-            <button className="btn btn--ghost" onClick={() => setConfirmingClear(true)}>
-              Clear all
-            </button>
+            {!readOnly && (
+              <button className="btn btn--ghost" onClick={() => setConfirmingClear(true)}>
+                Clear all
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -149,20 +153,24 @@ export default function RequestsView({
                 </td>
                 <td data-label="When">{r.createdAt.slice(0, 10)}</td>
                 <td data-label="Actions">
-                  <div className="btn-row">
-                    <button
-                      className="btn btn--red"
-                      disabled={busyId === r.id}
-                      onClick={() =>
-                        onAddAsDish({ prefill: { name: r.name, country: r.country ?? "" }, requestId: r.id })
-                      }
-                    >
-                      Add as dish
-                    </button>
-                    <button className="btn btn--ghost" disabled={busyId === r.id} onClick={() => void remove(r.id)}>
-                      {busyId === r.id ? "Removing…" : "Remove"}
-                    </button>
-                  </div>
+                  {readOnly ? (
+                    <span aria-label="No actions in the read-only demo">—</span>
+                  ) : (
+                    <div className="btn-row">
+                      <button
+                        className="btn btn--red"
+                        disabled={busyId === r.id}
+                        onClick={() =>
+                          onAddAsDish({ prefill: { name: r.name, country: r.country ?? "" }, requestId: r.id })
+                        }
+                      >
+                        Add as dish
+                      </button>
+                      <button className="btn btn--ghost" disabled={busyId === r.id} onClick={() => void remove(r.id)}>
+                        {busyId === r.id ? "Removing…" : "Remove"}
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

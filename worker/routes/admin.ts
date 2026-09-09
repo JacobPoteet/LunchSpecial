@@ -106,6 +106,15 @@ import {
 import { getTargetDish, rowToDish, serverToday, type DishDbRow } from "../db";
 import { getTargetDrink, rowToDrink, type DrinkDbRow } from "../drinkdb";
 import { SHOWCASE_PAYLOAD, SHOWCASE_TTL_DAYS, showcaseTtlMs } from "../showcase";
+import {
+  mayCall,
+  READONLY_PAYLOAD,
+  READONLY_REFUSAL,
+  READONLY_TTL_MS,
+  SESSION_PAYLOAD,
+  sessionRole,
+  type SessionRole,
+} from "../adminsession";
 import { isValidDateString } from "../game";
 import {
   etDayOfHourBucket,
@@ -121,10 +130,20 @@ import { addDays, gameToday, msUntilGameMidnight } from "../../shared/time";
 
 const app = new Hono<{ Bindings: Env }>();
 
-async function isLoggedIn(c: Context, secret: string) {
+async function roleOf(c: Context, secret: string): Promise<SessionRole | null> {
   const cookie = getCookie(c, SESSION_COOKIE);
-  if (!cookie) return false;
-  return (await verifyToken(cookie, secret)) === "session";
+  if (!cookie) return null;
+  return sessionRole(await verifyToken(cookie, secret));
+}
+
+function setSessionCookie(c: Context, token: string, ttlMs: number) {
+  setCookie(c, SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "Strict",
+    path: "/",
+    maxAge: ttlMs / 1000,
+  });
 }
 
 app.post("/login", async (c) => {
@@ -137,14 +156,31 @@ app.post("/login", async (c) => {
   if (!body.password || !(await passwordMatches(body.password, c.env.ADMIN_PASSWORD))) {
     return c.json({ error: "Wrong password" }, 401);
   }
-  const token = await createToken("session", SESSION_TTL_MS, c.env.SESSION_SECRET);
-  setCookie(c, SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "Strict",
-    path: "/",
-    maxAge: SESSION_TTL_MS / 1000,
-  });
+  const token = await createToken(SESSION_PAYLOAD, SESSION_TTL_MS, c.env.SESSION_SECRET);
+  setSessionCookie(c, token, SESSION_TTL_MS);
+  return c.json({ ok: true });
+});
+
+/**
+ * The demo's door into the back office. No password, and none is asked for.
+ *
+ * This is the one route in this file that anyone can call, which is the point:
+ * the public demo (shared/demo.ts) is a permanent link with nothing behind it,
+ * and putting a credential in front of the half of the project most worth
+ * looking at would defeat it. What it hands out is a read-only session — every
+ * write in this router is refused for it, in one place, by method.
+ *
+ * What that exposes is real production data: anonymous device ids, per-round
+ * rows, player dish suggestions, experiment notes. All of it is already
+ * anonymous by construction (no accounts, no IPs, `player_id` is a UUID minted
+ * in a browser), and /api/stats already publishes the aggregates to anyone with
+ * no auth and an open CORS header. It is still a deliberate step further, and
+ * it is one `vars` entry away from being switched off if that ever stops being
+ * a trade worth making.
+ */
+app.post("/demo-session", async (c) => {
+  const token = await createToken(READONLY_PAYLOAD, READONLY_TTL_MS, c.env.SESSION_SECRET);
+  setSessionCookie(c, token, READONLY_TTL_MS);
   return c.json({ ok: true });
 });
 
@@ -154,14 +190,21 @@ app.post("/logout", (c) => {
 });
 
 app.get("/session", async (c) => {
-  return c.json({ loggedIn: await isLoggedIn(c, c.env.SESSION_SECRET) });
+  const role = await roleOf(c, c.env.SESSION_SECRET);
+  return c.json({ loggedIn: role !== null, readOnly: role === "readonly" });
 });
 
-// Everything below requires a valid session.
+// Everything below requires a valid session, and a read-only one may only read.
+//
+// The write gate is by METHOD, here, rather than by a guard on each of the
+// twenty-six routes below it. A per-route list is a list to keep in step with
+// the router and the cost of forgetting an entry is a stranger deleting a dish;
+// this fails closed for every route that does not exist yet. See
+// worker/adminsession.ts, which owns the rule and is tested against it.
 app.use("*", async (c, next) => {
-  if (!(await isLoggedIn(c, c.env.SESSION_SECRET))) {
-    return c.json({ error: "Not logged in" }, 401);
-  }
+  const role = await roleOf(c, c.env.SESSION_SECRET);
+  if (role === null) return c.json({ error: "Not logged in" }, 401);
+  if (!mayCall(role, c.req.method)) return c.json({ error: READONLY_REFUSAL }, 403);
   await next();
 });
 

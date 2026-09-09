@@ -4,6 +4,7 @@ import { COURSES, PROTEINS, REGIONS, TEMPERATURES } from "../../shared/types";
 import { ClueTicket, GuessRow, Modal } from "../game/components";
 import { CLUE_BEATS } from "../../shared/clues";
 import * as api from "./api";
+import { useReadOnly } from "./readonly";
 
 // The beat headlines and budgets are the only guidance anyone writing a clue
 // in /admin ever sees. They come from shared/clues.ts, which is the same table
@@ -127,6 +128,7 @@ export default function DishEditor({
   onRequestConsumed?: () => void;
   onDone: () => void;
 }) {
+  const readOnly = useReadOnly();
   const [form, setForm] = useState<AdminDishInput>(() =>
     // A prefilled new dish came from the request inbox, so it *is* a fan
     // submission — pre-tick it rather than making the reviewer remember.
@@ -382,19 +384,25 @@ export default function DishEditor({
             </p>
           )}
 
-          <div className="btn-row" style={{ marginTop: 10 }}>
-            <button className="btn btn--red" disabled={busy || !form.name.trim()} onClick={() => void save()}>
-              {busy ? "Saving…" : "Save dish"}
-            </button>
-            <button className="btn" disabled={busy || !form.name.trim()} onClick={() => void testPlay()}>
-              Save + test play ▶
-            </button>
-            {savedId !== null && (
-              <button className="btn btn--ghost" disabled={busy} onClick={() => setConfirmingDelete(true)}>
-                Delete
+          {/* The editor itself stays — the fields, the live clue counters and
+              the beat-sheet budgets are most of what there is to see here. What
+              goes is the row that writes. "Save + test play" goes with them: it
+              saves first, so offering it would be offering a refusal. */}
+          {!readOnly && (
+            <div className="btn-row" style={{ marginTop: 10 }}>
+              <button className="btn btn--red" disabled={busy || !form.name.trim()} onClick={() => void save()}>
+                {busy ? "Saving…" : "Save dish"}
               </button>
-            )}
-          </div>
+              <button className="btn" disabled={busy || !form.name.trim()} onClick={() => void testPlay()}>
+                Save + test play ▶
+              </button>
+              {savedId !== null && (
+                <button className="btn btn--ghost" disabled={busy} onClick={() => setConfirmingDelete(true)}>
+                  Delete
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="preview-pane">

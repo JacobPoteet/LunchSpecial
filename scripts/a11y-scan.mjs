@@ -76,6 +76,19 @@ const SCANS = [
     },
   },
   {
+    name: "the demo board (public /demo)",
+    async setup(page) {
+      // The demo's banner is the one band in the game that carries navigation
+      // rather than a sentence — a button and two links on mustard — so it has
+      // three contrast pairs and a focus stop that exist nowhere else. It is
+      // also the first screen a stranger sees, which is the argument for
+      // scanning it rather than assuming it inherits.
+      await page.goto(`${BASE}/demo`, { waitUntil: "domcontentloaded" });
+      await closeAllModals(page);
+      await page.waitForSelector(".demo-banner");
+    },
+  },
+  {
     name: "board, mid-round (tiles, chips, clue ticket)",
     async setup(page) {
       await page.goto(`${BASE}/?special=${TARGET_SLUG}`, { waitUntil: "domcontentloaded" });

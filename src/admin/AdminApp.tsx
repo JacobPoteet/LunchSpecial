@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { buildLabel, buildTitle } from "../../shared/build";
+import { DEMO_PATH } from "../../shared/demo";
 import type { DishFilter } from "../../shared/dishfilter";
 import type { IssueContext } from "../../shared/types";
 import * as api from "./api";
@@ -9,6 +10,7 @@ import Dashboard from "./Dashboard";
 import DishEditor from "./DishEditor";
 import DishList from "./DishList";
 import IssueComposer, { currentIssueContext } from "./IssueComposer";
+import { ReadOnlyContext } from "./readonly";
 import RequestsView from "./RequestsView";
 import ScheduleView from "./ScheduleView";
 
@@ -60,6 +62,10 @@ function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
 
 export default function AdminApp() {
   const [session, setSession] = useState<"checking" | "out" | "in">("checking");
+  // A read-only session, the public demo's door into the back office. Nothing
+  // below trusts it for safety — the Worker refuses every write by method — but
+  // it decides which controls are worth drawing. See src/admin/readonly.ts.
+  const [readOnly, setReadOnly] = useState(false);
   const [view, setView] = useState<AdminView>("dashboard");
   // undefined = not editing; null = new dish; number = existing dish
   const [editing, setEditing] = useState<number | null | undefined>(undefined);
@@ -83,8 +89,30 @@ export default function AdminApp() {
   }, []);
 
   useEffect(() => {
+    // `/admin?demo=1` is the link on the demo's banner. It asks for a read-only
+    // session only when there isn't one already: an admin who follows the link
+    // out of curiosity keeps the full session they arrived with, rather than
+    // being quietly demoted by a query parameter.
+    const wantsDemo = new URLSearchParams(window.location.search).has("demo");
     api.getSession().then(
-      ({ loggedIn }) => setSession(loggedIn ? "in" : "out"),
+      async ({ loggedIn, readOnly: ro }) => {
+        if (loggedIn) {
+          setReadOnly(ro);
+          setSession("in");
+          return;
+        }
+        if (!wantsDemo) {
+          setSession("out");
+          return;
+        }
+        try {
+          await api.demoSession();
+          setReadOnly(true);
+          setSession("in");
+        } catch {
+          setSession("out");
+        }
+      },
       () => setSession("out"),
     );
   }, []);
@@ -161,20 +189,28 @@ export default function AdminApp() {
               {/* An action, not a destination, which is why it takes the
                   mustard tint the nav's other pills don't — but it lives in
                   the nav because "Clock out" set that precedent and because it
-                  has to be reachable from every panel, not just one tab. */}
-              <button
-                className="admin-nav__action"
-                onClick={() => setFiling(currentIssueContext(view, editing))}
-              >
-                File an issue
-              </button>
-              <button
-                onClick={() => {
-                  api.logout().finally(() => setSession("out"));
-                }}
-              >
-                Clock out
-              </button>
+                  has to be reachable from every panel, not just one tab.
+                  Filing an issue writes to GitHub, so a read-only visitor is
+                  not offered it. */}
+              {!readOnly && (
+                <button
+                  className="admin-nav__action"
+                  onClick={() => setFiling(currentIssueContext(view, editing))}
+                >
+                  File an issue
+                </button>
+              )}
+              {readOnly ? (
+                <button onClick={() => window.location.assign(DEMO_PATH)}>Back to the demo</button>
+              ) : (
+                <button
+                  onClick={() => {
+                    api.logout().finally(() => setSession("out"));
+                  }}
+                >
+                  Clock out
+                </button>
+              )}
               {/* Always on, unlike the player-facing marker: this is the back
                   office, it has no screenshot to keep clean, and "did that
                   deploy actually land" is a question you ask here. The title
@@ -188,8 +224,17 @@ export default function AdminApp() {
 
         {session === "checking" && <p style={{ color: "var(--cream)" }}>Checking your apron…</p>}
         {session === "out" && <Login onLoggedIn={() => setSession("in")} />}
+        {/* Said once, at the top, rather than repeated beside every control it
+            governs. A visitor needs to know two things about this screen and
+            they are both in one sentence: the numbers are real, and nothing
+            they do here can change them. */}
+        {session === "in" && readOnly && (
+          <p className="readonly-banner">
+            Read-only demo — live production data. Nothing here can be changed.
+          </p>
+        )}
         {session === "in" && (
-          <>
+          <ReadOnlyContext.Provider value={readOnly}>
             {view === "dashboard" && (
               <Dashboard onNavigate={changeView} onOpenDish={openDish} onOpenDishes={openDishes} />
             )}
@@ -215,7 +260,7 @@ export default function AdminApp() {
               <RequestsView onAddAsDish={openDishFromRequest} onCountChange={setRequestCount} />
             )}
             {filing && <IssueComposer context={filing} onClose={() => setFiling(null)} />}
-          </>
+          </ReadOnlyContext.Provider>
         )}
       </div>
     </div>
