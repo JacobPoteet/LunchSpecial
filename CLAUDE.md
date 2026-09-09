@@ -13,15 +13,16 @@ npm run ramen        # same, but pinned to one named dish (/play?special=ramen) 
 npm run lastcall     # THE HAND-OFF HARNESS: seeds a finished, won Special from the real reveal
                      # endpoint, so the page opens on the check with After Dark's band already live.
                      # Pressing it runs the real lights-out sweep into a real Nightcap
-npm run afterdark    # straight into a Nightcap on a RANDOM pour, opening hours ignored.
-                     # Rolled pours are ephemeral, so a restarted server always starts clean
-npm run negroni      # ...pinned to one named drink instead (?nightcap=negroni)
+npm run negroni      # a Nightcap on ONE named pour, opening hours ignored (?bar=1&nightcap=negroni).
+                     # For a random pour, add ?nightcap=random to any dev url — rolled pours are
+                     # ephemeral, so a restarted server always starts clean
 npm run admin        # vite dev + opens /admin: straight to the login, skipping the game (password below)
 npm test             # vitest — worker/**/*.test.ts + shared/**/*.test.ts (every pure fold has one)
 npm run check        # tsc -b (3 project refs: app / worker / node)
 npm run a11y         # axe over the RUNNING game (needs `npm run dev` in another terminal).
                      # Plays a round first — the tiles and chips don't exist on an empty board
 npm run build        # tsc -b && vite build → dist/
+npm run preview      # build + vite preview: a local look at a PRODUCTION build
 npm run deploy       # build + wrangler deploy
 npm run db:migrate   # apply migrations to LOCAL D1   (db:migrate:remote for prod)
 npm run db:seed      # run seed/seed.sql on LOCAL D1  (bootstrap only — see warning below)
@@ -29,6 +30,9 @@ npm run db:export:remote    # dump PROD D1 → backups/prod-full-<stamp>.sql (gi
 npm run db:export:catalog   # same, but dishes+clues+schedule only — no player data, safe to diff against seed.sql
 npm run db:export           # local DB, all tables
 npm run cf-typegen   # regenerate worker-configuration.d.ts after wrangler.jsonc changes
+npm run assets       # rebuild every generated image: icons / press+Discord art / ad key art.
+                     # Maintainer one-off — outputs are committed, CI never runs it.
+                     # One target: `npm run assets -- press`. See ASSETS.md
 npm run discord:register    # one-time: register the /progress application command (needs DISCORD_APP_ID + DISCORD_BOT_TOKEN)
 npm run tunnel       # cloudflared quick tunnel → :5173, for testing inside real Discord
 ```
@@ -242,7 +246,7 @@ The tab shares the **night's grid and the lunch grid above it**. It can, because
 The clock and the door are both awkward to reach on purpose, so there are four ways past them and only one of them exists in production:
 
 - **`npm run lastcall`** is the hand-off harness. It seeds a finished, won Special from the *real* reveal endpoint, so the check, the grid and the board underneath show a coherent round, and everything after that point is the genuine flow.
-- `npm run afterdark` / `?barhours=off` ignores opening hours; `npm run negroni` / `?nightcap=<slug>` pins the pour. All dev-only on the client, exactly like `?special=`. **`?barhours=off` bypasses the clock and nothing else** — it used to bypass the finish-lunch gate too, which made the "Kitchen first" door unreachable in dev, and a state nobody can look at is a state nobody checks. The two harness scripts seed a won Special instead, so the common case still lands on the board.
+- `?barhours=off` ignores opening hours (`npm run negroni` is the one script that sets it); `?nightcap=<slug>` pins the pour. All dev-only on the client, exactly like `?special=`. **`?barhours=off` bypasses the clock and nothing else** — it used to bypass the finish-lunch gate too, which made the "Kitchen first" door unreachable in dev, and a state nobody can look at is a state nobody checks. The two harness scripts seed a won Special instead, so the common case still lands on the board.
 - **`?nightcap=random` rolls a different pour on every load**, which is what makes the flow re-testable: a rolled pin is ephemeral like any other, so nothing is written and a restarted dev server never hands back the board you just played. "random" is not a slug — the *client* resolves it against `/api/night/drinks` and hands the ordinary pin path a real one, so **the Worker never learns a random branch**. That matters: one drink a night with no archive is the shape of the mode, and a branch that exists for testing is a branch that eventually ships. It is also why `DrinkPoolEntry` carries a slug and `DrinkSummary` does not.
 - **A signed token is the only way past the clock in production**, and both kinds are untracked. That is the point: the bar is open seven hours a night and "does the tab look right" is a two-in-the-afternoon question. `worker/showcase.ts` holds the vocabulary and the two folds; the daily's resolver rejects either drink token and vice versa.
   - **The drink preview (`preview:drink:<id>`**, from the Bar section or the nightly board) names **one pour** and lands on `/?bar=1&preview=…`. 24h. For checking a specific drink's board.
@@ -377,7 +381,13 @@ src/admin/            AdminApp (session+nav), api.ts, IssueComposer, Dashboard (
                       (+ MyDataPanel), RequestsView, AnnouncementsPanel, analyticsUi.tsx, DayPicker,
                       DishList, DishEditor, ScheduleView
 src/styles/           base.css (tokens/fonts), game.css, admin.css — hand-written CSS, BEM-ish, no framework
-src/assets/art/       ai-*.svg = AI placeholder art (keep the AI-GENERATED header comment); fonts = OFL
+src/assets/art/       ai-*.svg = AI placeholder art (keep the AI-GENERATED header comment); fonts = OFL.
+                      Also the SOURCE art every generated image derives from: diner-backdrop.png
+                      (a JPEG, despite the name) and app-icon.svg. `npm run assets` reads these
+scripts/build-assets.mjs  one build for every generated image (icons / press+Discord / ad key art).
+                      Was four scripts; two rasterised the same SVG and two wrote byte-identical
+                      PNGs into different folders. public/press/ is now the ONE copy of the three
+                      images the Discord Portal also takes — don't reintroduce a second set
 ```
 
 ## Game rules
