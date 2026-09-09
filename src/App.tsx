@@ -4,6 +4,8 @@ import NightPage from "./game/NightPage";
 import LightsOut, { LIGHTS_OUT_MS, prefersReducedMotion } from "./game/LightsOut";
 import { surfaceUrl } from "./discord/bootstrap";
 import { devUrl } from "./game/devHarness";
+import { carryDemo } from "../shared/demo";
+import { currentDemo, showcaseToken } from "./game/demo";
 import sceneUrl from "./assets/art/diner-backdrop.png";
 
 const AdminApp = lazy(() => import("./admin/AdminApp"));
@@ -78,8 +80,15 @@ export default function App() {
   // how-to, an archive, notices and a rollover watcher, all of which read their
   // world at mount — reusing a GamePage that has been sitting behind a modal
   // since 8pm would be the subtler of the two bugs.
+  //
+  // A demo comes back with you. This used to drop the token deliberately, so a
+  // showcase visitor landed on a clean diner and could play for real; the demo
+  // now offers that as a link they can choose, and walking out of one room
+  // should not be the thing that ends the tour. Nothing leaks by carrying it:
+  // `?s=` is read by the bar's resolver and by nothing in the diner's, so a
+  // showcase token can still never be handed to the kitchen as a dish preview.
   const leaveBar = useCallback(() => {
-    window.location.assign(surfaceUrl(devUrl("/")));
+    window.location.assign(surfaceUrl(carryDemo(devUrl("/"), currentDemo(), showcaseToken())));
   }, []);
 
   if (isAdmin) {

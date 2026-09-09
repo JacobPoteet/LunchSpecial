@@ -10,7 +10,7 @@
 
 import type { RevealInfo } from "../../shared/types";
 import { gameToday } from "../../shared/time";
-import { wonRoundFromReveal } from "./showcase";
+import { wonRoundFromReveal } from "./demo";
 import { loadRound, saveRound } from "./storage";
 
 function params(): URLSearchParams {
@@ -89,7 +89,7 @@ export async function applyHandoffHarness(): Promise<void> {
   try {
     const res = await fetch(`/api/reveal?date=${today}`);
     if (!res.ok) return;
-    // The same builder the showcase link uses. Where the two differ is what
+    // The same builder the demo entrances use. Where the two differ is what
     // happens next: this one SAVES, because it is seeding your own browser on
     // purpose and the round should survive a reload.
     saveRound(wonRoundFromReveal((await res.json()) as RevealInfo, today));

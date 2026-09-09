@@ -12,6 +12,7 @@
     "lastcall": "vite --open \"/?handoff=1&nightcap=random\"",
     "negroni": "vite --open \"/?bar=1&handoff=1&nightcap=negroni\"",
     "admin": "vite --open /admin",
+    "demo": "vite --open /demo",
     "tunnel": "cloudflared tunnel --url http://localhost:5173",
     "build": "tsc -b && vite build",
     "preview": "npm run build && vite preview",

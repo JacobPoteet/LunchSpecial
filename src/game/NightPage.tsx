@@ -56,6 +56,7 @@ import { currentNight, isBarOpen, nightDateLabel, tzOffsetMinutes, untilLastCall
 import { puzzleNumberFor } from "./archive";
 import { visitSource } from "./attribution";
 import { devIgnoresBarHours } from "./devHarness";
+import { currentDemo } from "./demo";
 import { localToday } from "../api";
 import { hms } from "../../shared/time";
 
@@ -191,11 +192,17 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   // showcase names none and gets the night's real one. See worker/showcase.ts.
   const preview = useMemo(() => search.get("preview") ?? search.get("s") ?? undefined, [search]);
   const isPreview = preview !== undefined;
-  // The one place the two are told apart. Everything else about a showcase is a
-  // preview — untracked, ephemeral, past the clock — but the banner is written
-  // for whoever is reading it, and "admin test pour" is addressed to you. The
-  // person holding a showcase link has never seen this game.
-  const isShowcase = useMemo(() => search.has("s") && !search.has("preview"), [search]);
+  // Which demo door, if any. The showcase link's token rides the `preview`
+  // parameter above and needs no separate handling below; the public `/demo`
+  // route carries no token at all, and needs all of it — it is untracked and
+  // ephemeral for the same reasons, and past the clock for the reason the clock
+  // was never a server-side gate in the first place (see isPlayableNight).
+  //
+  // Told apart from an admin's test pour because the banner is written for
+  // whoever is reading it, and "admin test pour" is addressed to you. The person
+  // holding a demo link has never seen this game.
+  const demo = useMemo(() => currentDemo(), []);
+  const isDemo = demo !== "none";
   // `?nightcap=<slug>` pins the pour, dev only on the client for the same
   // reason `?special=` is: the slugs are public, but the entrance isn't.
   const pinned = useMemo(() => {
@@ -225,8 +232,8 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   // board mid-round, and recomputing at midnight would do it to everybody.
   const [night] = useState(() => currentNight());
 
-  const ephemeral = isPreview || !!pinned;
-  const tracked = !isPreview && !pinned;
+  const ephemeral = isPreview || !!pinned || isDemo;
+  const tracked = !isPreview && !pinned && !isDemo;
 
   const [drinks, setDrinks] = useState<DrinkPoolEntry[]>([]);
   const [info, setInfo] = useState<NightcapInfo | null>(null);
@@ -248,7 +255,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   // The two gates, read once at mount. `barOpen` is deliberately not live: a
   // player admitted at 02:59 keeps their round, because last call is a door and
   // not a timer. The countdown on the closed sign is the live half.
-  const [barOpen, setBarOpen] = useState(() => ignoreHours || isPreview || isBarOpen());
+  const [barOpen, setBarOpen] = useState(() => ignoreHours || isPreview || isDemo || isBarOpen());
 
   /**
    * The doors opening while someone waits at them.
@@ -504,10 +511,10 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
       )}
 
       <main className="menu-card menu-card--bar">
-        {isPreview && (
+        {(isPreview || isDemo) && (
           <p className="preview-banner">
-            {isShowcase
-              ? "Preview link — the bar's normally open 8pm to 3am. Nothing here is saved."
+            {isDemo
+              ? "Demo — the bar's normally open 8pm to 3am. Nothing here is saved."
               : "Admin test pour — nothing is saved, counted or shown to players"}
           </p>
         )}

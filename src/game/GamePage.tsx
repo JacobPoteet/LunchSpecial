@@ -26,6 +26,7 @@ import { useCheckOpening } from "./roundLifecycle";
 import { visitSource } from "./attribution";
 import { currentSurface, surfaceUrl } from "../discord/bootstrap";
 import { devUrl } from "./devHarness";
+import { carryDemo } from "../../shared/demo";
 import { setPresence } from "../discord/presence";
 import { publishProgress, resetProgress } from "../discord/progress";
 import { canShareToChannel, shareToChannel } from "../discord/share";
@@ -57,7 +58,7 @@ import {
   type RoundState,
   type Stats,
 } from "./storage";
-import { seededShowcaseRound } from "./showcase";
+import { currentDemo, demoPin, demoWin, showcaseToken } from "./demo";
 import clocheUrl from "../assets/art/ai-cloche.svg";
 
 // Web vs Discord Activity — stable for the page's lifetime, so resolve it once
@@ -643,13 +644,18 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   const isPreview = preview !== undefined;
   const today = useMemo(() => localToday(), []);
 
-  // A showcase link (`?s=<token>`): the real daily, seeded as already
-  // won, with the bar's door lit. Deliberately NOT folded into `isPreview` — a
-  // preview rehearses a *specific* dish that isn't today's and is dressed as the
-  // daily to do it, where a showcase IS today's, and the difference shows up in
-  // half a dozen places (the puzzle number, the archive, the rollover watcher)
-  // that would each need a carve-out if the two shared a flag.
-  const isShowcase = useMemo(() => search.has("s"), [search]);
+  // Which demo door this page load came through: the public `/demo` route, the
+  // signed `?s=` showcase link, or neither. See shared/demo.ts.
+  //
+  // Deliberately NOT folded into `isPreview` — a preview rehearses a *specific*
+  // dish that isn't today's and is dressed as the daily to do it, where a demo
+  // IS the daily (the route swaps which dish is on it and changes nothing else),
+  // and the difference shows up in half a dozen places (the puzzle number, the
+  // archive, the rollover watcher) that would each need a carve-out if the two
+  // shared a flag.
+  const demo = useMemo(() => currentDemo(), []);
+  const isDemo = demo !== "none";
+  const demoToken = useMemo(() => showcaseToken(), []);
 
   // Archive: ?date=<past puzzle> replays an earlier Special (saved on its own,
   // separate from the daily streak). Only genuine past puzzle dates qualify.
@@ -680,6 +686,18 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   const isDaily = !isPreview && !isArchive && !isRandom && !playtest;
   const date = isArchive ? (archiveDateParam as string) : today;
 
+  // The dish this round is pinned to, if it is pinned to one: a dev playtest,
+  // or the public demo route's fixed Special. Both ride the same `?special=`
+  // parameter into the kitchen, which has taken it unconditionally all along —
+  // slugs are already public via /api/dishes, and it is the *entrance* that dev
+  // gates rather than the resolver.
+  //
+  // Guarded on `isDaily` so the demo's own Menu archive and Chef's Choice still
+  // serve the dish they asked for. Inside a demo those hops stay inside it (see
+  // carryDemo), so they arrive here with the route still on the path and would
+  // otherwise be quietly overridden back onto the pinned Special.
+  const pinned = playtest ?? (isDaily ? demoPin(demo) : undefined);
+
   // The kind of round for analytics (preview is never tracked). Daily = Today's
   // Special, archive = a Leftover, random = a Chef's Choice.
   const analyticsKind: RoundKind = isArchive ? "leftover" : isRandom ? "random" : "daily";
@@ -687,16 +705,18 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // A random round is keyed by a random seed; a new seed = a new random dish.
   const [seed, setSeed] = useState(() => newSeed());
   const random = isRandom ? seed : undefined;
-  // Preview, random, playtest and showcase are throwaway: no localStorage or
-  // stats. A showcase link is often opened by somebody who plays the game for
-  // real afterwards, so it must not leave a won round in their browser.
-  const ephemeral = isPreview || isRandom || !!playtest || isShowcase;
-  // Preview, playtest and showcase are test and demo tools rather than games —
-  // they record no analytics at all (a random round still does, as a chef's
-  // special). Keeping the showcase untracked is what stops a run of demo links
+  // Preview, random, playtest and either demo are throwaway: no localStorage or
+  // stats. A demo link is often opened by somebody who plays the game for real
+  // afterwards, so it must not leave a won round in their browser.
+  const ephemeral = isPreview || isRandom || !!playtest || isDemo;
+  // Preview, playtest and either demo are test and demo tools rather than games
+  // — they record no analytics at all (a random round still does, as a chef's
+  // special). Keeping the demo untracked is what stops a run of demo links
   // filling the After Dark tab's `outsideHours` bucket, which exists to report
-  // wound-forward clocks.
-  const tracked = !isPreview && !playtest && !isShowcase;
+  // wound-forward clocks. It applies to the whole visit, not just the demo's own
+  // board: a Leftover played from inside a demo is still somebody being shown
+  // the game.
+  const tracked = !isPreview && !playtest && !isDemo;
   // Preview and playtest both exist to rehearse the real finish, so they're
   // *dressed* as the daily wherever that shows: puzzle number, countdown, share
   // button, stats panel. Only the banner up top gives either away. Underneath
@@ -709,10 +729,11 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   const [dishes, setDishes] = useState<DishSummary[]>([]);
   const [daily, setDaily] = useState<DailyInfo | null>(null);
   const [round, setRound] = useState<RoundState>(() => {
-    // Seeded before the mount (see src/main.tsx), so the check opens instantly
-    // rather than running the win choreography over a board nobody played.
-    // Falls back to an unplayed board if the kitchen didn't answer.
-    if (isShowcase) return seededShowcaseRound() ?? emptyRound(date);
+    // A demo starts on an empty, playable board like anybody else's, and reads
+    // nothing out of this browser's storage — the visitor may well be a real
+    // player, and their own round is none of the demo's business. "Skip to the
+    // check" is the way to the finish; see skipToCheck below.
+    if (isDemo) return emptyRound(date);
     return isDaily ? loadRound(date) : isArchive ? loadArchiveRound(date) : emptyRound(date);
   });
   const [reveal, setReveal] = useState<RevealInfo | null>(null);
@@ -754,11 +775,11 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // dated slot; preview/random → nowhere.
   const persist = useCallback(
     (next: RoundState) => {
-      if (isShowcase) return; // a demo link leaves nothing behind
+      if (isDemo) return; // a demo leaves nothing behind
       if (isDaily) saveRound(next);
       else if (isArchive) saveArchiveRound(next);
     },
-    [isDaily, isArchive, isShowcase],
+    [isDaily, isArchive, isDemo],
   );
 
   // Whether today's daily is finished — the archive unlocks only after that.
@@ -779,7 +800,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // place the client's reading of the bar's clock is overridden, and it is
   // cosmetic: it decides whether the invitation is drawn, never whether the
   // Worker pours. The signature on the token is what actually gets you in.
-  const invite: BarInvite = isShowcase ? "open" : clockInvite;
+  const invite: BarInvite = isDemo ? "open" : clockInvite;
   // The BAND is the hand-off, so it belongs to the daily's check and nowhere
   // else: a Leftover or a Chef's Choice is a side door, and offering the bar at
   // the end of one would be offering it off a round that isn't today's.
@@ -790,7 +811,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // off a preview and a playtest, which are rehearsals and not rounds; a
   // showcase is the exception, because closing the check would otherwise strand
   // a visitor one dismissed modal away from the thing they were sent to see.
-  const barPill: BarInvite = (tracked || isShowcase) && dailyDone ? invite : "none";
+  const barPill: BarInvite = (tracked || isDemo) && dailyDone ? invite : "none";
 
   // ---- Notices from the kitchen ----
   //
@@ -854,12 +875,49 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // Navigation between modes is URL-driven (the app has no router). Every hop
   // goes through surfaceUrl() so a Discord Activity keeps its iframe params —
   // otherwise the new URL loses `frame_id` and the round logs as a web play.
-  const goToday = useCallback(() => window.location.assign(surfaceUrl(devUrl("/"))), []);
-  const goRandom = useCallback(() => window.location.assign(surfaceUrl(devUrl("/?random"))), []);
-  const openArchiveDate = useCallback(
-    (d: string) => window.location.assign(surfaceUrl(devUrl(d === today ? "/" : `/?date=${d}`))),
-    [today],
+  //
+  // A demo rides along on every one of them (carryDemo). Without it the Menu
+  // archive and Chef's Choice were doors out of the demo that looked like doors
+  // inside it: one click put a visitor on a tracked round writing to their
+  // localStorage, under a banner promising the opposite. The way *out* is the
+  // banner's own "Play for real", which is a link the visitor chose.
+  const hop = useCallback(
+    (target: string) => window.location.assign(surfaceUrl(carryDemo(devUrl(target), demo, demoToken))),
+    [demo, demoToken],
   );
+  const goToday = useCallback(() => hop("/"), [hop]);
+  const goRandom = useCallback(() => hop("/?random"), [hop]);
+  const openArchiveDate = useCallback(
+    (d: string) => hop(d === today ? "/" : `/?date=${d}`),
+    [hop, today],
+  );
+
+  /**
+   * Skip to the check.
+   *
+   * The demo's one shortcut, and deliberately a *press* rather than the state
+   * it opens in. A visitor who wants to see the end is one click from it; a
+   * visitor who wants to play the game gets to, which is the whole point of the
+   * demo landing on a live board. The reveal is fetched here rather than
+   * prefetched so an ordinary demo visit costs no extra request (see demoWin).
+   *
+   * What follows is the genuine end-of-round choreography, not a jump cut: the
+   * winning row lands, the bell rings, the toast holds, and the check prints a
+   * beat later. That IS the finish, and showing a still of it would be showing
+   * less than was asked for.
+   */
+  const [skipping, setSkipping] = useState(false);
+  const skipToCheck = useCallback(() => {
+    if (skipping || round.status !== "playing") return;
+    setSkipping(true);
+    playSfx("ui-click");
+    void demoWin(date, pinned, random).then((won) => {
+      if (won) setRound(won);
+      // A kitchen that didn't answer leaves the board exactly as it was, with
+      // the button live again. Nothing to explain and nothing lost.
+      else setSkipping(false);
+    });
+  }, [skipping, round.status, date, pinned, random]);
 
   // Start a fresh random round on a new random dish (no reload).
   const newGame = useCallback(() => {
@@ -880,7 +938,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   useEffect(() => {
     let cancelled = false;
     setLoadError(null);
-    Promise.all([fetchDishes(), fetchDaily(date, preview, random, playtest)])
+    Promise.all([fetchDishes(), fetchDaily(date, preview, random, pinned)])
       .then(([dishList, dailyInfo]) => {
         if (cancelled) return;
         setDishes(dishList);
@@ -892,16 +950,16 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
     return () => {
       cancelled = true;
     };
-  }, [date, preview, random, playtest, reloadKey]);
+  }, [date, preview, random, pinned, reloadKey]);
 
   // A finished round (including one restored from localStorage) needs the reveal.
   // Fetched the moment the round ends, so it's already in hand by the time the
   // delayed check below actually opens.
   useEffect(() => {
     if (round.status !== "playing" && !reveal) {
-      fetchReveal(date, preview, random, playtest).then(setReveal).catch(() => {});
+      fetchReveal(date, preview, random, pinned).then(setReveal).catch(() => {});
     }
-  }, [round.status, reveal, date, preview, random, playtest]);
+  }, [round.status, reveal, date, preview, random, pinned]);
 
   // Assign an anonymous analytics id once per round so start/complete/share
   // beacons can be linked. Every tracked kind gets one — daily, leftover, and
@@ -968,7 +1026,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // a second message for the same round.
   useEffect(() => {
     resetProgress();
-  }, [date, random, playtest]);
+  }, [date, random, pinned]);
 
   // The live message in the Discord channel: posted on the first guess, rewritten
   // on every one after it, past-tensed when the round ends. Same trigger as
@@ -1022,7 +1080,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           guessNumber,
           preview,
           random,
-          special: playtest,
+          special: pinned,
         });
         const next: RoundState = {
           ...round,
@@ -1106,7 +1164,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         setBusy(false);
       }
     },
-    [daily, busy, round, date, preview, random, playtest, ephemeral, tracked, isDaily, analyticsKind, persist],
+    [daily, busy, round, date, preview, random, pinned, ephemeral, tracked, isDaily, analyticsKind, persist],
   );
 
   const guessedIds = useMemo(() => new Set(round.guesses.map((g) => g.dish.id)), [round.guesses]);
@@ -1134,14 +1192,35 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           <p className="preview-banner">Admin test play — nothing is saved, counted or shown to players</p>
         )}
         {playtest && <p className="preview-banner">Playtest — pinned to “{playtest}”, nothing is saved</p>}
-        {/* A showcase visitor arrives on a board somebody else won, which needs
-            saying: without it the check reads as a bug they caused. Addressed to
-            a stranger, unlike the two above, which are addressed to the admin. */}
-        {isShowcase && (
-          <p className="preview-banner">
-            Preview link — today's Special is shown already solved, so you can see the whole game.
-            Nothing here is saved.
-          </p>
+        {/* Addressed to a stranger, unlike the two above, which are addressed
+            to the admin — and it carries the three things a stranger needs and
+            cannot guess: what this board is, how to reach the end without
+            playing six guesses, and where the rest of the game is. */}
+        {isDemo && (
+          <div className="demo-banner">
+            <p className="demo-banner__what">
+              {/* What board this is, and only when the demo is on its own. A
+                  Leftover or a Chef's Choice reached from inside a demo stays
+                  inside it (carryDemo), and both already say where you are on
+                  their own bar — repeating it here would be this banner
+                  describing a board it is no longer sitting above. */}
+              {pinned ? "Demo board — a fixed dish, not today's Special. " : null}
+              {demo === "link" && isDaily ? "Preview link — this is today's real Special. " : null}
+              Nothing here is saved, counted, or shown to players.
+            </p>
+            <div className="demo-banner__acts">
+              {round.status === "playing" && (
+                <button className="demo-banner__btn" onClick={skipToCheck} disabled={skipping}>
+                  {skipping ? "Plating up…" : "Skip to the check"}
+                </button>
+              )}
+              {/* Same-origin, like the footer's side pages, so Discord's proxy
+                  serves it and the game still opens no new tabs. */}
+              <a className="demo-banner__link" href="/">
+                Play for real
+              </a>
+            </div>
+          </div>
         )}
         {/* Sits above every other bar: if the day has turned, that reframes
             whatever mode the player is in, so it needs to be read first. */}

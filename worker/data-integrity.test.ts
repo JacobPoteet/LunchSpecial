@@ -3,6 +3,7 @@ import { join } from "node:path";
 import Database from "better-sqlite3";
 import { describe, expect, it } from "vitest";
 import { clueBeat, coasterBeat, type ClueBeat } from "../shared/clues";
+import { DEMO_SPECIAL_SLUG } from "../shared/demo";
 
 // Applies every migration + the seed catalog to a real (in-memory) SQLite
 // database so the schema's own CHECK/UNIQUE constraints do the enforcing —
@@ -48,6 +49,30 @@ describe("catalog data integrity", () => {
       .all() as { slug: string; region: string }[];
     const bad = rows.filter((r) => !REGIONS.includes(r.region));
     expect(bad, `dishes with an invalid region: ${JSON.stringify(bad)}`).toEqual([]);
+  });
+
+  // The public /demo route pins one dish by slug, and a rename in /admin
+  // regenerates a slug. That failure mode is not hypothetical here — it is the
+  // one that left seven US regional dishes on pre-beat-sheet clue text for a
+  // week (migration 0034). A broken pin would land every demo visitor on the
+  // closed-kitchen sign, which is the one screen the demo exists to avoid.
+  it("keeps the demo route's pinned Special resolvable and schedulable", () => {
+    const row = db
+      .prepare(
+        `SELECT d.slug, d.is_active, d.ingredients,
+           (SELECT COUNT(*) FROM clues c WHERE c.dish_id = d.id) AS clue_count
+         FROM dishes d WHERE d.slug = ?`,
+      )
+      .get(DEMO_SPECIAL_SLUG) as
+      | { slug: string; is_active: number; ingredients: string; clue_count: number }
+      | undefined;
+    expect(row, `no dish with slug "${DEMO_SPECIAL_SLUG}" (see shared/demo.ts)`).toBeTruthy();
+    expect(row!.is_active, `the demo's dish is inactive`).toBe(1);
+    expect(row!.clue_count, `the demo's dish needs exactly 5 clues`).toBe(5);
+    expect(
+      (JSON.parse(row!.ingredients) as string[]).length,
+      `the demo's dish needs >= 3 ingredients`,
+    ).toBeGreaterThanOrEqual(3);
   });
 
   it("gives every dish a slug that is lowercase-kebab ASCII", () => {

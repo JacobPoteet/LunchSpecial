@@ -1405,6 +1405,82 @@ textarea.dish-request__input {
   margin-bottom: 12px;
 }
 
+/* The demo band — the public /demo route and the signed ?s= showcase link.
+   Mustard like .preview-banner, because it is the same class of message (this
+   board is not a real game), but a block rather than a pill: the other two
+   banners have nothing to say beyond the sentence, and this one is the only
+   navigation a stranger has. It carries what they cannot guess — what this
+   board is, how to reach the end without playing six guesses, and where the
+   rest of the game is.
+
+   --on-near on mustard, the same pair .preview-banner and the near tile use.
+   --ink is a pale cream under After Dark and would read 1.7:1 here. */
+.demo-banner {
+  background: var(--mustard);
+  border-radius: var(--radius);
+  padding: 9px 14px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.demo-banner__what {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--on-near);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.demo-banner__acts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 14px;
+  margin-top: 8px;
+}
+
+/* The button and the two links are deliberately not the same weight. Skipping
+   is the thing a visitor came here to be able to do; leaving is not. */
+.demo-banner__btn {
+  font-family: var(--font-display);
+  background: var(--cherry);
+  color: var(--on-cherry);
+  border: none;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+}
+
+.demo-banner__btn:hover:not(:disabled) {
+  background: var(--cherry-hover);
+}
+
+/* aria-busy would be the better tell, but this one really is inert while the
+   kitchen answers, so it says so. No colour swap: .btn:disabled paints --miss,
+   which on mustard is a full change of meaning for the length of one request. */
+.demo-banner__btn:disabled {
+  opacity: 0.6;
+}
+
+.demo-banner__link {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--on-near);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.demo-banner__link:hover {
+  text-decoration-thickness: 2px;
+}
+
 /* Dev-only free-play bar (random-dish testing). */
 .freeplay-bar {
   display: flex;
