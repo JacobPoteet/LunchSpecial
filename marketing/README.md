@@ -4,7 +4,7 @@ The Lunch Special key art at every aspect ratio an ad platform asks for.
 Generated — don't hand-edit, don't crop by hand:
 
 ```bash
-npm run assets:keyart     # → keyart-*.jpg
+npm run assets -- keyart     # → keyart-*.jpg
 ```
 
 **Not served by the Worker and not in the app bundle.** These are upload-by-hand
@@ -28,7 +28,7 @@ runs nearly edge to edge — the wordmark alone is 809 of its 1200px — so crop
 to anything squarer cuts the lettering, and fitting it to a taller canvas
 letterboxes the picture.
 
-So [`scripts/build-keyart.mjs`](../scripts/build-keyart.mjs) rebuilds the card
+So the `keyart` target in [`scripts/build-assets.mjs`](../scripts/build-assets.mjs) rebuilds the card
 from its parts at each ratio: the clean, untyped `src/assets/art/diner-backdrop.png`,
 the grade og-image applies to it, and the type re-rendered as vector at output
 resolution. **The type being vector is what makes the tall sizes work at all** —
@@ -50,7 +50,7 @@ eyeballed, and the script carries the numbers so they can be re-derived:
 ## Two traps, if you touch the rendering
 
 **`feDropShadow` does not work here.** The bloom was originally three stacked
-drop shadows, the same construction `discord-assets/build.mjs` used; librsvg
+drop shadows, the same construction the Discord cover art used to use; librsvg
 drops nearly all of it through sharp, measuring 0.19 halo-to-core against the
 real card's 1.36. The glow is built with sharp's own blur instead, and each
 layer is drawn on **black and screened** rather than left transparent — blurring

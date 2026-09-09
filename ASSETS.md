@@ -42,19 +42,19 @@ Golden-age American diner, roughly 1950s: cream + chrome + cherry-red + deep tea
   shared link and the Activity Shelf look like the same product.
 - **Size**: 1200×630 (1.90:1, the standard OG card ratio). The type runs nearly edge to
   edge — the wordmark alone is 809px of the 1200 — so this crops badly to anything squarer.
-  Re-cut it at the same ratio when swapping, and re-run `npm run assets:discord`.
+  Re-cut it at the same ratio when swapping, and re-run `npm run assets -- press`.
 
 ### `public/favicon.svg`
 - **What**: Simplified cloche on a cherry-red circle.
 - **Where**: Browser tab icon.
 - **Size**: 64×64 viewBox. Must read at 16×16.
-- **Derived from it**: the installable-app icons below. Re-run `npm run assets:icons` after
+- **Derived from it**: the installable-app icons below. Re-run `npm run assets -- icons` after
   changing this file, or the home-screen icon and the tab icon drift apart.
 
 ## App icons (`public/icon-*.png`, `public/apple-touch-icon.png`)
 
-Generated from `public/favicon.svg` by `npm run assets:icons`
-([`scripts/build-icons.mjs`](scripts/build-icons.mjs)) and committed. Referenced by
+Generated from `public/favicon.svg` by `npm run assets -- icons`
+([`scripts/build-assets.mjs`](scripts/build-assets.mjs)) and committed. Referenced by
 `public/manifest.json` + `index.html`.
 
 | File | Purpose | Notes |
@@ -67,17 +67,21 @@ Generated from `public/favicon.svg` by `npm run assets:icons`
 ## Discord Activity assets (`discord-assets/`)
 
 Uploaded by hand to the Discord Developer Portal — not served by the Worker. All derived
-from the art above (backdrop + cloche mark + the social card); regenerate with
-`npm run assets:discord`.
+from the art above (backdrop + cloche mark + the social card).
+
+**Three of the four are the press kit's files**, not separate copies. They were byte-identical
+to `public/press/key-art.png`, `backdrop.png` and `app-icon.png` and are now generated once,
+by `npm run assets -- press`. A hand upload can come from any folder, so `discord-assets/`
+holds only the preview video and its README.
 See [`discord-assets/README.md`](discord-assets/README.md) for Portal upload locations.
 
 | File | What | Spec |
 |---|---|---|
-| `discord-assets/app-icon.png` | Cloche mark on a cherry radial ground (from favicon) | 1024×1024, circular safe zone |
-| `discord-assets/cover-art.png` | The social card, fitted to 16:9 — Activity Shelf hero | 1280×720 (16:9, crops to 13:11) |
-| `discord-assets/embedded-background.png` | Diner backdrop cropped to 16:9 — Grid-view backdrop | 1280×720 |
+| `public/press/app-icon.png` | Cloche mark on a cherry radial ground | 1024×1024, circular safe zone |
+| `public/press/key-art.png` | The social card, fitted to 16:9 — Activity Shelf hero | 1280×720 (16:9, crops to 13:11) |
+| `public/press/backdrop.png` | Diner backdrop cropped to 16:9 — Grid-view backdrop | 1280×720 |
 | `discord-assets/preview.mp4` | Slow zoom over the cover (optional hover preview) | 640×360, <1 MB, 9s |
-| `discord-assets/app-icon.svg` | Vector source for the icon | 1024 viewBox |
+| `src/assets/art/app-icon.svg` | Vector source for the icon | 1024 viewBox |
 
 The cover art **is `public/og-image.jpg`**, not a separate composition. It used to be the
 backdrop plus a two-line Yellowtail wordmark drawn in SVG by `build.mjs`; using the social
@@ -94,7 +98,7 @@ og-image.
 ## Ad key art (`marketing/`)
 
 The key art at every aspect ratio an ad platform asks for, generated with
-`npm run assets:keyart` ([`scripts/build-keyart.mjs`](scripts/build-keyart.mjs)).
+`npm run assets -- keyart` ([`scripts/build-assets.mjs`](scripts/build-assets.mjs)).
 **Not served by the Worker and not in the bundle** — upload-by-hand campaign
 assets, which is why they aren't in `public/press/` (that ships on every deploy).
 See [`marketing/README.md`](marketing/README.md) for the full reasoning.
@@ -118,26 +122,33 @@ sharp's librsvg, and **Alfa Slab One has no `★`**.
 
 ## Press kit (`public/press/`)
 
-Served by the Worker at `/press` ([`public/press.html`](public/press.html)) — unlike the
-Discord assets, these ship on every deploy, so keep the folder lean. The loose files are
-the individual downloads the page links; `lunch-special-press-kit.zip` is the "grab
-everything" bundle, **generated** from them with `npm run assets:press`
-([`scripts/build-press-kit.mjs`](scripts/build-press-kit.mjs)) — don't hand-roll it.
+Served by the Worker at `/press` ([`public/press.html`](public/press.html)) — these ship on
+every deploy, so keep the folder lean. Everything but the fonts is **generated** by
+`npm run assets -- press` ([`scripts/build-assets.mjs`](scripts/build-assets.mjs)). The loose
+files were hand-copied before that, which is how the press app icon spent a month rendering
+its `?` in a different face from the Discord one.
 
-The zip deliberately ships **one copy per image**. `discord-assets/cover-art.png` and
-`embedded-background.png` are byte-identical to `key-art.png` and `backdrop.png`; the
-press page already labels the single copies with their Discord roles, so carrying both
-names just doubled 4.4 MB on every deploy. The builder also writes forward-slash paths —
-the previous PowerShell-built zip used backslashes, which macOS/Linux extractors turn
-into a literal `fonts\alfa-slab-one.ttf` file instead of a `fonts/` directory.
+**This folder is also the Discord Activity's art** — the same three PNGs, uploaded by hand
+to the Portal. They used to be built twice under two sets of names, byte-identical, 3.6 MB
+of it. The press page already labelled the single copies with their Discord roles.
+
+**Each image comes out twice: a PNG the page offers as a download, and a JPEG the page
+itself loads.** Both sources are photographic (`diner-backdrop.png` is a JPEG despite the
+extension), so PNG buys nothing but bytes on a page view — the backdrop is the hero's CSS
+background and was costing 2.2 MB of PNG-encoded JPEG artefacts against 172 KB.
+
+There is **no press-kit zip**. It was 4.5 MB on every deploy re-packing files the page
+already links one by one, plus a hand-rolled ZIP writer to maintain.
 
 | File | What | Spec |
 |---|---|---|
 | `public/press/app-icon.png` | Cloche mark on cherry ground | 1024×1024 |
-| `public/press/key-art.png` | The social card, fitted to 16:9 (= Discord cover art) | 1280×720 |
-| `public/press/backdrop.png` | Diner backdrop (= Discord embedded background) | 1280×720 |
-| `public/press/favicon.svg` | Cloche mark | 64×64 viewBox |
+| `public/press/key-art.png` + `.jpg` | The social card, fitted to 16:9 (= Discord cover art) | 1280×720 |
+| `public/press/backdrop.png` + `.jpg` | Diner backdrop (= Discord embedded background) | 1280×720 |
 | `public/press/fonts/*.ttf` | Alfa Slab One + Yellowtail, for press use | OFL 1.1 |
+
+The mark is **not** copied here — `/favicon.svg` is already served unhashed at a stable URL,
+so the press page links that one.
 
 ## Fonts (licensed, not placeholders)
 
@@ -153,12 +164,13 @@ size; Bitter is the same Clarendon genre drawn for screens, so the breakdown pag
 the diner register without the blockiness. The game itself still heads everything in Alfa
 Slab One, where the strings are short enough to carry it.
 
-The same two `.ttf` files exist in four places, and that is **intentional** — each copy
+The same two `.ttf` files exist in three places, and that is **intentional** — each copy
 serves a different host or consumer, so don't "dedupe" them: `src/assets/fonts/` is the
 game bundle (Vite content-hashes these), `public/press/fonts/` are stable-URL press
-downloads, `docs/fonts/` belongs to the GitHub Pages project-breakdown site (a separate
-host that can't reach Vite's hashed filenames), and the press-kit zip carries its own.
-Collapsing them would trade 152 KB for a cross-origin dependency between two deploys.
+downloads, and `docs/fonts/` belongs to the GitHub Pages project-breakdown site (a separate
+host that can't reach Vite's hashed filenames). Collapsing them would trade 152 KB for a
+cross-origin dependency between two deploys. `npm run assets -- press` copies the press
+pair from `src/assets/fonts/`, so those two can no longer drift.
 
 The neon logo is **live text** styled with CSS glow (`.marquee__script`), not an image — a hand-lettered SVG logo would be a welcome replacement (target: ~4:1 aspect, works from 320px wide).
 
