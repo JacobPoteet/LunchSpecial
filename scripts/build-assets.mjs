@@ -20,7 +20,7 @@
 // the shared images are produced — the Discord Portal uploads the same files.
 
 import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
-import { statSync, mkdirSync, writeFileSync } from "node:fs";
+import { statSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import os from "node:os";
@@ -40,14 +40,20 @@ const REPO = join(HERE, "..");
 // re-exec ourselves once with FONTCONFIG_FILE set at spawn time. No extra deps,
 // works on every platform.
 //
-// The conf goes in the OS temp dir beside fontconfig's own cache. It used to be
-// written into `discord-assets/` and gitignored there, which is a generated file
-// living in a source folder for no reason.
+// The conf goes in the OS temp dir. It used to be written into `discord-assets/`
+// and gitignored there, which is a generated file living in a source folder for
+// no reason.
+//
+// `mkdtemp`, not a fixed `lunch-special-fc/` path, and CodeQL's
+// js/insecure-temporary-file caught the fixed version. `/tmp` is shared on Linux,
+// so any other user on the machine can pre-create a predictable path — and this
+// particular file names the directories librsvg then reads. mkdtemp picks a name
+// nobody can guess and creates it 0700. The cost is fontconfig rebuilding its
+// cache each run, which on a script run a few times a year is nothing.
 if (process.env.LS_ASSETS_REEXEC !== "1") {
   const fontsDir = join(REPO, "src", "assets", "fonts").replace(/\\/g, "/");
-  const cacheDir = join(os.tmpdir(), "lunch-special-fc").replace(/\\/g, "/");
+  const cacheDir = mkdtempSync(join(os.tmpdir(), "lunch-special-fc-")).replace(/\\/g, "/");
   const conf = join(cacheDir, "fonts.conf");
-  mkdirSync(cacheDir, { recursive: true });
   writeFileSync(
     conf,
     `<?xml version="1.0"?>
@@ -57,12 +63,14 @@ if (process.env.LS_ASSETS_REEXEC !== "1") {
   <cachedir>${cacheDir}</cachedir>
 </fontconfig>
 `,
+    { mode: 0o600 },
   );
   const { spawnSync } = await import("node:child_process");
   const r = spawnSync(process.execPath, [fileURLToPath(import.meta.url), ...process.argv.slice(2)], {
     stdio: "inherit",
     env: { ...process.env, FONTCONFIG_FILE: conf, LS_ASSETS_REEXEC: "1" },
   });
+  rmSync(cacheDir, { recursive: true, force: true });
   process.exit(r.status ?? 1);
 }
 
