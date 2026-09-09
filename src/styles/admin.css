@@ -2283,6 +2283,72 @@
   text-align: center;
 }
 
+/* A surface the read-only demo withholds.
+   A card rather than a disabled tab: this dashboard already refuses to show
+   things and says why (pending, untracked, "too early to tell"), so a panel
+   that names what is behind it belongs to that family rather than reading as a
+   redaction. The tab stays clickable, and every card points somewhere the
+   visitor can actually go. */
+.withheld__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 0;
+}
+
+.withheld__tag {
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: var(--mustard);
+  color: var(--on-near);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.withheld__what {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.withheld__why,
+.withheld__instead {
+  color: var(--ink-soft);
+  margin: 0 0 6px;
+  max-width: 62ch;
+}
+
+.withheld__instead {
+  opacity: 0.85;
+}
+
+/* The marker on a withheld tab or nav pill. A dot rather than a colour on its
+   own, and it carries an aria-label, so the fact survives both a screenshot and
+   a screen reader. */
+.admin-tabs__lock,
+.nav-withheld {
+  margin-left: 5px;
+  opacity: 0.6;
+}
+
+.admin-tabs__btn--withheld:not(.admin-tabs__btn--active),
+.nav-withheld-btn:not(.active) {
+  opacity: 0.62;
+}
+
+/* Clue text held back on a dish the kitchen hasn't served yet. */
+.clue-withheld {
+  background: var(--mustard);
+  color: var(--on-near);
+  border-radius: 8px;
+  padding: 9px 12px;
+  margin: 0 0 12px;
+  font-size: 0.86rem;
+  max-width: 62ch;
+}
+
 .form-error {
   background: var(--cherry);
   color: #fff;

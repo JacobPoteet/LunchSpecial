@@ -129,6 +129,8 @@ export default function DishEditor({
   onDone: () => void;
 }) {
   const readOnly = useReadOnly();
+  // How many clues exist but were withheld, or null when none were.
+  const [cluesWithheld, setCluesWithheld] = useState<number | null>(null);
   const [form, setForm] = useState<AdminDishInput>(() =>
     // A prefilled new dish came from the request inbox, so it *is* a fan
     // submission — pre-tick it rather than making the reviewer remember.
@@ -161,6 +163,10 @@ export default function DishEditor({
             isFanSubmission: d.isFanSubmission,
             clues: [...d.clues, "", "", "", "", ""].slice(0, 5),
           });
+          // The read-only demo gets clue text only for dishes already served,
+          // since the game itself has printed those to everyone who played that
+          // day. An unserved dish's five clues are a future Special.
+          setCluesWithheld(d.cluesWithheld ?? null);
           setLoading(false);
         },
         (e: Error) => {
@@ -320,6 +326,14 @@ export default function DishEditor({
               Stick to the pantry's canonical names ("tomato", not "tomatoes") so matches line up across dishes.
             </p>
           </div>
+
+          {cluesWithheld !== null && (
+            <p className="clue-withheld">
+              {cluesWithheld} clue{cluesWithheld === 1 ? "" : "s"} written, not shown in the demo —
+              this dish hasn't been served yet, so its clues are a future Special. Open a dish the
+              kitchen has already served to read a full set.
+            </p>
+          )}
 
           {form.clues.map((clue, i) => {
             const { name: beat, job, lo, hi, max } = CLUE_BEATS[i];

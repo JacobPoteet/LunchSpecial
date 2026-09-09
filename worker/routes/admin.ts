@@ -108,11 +108,14 @@ import { getTargetDrink, rowToDrink, type DrinkDbRow } from "../drinkdb";
 import { SHOWCASE_PAYLOAD, SHOWCASE_TTL_DAYS, showcaseTtlMs } from "../showcase";
 import {
   mayCall,
+  mayRead,
+  mayShowClues,
   READONLY_PAYLOAD,
   READONLY_REFUSAL,
   READONLY_TTL_MS,
   SESSION_PAYLOAD,
   sessionRole,
+  WITHHELD_REFUSAL,
   type SessionRole,
 } from "../adminsession";
 import { isValidDateString } from "../game";
@@ -128,7 +131,9 @@ import {
 import { assembleMenuMix, type MenuDishRow, type MenuScheduleRow } from "../menu";
 import { addDays, gameToday, msUntilGameMidnight } from "../../shared/time";
 
-const app = new Hono<{ Bindings: Env }>();
+// `Variables` carries the session's role from the middleware to the two routes
+// that redact rather than refuse. Everything else is gated before it runs.
+const app = new Hono<{ Bindings: Env; Variables: { role: SessionRole } }>();
 
 async function roleOf(c: Context, secret: string): Promise<SessionRole | null> {
   const cookie = getCookie(c, SESSION_COOKIE);
@@ -205,8 +210,24 @@ app.use("*", async (c, next) => {
   const role = await roleOf(c, c.env.SESSION_SECRET);
   if (role === null) return c.json({ error: "Not logged in" }, 401);
   if (!mayCall(role, c.req.method)) return c.json({ error: READONLY_REFUSAL }, 403);
+  // The read gate is a deny list rather than a method rule, because a read is
+  // not dangerous by default: a panel added later should show up in the demo
+  // instead of silently vanishing from it. What it withholds is the forward
+  // schedule and other people's words. See worker/adminsession.ts.
+  if (!mayRead(role, c.req.path)) return c.json({ error: WITHHELD_REFUSAL }, 403);
+  c.set("role", role);
   await next();
 });
+
+/**
+ * The session's role, for the two routes that redact rather than refuse.
+ *
+ * Defaults to `full` when nothing was stashed, which only happens above the
+ * middleware, where no route reads it.
+ */
+function roleFor(c: Context<{ Bindings: Env; Variables: { role: SessionRole } }>): SessionRole {
+  return c.get("role") ?? "full";
+}
 
 interface AdminDishDbRow extends DishDbRow {
   clue_count: number;
@@ -215,13 +236,16 @@ interface AdminDishDbRow extends DishDbRow {
   times_served: number;
 }
 
-function toAdminRow(row: AdminDishDbRow): AdminDishRow {
+function toAdminRow(row: AdminDishDbRow, role: SessionRole = "full"): AdminDishRow {
   const dish = rowToDish(row);
   return {
     ...dish,
     clueCount: row.clue_count,
     lastServed: row.last_served,
-    nextBooked: row.next_booked,
+    // A next booking is tomorrow's Special written the other way round, so the
+    // read-only demo never gets one. `lastServed` and `timesServed` stay: a day
+    // already served is a day the game already revealed.
+    nextBooked: role === "readonly" ? null : row.next_booked,
     timesServed: row.times_served,
     schedulable: dish.ingredients.length >= 3 && row.clue_count === 5,
   };
@@ -246,19 +270,39 @@ app.get("/dishes", async (c) => {
     // can't disagree across a midnight-ET rollover.
     .bind(today, today, today)
     .all<AdminDishDbRow>();
-  return c.json(res.results.map(toAdminRow));
+  return c.json(res.results.map((r) => toAdminRow(r as AdminDishDbRow, roleFor(c))));
 });
 
 app.get("/dishes/:id", async (c) => {
   const id = Number(c.req.param("id"));
-  const [dishRes, cluesRes] = await c.env.DB.batch([
+  const today = serverToday();
+  const [dishRes, cluesRes, servedRes] = await c.env.DB.batch([
     c.env.DB.prepare("SELECT * FROM dishes WHERE id = ?").bind(id),
     c.env.DB.prepare("SELECT text FROM clues WHERE dish_id = ? ORDER BY order_index").bind(id),
+    // Only the read-only demo needs this, but asking for it always keeps the
+    // batch one shape and costs an indexed MAX over one dish.
+    c.env.DB
+      .prepare("SELECT MAX(date) AS last_served FROM schedule WHERE dish_id = ? AND date <= ?")
+      .bind(id, today),
   ]);
   const row = dishRes.results[0] as DishDbRow | undefined;
   if (!row) return c.json({ error: "Dish not found" }, 404);
-  const clues = (cluesRes.results as { text: string }[]).map((r) => r.text);
-  const detail: AdminDishDetail = { ...rowToDish(row), clues };
+  const lastServed = (servedRes.results[0] as { last_served: string | null } | undefined)?.last_served ?? null;
+
+  // The beat sheet is the part of this catalogue most worth showing anyone, and
+  // a served dish's five clues are already public: /api/reveal prints them in
+  // full to everybody who finished that day. An UNSERVED dish's are a future
+  // Special, so the demo gets the count and not the text.
+  const showClues = mayShowClues(roleFor(c), lastServed);
+  const clues = showClues ? (cluesRes.results as { text: string }[]).map((r) => r.text) : [];
+  const detail: AdminDishDetail = {
+    ...rowToDish(row),
+    clues,
+    // Said out loud, because "no clues" and "clues you may not read" are
+    // different facts about a dish and the editor draws them differently. A
+    // dish really can have fewer than five.
+    cluesWithheld: showClues ? undefined : cluesRes.results.length,
+  };
   return c.json(detail);
 });
 

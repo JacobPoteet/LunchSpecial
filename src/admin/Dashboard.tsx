@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { DishFilter } from "../../shared/dishfilter";
 import type { AdminDashboard, AnalyticsSummary, ExperimentReport } from "../../shared/types";
 import * as api from "./api";
+import { useReadOnly, Withheld, WITHHELD_COPY } from "./readonly";
 import type { AdminView } from "./AdminApp";
 import ActivityPanel from "./ActivityPanel";
 import AfterDarkPanel from "./AfterDarkPanel";
@@ -29,6 +30,9 @@ import { SurfaceToggle, type SurfaceFilter } from "./analyticsUi";
  * arrive at having already seen a number move.
  */
 export type DashboardTab = "today" | "menu" | "players" | "afterdark" | "trends" | "experiments" | "activity";
+
+/** The two tabs the read-only demo withholds. See src/admin/readonly.tsx. */
+const DEMO_WITHHOLDS: DashboardTab[] = ["experiments", "activity"];
 
 const TABS: { key: DashboardTab; label: string }[] = [
   { key: "today", label: "Today" },
@@ -92,6 +96,7 @@ export default function Dashboard({
   /** Jump to the dish list with a filter applied — the Menu tab's charts use it. */
   onOpenDishes: (filter: Partial<DishFilter>) => void;
 }) {
+  const readOnly = useReadOnly();
   const [tab, setTab] = useState<DashboardTab>(tabFromUrl);
 
   const [dash, setDash] = useState<AdminDashboard | null>(null);
@@ -162,6 +167,11 @@ export default function Dashboard({
     };
   }, [tab, surface, reportReloads]);
 
+  // Two tabs the demo withholds. The buttons stay live and the panel says why:
+  // a greyed-out tab is a dead end, and both of these have somewhere to send
+  // you. See src/admin/readonly.tsx.
+  const withheld = readOnly && (tab === "activity" || tab === "experiments");
+
   return (
     <>
       <div className="admin-tabs">
@@ -171,19 +181,29 @@ export default function Dashboard({
               key={t.key}
               role="tab"
               aria-selected={tab === t.key}
-              className={`admin-tabs__btn${tab === t.key ? " admin-tabs__btn--active" : ""}`}
+              className={
+                `admin-tabs__btn${tab === t.key ? " admin-tabs__btn--active" : ""}` +
+                (readOnly && DEMO_WITHHOLDS.includes(t.key) ? " admin-tabs__btn--withheld" : "")
+              }
               onClick={() => setTab(t.key)}
             >
               {t.label}
+              {readOnly && DEMO_WITHHOLDS.includes(t.key) && (
+                <span className="admin-tabs__lock" aria-label="not in the demo">
+                  {"\u00b7"}
+                </span>
+              )}
             </button>
           ))}
         </div>
-        {SURFACE_AWARE.includes(tab) && (
+        {SURFACE_AWARE.includes(tab) && !withheld && (
           <div className="admin-tabs__tools">
             <SurfaceToggle value={surface} onChange={setSurface} />
           </div>
         )}
       </div>
+
+      {withheld && <Withheld {...WITHHELD_COPY[tab as "activity" | "experiments"]} />}
 
       {tab === "today" && (
         <OverviewPanel
@@ -233,14 +253,14 @@ export default function Dashboard({
           experiments={report?.experiments ?? []}
         />
       )}
-      {tab === "experiments" && (
+      {tab === "experiments" && !withheld && (
         <ExperimentsPanel
           report={report}
           error={reportError}
           onChanged={() => setReportReloads((n) => n + 1)}
         />
       )}
-      {tab === "activity" && (
+      {tab === "activity" && !withheld && (
         <ActivityPanel
           surface={surface}
           onOpenDishReport={(id) => {

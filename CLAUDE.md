@@ -292,7 +292,13 @@ Two doors past every gate in the game, for the same reason: **every gate here wa
 - **The write gate is by HTTP METHOD, in one middleware**, not by a guard on each of the twenty-six routes that write. A per-route list is a list to keep in step with the router and the cost of forgetting an entry is a stranger deleting a dish; the method gate fails closed for every route that doesn't exist yet. It holds because **this router has no read behind a POST** — re-check that if it ever stops being true. `worker/adminsession.ts` owns the rule and is tested against it.
 - **`session:ro` is matched exactly**, never by prefix. It begins with the full session's payload, so a `startsWith` would upgrade every visitor. Same rule, same reason, as `classifyDrinkPreview`.
 - **`POST /api/admin/demo-session` is the one route in that file anyone can call**, and it takes no password because putting a credential in front of the demo defeats it. 24h, like a preview rather than like a login.
-- **It shows live production data**, deliberately: a fabricated dataset on a dashboard whose entire design argument is about not lying with numbers is the wrong trade. Everything on it is anonymous by construction (no accounts, no IPs, `player_id` is a UUID minted in a browser) and `/api/stats` already publishes the aggregates with no auth and an open CORS header. It's still a step further, and it's one route away from being switched off.
+- **It shows live production data**, deliberately: a fabricated dataset on a dashboard whose entire design argument is about not lying with numbers is the wrong trade. It is also less of a step than it looks — **`/api/stats/breakdown` already serves the headline counts, the guess distribution, the funnel, the whole growth series and the country table to anyone, with no auth and an open CORS header**, because that is what feeds the README badges. Roughly the Today, Players and Trends tabs are public already.
+- **Nothing is masked, and don't add masking.** A digit mask (`x,xxx`) leaks the order of magnitude it is hiding, chart geometry survives it, and one curl of the public badge endpoint re-derives every number on the page. It would also hide the small-sample apparatus — the Wilson intervals, `SMALL_SAMPLE_MIN`, the censored denominators, `untracked` against zero — which exists *because* the samples are thin and is the most interesting thing on the dashboard.
+- **What is withheld is withheld outright, server-side, by path** (`WITHHELD_READS`). A deny list rather than an allow list, and deliberately the opposite choice from the write gate: a write is dangerous by default so that one fails closed, where a panel added next year should appear in the demo rather than silently vanish from it. Two categories, and they are different problems:
+  - **Spoilers.** `/schedule` and `/nights` are the next six weeks of Specials and pours; `/drinks` carries every coaster; a dish's `nextBooked` is tomorrow's Special written the other way round. The public game refuses a future date outright so nobody can read ahead, and the back office is where the answer is written down — publishing it undoes that rule from the other end. **Masking cannot fix this**: an unnamed dish on a dated row is still a row you cross-reference against a 394-dish catalogue.
+  - **Other people's words.** `/requests`, `/announcements`, `/experiments`, plus the per-device `/recent-rounds` and `/device-data`.
+- **Clue text follows the game.** `mayShowClues` releases a dish's five clues once it has been *served*, because `/api/reveal` already printed them in full to everyone who played that day. Before that they are a future Special. The editor says which of the two it is (`cluesWithheld`) — a dish really can have fewer than five, and "none written" and "none shown" must not draw the same.
+- **A withheld surface is a card, not a disabled tab.** The tab stays clickable and answers with what is behind it, why it isn't shown, and where the same ground is covered. This dashboard already refuses to show things and says why (`pending`, `untracked`, "too early to tell"), so a withheld panel belongs to that family; a greyed-out dead end doesn't. Copy lives once, in `WITHHELD_COPY`.
 - **The UI hides the destructive controls and nothing else.** A dish delete, a request wipe, the analytics wipe: no undo, and prod D1 has no automatic backup. Ordinary write controls stay visible and are refused server-side with a message that says why — the point of showing somebody the back office is showing them the back office, not a disabled copy of it. `src/admin/readonly.ts` is presentation only; the Worker is the enforcement.
 - **A full session is never demoted by a query parameter.** An admin who follows the link out of curiosity keeps the session they arrived with.
 
@@ -317,8 +323,9 @@ worker/drinkdb.ts     the same for drinks. Separate so neither can be aimed at t
 worker/nightcap.ts    PURE drink feedback (country/spirit/temperature/profile + ingredients)
 worker/showcase.ts    PURE preview-token vocabulary: the showcase payload, the lifetimes it
                       signs, and what a verified drink token is asking for
-worker/adminsession.ts  PURE admin session roles: full vs read-only, and which HTTP methods a
-                      role may call. The read-only demo's whole safety argument
+worker/adminsession.ts  PURE admin session roles: full vs read-only, which HTTP methods a role
+                      may call, which read paths it may reach, and when a dish's clues are
+                      public. The read-only demo's whole safety argument
 ```
 
 **Every module below is a pure fold with a unit test beside it.** Query in the route, fold in the module, assert on the fold.
@@ -383,7 +390,7 @@ worker/routes/stats.ts    /api/stats — public, no auth, aggregate-only, sends 
 worker/routes/analytics.ts  the beacon handlers, mounted at /api/rounds/* (see "Beacon paths" below)
 worker/routes/admin.ts    /api/admin/*: login/logout/session, dish CRUD, ingredients vocab, schedule
                           GET/PUT, autofill, schedule/shuffle, preview + showcase tokens, /demo-session
-                          (public, read-only), dashboard, analytics
+                          (public, read-only — see the read gate above), dashboard, analytics
                           aggregates + /recent-rounds, /menu-mix, /dish-report, /device-data GET+DELETE,
                           /experiments CRUD, /announcements CRUD, /issues GET+POST
 
@@ -406,7 +413,8 @@ src/game/             GamePage (orchestrator), components.tsx (Modal/GuessRow/Cl
                       ArchiveModal.tsx + archive.ts, AnnouncementModal.tsx + Markdown.tsx, scorecard.ts,
                       BuildTag.tsx (the always-on build marker)
 src/admin/            BarView (drink list + editor + nightly board), AfterDarkPanel (the 7th tab)
-src/admin/            readonly.ts (the read-only context — presentation only; the Worker enforces)
+src/admin/            readonly.tsx (the read-only context, the withheld card, and its copy —
+                      presentation only; the Worker enforces)
 src/admin/            AdminApp (session+nav), api.ts, IssueComposer, Dashboard (7 tabs), OverviewPanel, DishReportPanel,
                       MenuMixPanel, PlayersPanel, TrendsPanel, ExperimentsPanel, ActivityPanel
                       (+ MyDataPanel), RequestsView, AnnouncementsPanel, analyticsUi.tsx, DayPicker,

@@ -10,11 +10,22 @@ import Dashboard from "./Dashboard";
 import DishEditor from "./DishEditor";
 import DishList from "./DishList";
 import IssueComposer, { currentIssueContext } from "./IssueComposer";
-import { ReadOnlyContext } from "./readonly";
+import { ReadOnlyContext, Withheld, WITHHELD_COPY } from "./readonly";
 import RequestsView from "./RequestsView";
 import ScheduleView from "./ScheduleView";
 
 export type AdminView = "dashboard" | "dishes" | "schedule" | "bar" | "announcements" | "requests";
+
+/**
+ * The nav destinations the read-only demo withholds.
+ *
+ * Schedule and Bar because they name Specials nobody has played; Requests and
+ * Announcements because they are words people wrote. Dishes survives: the
+ * catalogue is the game's content, and the Worker strips the two spoilers it
+ * carries (a dish's next booking, and the clue text of anything not yet
+ * served). See worker/adminsession.ts.
+ */
+const DEMO_WITHHOLDS: AdminView[] = ["schedule", "bar", "announcements", "requests"];
 
 /** Prefill for a brand-new dish opened from a player request. */
 export interface DishDraft {
@@ -118,8 +129,10 @@ export default function AdminApp() {
   }, []);
 
   useEffect(() => {
-    if (session === "in") refreshRequestCount();
-  }, [session, refreshRequestCount]);
+    // Not in read-only: the badge counts an inbox the demo cannot open, and
+    // asking for it would spend a guaranteed 403 on every load.
+    if (session === "in" && !readOnly) refreshRequestCount();
+  }, [session, readOnly, refreshRequestCount]);
 
   const openDish = useCallback((id: number | null) => {
     setView("dishes");
@@ -142,6 +155,13 @@ export default function AdminApp() {
     setEditing(null);
     setDraft(d);
   }, []);
+
+  // A withheld destination stays clickable and answers with a card that names
+  // what is behind it. A disabled tab would be a dead end, and each of these has
+  // somewhere to send you instead. See src/admin/readonly.tsx.
+  const withheldView = (v: AdminView) => readOnly && DEMO_WITHHOLDS.includes(v);
+  const navCls = (v: AdminView) =>
+    `${view === v ? "active" : ""}${withheldView(v) ? " nav-withheld-btn" : ""}`.trim();
 
   const changeView = (v: AdminView) => {
     setView(v);
@@ -166,25 +186,28 @@ export default function AdminApp() {
               <button className={view === "dishes" ? "active" : ""} onClick={() => changeView("dishes")}>
                 Dishes
               </button>
-              <button className={view === "schedule" ? "active" : ""} onClick={() => changeView("schedule")}>
+              <button className={navCls("schedule")} onClick={() => changeView("schedule")}>
                 Schedule
+                {withheldView("schedule") && <span className="nav-withheld" aria-label="not in the demo">·</span>}
               </button>
               {/* Its own destination beside Schedule rather than a tab
                   inside it: the bar has its own catalogue, its own clue count
                   and its own board, and the one thing that must never happen
                   is a drink being booked onto a lunch day. */}
-              <button className={view === "bar" ? "active" : ""} onClick={() => changeView("bar")}>
+              <button className={navCls("bar")} onClick={() => changeView("bar")}>
                 Bar
+                {withheldView("bar") && <span className="nav-withheld" aria-label="not in the demo">·</span>}
               </button>
-              <button
-                className={view === "announcements" ? "active" : ""}
-                onClick={() => changeView("announcements")}
-              >
+              <button className={navCls("announcements")} onClick={() => changeView("announcements")}>
                 Announcements
+                {withheldView("announcements") && (
+                  <span className="nav-withheld" aria-label="not in the demo">·</span>
+                )}
               </button>
-              <button className={view === "requests" ? "active" : ""} onClick={() => changeView("requests")}>
+              <button className={navCls("requests")} onClick={() => changeView("requests")}>
                 Requests
                 {requestCount ? <span className="nav-badge">{requestCount}</span> : null}
+                {withheldView("requests") && <span className="nav-withheld" aria-label="not in the demo">·</span>}
               </button>
               {/* An action, not a destination, which is why it takes the
                   mustard tint the nav's other pills don't — but it lives in
@@ -253,10 +276,11 @@ export default function AdminApp() {
                   }}
                 />
               ))}
-            {view === "schedule" && <ScheduleView onOpenDish={openDish} />}
-            {view === "bar" && <BarView />}
-            {view === "announcements" && <AnnouncementsPanel />}
-            {view === "requests" && (
+            {withheldView(view) && <Withheld {...WITHHELD_COPY[view as keyof typeof WITHHELD_COPY]} />}
+            {view === "schedule" && !withheldView("schedule") && <ScheduleView onOpenDish={openDish} />}
+            {view === "bar" && !withheldView("bar") && <BarView />}
+            {view === "announcements" && !withheldView("announcements") && <AnnouncementsPanel />}
+            {view === "requests" && !withheldView("requests") && (
               <RequestsView onAddAsDish={openDishFromRequest} onCountChange={setRequestCount} />
             )}
             {filing && <IssueComposer context={filing} onClose={() => setFiling(null)} />}

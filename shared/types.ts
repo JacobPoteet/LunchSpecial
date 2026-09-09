@@ -310,6 +310,15 @@ export interface AdminDishRow extends Dish {
 
 export interface AdminDishDetail extends Dish {
   clues: string[];
+  /**
+   * How many clues exist but were not sent, or absent when they all were.
+   *
+   * Only the read-only demo ever sees this. An unserved dish's clues are a
+   * future Special (see worker/adminsession.ts), and "this dish has no clues"
+   * and "you may not read this dish's clues" are different facts the editor has
+   * to draw differently.
+   */
+  cluesWithheld?: number;
 }
 
 export interface AdminDishInput {

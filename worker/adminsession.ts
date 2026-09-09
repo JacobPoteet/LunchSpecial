@@ -72,3 +72,93 @@ export const READONLY_TTL_MS = 24 * 60 * 60 * 1000;
  * ever needs to.
  */
 export const READONLY_REFUSAL = "Read-only demo — this back office is showing live data and can't be changed";
+
+// ---------------------------------------------------------------------------
+// What a read-only session may READ
+// ---------------------------------------------------------------------------
+//
+// The write gate above is about damage. This one is about two different things
+// the demo must not hand out, and it exists because the first version handed out
+// both.
+//
+// **Spoilers.** The forward schedule, each dish's next booking, and the clue
+// text for all 394 dishes. The public game refuses a future date outright
+// (`isAllowedRequestDate`) so nobody can read tomorrow's Special, and the back
+// office is where tomorrow's Special is written down. Publishing it undoes that
+// rule from the other end. Masking would not help: an unnamed dish on a dated
+// row is still a row you cross-reference, and clue text blurs into nothing
+// useful. The only fix is to not send it.
+//
+// **Other people's words.** Player dish suggestions, notices, and the
+// experiment notes you wrote for yourself. All anonymous, none of it anyone
+// else's business.
+//
+// Everything still readable is either already public through /api/stats (the
+// badge endpoint serves the headline counts, the guess distribution, the funnel,
+// the growth series and the country table to anyone, with no auth) or is an
+// aggregate of the same rows. That is the line: **the demo shows how the numbers
+// are handled, not who made them and not what is coming.**
+
+/**
+ * Read paths a read-only session is refused, matched against the admin router's
+ * own sub-path.
+ *
+ * A deny list rather than an allow list, deliberately, and the opposite choice
+ * from the write gate above. A write is dangerous by default, so that one fails
+ * closed. A read is not: a new panel added six months from now should appear in
+ * the demo rather than silently vanish from it, and the two categories here are
+ * small, named and unlikely to grow.
+ */
+export const WITHHELD_READS = [
+  "/schedule", // tomorrow's Special, and the next six weeks of them
+  "/nights", // the same, for the bar
+  "/drinks", // the drink catalogue, with its coaster text
+  "/drink-ingredients",
+  "/requests", // players' own words
+  "/announcements",
+  "/experiments", // notes written for an audience of one
+  "/recent-rounds", // the raw per-device feed
+  "/device-data",
+  "/issues",
+] as const;
+
+/** The admin router's mount point, so a full request path can be reduced to it. */
+const ADMIN_MOUNT = "/api/admin";
+
+/** `/api/admin/dishes/12` -> `/dishes/12`. Trailing slashes normalised away. */
+export function adminSubPath(fullPath: string): string {
+  const rest = fullPath.startsWith(ADMIN_MOUNT) ? fullPath.slice(ADMIN_MOUNT.length) : fullPath;
+  const trimmed = rest.replace(/\/+$/, "");
+  return trimmed === "" ? "/" : trimmed;
+}
+
+/**
+ * May a session of this role read this path?
+ *
+ * Matches a whole segment, never a bare prefix, so `/dish-report` survives
+ * `/dishes` and `/night-report` survives `/nights`. Both of those are real
+ * routes and both are aggregates the demo wants.
+ */
+export function mayRead(role: SessionRole, subPath: string): boolean {
+  if (role === "full") return true;
+  const path = adminSubPath(subPath);
+  return !WITHHELD_READS.some((w) => path === w || path.startsWith(`${w}/`));
+}
+
+/** What the client is told when a read-only session asks for one of those. */
+export const WITHHELD_REFUSAL = "Not shown in the read-only demo";
+
+/**
+ * May a read-only session see this dish's clues?
+ *
+ * Yes once the dish has been served, because the game itself has already handed
+ * those five clues to everyone who played that day — `/api/reveal` prints them
+ * in full at the end of every round. Withholding them after that would be
+ * guarding something already public, and it would hide the beat sheet, which is
+ * the part of the catalogue most worth showing anyone.
+ *
+ * No before it, because an unserved dish is a future Special.
+ */
+export function mayShowClues(role: SessionRole, lastServed: string | null): boolean {
+  return role === "full" || lastServed !== null;
+}
