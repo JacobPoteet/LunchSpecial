@@ -316,6 +316,48 @@ export function GuessRow({
   );
 }
 
+/**
+ * The clues, collapsed. The check opens compact, so the players who want the
+ * whole trail can open it without everyone else scrolling past it. Lists every
+ * one, including the last repeated above as the definition — the numbering has
+ * to run 1 -> N or a panel labelled "all N clues" looks like it dropped one.
+ *
+ * Shared by the check and the tab: the diner prints clues, the bar prints
+ * coasters (docs/index.html owns both words), and that noun is the only thing
+ * the two surfaces disagree on.
+ */
+export function StoryDetails({ clues, noun }: { clues: string[]; noun: "clues" | "coasters" }) {
+  const [open, setOpen] = useState(false);
+  if (clues.length === 0) return null;
+  return (
+    <div className="story">
+      <button
+        className="story__toggle"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls="receipt-story"
+      >
+        <span>🔍 {open ? `Hide the ${noun}` : `All ${clues.length} ${noun}`}</span>
+        <span className={open ? "story__chevron story__chevron--open" : "story__chevron"} aria-hidden="true">
+          ▾
+        </span>
+      </button>
+      <div className={open ? "story__panel story__panel--open" : "story__panel"} id="receipt-story">
+        <div className="story__inner">
+          <ol className="story__list">
+            {clues.map((clue, i) => (
+              <li className="story__item" key={clue} style={{ "--i": i } as React.CSSProperties}>
+                <span className="story__num">{i + 1}</span>
+                <span className="story__text">{clue}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ClueTicket({ index, text }: { index: number; text: string }) {
   return (
     <div className="ticket">

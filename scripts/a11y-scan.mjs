@@ -130,12 +130,18 @@ const SCANS = [
       // hours, "Kitchen first" inside them with lunch unplayed — and they are
       // the same component with different copy, so either is a valid scan.
       //
-      // The lunch round is cleared first, which is what makes this
-      // deterministic. Without it, a CI run that happened to start between
+      // The lunch round is cleared first, from a page where the game is NOT
+      // mounted. Without the clear, a CI run that happened to start between
       // 20:00 and 03:00 UTC found the bar open AND lunch finished by the states
       // above, went straight to the board, and timed out waiting for a sign
-      // that was never going to appear.
-      await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
+      // that was never going to appear. And clearing it from `/` was not
+      // enough on its own: GamePage restores the finished round the hand-off
+      // state seeded, and its effects write it straight back, racing the
+      // removeItem (#172). /privacy is same-origin static HTML — same
+      // localStorage, nothing running against it. Not addInitScript, which
+      // would persist across every later navigation and the archive state
+      // below needs its finished round.
+      await page.goto(`${BASE}/privacy`, { waitUntil: "domcontentloaded" });
       await page.evaluate(() => localStorage.removeItem("lunch-special:round"));
       await page.goto(`${BASE}/?bar=1`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector(".closed--bar");
