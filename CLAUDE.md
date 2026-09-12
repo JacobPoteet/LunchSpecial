@@ -199,7 +199,7 @@ Three coasters, one per miss, because four guesses means at most three misses �
 | 2 | **The pour** | Who mixed it and what goes in. Two sentences allowed; it is the only one |
 | 3 | **Last call** | The country, and what it looks like in front of you |
 
-Every hard rule from the dish beat sheet applies unchanged — banned openers, praise, hedges, the one-name-word cap, no em dashes, the five-word phrase rule. `lintClue` takes the sheet it is reading against rather than being forked, because a forked copy is how the drinks catalogue quietly stops enforcing the banned-praise list six months from now.
+**The tab lists all three under the definition, the way the check lists all five** (`StoryDetails` in `src/game/components.tsx`, shared by both; the noun is the only thing they disagree on). The bar shipped without it and the first issue filed against it was that. Every hard rule from the dish beat sheet applies unchanged — banned openers, praise, hedges, the one-name-word cap, no em dashes, the five-word phrase rule. `lintClue` takes the sheet it is reading against rather than being forked, because a forked copy is how the drinks catalogue quietly stops enforcing the banned-praise list six months from now.
 
 ### Sharing both grids
 

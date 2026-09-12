@@ -20,7 +20,7 @@ import {
 } from "../api";
 import type { DrinkPoolEntry, NightcapInfo, NightcapReveal, Surface } from "../../shared/types";
 import { DRINK_CLUE_COUNT, DRINK_MAX_GUESSES } from "../../shared/types";
-import { Coaster, DrinkGuessRow, GuessInput, Modal } from "./components";
+import { Coaster, DrinkGuessRow, GuessInput, Modal, StoryDetails } from "./components";
 import { BuildTag } from "./BuildTag";
 import { SoundToggle } from "./SoundToggle";
 import { currentSurface } from "../discord/bootstrap";
@@ -810,6 +810,7 @@ function TabModal({
             </>
           )}
           {definition && <p className="receipt__definition">{definition}</p>}
+          <StoryDetails clues={reveal.coasters} noun="coasters" />
         </>
       )}
       <NightStatsPanel stats={stats} highlight={won ? round.guesses.length : undefined} />

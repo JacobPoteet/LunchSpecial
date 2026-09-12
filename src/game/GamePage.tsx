@@ -16,7 +16,7 @@ import {
 } from "../api";
 import type { Announcement, DailyInfo, DishSummary, RevealInfo, RoundKind, Surface } from "../../shared/types";
 import { DISH_REQUEST_LIMITS, MAX_GUESSES } from "../../shared/types";
-import { ClueTicket, Countdown, GuessInput, GuessRow, Modal, useNewDayAvailable } from "./components";
+import { ClueTicket, Countdown, GuessInput, GuessRow, Modal, StoryDetails, useNewDayAvailable } from "./components";
 import AnnouncementModal from "./AnnouncementModal";
 import ArchiveModal from "./ArchiveModal";
 import { BuildTag } from "./BuildTag";
@@ -182,44 +182,6 @@ function StatsPanel({ stats, highlight }: { stats: Stats; highlight?: number }) 
         ))}
       </div>
     </>
-  );
-}
-
-/**
- * The clues, collapsed. The check opens compact, so the players who want the
- * whole trail can open it without everyone else scrolling past it. Lists all
- * five, including the one repeated above as the definition — the numbering has
- * to run 1 -> 5 or a panel labelled "all 5 clues" looks like it dropped one.
- */
-function StoryDetails({ clues }: { clues: string[] }) {
-  const [open, setOpen] = useState(false);
-  if (clues.length === 0) return null;
-  return (
-    <div className="story">
-      <button
-        className="story__toggle"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        aria-controls="receipt-story"
-      >
-        <span>🔍 {open ? "Hide the clues" : `All ${clues.length} clues`}</span>
-        <span className={open ? "story__chevron story__chevron--open" : "story__chevron"} aria-hidden="true">
-          ▾
-        </span>
-      </button>
-      <div className={open ? "story__panel story__panel--open" : "story__panel"} id="receipt-story">
-        <div className="story__inner">
-          <ol className="story__list">
-            {clues.map((clue, i) => (
-              <li className="story__item" key={clue} style={{ "--i": i } as React.CSSProperties}>
-                <span className="story__num">{i + 1}</span>
-                <span className="story__text">{clue}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -624,7 +586,7 @@ function ResultModal({
             </>
           )}
           {definition && <p className="receipt__definition">{definition}</p>}
-          <StoryDetails clues={reveal.clues} />
+          <StoryDetails clues={reveal.clues} noun="clues" />
         </>
       )}
       {/* A rehearsal round (preview, playtest) shows the panel but hasn't been
