@@ -380,6 +380,10 @@ export function GuessInput<T extends { id: number; name: string }>({
   onGuess,
   placeholder = "Order a dish… (type to search)",
   label = "Guess a dish",
+  coach,
+  describedBy,
+  onMatches,
+  lead,
 }: {
   dishes: T[];
   excludeIds: Set<number>;
@@ -387,6 +391,18 @@ export function GuessInput<T extends { id: number; name: string }>({
   onGuess: (dish: T) => void;
   placeholder?: string;
   label?: string;
+  /**
+   * The first visit (see Coach.tsx). `order` rings the field, `pick` pulses
+   * the button once there is something to press it for. Undefined for
+   * everyone who has played before.
+   */
+  coach?: "order" | "pick";
+  /** The id of the callout explaining the field, for aria-describedby. */
+  describedBy?: string;
+  /** How many dishes the list is offering right now; the coach reads it. */
+  onMatches?: (count: number) => void;
+  /** Rendered above the row, inside this stacking context. The coach mark. */
+  lead?: React.ReactNode;
 }) {
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
@@ -414,6 +430,13 @@ export function GuessInput<T extends { id: number; name: string }>({
   useEffect(() => {
     setHighlight(0);
   }, [text]);
+
+  // Reported as a count rather than the list itself: the parent only ever asks
+  // "is there something to pick", and handing it the options would rebuild the
+  // coach mark on every keystroke.
+  useEffect(() => {
+    onMatches?.(options.length);
+  }, [options.length, onMatches]);
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -443,7 +466,8 @@ export function GuessInput<T extends { id: number; name: string }>({
   const listOpen = open && text.trim().length > 0;
 
   return (
-    <div className="guess-input" ref={rootRef}>
+    <div className={coach ? `guess-input guess-input--coach-${coach}` : "guess-input"} ref={rootRef}>
+      {lead}
       <div className="guess-input__row">
         <input
           ref={inputRef}
@@ -457,6 +481,7 @@ export function GuessInput<T extends { id: number; name: string }>({
           aria-expanded={listOpen}
           aria-controls={listOpen ? listId : undefined}
           aria-activedescendant={listOpen && options[highlight] ? `${listId}-${options[highlight].id}` : undefined}
+          aria-describedby={describedBy}
           autoCapitalize="off"
           autoCorrect="off"
           onChange={(e) => {

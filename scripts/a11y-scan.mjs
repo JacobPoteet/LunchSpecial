@@ -55,35 +55,41 @@ const BAR_INPUT = 'input[aria-label="Guess a drink"]';
  */
 const SCANS = [
   {
-    name: "how-to modal (first visit)",
+    name: "first visit (the spotlight and the first coach mark)",
     async setup(page) {
-      // A fresh browser context has never seen the how-to, so the game opens it
-      // for us — which is the state a first-time player actually lands in.
+      // A fresh browser context has never been walked through the game, so it
+      // gets the coach marks — which is the state a first-time player lands
+      // in. Nothing opens as a dialog any more; the board itself teaches.
       await page.goto(`${BASE}/`, { waitUntil: "domcontentloaded" });
-      await page.waitForSelector('[role="dialog"]');
+      await page.waitForSelector(".coach--order");
+      await page.waitForSelector(".coach-spotlight");
     },
   },
   {
-    name: "board, before a guess",
+    name: "board, before a guess (callout, spotlight dismissed)",
     async setup(page) {
-      // Dismiss everything, not just the how-to. A live notice from the kitchen
-      // queues up behind it, so closing exactly one dialog leaves a dialog on
-      // screen and the wait below never resolves — which is a scan that fails
-      // on any day somebody has posted a note, and passes in CI because CI's
-      // database has none.
+      // The first pointer anywhere drops the dim. Notices from the kitchen
+      // wait until the coached round is over, so there is no dialog to close
+      // here; closeAllModals stays as a guard against a state that grows one.
+      await page.mouse.click(4, 4);
       await closeAllModals(page);
+      await page.waitForSelector(".coach-spotlight", { state: "detached" });
       await page.waitForSelector(INPUT);
     },
   },
   {
-    name: "board, mid-round (tiles, chips, clue ticket)",
+    name: "board, first guess (tiles, chips, clue ticket, the legend coach mark)",
     async setup(page) {
+      // Still coached: the key is only written on the second guess, so the
+      // playtest below is that device's first round too, and the legend
+      // callout lands above the row.
       await page.goto(`${BASE}/?special=${TARGET_SLUG}`, { waitUntil: "domcontentloaded" });
       await guess(page, WRONG_GUESS);
       // The row lands optimistically; wait for the filled tiles and the ticket
       // the miss prints, or the scan races the thing it came to look at.
       await page.waitForSelector(".attr-tile--revealed");
       await page.waitForSelector(".ticket");
+      await page.waitForSelector(".coach--read");
     },
   },
   {
@@ -177,8 +183,8 @@ const SCANS = [
 /**
  * Close every open modal, in order, until none is left.
  *
- * The game queues them deliberately (the how-to, then any unseen notices, then
- * an auto-opened check), so "close the dialog" is not a single action. Bounded
+ * The game queues them deliberately (any unseen notices, then an auto-opened
+ * check), so "close the dialog" is not a single action. Bounded
  * rather than a while(true): if a modal ever fails to close, a hung scan is a
  * worse failure than a loud one.
  */

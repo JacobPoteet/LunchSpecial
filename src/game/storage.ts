@@ -207,6 +207,10 @@ export function archiveStatuses(): Record<string, GameStatus> {
   return out;
 }
 
+// Written when the first visit's walkthrough ends (the second guess, or the
+// round ending). The key predates the walkthrough: the how-to modal used to
+// write it on close, which is what keeps every player from before off the
+// coach marks now.
 export function hasSeenHowTo(): boolean {
   return localStorage.getItem(HOWTO_KEY) === "1";
 }
@@ -219,7 +223,7 @@ export function markHowToSeen(): void {
 //
 // Which notices this device has already been shown. Kept here rather than asked
 // of the server so the modal can decide instantly, offline, with no round-trip
-// between the how-to closing and the notice opening. The server keeps its own
+// between the walkthrough ending and the notice opening. The server keeps its own
 // per-device row for the admin's reach numbers (announcement_views); this is
 // only about not showing the same note twice.
 

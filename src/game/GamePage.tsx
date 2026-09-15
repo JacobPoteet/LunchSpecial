@@ -20,6 +20,8 @@ import AnnouncementModal from "./AnnouncementModal";
 import ArchiveModal from "./ArchiveModal";
 import { BuildTag } from "./BuildTag";
 import { FanStamp, RequestForm } from "./RequestForm";
+import { CoachMark, CoachSpotlight } from "./Coach";
+import { coachBeat as pickCoachBeat, coachingDone } from "../../shared/coach";
 import { dateLabel, isPastPuzzleDate } from "./archive";
 import { currentNight, useBarInvite, type BarInvite } from "./night";
 import { useCheckOpening } from "./roundLifecycle";
@@ -104,37 +106,38 @@ function WinToast({ text }: { text: string }) {
   );
 }
 
+/**
+ * The rules, for whoever asks. This used to open itself on a first visit and
+ * was the first thing a new player saw: five paragraphs about a board they
+ * hadn't looked at yet (GitHub #180). The board teaches now (see Coach.tsx);
+ * this is the reference, cut to what the coach marks don't say, and it opens
+ * on a press and never on its own.
+ */
 function HowToModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal onClose={onClose} label="How to play">
       <div className="howto">
         <h2>How to play</h2>
         <p>
-          Every day this diner runs one <strong>Special</strong>, a famous dish from somewhere in the world. You have{" "}
-          {MAX_GUESSES} guesses to figure out what's under the cloche.
+          One <strong>Special</strong> a day, a famous dish from somewhere in the world, under the cloche. You get{" "}
+          {MAX_GUESSES} guesses.
         </p>
         <p>
-          <strong>Order any dish off the menu.</strong> The kitchen tells you which of its ingredients are also in the
-          Special, and how its country, course, serving temperature, and protein compare:
+          <strong>Order any dish.</strong> The kitchen shows which of its ingredients the Special shares, and how its
+          country, course, temperature and protein compare:
         </p>
         {/* The mark leads, and the colour is named second. The board draws the
             same three glyphs on every tile, so a player who can't separate the
             green from the mustard still has something here that maps onto what
             they're looking at. */}
         <div className="legend">
-          <span className="chip" style={{ background: "var(--hit)", color: "var(--on-hit)" }}>✓ match (green)</span>
-          <span className="chip" style={{ background: "var(--near)" }}>~ close — same region (yellow)</span>
-          <span className="chip" style={{ background: "var(--miss-soft)", color: "var(--ink-soft)" }}>
-            × miss (gray)
-          </span>
+          <span className="chip chip--hit">✓ match (green)</span>
+          <span className="chip chip--near">~ close, same region (yellow)</span>
+          <span className="chip chip--miss">× miss (gray)</span>
         </div>
         <p>
-          After each wrong order, the kitchen slips you a <strong>clue ticket</strong> - where it's from, who made it,
-          the one thing that could only be this dish. Five clues in total. Good luck, hon.
-        </p>
-        <p>
-          Once you've settled today's check, hit <strong>Menu archive</strong> to replay any Special you missed, or
-          have the cook fire a random recipe.
+          Every miss earns a <strong>clue ticket</strong>, five in all. Settle today's check and the{" "}
+          <strong>Menu archive</strong> opens: every Special you missed, or a random one off the cook.
         </p>
       </div>
     </Modal>
@@ -566,7 +569,19 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   const [busy, setBusy] = useState(false);
   // The dish just ordered, shown as an optimistic row while the kitchen replies.
   const [pending, setPending] = useState<DishSummary | null>(null);
-  const [showHowTo, setShowHowTo] = useState(() => !hasSeenHowTo());
+  const [showHowTo, setShowHowTo] = useState(false);
+  // The first visit. A device that has never been walked through the game gets
+  // the three coach marks in Coach.tsx instead of a modal of rules. Read once
+  // at mount; a showcase visitor is looking at a finished board and has
+  // nothing to be taught on it. The key is the one the old how-to modal wrote,
+  // so nobody who has played already gets coached.
+  const [coaching, setCoaching] = useState(() => !isShowcase && !hasSeenHowTo());
+  // Whether the dim behind the order bar is still up. Gone on the first
+  // pointer, key or focus anywhere; the callout itself stays until the guess.
+  const [spotlit, setSpotlit] = useState(true);
+  // How many dishes the order bar is currently offering, so the callout can
+  // switch from "order any dish" to "pick one" the moment there is one to pick.
+  const [matches, setMatches] = useState(0);
   const [showStats, setShowStats] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   // Unseen notices from the kitchen, oldest first, shown one after another.
@@ -611,6 +626,39 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   const dailyDone = dailyStatus !== "playing";
   const canArchive = !isPreview && (dailyDone || isArchive || isRandom);
 
+  // Which coach mark is up, read off the round rather than stepped through
+  // (shared/coach.ts). Ending it writes the same key the how-to used to.
+  const coachBeat = pickCoachBeat({
+    coaching,
+    status: round.status,
+    guesses: round.guesses.length,
+    matches,
+  });
+  const endCoaching = useCallback(() => {
+    markHowToSeen();
+    setCoaching(false);
+  }, []);
+  useEffect(() => {
+    if (coaching && coachingDone({ status: round.status, guesses: round.guesses.length })) endCoaching();
+  }, [coaching, round.status, round.guesses.length, endCoaching]);
+  // The spotlight is only worth drawing over a board that exists, and it goes
+  // on the first sign of a hand or a keyboard: the callout underneath carries
+  // on, the dim was only ever there to say where to look.
+  const showSpotlight = spotlit && coachBeat === "order" && !!daily && !loadError;
+  useEffect(() => {
+    if (!showSpotlight) return;
+    const off = () => setSpotlit(false);
+    document.addEventListener("pointerdown", off);
+    document.addEventListener("focusin", off);
+    document.addEventListener("keydown", off);
+    return () => {
+      document.removeEventListener("pointerdown", off);
+      document.removeEventListener("focusin", off);
+      document.removeEventListener("keydown", off);
+    };
+  }, [showSpotlight]);
+  const coachId = "coach-order";
+
   // After Dark. Read once at mount — whether tonight's Nightcap is settled can
   // only change by going to the bar, which unmounts this page.
   const playedTonight = useMemo(() => nightRoundFinished(currentNight()), []);
@@ -638,8 +686,9 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // preview or a playtest are all side doors into the game, and a notice
   // interrupting one of those is noise rather than news.
   //
-  // Fetched the moment the page opens but held back until the how-to closes, so
-  // a brand-new player meets the game itself before the diner's announcements.
+  // Fetched the moment the page opens but held back until the coached first
+  // round is over, so a brand-new player meets the game itself before the
+  // diner's announcements.
   useEffect(() => {
     if (!isDaily) return;
     let cancelled = false;
@@ -662,7 +711,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // One at a time, and never stacked on another modal: the check that auto-opens
   // for an already-finished round gets to go first, then the notice.
   const activeNotice =
-    !showHowTo && !showResult && !showStats && !showArchive ? (notices[noticeIndex] ?? null) : null;
+    !coaching && !showHowTo && !showResult && !showStats && !showArchive ? (notices[noticeIndex] ?? null) : null;
 
   // Counted the moment it's on screen, not when it's dismissed — someone who
   // reads a note and closes the tab still read it. localStorage is what stops it
@@ -747,7 +796,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // beacons can be linked. Every tracked kind gets one — daily, leftover, and
   // chef's special — but the test modes (admin preview, playtest) never do. The
   // "start" beacon itself doesn't fire here — merely opening the page (or
-  // closing the how-to modal) isn't a started game. It fires on the first guess
+  // reading the coach marks) isn't a started game. It fires on the first guess
   // (see submitGuess). A new random seed makes a fresh round, hence a fresh id.
   useEffect(() => {
     if (!tracked || !daily || round.analyticsId) return;
@@ -1052,7 +1101,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           <KitchenClosed detail={loadError} onRetry={() => setReloadKey((k) => k + 1)} />
         ) : (
           <>
-            <div className="special-line">
+            <div className={showSpotlight ? "special-line special-line--lit" : "special-line"}>
               <img src={clocheUrl} alt="" aria-hidden="true" />
               <div className="special-line__body">
                 <p className="special-line__label">
@@ -1068,7 +1117,23 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
 
             {round.status === "playing" && (
               <>
-                <GuessInput dishes={dishes} excludeIds={guessedIds} disabled={!daily || busy} onGuess={submitGuess} />
+                {/* The callout rides inside the order bar, above the row, so it
+                    reads top-down, the dropdown never covers it and the
+                    spotlight leaves it lit. */}
+                <GuessInput
+                  dishes={dishes}
+                  excludeIds={guessedIds}
+                  disabled={!daily || busy}
+                  onGuess={submitGuess}
+                  coach={coachBeat === "order" || coachBeat === "pick" ? coachBeat : undefined}
+                  describedBy={coachBeat === "order" || coachBeat === "pick" ? coachId : undefined}
+                  onMatches={setMatches}
+                  lead={
+                    coachBeat === "order" || coachBeat === "pick" ? (
+                      <CoachMark beat={coachBeat} id={coachId} onDismiss={endCoaching} />
+                    ) : null
+                  }
+                />
                 <p className="tally">
                   {"•".repeat(remaining)}
                   {"◦".repeat(MAX_GUESSES - remaining)} {remaining} {remaining === 1 ? "guess" : "guesses"} left
@@ -1081,6 +1146,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         {error && <p className="error-note">{error}</p>}
 
         <div className="guesses">
+          {coachBeat === "read" && !pending && <CoachMark beat="read" onDismiss={endCoaching} />}
           {/* One flat, keyed list so the optimistic row and its filled-in
               replacement share a key (the dish id) and React reuses the same
               DOM node — the drop-in animation plays once, not again on reply. */}
@@ -1115,14 +1181,8 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         </p>
       </footer>
 
-      {showHowTo && (
-        <HowToModal
-          onClose={() => {
-            setShowHowTo(false);
-            markHowToSeen();
-          }}
-        />
-      )}
+      {showSpotlight && <CoachSpotlight />}
+      {showHowTo && <HowToModal onClose={() => setShowHowTo(false)} />}
       {activeNotice && (
         <AnnouncementModal
           key={activeNotice.id}

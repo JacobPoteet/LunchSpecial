@@ -75,7 +75,7 @@ export default function App() {
   }, [openBar]);
 
   // Leaving is a plain navigation rather than a state flip. The diner has a
-  // how-to, an archive, notices and a rollover watcher, all of which read their
+  // walkthrough, an archive, notices and a rollover watcher, all of which read their
   // world at mount — reusing a GamePage that has been sitting behind a modal
   // since 8pm would be the subtler of the two bugs.
   const leaveBar = useCallback(() => {

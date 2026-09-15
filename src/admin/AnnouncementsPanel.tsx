@@ -209,8 +209,8 @@ function Editor({
               <option value="returning">Returning players only</option>
             </select>
             <p className="field-hint">
-              A returning player is one who has finished at least one game. New players meet the how-to first, then
-              anything marked for everyone.
+              A returning player is one who has finished at least one game. A new player finishes their first,
+              coached round before seeing anything marked for everyone.
             </p>
           </div>
 
@@ -334,7 +334,7 @@ export default function AnnouncementsPanel() {
       {error && <p className="form-error">{error}</p>}
 
       <p className="dash-note" style={{ marginTop: 0 }}>
-        Notices appear on Today's Special, after the how-to, once per player. Reach counts anonymous devices, the same
+        Notices appear on Today's Special, once per player, and never during a first visit's walkthrough. Reach counts anonymous devices, the same
         way the engagement panel does — one per player, however many times they see it.
       </p>
 

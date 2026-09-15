@@ -336,6 +336,7 @@ shared/schedule.ts    the admin specials board — schedule window × catalogue 
                       nearest-other-serving gap; board gap summary; name → dish; picker search
 shared/activity.ts    activity feed (rounds + arrivals + day totals → round states, durations, visits)
 shared/announce.ts    the guess-feedback wording, one table feeding colour, glyph and screen reader
+shared/coach.ts       the first visit: which coach mark is up, read off the round (never a step counter)
 shared/night.ts       the After Dark clock — night key, the 20:00-03:00 window, last call,
                       night numbering, and what the Worker will accept. The ONE place the
                       game's fixed-ET rollover is deliberately broken
@@ -375,6 +376,7 @@ src/game/             NightPage (the bar board), night.ts (the browser's half of
                       roundLifecycle.ts (the end-of-round choreography, shared by both boards)
 src/game/             GamePage (orchestrator), components.tsx (Modal/GuessRow/ClueTicket/GuessInput/
                       Countdown), RequestForm.tsx (the suggest box + fan stamp, dish or drink),
+                      Coach.tsx (the first visit's coach marks + spotlight),
                       SoundToggle.tsx, storage.ts, share.ts, attribution.ts,
                       ArchiveModal.tsx + archive.ts, AnnouncementModal.tsx + Markdown.tsx, scorecard.ts,
                       BuildTag.tsx (the always-on build marker)
@@ -538,9 +540,27 @@ The engagement panel's day slice defaults to today, and a 📅 `DayPicker` can s
 - **The grey tick on a bar is the pool's share of that category**, which makes over- and under-serving visible without a second series.
 - Days from EPOCH with no schedule row ran on the fallback pick and can't be reconstructed (the pool moves), so they're reported as `unscheduledDays` rather than folded into `served`.
 
+### The first visit
+
+**There is no auto-opened how-to.** A device that has never played gets three coach marks on the board itself, and the rules modal behind the toolbar's "How to play" opens on a press and never on its own (#180). Decision in `shared/coach.ts` (tested), pieces in `src/game/Coach.tsx`, state in GamePage.
+
+| Beat | When | Shows |
+|---|---|---|
+| `order` | empty board | a spotlight over everything but the Special line and the order bar, a ring on the field, one sentence |
+| `pick` | the list has a match | the ring moves to the Order button, one sentence |
+| `read` | the first row landed | the three verdict chips and one sentence about clues, above the row |
+
+- **The beat is derived from the round (guesses, matches, status), never stepped through or timed.** A reload mid-first-round lands on the right beat, and nothing can be stranded by an animation that never fired. `coachingDone` (second guess, or the round ending) writes `lunch-special:howto-seen`, the same key the modal used to write, so nobody who played before is coached.
+- **The spotlight is one fixed dim at `z-index: 35` and no cut-out.** `.guess-input` already sits at 40 for its dropdown, so the bar is what stays lit; `.special-line--lit` lifts the dish line to 36 beside it. It fades in after the card's entrance because the card is a stacking context while it slides. Gone on the first `pointerdown`, `keydown` or `focusin` anywhere; the callout stays.
+- **Every callout has a ×** that ends the walkthrough. Somebody who has played a Wordle should be able to say so in one press.
+- **A showcase visitor is never coached**: the board they were sent is already won.
+- **Notices wait until the walkthrough is over**, which replaced "the how-to goes first" in the ordering below.
+- **The coach marks are scanned.** `npm run a11y`'s first three states are the spotlight, the dismissed spotlight and the legend callout. `.chip--hit/near/miss` are the legend's chips, classes rather than inline hexes so the night palette reaches them.
+- Reduced motion: the dim and the callouts appear without fading, and the ring holds at its brightest instead of pulsing.
+
 ### Announcements
 
-Notices written in the admin, shown as a modal on **Today's Special only** — never on a Leftover, Chef's Choice, preview or playtest, which are side doors. Ordering: a first-timer gets the how-to first, then eligible notices; the auto-opened check for an already-finished round also goes first. Multiple live notices queue, oldest `start_date` first, one card at a time.
+Notices written in the admin, shown as a modal on **Today's Special only** — never on a Leftover, Chef's Choice, preview or playtest, which are side doors. Ordering: a first-timer finishes the coached round first, then eligible notices; the auto-opened check for an already-finished round also goes first. Multiple live notices queue, oldest `start_date` first, one card at a time.
 
 - **Window** is `start_date`/`end_date` as **ET days, both ends inclusive**. `is_active` is a manual kill switch that **outranks the dates** (status `retired`). All status/eligibility/validation logic is pure in worker/announcements.ts; the routes never re-derive it.
 - **Audience** is `all` or `returning`. "Returning" = this device has finished ≥1 game (`loadStats().played > 0`), sent as `?returning=1`. Unverifiable by design; the worst a lying client buys is seeing a notice early. **A notice you aren't eligible for never leaves the Worker.**
