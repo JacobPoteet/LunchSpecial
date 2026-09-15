@@ -1386,6 +1386,157 @@ textarea.dish-request__input {
   margin: 10px 0;
 }
 
+/* The three verdicts as chips, for the how-to and the coach mark. Classes
+   rather than the inline hexes the how-to used to carry, so the night palette
+   reaches them and the text pairs are the measured ones. */
+.chip--hit {
+  background: var(--hit);
+  color: var(--on-hit);
+}
+
+.chip--near {
+  background: var(--near);
+  color: var(--on-near);
+}
+
+.chip--miss {
+  background: var(--miss-soft);
+  color: var(--ink-soft);
+}
+
+/* ---- the first visit ----
+
+   Three coach marks in place of a rules modal (GitHub #180). See Coach.tsx
+   for which shows when; this is only what they look like. A callout is a
+   small card off the same stock as a ticket, a caret pointing at the thing it
+   explains, and a × for the player who has seen a Wordle before. */
+
+.coach {
+  position: relative;
+  background: var(--paper-bright);
+  border: 2px solid var(--mustard);
+  border-radius: var(--radius);
+  padding: 10px 34px 10px 14px;
+  margin: 0 0 12px;
+  box-shadow: 0 6px 18px rgba(20, 17, 16, 0.14);
+}
+
+/* The caret. Two triangles, the outer one the border and the inner one the
+   fill, sitting on the bottom edge and pointing at what comes next. */
+.coach::before,
+.coach::after {
+  content: "";
+  position: absolute;
+  left: 28px;
+  top: 100%;
+  border: 9px solid transparent;
+  border-bottom: 0;
+}
+
+.coach::before {
+  border-top-color: var(--mustard);
+}
+
+.coach::after {
+  margin-top: -3px;
+  border-top-color: var(--paper-bright);
+}
+
+.coach__text {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.coach__text strong {
+  color: var(--cherry-dark);
+}
+
+.coach__legend {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 8px;
+}
+
+.coach__dismiss {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 1.2rem;
+  line-height: 1;
+  border-radius: 50%;
+}
+
+.coach__dismiss:hover,
+.coach__dismiss:active {
+  background: var(--near-soft);
+  color: var(--ink);
+}
+
+/* Beat three sits at the top of the guess column, above the row it explains. */
+.guesses > .coach {
+  margin-bottom: 4px;
+}
+
+/* The dim behind the order bar. No cut-out: .guess-input already sits at
+   z-index 40 for its dropdown and this sits at 35, so the bar is the one thing
+   left lit, plus the Special line it answers (raised to 36 below). Fades in
+   after the card's entrance, because the card is a stacking context while it
+   slides and would trap the bar under the dim for that half second. */
+.coach-spotlight {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: rgba(10, 20, 18, 0.58);
+  animation: coach-dim 0.4s ease calc(var(--enter-dur) + var(--enter-step) * 4) backwards;
+}
+
+.special-line--lit {
+  position: relative;
+  z-index: 36;
+}
+
+/* The ring on the order bar, and then on the Order button once there is
+   something to press it for. Off while the field is focused, which already
+   draws its own ring; two rings on one box read as a glitch. */
+.guess-input--coach-order input:not(:focus),
+.guess-input--coach-pick .guess-input__submit:not(:disabled) {
+  animation: coach-ring 1.8s ease-out infinite;
+}
+
+@keyframes coach-dim {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes coach-ring {
+  0% { box-shadow: 0 0 0 0 rgba(232, 165, 58, 0.85); }
+  70% { box-shadow: 0 0 0 12px rgba(232, 165, 58, 0); }
+  100% { box-shadow: 0 0 0 12px rgba(232, 165, 58, 0); }
+}
+
+@keyframes coach-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.coach {
+  animation: coach-in 0.32s cubic-bezier(0.2, 0.8, 0.25, 1) backwards;
+}
+
+/* Beat three waits for the tiles to finish flipping before it says what they
+   mean: the same arithmetic as --ticket-start, minus the ticket's own beat. */
+.coach--read {
+  animation-delay: calc(var(--tile-flip-start) + 3 * var(--tile-flip-step) + var(--tile-flip-dur));
+}
+
 .error-note {
   background: var(--cherry);
   color: var(--on-cherry);
@@ -2305,6 +2456,7 @@ textarea.dish-request__input {
 .replay-btn:focus-visible,
 .guess-input__submit:focus-visible,
 .modal__close:focus-visible,
+.coach__dismiss:focus-visible,
 .story__toggle:focus-visible,
 .dish-request__toggle:focus-visible,
 .dish-request__cancel:focus-visible,
@@ -2902,8 +3054,20 @@ textarea.dish-request__input {
   .bar-band__btn::before,
   .bar-band__arrow,
   .lights-out__scrim,
-  .lights-out__sign {
+  .lights-out__sign,
+  /* The first visit. The dim and the callouts still appear; nothing pulses. */
+  .coach,
+  .coach-spotlight,
+  .guess-input--coach-order input:not(:focus),
+  .guess-input--coach-pick .guess-input__submit:not(:disabled) {
     animation: none !important;
+  }
+
+  /* The ring holds at its brightest rather than switching off, since the
+     point of it is to say where to look. */
+  .guess-input--coach-order input:not(:focus),
+  .guess-input--coach-pick .guess-input__submit:not(:disabled) {
+    box-shadow: 0 0 0 4px rgba(232, 165, 58, 0.85);
   }
 
   /* The band keeps its flare, it just stops breathing: the halo and the tube

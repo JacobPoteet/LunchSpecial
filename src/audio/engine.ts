@@ -352,8 +352,8 @@ export function duck(when: number): void {
 /**
  * Low-pass the bed while a modal is open — the music "goes into the next room".
  *
- * A count rather than a boolean because modals can stack (the how-to closes
- * into a notice, the notice into the check), and a close that unmuffled while
+ * A count rather than a boolean because modals can stack (a notice closes
+ * into the next notice, the last into the check), and a close that unmuffled while
  * another card was still up would pop the music back mid-conversation.
  */
 let muffleDepth = 0;
