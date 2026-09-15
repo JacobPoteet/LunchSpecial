@@ -21,6 +21,7 @@ import {
 import type { DrinkPoolEntry, NightcapInfo, NightcapReveal, Surface } from "../../shared/types";
 import { DRINK_CLUE_COUNT, DRINK_MAX_GUESSES } from "../../shared/types";
 import { Coaster, DrinkGuessRow, GuessInput, Modal, StoryDetails } from "./components";
+import { FanStamp, RequestForm } from "./RequestForm";
 import { BuildTag } from "./BuildTag";
 import { SoundToggle } from "./SoundToggle";
 import { currentSurface } from "../discord/bootstrap";
@@ -814,6 +815,11 @@ function TabModal({
         </>
       )}
       <NightStatsPanel stats={stats} highlight={won ? round.guesses.length : undefined} />
+      {/* The same suggestion box the check carries, asking for a drink. The
+          credit above it was on the reveal from the day the bar opened and
+          never drawn; a fan's pour deserves the stamp as much as a fan's dish. */}
+      {reveal?.isFanSubmission && <FanStamp name={reveal.name} kind="drink" />}
+      <RequestForm kind="drink" promoted={reveal?.isFanSubmission === true} />
     </Modal>
   );
 }

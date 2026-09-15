@@ -31,6 +31,7 @@ import type {
   PlayerSplit,
   Profile,
   Region,
+  RequestKind,
   Spirit,
   Temperature,
   RoundKind,
@@ -52,6 +53,7 @@ import {
   PROFILES,
   PROTEINS,
   REGIONS,
+  REQUEST_KINDS,
   SPIRITS,
   ROUND_KINDS,
   SURFACES,
@@ -546,6 +548,7 @@ app.post("/preview", async (c) => {
 
 interface DishRequestDbRow {
   id: number;
+  kind: string;
   name: string;
   country: string | null;
   note: string | null;
@@ -555,10 +558,13 @@ interface DishRequestDbRow {
 
 app.get("/requests", async (c) => {
   const res = await c.env.DB
-    .prepare("SELECT id, name, country, note, surface, created_at FROM dish_requests ORDER BY created_at DESC, id DESC")
+    .prepare(
+      "SELECT id, kind, name, country, note, surface, created_at FROM dish_requests ORDER BY created_at DESC, id DESC",
+    )
     .all<DishRequestDbRow>();
   const requests: DishRequest[] = res.results.map((r) => ({
     id: r.id,
+    kind: REQUEST_KINDS.includes(r.kind as never) ? (r.kind as RequestKind) : "dish",
     name: r.name,
     country: r.country,
     note: r.note,

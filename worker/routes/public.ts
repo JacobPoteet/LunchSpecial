@@ -7,7 +7,7 @@ import type {
   GuessFeedback,
   RevealInfo,
 } from "../../shared/types";
-import { DISH_REQUEST_LIMITS, MAX_GUESSES, SURFACES } from "../../shared/types";
+import { DISH_REQUEST_LIMITS, MAX_GUESSES, REQUEST_KINDS, SURFACES } from "../../shared/types";
 import { isEligible } from "../announcements";
 import { verifyToken } from "../auth";
 import { getClues, getDishById, getDishBySlug, getSeededDish, getTargetDish, serverToday } from "../db";
@@ -131,14 +131,18 @@ function cleanField(value: unknown, max: number): string | null {
   return trimmed.slice(0, max);
 }
 
-// A player-submitted dish suggestion. Public + anonymous (same client-trust model
-// as the analytics beacons); lands in the admin review inbox (dish_requests table).
+// A player-submitted dish or drink suggestion. Public + anonymous (same
+// client-trust model as the analytics beacons); lands in the admin review inbox
+// (dish_requests table, with `kind` telling the two catalogues apart).
 app.post("/requests", async (c) => {
   const body = (await c.req.json().catch(() => null)) as
-    | { name?: unknown; country?: unknown; note?: unknown; surface?: unknown; playerId?: unknown }
+    | { name?: unknown; kind?: unknown; country?: unknown; note?: unknown; surface?: unknown; playerId?: unknown }
     | null;
   const name = cleanField(body?.name, DISH_REQUEST_LIMITS.name);
-  if (!name) return c.json({ error: "A dish name is required" }, 400);
+  if (!name) return c.json({ error: "A name is required" }, 400);
+  // Anything that isn't a known kind is a dish, which is what every request
+  // was before the tab started taking them.
+  const kind = REQUEST_KINDS.includes(body?.kind as never) ? (body!.kind as string) : "dish";
   const country = cleanField(body?.country, DISH_REQUEST_LIMITS.country);
   const note = cleanField(body?.note, DISH_REQUEST_LIMITS.note);
   const surface = SURFACES.includes(body?.surface as never) ? (body!.surface as string) : "web";
@@ -148,21 +152,22 @@ app.post("/requests", async (c) => {
       : null;
 
   // Ignore an exact duplicate from the same device so a double-tap (or the same
-  // player resubmitting the same idea) doesn't clutter the inbox.
+  // player resubmitting the same idea) doesn't clutter the inbox. Per kind: a
+  // "Sidecar" asked for as a dish and again as a drink are two requests.
   if (playerId) {
     const dupe = await c.env.DB
-      .prepare("SELECT 1 FROM dish_requests WHERE player_id = ? AND name = ? COLLATE NOCASE LIMIT 1")
-      .bind(playerId, name)
+      .prepare("SELECT 1 FROM dish_requests WHERE player_id = ? AND kind = ? AND name = ? COLLATE NOCASE LIMIT 1")
+      .bind(playerId, kind, name)
       .first();
     if (dupe) return c.json({ ok: true, duplicate: true });
   }
 
   await c.env.DB
     .prepare(
-      `INSERT INTO dish_requests (name, country, note, surface, player_id, created_at)
-       VALUES (?, ?, ?, ?, ?, datetime('now'))`,
+      `INSERT INTO dish_requests (kind, name, country, note, surface, player_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
     )
-    .bind(name, country, note, surface, playerId)
+    .bind(kind, name, country, note, surface, playerId)
     .run();
   return c.json({ ok: true });
 });
