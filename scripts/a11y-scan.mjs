@@ -101,7 +101,7 @@ const SCANS = [
   // and the only cheap way to know they all still clear is to measure them on
   // the painted page.
   {
-    name: "bar, mid-round (night palette, tiles, coaster)",
+    name: "bar, the order list open (highlighted pour)",
     async setup(page) {
       // `handoff=1` seeds a finished Special and waives the clock. Both are
       // needed: the bar's door is a real gate, so `barhours=off` alone now
@@ -110,6 +110,17 @@ const SCANS = [
         waitUntil: "domcontentloaded",
       });
       await page.waitForSelector(BAR_INPUT);
+      // The list is measured with its top row highlighted, not clicked
+      // through. Every state before this one typed a name and took the first
+      // option in the same breath, so the highlight — mustard, with the
+      // theme's ink on it — was never on screen when axe looked (GitHub #179).
+      await page.fill(BAR_INPUT, WRONG_POUR);
+      await page.waitForSelector('.guess-input__option[aria-selected="true"]');
+    },
+  },
+  {
+    name: "bar, mid-round (night palette, tiles, coaster)",
+    async setup(page) {
       await pour(page, WRONG_POUR);
       await page.waitForSelector(".attr-tile--revealed");
       await page.waitForSelector(".ticket--coaster");

@@ -1,7 +1,7 @@
 // Presentational pieces of the game screen: guess rows, clue tickets,
 // autocomplete input, modal shell, countdown.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { DishSummary, DrinkGuessFeedback, DrinkSummary, GuessFeedback, MatchLevel } from "../../shared/types";
 import { MATCH_MARKS, MATCH_WORDS } from "../../shared/announce";
 import { gameToday, hms, msUntilGameMidnight } from "../../shared/time";
@@ -396,6 +396,12 @@ export function GuessInput<T extends { id: number; name: string }>({
   // Only pull focus back on desktop (mouse + hover). On touch, auto-focusing
   // would pop the on-screen keyboard up after every guess.
   const interacted = useRef(false);
+  // The combobox wiring: the input names the list it controls and the option
+  // the arrow keys have landed on, so a screen reader follows the highlight
+  // without focus ever leaving the text field. The list itself carries the
+  // name — an unnamed listbox is what the a11y scan reported the first time it
+  // measured this list open rather than clicked through (GitHub #179).
+  const listId = useId();
 
   const options = useMemo(() => {
     const q = foldAccents(text.trim().toLowerCase());
@@ -434,6 +440,8 @@ export function GuessInput<T extends { id: number; name: string }>({
     onGuess(dish);
   };
 
+  const listOpen = open && text.trim().length > 0;
+
   return (
     <div className="guess-input" ref={rootRef}>
       <div className="guess-input__row">
@@ -444,6 +452,11 @@ export function GuessInput<T extends { id: number; name: string }>({
           disabled={disabled}
           placeholder={placeholder}
           aria-label={label}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={listOpen}
+          aria-controls={listOpen ? listId : undefined}
+          aria-activedescendant={listOpen && options[highlight] ? `${listId}-${options[highlight].id}` : undefined}
           autoCapitalize="off"
           autoCorrect="off"
           onChange={(e) => {
@@ -488,12 +501,13 @@ export function GuessInput<T extends { id: number; name: string }>({
           Order
         </button>
       </div>
-      {open && text.trim() && (
-        <ul className="guess-input__list" role="listbox">
+      {listOpen && (
+        <ul className="guess-input__list" role="listbox" id={listId} aria-label={`Matches for ${label.toLowerCase()}`}>
           {options.length === 0 && <li className="guess-input__empty">Not on the menu — try another dish</li>}
           {options.map((d, i) => (
             <li
               key={d.id}
+              id={`${listId}-${d.id}`}
               className="guess-input__option"
               role="option"
               aria-selected={i === highlight}
