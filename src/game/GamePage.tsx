@@ -12,14 +12,14 @@ import {
   markAnnouncementSeen,
   newAnalyticsId,
   postGuess,
-  submitDishRequest,
 } from "../api";
 import type { Announcement, DailyInfo, DishSummary, RevealInfo, RoundKind, Surface } from "../../shared/types";
-import { DISH_REQUEST_LIMITS, MAX_GUESSES } from "../../shared/types";
+import { MAX_GUESSES } from "../../shared/types";
 import { ClueTicket, Countdown, GuessInput, GuessRow, Modal, StoryDetails, useNewDayAvailable } from "./components";
 import AnnouncementModal from "./AnnouncementModal";
 import ArchiveModal from "./ArchiveModal";
 import { BuildTag } from "./BuildTag";
+import { FanStamp, RequestForm } from "./RequestForm";
 import { dateLabel, isPastPuzzleDate } from "./archive";
 import { currentNight, useBarInvite, type BarInvite } from "./night";
 import { useCheckOpening } from "./roundLifecycle";
@@ -182,128 +182,6 @@ function StatsPanel({ stats, highlight }: { stats: Stats; highlight?: number }) 
         ))}
       </div>
     </>
-  );
-}
-
-/**
- * The credit a fan-submitted Special carries on the check. It sits directly on
- * top of the suggest form — not up by the dish name — because the two are one
- * argument (somebody typed this dish into that form, and here it is), and
- * because the check has to stay short enough to read on a phone: down here the
- * stamp doubles as the form's header instead of costing a separate band of
- * height above the fold.
- *
- * Unrotated on purpose. The tilt read as a sticker but forced extra vertical
- * padding to keep its corners off the neighbouring text, which is exactly the
- * height this modal can't spare.
- */
-function FanStamp({ dishName }: { dishName: string }) {
-  // Lands with `fan-stamp-press`, whose 0.5s delay in game.css is the beat the
-  // receipt's own lines have finished rising on. Rare enough to be a treat and
-  // cheap enough to be worth it — the whole reason it's a separate sound is
-  // that a credited dish should feel like something happened.
-  useEffect(() => {
-    playSfx("fan-stamp", { delayMs: 500 });
-  }, []);
-
-  return (
-    <div className="fan-stamp">
-      <span className="fan-stamp__seal" aria-hidden="true">
-        ★
-      </span>
-      <div>
-        <p className="fan-stamp__title">Off a customer's ticket</p>
-        <p className="fan-stamp__body">A regular asked for {dishName}. Yours could be next.</p>
-      </div>
-    </div>
-  );
-}
-
-/**
- * "Suggest a dish for the menu" — shown on the receipt after a round. Collapsed
- * to a single line until the player opens it; on submit it POSTs an anonymous
- * request to the admin inbox (surface + device id, same model as analytics).
- *
- * `promoted` is set when the Special itself came from a request: the same
- * control, styled loud instead of quiet, because that's the one round where the
- * ask has just proved itself.
- */
-function RequestDishForm({ promoted = false }: { promoted?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [country, setCountry] = useState("");
-  const [note, setNote] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
-
-  if (status === "done") {
-    return <p className="dish-request__thanks">🧑‍🍳 Thanks, hon — the cook's got your request!</p>;
-  }
-
-  if (!open) {
-    return (
-      <button
-        className={`dish-request__toggle${promoted ? " dish-request__toggle--promoted" : ""}`}
-        onClick={() => setOpen(true)}
-      >
-        🍽️ Suggest a dish for the menu
-      </button>
-    );
-  }
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || status === "sending") return;
-    setStatus("sending");
-    try {
-      await submitDishRequest({
-        name: name.trim(),
-        country: country.trim() || undefined,
-        note: note.trim() || undefined,
-        surface: SURFACE,
-        playerId: getPlayerId(),
-      });
-      setStatus("done");
-    } catch {
-      setStatus("error");
-    }
-  };
-
-  return (
-    <form className="dish-request" onSubmit={submit}>
-      <p className="dish-request__title">Suggest a dish for the menu</p>
-      <input
-        className="dish-request__input"
-        placeholder="Dish name (required)"
-        value={name}
-        maxLength={DISH_REQUEST_LIMITS.name}
-        onChange={(e) => setName(e.target.value)}
-        autoFocus
-      />
-      <input
-        className="dish-request__input"
-        placeholder="Country of origin (optional)"
-        value={country}
-        maxLength={DISH_REQUEST_LIMITS.country}
-        onChange={(e) => setCountry(e.target.value)}
-      />
-      <textarea
-        className="dish-request__input"
-        placeholder="Anything else? (optional)"
-        value={note}
-        maxLength={DISH_REQUEST_LIMITS.note}
-        rows={2}
-        onChange={(e) => setNote(e.target.value)}
-      />
-      {status === "error" && <p className="dish-request__error">Couldn't send that — try again.</p>}
-      <div className="dish-request__actions">
-        <button className="replay-btn" type="submit" disabled={!name.trim() || status === "sending"}>
-          {status === "sending" ? "Sending…" : "Send to the kitchen"}
-        </button>
-        <button className="dish-request__cancel" type="button" onClick={() => setOpen(false)}>
-          Never mind
-        </button>
-      </div>
-    </form>
   );
 }
 
@@ -593,8 +471,8 @@ function ResultModal({
           folded into it — the numbers are the ones you walked in with, since
           nothing was recorded. */}
       {asDaily && <StatsPanel stats={stats} highlight={won ? round.guesses.length : undefined} />}
-      {reveal?.isFanSubmission && <FanStamp dishName={reveal.name} />}
-      <RequestDishForm promoted={reveal?.isFanSubmission === true} />
+      {reveal?.isFanSubmission && <FanStamp name={reveal.name} kind="dish" />}
+      <RequestForm kind="dish" promoted={reveal?.isFanSubmission === true} />
     </Modal>
   );
 }

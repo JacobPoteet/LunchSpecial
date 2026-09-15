@@ -188,6 +188,7 @@ Everything else in the game rolls over at midnight ET for everyone. After Dark d
 - **The pool is held between 55% and 75% alcoholic** by `worker/data-integrity.test.ts`, because the mix is a design decision rather than an accident of what got written. It sits at 64/100.
 - **Pool only in migrations. Never `INSERT INTO drink_schedule`** — same rule as `schedule`. An unbooked night runs on the deterministic fallback pour and never 404s.
 - **The ingredient vocabulary is pooled with the kitchen's.** A bar and a kitchen share a pantry, and two spellings of one ingredient means the feedback under-reports for everything holding either.
+- **Requests are the one place the two share a table.** `dish_requests.kind` tells a drink suggestion from a dish one; see "Dish and drink requests" below for why an inbox can carry a `kind` when a catalogue can't.
 
 ### The coaster sheet
 
@@ -277,7 +278,7 @@ The clock and the door are both awkward to reach on purpose, so there are four w
 
 ```
 wrangler.jsonc        assets SPA fallback + run_worker_first:["/api/*"] + D1 binding "DB"
-migrations/           0001_init.sql = dishes/clues/schedule. Additive only. 0042 is the latest
+migrations/           0001_init.sql = dishes/clues/schedule. Additive only. 0044 is the latest
 seed/seed.sql         canonical dish AND drink catalogues + a 30-day schedule from 2026-07-17 and a
                       30-night block from NIGHT_EPOCH_DATE. Idempotent (DELETEs first)
 shared/types.ts       ALL shared types + enums (COURSES, REGIONS, SPIRITS, PROFILES…) + MAX_GUESSES
@@ -373,7 +374,8 @@ src/game/             NightPage (the bar board), night.ts (the browser's half of
                       showcase.ts (the demo link's pre-mount seed — production, unlike devHarness),
                       roundLifecycle.ts (the end-of-round choreography, shared by both boards)
 src/game/             GamePage (orchestrator), components.tsx (Modal/GuessRow/ClueTicket/GuessInput/
-                      Countdown), SoundToggle.tsx, storage.ts, share.ts, attribution.ts,
+                      Countdown), RequestForm.tsx (the suggest box + fan stamp, dish or drink),
+                      SoundToggle.tsx, storage.ts, share.ts, attribution.ts,
                       ArchiveModal.tsx + archive.ts, AnnouncementModal.tsx + Markdown.tsx, scorecard.ts,
                       BuildTag.tsx (the always-on build marker)
 src/admin/            BarView (drink list + editor + nightly board), AfterDarkPanel (the 7th tab)
@@ -546,11 +548,14 @@ Notices written in the admin, shown as a modal on **Today's Special only** — n
 - **Body is limited markdown** — `**bold**`, `*italic*`/`_italic_`, `[label](url)`, nothing else. `shared/markdown.ts` emits **tokens** and `src/game/Markdown.tsx` renders React nodes. **There is no `innerHTML` in the path, so there's nothing to sanitize. Don't "improve" this into an HTML renderer.** `safeHref` allows only absolute http(s) or a same-site path; anything else (`javascript:`, `data:`, protocol-relative) degrades to plain text.
 - **The `notice` Modal variant drops in from above and bounces**, where every other modal slides up from the bottom. That opposition is how a player tells it from the check at a glance. Two constraints if you retune it: the exit must stay within `MODAL_EXIT_MS` or the fallback unmount timer cuts it, and the footer's stagger is **transform-only** because it holds the card's only button.
 
-### Dish requests and fan credit
+### Dish and drink requests, and fan credit
 
-After any finished round the check shows "Suggest a dish for the menu", POSTing `{ name, country?, note?, surface, playerId? }` to the **public** `POST /api/requests`. Anonymous, same trust model as analytics; an exact same-device name is silently ignored. Rows land in `dish_requests`, an inbox separate from the `dishes` catalogue. Field caps in `DISH_REQUEST_LIMITS`.
+After any finished round the check shows "Suggest a dish for the menu", and the tab shows "Suggest a drink for the bar". Both are `RequestForm` in `src/game/RequestForm.tsx` with a `kind`, POSTing `{ name, kind?, country?, note?, surface, playerId? }` to the **public** `POST /api/requests`. Anonymous, same trust model as analytics; an exact same-device name **of the same kind** is silently ignored. Rows land in `dish_requests`, one inbox separate from both catalogues, with `kind` (`REQUEST_KINDS`, migration 0044) saying which. Field caps in `DISH_REQUEST_LIMITS`.
 
-Admin **Requests** tab (nav badge = pending count): review, Remove, Clear all, **Add as dish** (opens a New Dish editor prefilled with name+country; on first save the source request is auto-removed via `requestId`), and **Copy all for Claude** → a `/create-dishes Name (Country), …` line, which invokes the skill outright rather than leaving the model to spot the prose form.
+- **`kind` is a column here and a table split on the catalogues, and both are right.** The pool argument (ten unfiltered reads, a Negroni served for lunch) is about a filtered read of a catalogue. The inbox has three queries and its worst case is a mislabelled message. An unknown `kind` is stored as `dish`, which is what every request was before the bar took them.
+- **The admin never types the kinds out.** The Requests tab renders one section per `REQUEST_KINDS` entry, each with its own count, **Copy all for Claude** (`/create-dishes` or `/create-drinks`, both carrying the fan-tag note), **Clear all** (that section only) and **Add as dish** / **Add as drink**. The nav badge is the whole inbox.
+- **Add as drink lands on the Bar's editor**, prefilled and with the fan credit pre-ticked, and the request leaves the inbox on first save via `requestId`. Same flow as Add as dish; `RequestDraft.kind` in `AdminApp` decides which editor opens.
+- **A fan's pour gets the stamp on the tab.** `NightcapReveal.isFanSubmission` was on the wire from the day the bar opened and never drawn.
 
 `dishes.is_fan_submission` is a **credit only** — nothing about scheduling, the fallback pick, feedback or analytics reads it. It rides on `RevealInfo`, so the stamp can only appear after game over. **"Add as dish" pre-ticks it.** The check's stamp sits at the very bottom directly on top of the suggest button and **carries the section break itself** (`--promoted` drops the dashed rule the collapsed form normally draws), because the check is the tallest card in the game at 375px. Mustard, not cherry, so it can't outrank the verdict. The dish list shows a `★ fan` badge beside the name (not in the Status column — origin isn't a state a dish can fail).
 

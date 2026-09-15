@@ -16,6 +16,7 @@ import {
 } from "../../shared/types";
 import { COASTER_BEATS } from "../../shared/clues";
 import { addDays, gameToday } from "../../shared/time";
+import type { RequestDraft } from "./AdminApp";
 import * as api from "./api";
 import { shortDate } from "./analyticsUi";
 
@@ -296,8 +297,27 @@ const blank = (): AdminDrinkInput => ({
   coasters: Array.from({ length: DRINK_CLUE_COUNT }, () => ""),
 });
 
-function DrinkEditor({ id, onDone }: { id: number | null; onDone: () => void }) {
-  const [form, setForm] = useState<AdminDrinkInput>(blank);
+function DrinkEditor({
+  id,
+  prefill,
+  requestId,
+  onRequestConsumed,
+  onDone,
+}: {
+  id: number | null;
+  /** Seed a new drink (name/country) from a player request. */
+  prefill?: { name: string; country: string };
+  /** The request this drink came from — removed from the inbox on first save. */
+  requestId?: number;
+  onRequestConsumed?: () => void;
+  onDone: () => void;
+}) {
+  const [form, setForm] = useState<AdminDrinkInput>(() =>
+    // A prefilled new drink came from the request inbox, so it *is* a fan
+    // submission — pre-tick it rather than making the reviewer remember. Same
+    // rule the dish editor follows.
+    id === null && prefill ? { ...blank(), name: prefill.name, country: prefill.country, isFanSubmission: true } : blank(),
+  );
   const [vocabulary, setVocabulary] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
@@ -309,10 +329,9 @@ function DrinkEditor({ id, onDone }: { id: number | null; onDone: () => void }) 
   }, []);
 
   useEffect(() => {
-    if (id === null) {
-      setForm(blank());
-      return;
-    }
+    // A new drink keeps whatever the initialiser seeded (blank, or a request's
+    // name and country); only an existing one is fetched.
+    if (id === null) return;
     api.getDrink(id).then(
       (d) =>
         setForm({
@@ -342,6 +361,10 @@ function DrinkEditor({ id, onDone }: { id: number | null; onDone: () => void }) 
     try {
       const saved = id === null ? await api.createDrink(form) : await api.updateDrink(id, form);
       setOk("Saved.");
+      // First save of a drink created from a player request — clear it from the inbox.
+      if (id === null && requestId != null) {
+        api.deleteRequest(requestId).then(() => onRequestConsumed?.(), () => {});
+      }
       if (thenPour) {
         const preview = await api.createDrinkPreview(saved.id);
         openPour(preview.url);
@@ -745,10 +768,30 @@ function NightlyBoard({ onDone }: { onDone: () => void }) {
 
 // ---------------------------------------------------------------------------
 
-export default function BarView() {
-  const [page, setPage] = useState<BarPage>({ view: "list" });
+export default function BarView({
+  draft = null,
+  onRequestConsumed,
+  onDraftDone,
+}: {
+  /** A drink request being turned into a drink: opens the editor prefilled. */
+  draft?: RequestDraft | null;
+  onRequestConsumed?: () => void;
+  onDraftDone?: () => void;
+}) {
+  const [page, setPage] = useState<BarPage>(() => (draft ? { view: "editor", id: null } : { view: "list" }));
   if (page.view === "editor") {
-    return <DrinkEditor id={page.id} onDone={() => setPage({ view: "list" })} />;
+    return (
+      <DrinkEditor
+        id={page.id}
+        prefill={page.id === null ? draft?.prefill : undefined}
+        requestId={page.id === null ? draft?.requestId : undefined}
+        onRequestConsumed={onRequestConsumed}
+        onDone={() => {
+          onDraftDone?.();
+          setPage({ view: "list" });
+        }}
+      />
+    );
   }
   if (page.view === "board") {
     return <NightlyBoard onDone={() => setPage({ view: "list" })} />;

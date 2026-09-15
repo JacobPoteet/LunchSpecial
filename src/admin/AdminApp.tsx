@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { buildLabel, buildTitle } from "../../shared/build";
 import type { DishFilter } from "../../shared/dishfilter";
-import type { IssueContext } from "../../shared/types";
+import type { IssueContext, RequestKind } from "../../shared/types";
 import * as api from "./api";
 import AnnouncementsPanel from "./AnnouncementsPanel";
 import BarView from "./BarView";
@@ -14,10 +14,14 @@ import ScheduleView from "./ScheduleView";
 
 export type AdminView = "dashboard" | "dishes" | "schedule" | "bar" | "announcements" | "requests";
 
-/** Prefill for a brand-new dish opened from a player request. */
-export interface DishDraft {
+/**
+ * Prefill for a brand-new dish or drink opened from a player request. `kind`
+ * decides which editor opens: the Dishes page for a dish, the Bar for a drink.
+ */
+export interface RequestDraft {
+  kind: RequestKind;
   prefill: { name: string; country: string };
-  /** The request this draft came from; removed from the inbox once the dish saves. */
+  /** The request this draft came from; removed from the inbox once the row saves. */
   requestId: number;
 }
 
@@ -63,8 +67,9 @@ export default function AdminApp() {
   const [view, setView] = useState<AdminView>("dashboard");
   // undefined = not editing; null = new dish; number = existing dish
   const [editing, setEditing] = useState<number | null | undefined>(undefined);
-  // Prefill for a new dish opened from a request (only meaningful when editing === null).
-  const [draft, setDraft] = useState<DishDraft | null>(null);
+  // Prefill for a new dish or drink opened from a request. For a dish it only
+  // means anything while editing === null; for a drink BarView reads it.
+  const [draft, setDraft] = useState<RequestDraft | null>(null);
   // Count of pending player requests, shown as a nav badge.
   const [requestCount, setRequestCount] = useState<number | null>(null);
   // A filter handed to the dish list by a link (the dashboard's Menu tab). Null
@@ -108,10 +113,11 @@ export default function AdminApp() {
     setDishFilter(filter);
   }, []);
 
-  // "Add as dish" from a request: open a prefilled new-dish editor.
-  const openDishFromRequest = useCallback((d: DishDraft) => {
-    setView("dishes");
-    setEditing(null);
+  // "Add as dish" / "Add as drink" from a request: open the matching editor
+  // prefilled. The drink goes to the Bar, which owns the other catalogue.
+  const openFromRequest = useCallback((d: RequestDraft) => {
+    setView(d.kind === "drink" ? "bar" : "dishes");
+    setEditing(d.kind === "drink" ? undefined : null);
     setDraft(d);
   }, []);
 
@@ -199,8 +205,8 @@ export default function AdminApp() {
               ) : (
                 <DishEditor
                   dishId={editing}
-                  prefill={editing === null ? draft?.prefill : undefined}
-                  requestId={editing === null ? draft?.requestId : undefined}
+                  prefill={editing === null && draft?.kind === "dish" ? draft.prefill : undefined}
+                  requestId={editing === null && draft?.kind === "dish" ? draft.requestId : undefined}
                   onRequestConsumed={refreshRequestCount}
                   onDone={() => {
                     setEditing(undefined);
@@ -209,10 +215,16 @@ export default function AdminApp() {
                 />
               ))}
             {view === "schedule" && <ScheduleView onOpenDish={openDish} />}
-            {view === "bar" && <BarView />}
+            {view === "bar" && (
+              <BarView
+                draft={draft?.kind === "drink" ? draft : null}
+                onRequestConsumed={refreshRequestCount}
+                onDraftDone={() => setDraft(null)}
+              />
+            )}
             {view === "announcements" && <AnnouncementsPanel />}
             {view === "requests" && (
-              <RequestsView onAddAsDish={openDishFromRequest} onCountChange={setRequestCount} />
+              <RequestsView onAddAs={openFromRequest} onCountChange={setRequestCount} />
             )}
             {filing && <IssueComposer context={filing} onClose={() => setFiling(null)} />}
           </>

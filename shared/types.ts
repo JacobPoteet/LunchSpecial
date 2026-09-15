@@ -494,9 +494,18 @@ export interface NightEntry {
 }
 
 /** What a player submits when suggesting a dish for the menu. */
+/**
+ * Which catalogue a suggestion is for. A dish is asked for on the check, a
+ * drink on the tab; both land in one inbox and the admin splits them on this.
+ */
+export const REQUEST_KINDS = ["dish", "drink"] as const;
+export type RequestKind = (typeof REQUEST_KINDS)[number];
+
 export interface DishRequestInput {
-  /** The requested dish name (required). */
+  /** The requested dish or drink name (required). */
   name: string;
+  /** Dish or drink. Absent means dish, which is what every request was before the bar took them. */
+  kind?: RequestKind;
   /** Optional country of origin, free text. */
   country?: string;
   /** Optional free-text note from the player. */
@@ -510,6 +519,7 @@ export interface DishRequestInput {
 /** A player's dish suggestion, as shown in the admin review inbox. */
 export interface DishRequest {
   id: number;
+  kind: RequestKind;
   name: string;
   country: string | null;
   note: string | null;
