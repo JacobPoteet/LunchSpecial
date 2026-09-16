@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   beaconComplete,
-  beaconSeated,
   beaconShare,
   beaconStart,
   fetchAnnouncements,
@@ -14,7 +13,7 @@ import {
   newAnalyticsId,
   postGuess,
 } from "../api";
-import type { Announcement, DailyInfo, DishPoolEntry, DishSummary, RevealInfo, RoundKind, Surface } from "../../shared/types";
+import type { Announcement, DailyInfo, DishPoolEntry, DishSummary, RevealInfo, RoundKind } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
 import { ClueTicket, Countdown, GuessInput, GuessRow, Modal, StoryDetails, useNewDayAvailable } from "./components";
 import AnnouncementModal from "./AnnouncementModal";
@@ -25,23 +24,21 @@ import { CoachMark, CoachSpotlight } from "./Coach";
 import { coachBeat as pickCoachBeat, coachingDone } from "../../shared/coach";
 import { boardStreakMark, checkStreakLine, liveStreak } from "../../shared/streak";
 import { tallyLine } from "../../shared/tally";
-import { dateLabel, isPastPuzzleDate } from "./archive";
+import { dateLabel } from "./archive";
+import { resolveMode } from "../../shared/mode";
+import { useRoundTelemetry } from "./useRoundTelemetry";
+import { useShare } from "./useShare";
 import { currentNight, useBarInvite, type BarInvite } from "./night";
 import { useCheckOpening } from "./roundLifecycle";
-import { visitSource } from "./attribution";
 import { currentSurface, surfaceUrl } from "../discord/bootstrap";
 import { devUrl } from "./devHarness";
-import { setPresence } from "../discord/presence";
-import { publishProgress, resetProgress } from "../discord/progress";
-import { canShareToChannel, shareToChannel } from "../discord/share";
 import { canInvite, onParticipantCount, openInvite } from "../discord/social";
 import { clueAnnouncement, guessAnnouncement } from "../../shared/announce";
 import { TICKET_MS } from "../../shared/audio";
-import { buildPresence } from "../../shared/presence";
 import { buildScorecard } from "../../shared/scorecard";
 import { playGuessArc, playSfx, setupAudio } from "../audio";
 import { SoundToggle } from "./SoundToggle";
-import { buildShareText, canUseNativeShare, copyShareText, shareMessage } from "./share";
+import { buildShareText, shareMessage } from "./share";
 import {
   emptyRound,
   getPlayerId,
@@ -52,7 +49,6 @@ import {
   loadStats,
   markHowToSeen,
   nightRoundFinished,
-  markSeated,
   recordResult,
   rememberAnnouncementSeen,
   saveArchiveRound,
@@ -276,37 +272,6 @@ function BarBand({ invite, onEnter }: { invite: BarInvite; onEnter: () => void }
   );
 }
 
-type ShareState = "idle" | "working" | "channel" | "sent" | "copied" | "failed";
-
-/**
- * What the share button says.
- *
- * The idle label never names a destination, and that rule now holds on every
- * surface rather than only inside Discord, because which path runs is only
- * settled at click time everywhere. In the Activity, posting to the channel
- * rides on the authorization presence takes and a player who declined it gets
- * the clipboard; on the web, a phone gets the native share sheet and a desktop
- * gets the clipboard — see canUseNativeShare(). A button that promised one and
- * then quietly did the other would be lying about where the round went, so the
- * button offers to share and the *result* says where it ended up.
- */
-function shareLabel(state: ShareState, surface: Surface): string {
-  switch (state) {
-    case "working":
-      return "Plating up…";
-    case "channel":
-      return "Sent to the channel!";
-    case "sent":
-      return "Shared!";
-    case "copied":
-      return surface === "discord" ? "Copied — paste it in chat!" : "Copied!";
-    case "failed":
-      return "Tap to retry";
-    default:
-      return "📤 Share";
-  }
-}
-
 function ResultModal({
   round,
   daily,
@@ -354,7 +319,20 @@ function ResultModal({
   onArchive: () => void;
   onClose: () => void;
 }) {
-  const [shareState, setShareState] = useState<ShareState>("idle");
+  const won = round.status === "won";
+  // The dispatcher and the label, shared with the bar's tab (useShare.ts). The
+  // daily and leftover replays both carry an analytics id; the test modes
+  // (preview, playtest) never get one, so their share stays untracked.
+  const sharing = useShare({
+    surface: SURFACE,
+    message: () => shareMessage(buildShareText(daily.puzzleNumber, round.guesses, won, daily.ingredientCount)),
+    card: () => buildScorecard(daily.puzzleNumber, round.guesses, won, daily.ingredientCount),
+    onShare: () => {
+      if (round.analyticsId) {
+        beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date, kind, surface: SURFACE });
+      }
+    },
+  });
   // How the room did (GitHub #186). Asked for as the check opens and never
   // waited on; a failed fetch prints nothing, and so does a thin sample —
   // tallyLine() is where the floor lives. Null until it has something to say.
@@ -373,66 +351,12 @@ function ResultModal({
   // Resolved once as the check opens: off Discord, or in a DM where there's no
   // channel to invite anyone to, there's no button.
   const [showInvite] = useState(() => SURFACE === "discord" && canInvite());
-  const won = round.status === "won";
-  const share = async () => {
-    setShareState("idle");
-    const message = shareMessage(buildShareText(daily.puzzleNumber, round.guesses, won, daily.ingredientCount));
-    // The daily and leftover replays both carry an analytics id; the test modes
-    // (preview, playtest) never get one, so their share stays untracked.
-    if (round.analyticsId) {
-      beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date, kind, surface: SURFACE });
-    }
-    // Inside the Activity, put the check straight into the channel as an image.
-    // The Web Share sheet doesn't exist in the iframe, so the fallback below is
-    // the old behaviour — copy the grid and ask the player to paste it — which
-    // is what every Discord player got before the share dialog existed. Trying
-    // and failing therefore costs nothing.
-    if (SURFACE === "discord") {
-      if (canShareToChannel()) {
-        setShareState("working");
-        const card = buildScorecard(daily.puzzleNumber, round.guesses, won, daily.ingredientCount);
-        if (await shareToChannel(card)) {
-          setShareState("channel");
-          return;
-        }
-      }
-      setShareState((await copyShareText(message)) ? "copied" : "failed");
-      return;
-    }
-    // On a phone or tablet, raise the native share sheet so the result can go
-    // straight to a messaging app. Everywhere else — including the desktop
-    // browsers that *have* `navigator.share` — the clipboard is the answer; see
-    // canUseNativeShare(). The whole message travels in one field, never split
-    // across `text` and `url`, because a target that reads only one of them
-    // drops the grid and posts a bare link.
-    if (canUseNativeShare(message)) {
-      try {
-        await navigator.share({ text: message });
-        setShareState("sent");
-        return;
-      } catch (err) {
-        // User dismissed the share sheet — leave the button as-is, don't copy.
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        // Any other failure: fall through to the clipboard path below.
-      }
-    }
-    setShareState((await copyShareText(message)) ? "copied" : "failed");
-  };
   // Clue 5 is the near-giveaway — everything about the dish but its name — so it
   // doubles as a one-line definition under the answer. The collapsed story below
   // still lists all five in order: a panel that stopped at 4 read as a bug, and
   // seeing the trail run 1 -> 5 is the part players actually come back for.
   const definition = reveal?.clues.at(-1);
 
-  // Sounded off the resulting state rather than inside `share`, which has five
-  // exits (channel, clipboard, native sheet, dismissal, failure) and would
-  // otherwise need the same two lines in each. "idle" and "working" are
-  // in-flight, and a dismissed native share sheet returns to idle — correctly
-  // silent, since nothing was shared.
-  useEffect(() => {
-    if (shareState === "channel" || shareState === "sent" || shareState === "copied") playSfx("share-success");
-    else if (shareState === "failed") playSfx("error");
-  }, [shareState]);
   // Actions live in the card's pinned footer so they stay on screen no matter
   // how far the body scrolls. Countdown + share share one row (Wordle's shape).
   const actions = (
@@ -441,11 +365,11 @@ function ResultModal({
         <div className="check-actions">
           {asDaily && <Countdown compact />}
           {canShare && (
-            <button className="share-btn share-btn--primary" onClick={share} disabled={shareState === "working"}>
+            <button className="share-btn share-btn--primary" onClick={sharing.share} disabled={sharing.busy}>
               {/* Keyed on the state so the label remounts and cross-fades
                   instead of hot-swapping text under the player's thumb. */}
-              <span className="share-btn__label" key={shareState}>
-                {shareLabel(shareState, SURFACE)}
+              <span className="share-btn__label" key={sharing.state}>
+                {sharing.label}
               </span>
             </button>
           )}
@@ -523,73 +447,38 @@ function ResultModal({
 }
 
 export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
-  const search = useMemo(() => new URLSearchParams(window.location.search), []);
-  const preview = useMemo(() => search.get("preview") ?? undefined, [search]);
-  const isPreview = preview !== undefined;
   const today = useMemo(() => localToday(), []);
 
-  // A showcase link (`?s=<token>`): the real daily, seeded as already
-  // won, with the bar's door lit. Deliberately NOT folded into `isPreview` — a
-  // preview rehearses a *specific* dish that isn't today's and is dressed as the
-  // daily to do it, where a showcase IS today's, and the difference shows up in
-  // half a dozen places (the puzzle number, the archive, the rollover watcher)
-  // that would each need a carve-out if the two shared a flag.
-  const isShowcase = useMemo(() => search.has("s"), [search]);
-
-  // Archive: ?date=<past puzzle> replays an earlier Special (saved on its own,
-  // separate from the daily streak). Only genuine past puzzle dates qualify.
-  const archiveDateParam = useMemo(() => search.get("date") ?? undefined, [search]);
-
-  // Playtest: ?special=<dish slug> pins the round to one named dish, so a
-  // specific board can be replayed on demand (`npm run ramen`). A dev-only
-  // entrance like /play, and the most throwaway mode there is — nothing saved,
-  // nothing tracked, no puzzle number.
-  const playtest = useMemo(() => {
-    if (isPreview || !import.meta.env.DEV) return undefined;
-    return search.get("special") ?? undefined;
-  }, [isPreview, search]);
-
-  const isArchive =
-    !isPreview && !playtest && !!archiveDateParam && isPastPuzzleDate(archiveDateParam, today);
-
-  // Random recipe ("chef's choice"): ?random serves a random dish, nothing
-  // saved. Available to everyone. Dev keeps the legacy /play and ?freeplay
-  // entrances too.
-  const isRandom = useMemo(() => {
-    if (isPreview || isArchive || playtest) return false;
-    if (search.has("random")) return true;
-    if (!import.meta.env.DEV) return false;
-    return window.location.pathname.startsWith("/play") || search.has("freeplay");
-  }, [isPreview, isArchive, playtest, search]);
-
-  const isDaily = !isPreview && !isArchive && !isRandom && !playtest;
-  const date = isArchive ? (archiveDateParam as string) : today;
-
-  // The kind of round for analytics (preview is never tracked). Daily = Today's
-  // Special, archive = a Leftover, random = a Chef's Choice.
-  const analyticsKind: RoundKind = isArchive ? "leftover" : isRandom ? "random" : "daily";
+  // Which round this is, read off the URL once (shared/mode.ts, tested). The
+  // reasoning behind each flag — why a showcase isn't a preview, why a
+  // playtest is dressed as the daily, what `tracked` gates — lives there.
+  const {
+    date,
+    preview,
+    playtest,
+    isDaily,
+    isArchive,
+    isRandom,
+    isPreview,
+    isShowcase,
+    ephemeral,
+    tracked,
+    dressedAsDaily,
+    analyticsKind,
+  } = useMemo(
+    () =>
+      resolveMode({
+        search: window.location.search,
+        pathname: window.location.pathname,
+        dev: import.meta.env.DEV,
+        today,
+      }),
+    [today],
+  );
 
   // A random round is keyed by a random seed; a new seed = a new random dish.
   const [seed, setSeed] = useState(() => newSeed());
   const random = isRandom ? seed : undefined;
-  // Preview, random, playtest and showcase are throwaway: no localStorage or
-  // stats. A showcase link is often opened by somebody who plays the game for
-  // real afterwards, so it must not leave a won round in their browser.
-  const ephemeral = isPreview || isRandom || !!playtest || isShowcase;
-  // Preview, playtest and showcase are test and demo tools rather than games —
-  // they record no analytics at all (a random round still does, as a chef's
-  // special). Keeping the showcase untracked is what stops a run of demo links
-  // filling the After Dark tab's `outsideHours` bucket, which exists to report
-  // wound-forward clocks.
-  const tracked = !isPreview && !playtest && !isShowcase;
-  // Preview and playtest both exist to rehearse the real finish, so they're
-  // *dressed* as the daily wherever that shows: puzzle number, countdown, share
-  // button, stats panel. Only the banner up top gives either away. Underneath
-  // they stay throwaway — nothing written, nothing counted. That dressing is the
-  // point of the admin's test play: the check, the share and the stats panel are
-  // the parts of the daily you'd most want to try before players do, and a
-  // preview that couldn't reach them could only rehearse the board.
-  const dressedAsDaily = isDaily || isPreview || !!playtest;
 
   const [dishes, setDishes] = useState<DishPoolEntry[]>([]);
   const [daily, setDaily] = useState<DailyInfo | null>(null);
@@ -637,7 +526,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // When this sitting started, for the elapsed timer on a Discord profile. This
   // sitting, not the round: a board restored from localStorage was begun on a
   // page load we no longer have, and dating the timer to it would report hours.
-  const openedAt = useRef(Date.now());
+  const [openedAt, setOpenedAt] = useState(() => Date.now());
 
   // Bring the audio graph up. Cheap and silent until the player interacts: the
   // context is built suspended, the effects decode during idle time, and the
@@ -796,7 +685,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   const newGame = useCallback(() => {
     setSeed(newSeed());
     setRound(emptyRound(date));
-    openedAt.current = Date.now(); // a fresh dish is a fresh sitting
+    setOpenedAt(Date.now()); // a fresh dish is a fresh sitting
     setReveal(null);
     setError(null);
     // The next round is played fresh in this session, so it earns the full
@@ -834,92 +723,30 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
     }
   }, [round.status, reveal, date, preview, random, playtest]);
 
-  // Assign an anonymous analytics id once per round so start/complete/share
-  // beacons can be linked. Every tracked kind gets one — daily, leftover, and
-  // chef's special — but the test modes (admin preview, playtest) never do. The
-  // "start" beacon itself doesn't fire here — merely opening the page (or
-  // reading the coach marks) isn't a started game. It fires on the first guess
-  // (see submitGuess). A new random seed makes a fresh round, hence a fresh id.
-  useEffect(() => {
-    if (!tracked || !daily || round.analyticsId) return;
-    const started = { ...round, analyticsId: newAnalyticsId() };
-    setRound(started);
-    // Persist the id where the round lives (daily/archive); random keeps it in
-    // memory only, which is enough to link its own beacons this session.
-    persist(started);
-    // Intentionally keyed on round load — reads the round as it stands when the puzzle resolves.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [daily, tracked]);
-
-  // The funnel's top: this device opened a real, playable board. Unlike the
-  // "start" beacon above, merely arriving *is* the event here — that's the whole
-  // point, since everyone who loads and never guesses was otherwise invisible.
-  //
-  // Fires once per browser session per ET day (markSeated), and the server
-  // deduplicates by (day, device) on top of that, so mode switches — which
-  // navigate by assigning a URL and remount this whole page — cost nothing. The
-  // test modes are excluded by the same `tracked` flag as every other beacon.
-  //
-  // It also carries where the arrival came from (migrations/0024) — the only
-  // beacon that does, because a visit is the arrival and a round isn't.
-  useEffect(() => {
-    if (!tracked || !daily) return;
-    if (!markSeated(localToday())) return;
-    const source = visitSource();
-    beaconSeated({ playerId: getPlayerId(), surface: SURFACE, ...(source ? { source } : {}) });
-  }, [daily, tracked]);
-
-  // Discord Rich Presence: which mode they're in and how they're doing, on their
-  // own Discord profile. A no-op everywhere else — on the open web there's no
-  // SDK to hand it to, so this costs a function call and nothing more.
-  //
-  // Gated on `tracked` for the same reason the beacons are: admin preview and
-  // playtest aren't rounds anyone is playing. Note that the copy never names the
-  // dish (shared/presence.ts) — a profile is read by people who haven't played
-  // today, and the answer is exactly what they'd be reading.
-  useEffect(() => {
-    if (!tracked || !daily) return;
-    setPresence(
-      buildPresence({
-        kind: analyticsKind,
-        puzzleNumber: daily.puzzleNumber,
-        status: round.status,
-        guesses: round.guesses.length,
-        startedAt: openedAt.current,
-      }),
-    );
-  }, [tracked, daily, analyticsKind, round.status, round.guesses.length]);
-
-  // A new board is a new message. Without this, starting a second round in the
-  // same tab would edit the first round's message into the second round's score.
-  //
-  // Declared *above* the publisher so it runs first: effects fire in order, and a
-  // board restored from localStorage mid-round publishes on mount. Reset it
-  // afterwards and that first post would be orphaned, with the next guess posting
-  // a second message for the same round.
-  useEffect(() => {
-    resetProgress();
-  }, [date, random, playtest]);
-
-  // The live message in the Discord channel: posted on the first guess, rewritten
-  // on every one after it, past-tensed when the round ends. Same trigger as
-  // presence and the same `tracked` gate — a preview or a playtest is nobody's
-  // round and has no business in a channel.
-  //
-  // Deliberately not awaited and deliberately without an error path: the module
-  // retires itself on the first failure, so the worst case is a channel that
-  // doesn't hear about this round.
-  useEffect(() => {
-    if (!tracked || !daily || SURFACE !== "discord") return;
-    publishProgress({
-      card: buildScorecard(daily.puzzleNumber, round.guesses, round.status === "won", daily.ingredientCount),
-      puzzleNumber: daily.puzzleNumber,
-      live: round.status === "playing",
-    });
-    // Keyed on the guess *count*, like presence: the array's identity changes on
-    // renders that didn't add a guess, and each one would be another upload.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tracked, daily, round.status, round.guesses.length]);
+  // The analytics id, the seated beacon, Rich Presence and the Discord
+  // progress message, in one hook shared with the bar (useRoundTelemetry.ts).
+  // `tracked` is the one gate for all four; the test modes never reach any.
+  useRoundTelemetry({
+    tracked,
+    surface: SURFACE,
+    ready: daily !== null,
+    round: { status: round.status, guesses: round.guesses.length, analyticsId: round.analyticsId },
+    kind: analyticsKind,
+    puzzleNumber: daily?.puzzleNumber ?? 0,
+    openedAt,
+    // A new board is a new progress message: the date, a fresh random seed or
+    // a different pinned dish each start one.
+    boardKey: `${date}|${random ?? ""}|${playtest ?? ""}`,
+    buildCard: () =>
+      buildScorecard(daily?.puzzleNumber ?? 0, round.guesses, round.status === "won", daily?.ingredientCount ?? 0),
+    assignId: (id) => {
+      // Persist the id where the round lives (daily/archive); random keeps it
+      // in memory only, which is enough to link its own beacons this session.
+      const started = { ...round, analyticsId: id };
+      setRound(started);
+      persist(started);
+    },
+  });
 
   /**
    * What a screen reader hears when a guess lands (GitHub #127). Submitting an

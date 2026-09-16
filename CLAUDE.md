@@ -128,8 +128,8 @@ On the player's **first guess** the app posts one message into the launch channe
 - **The interaction token never reaches the browser.** It is permission to post as this app in someone's server.
 - **Verify the signature or don't answer.** `worker/discordsig.ts` checks the **raw** body — re-serializing parsed JSON changes the signed message and fails every request. Discord validates a newly-saved endpoint by sending a deliberately bad signature and requiring a 401, so a 401 there is a passing grade.
 - **Updates are trailing, not queued.** The message shows a *position*, so three guesses landing during an upload should show the third.
-- **`resetProgress()` must stay declared above the publisher in GamePage.** Effects fire in order; a board restored from localStorage publishes on mount, and resetting afterwards orphans that post.
-- **A deliberate hole in a dependency list carries an `eslint-disable-next-line react-hooks/exhaustive-deps` on the line before the array, with the reason in the comment above it.** oxlint honours the eslint-flavoured comment, and the eight in the tree are all the "keyed on the guess count, not the array" kind. `react/set-state-in-effect` is off in `.oxlintrc.json` on purpose; don't turn it on without reading the comment there.
+- **`resetProgress()` runs before the publisher, inside `useRoundTelemetry`.** Effects fire in declaration order; a board restored from localStorage publishes on mount, and resetting afterwards orphans that post. Both boards get the ordering from the one hook, so it can no longer drift between them. Don't call either from a page.
+- **A deliberate hole in a dependency list carries an `eslint-disable-next-line react-hooks/exhaustive-deps` on the line before the array, with the reason in the comment above it.** oxlint honours the eslint-flavoured comment, and the ones in the tree are all the "keyed on the guess count, not the array" kind. `react/set-state-in-effect` is off in `.oxlintrc.json` on purpose; don't turn it on without reading the comment there.
 - **`shareInteraction` is undocumented.** Every field is read off its zod schema. If it breaks, the manual share button still works and only the loop is lost.
 
 ### The room the game is in (`src/discord/social.ts`)
@@ -342,6 +342,8 @@ shared/schedule.ts    the admin specials board — schedule window × catalogue 
 shared/activity.ts    activity feed (rounds + arrivals + day totals → round states, durations, visits)
 shared/announce.ts    the guess-feedback wording, one table feeding colour, glyph and screen reader
 shared/coach.ts       the first visit: which coach mark is up, read off the round (never a step counter)
+shared/mode.ts        which round the diner is serving, off the URL: the round-modes table as a fold,
+                      with the precedence (preview → playtest → archive → random) pinned by a test
 shared/streak.ts      whether the streak is alive (last round today or yesterday), the board mark, the check line
 shared/tally.ts       the day's tally (completed daily rounds → finished/solved/distribution) and the
                       check's line for it, null under SMALL_SAMPLE_MIN
@@ -385,7 +387,10 @@ src/api.ts            public fetch wrappers + localToday()
 src/game/             NightPage (the bar board), night.ts (the browser's half of the clock),
                       LightsOut.tsx (the walk there), devHarness.ts (dev-only entrances),
                       showcase.ts (the demo link's pre-mount seed — production, unlike devHarness),
-                      roundLifecycle.ts (the end-of-round choreography, shared by both boards)
+                      roundLifecycle.ts (the end-of-round choreography, shared by both boards),
+                      useRoundTelemetry.ts (the analytics id, the seated beacon, presence and the
+                      progress message, one hook for both boards), useShare.ts (the share
+                      dispatcher and its label, one hook for both checks)
 src/game/             GamePage (orchestrator), components.tsx (Modal/GuessRow/ClueTicket/GuessInput/
                       Countdown), RequestForm.tsx (the suggest box + fan stamp, dish or drink),
                       Coach.tsx (the first visit's coach marks + spotlight),
@@ -423,6 +428,8 @@ The puzzle date rolls over at **midnight ET (`America/New_York`) for everyone**,
 The server accepts a **playable date**: today (±2 days of ET now, for clock and rollover slack) or any earlier puzzle back to `EPOCH_DATE`. Future dates beyond that window are rejected so upcoming Specials aren't spoiled. `isPlayableDate` = `isAllowedRequestDate` ∪ `isArchiveDate` in worker/game.ts. Puzzle #1 = 2026-07-17.
 
 ### Round modes
+
+**`resolveMode()` in `shared/mode.ts` is this table as code**, and its test walks every row. GamePage reads the nine flags off it once; don't re-derive one from `window.location` in a component.
 
 | Mode | Entry | localStorage | Lifetime stats | Analytics | Reads `schedule` |
 |---|---|---|---|---|---|
@@ -464,7 +471,7 @@ The check's "68% of diners got today's Special · most in 3" comes from `GET /ap
 4. **The heuristic may be wrong in both directions without losing the grid.** Preserve that property if it's ever retuned, and keep it a media query rather than a user-agent table.
 5. **Every success confirms.** A dismissed sheet (`AbortError`) returns to idle and is correctly silent. `playSfx("share-success")` fires off the resulting state, not inside the dispatcher.
 
-`shareLabel()` in GamePage.tsx is the one place the wording lives. Target choice is `wantsNativeShare` in shared/share.ts; `canUseNativeShare` in src/game/share.ts is the half that reads `navigator`. `ResultModal.share()` is the dispatcher.
+`shareLabel()` in src/game/useShare.ts is the one place the wording lives, and `useShare()` beside it is the dispatcher, used by the check and the tab alike (the bar passes its own idle label). Target choice is `wantsNativeShare` in shared/share.ts; `canUseNativeShare` in src/game/share.ts is the half that reads `navigator`.
 
 ### Beacon paths are blocker-bait — keep them boring
 
