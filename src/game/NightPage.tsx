@@ -9,7 +9,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   beaconComplete,
-  beaconSeated,
   beaconShare,
   beaconStart,
   fetchDrinks,
@@ -19,35 +18,26 @@ import {
   postDrinkGuess,
 } from "../api";
 import type { DrinkPoolEntry, NightcapInfo, NightcapReveal, Surface } from "../../shared/types";
+import { useCheckOpening } from "./roundLifecycle";
+import { useRoundTelemetry } from "./useRoundTelemetry";
+import { useShare } from "./useShare";
 import { DRINK_CLUE_COUNT, DRINK_MAX_GUESSES } from "../../shared/types";
 import { Coaster, DrinkGuessRow, GuessInput, Modal, StoryDetails } from "./components";
 import { FanStamp, RequestForm } from "./RequestForm";
 import { BuildTag } from "./BuildTag";
 import { SoundToggle } from "./SoundToggle";
 import { currentSurface } from "../discord/bootstrap";
-import { setPresence } from "../discord/presence";
-import { publishProgress, resetProgress } from "../discord/progress";
-import { canShareToChannel, shareToChannel } from "../discord/share";
 import { coasterAnnouncement, drinkGuessAnnouncement } from "../../shared/announce";
 import { TICKET_MS } from "../../shared/audio";
-import { buildPresence } from "../../shared/presence";
 import { buildNightScorecard } from "../../shared/scorecard";
 import { playGuessArc, playSfx, setupAudio } from "../audio";
-import {
-  buildNightShareText,
-  buildShareText,
-  canUseNativeShare,
-  copyShareText,
-  joinShareBlocks,
-  shareMessage,
-} from "./share";
+import { buildNightShareText, buildShareText, joinShareBlocks, shareMessage } from "./share";
 import {
   emptyNightRound,
   getPlayerId,
   loadNightStats,
   loadRound,
   loadNightRound,
-  markSeated,
   recordNightResult,
   saveNightRound,
   type NightRoundState,
@@ -55,7 +45,6 @@ import {
 } from "./storage";
 import { currentNight, isBarOpen, nightDateLabel, tzOffsetMinutes, untilLastCall, untilOpen } from "./night";
 import { puzzleNumberFor } from "./archive";
-import { visitSource } from "./attribution";
 import { devIgnoresBarHours } from "./devHarness";
 import { localToday } from "../api";
 import { hms } from "../../shared/time";
@@ -161,25 +150,6 @@ function NightStatsPanel({ stats, highlight }: { stats: NightStats; highlight?: 
   );
 }
 
-type ShareState = "idle" | "working" | "channel" | "sent" | "copied" | "failed";
-
-function shareLabel(state: ShareState, surface: Surface): string {
-  switch (state) {
-    case "working":
-      return "Plating up…";
-    case "channel":
-      return "Sent to the channel!";
-    case "sent":
-      return "Shared!";
-    case "copied":
-      return surface === "discord" ? "Copied — paste it in chat!" : "Copied!";
-    case "failed":
-      return "Tap to retry";
-    default:
-      return "📤 Share the night";
-  }
-}
-
 export default function NightPage({ onLeave }: { onLeave: () => void }) {
   const search = useMemo(() => new URLSearchParams(window.location.search), []);
   // A showcase link is a preview token by another name, so it rides the same
@@ -240,11 +210,12 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<DrinkPoolEntry | null>(null);
-  const [showTab, setShowTab] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-  const [checkOpened, setCheckOpened] = useState(false);
-  const restoredFinished = useRef(round.status !== "playing");
-  const openedAt = useRef(Date.now());
+  // The tab opens on the same beat as the check (roundLifecycle.ts): a beat
+  // after a loss, a toast then a beat after a win, instantly for a round that
+  // was already settled when the page loaded.
+  const check = useCheckOpening(round.status, round.guesses.length, (n) => POUR_TOASTS[n - 1] ?? POUR_TOASTS[0]);
+  const { toast, showCheck: showTab, setShowCheck: setShowTab } = check;
+  const [openedAt] = useState(() => Date.now());
 
   // The two gates, read once at mount. `barOpen` is deliberately not live: a
   // player admitted at 02:59 keeps their round, because last call is a door and
@@ -316,89 +287,27 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
     }
   }, [round.status, reveal, night, preview, effectivePin]);
 
-  // One analytics id per round, exactly as the diner does it. The start beacon
-  // fires on the first guess, not here.
-  useEffect(() => {
-    if (!tracked || !info || round.analyticsId) return;
-    const started = { ...round, analyticsId: newAnalyticsId() };
-    setRound(started);
-    persist(started);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [info, tracked]);
-
-  // The funnel's top. Same beacon and the same per-day ledger as the diner's —
-  // a player who came at noon and again at nine is one visit, and markSeated
-  // already knows that, so this costs nothing on the common path.
-  useEffect(() => {
-    if (!tracked || !info) return;
-    if (!markSeated(localToday())) return;
-    // The source rides along exactly as it does in the diner. Usually redundant
-    // — the door is finishing lunch, so the diner has normally already fired
-    // today's visit — but a session whose first tracked board is the bar would
-    // otherwise lose its utm tag, and arrival is the only moment it exists.
-    const source = visitSource();
-    beaconSeated({ playerId: getPlayerId(), surface: SURFACE, ...(source ? { source } : {}) });
-  }, [info, tracked]);
-
-  // Rich Presence. The copy never names the drink, and "After Dark" is the mode
-  // label the fold already carries.
-  useEffect(() => {
-    if (!tracked || !info) return;
-    setPresence(
-      buildPresence({
-        kind: "nightcap",
-        puzzleNumber: info.nightNumber,
-        status: round.status,
-        guesses: round.guesses.length,
-        startedAt: openedAt.current,
-      }),
-    );
-  }, [tracked, info, round.status, round.guesses.length]);
-
-  // A new board is a new message. Declared ABOVE the publisher so it runs
-  // first: effects fire in order, and a board restored from localStorage
-  // publishes on mount — resetting afterwards would orphan that post. Same rule
-  // as GamePage, and the same bug if it moves.
-  useEffect(() => {
-    resetProgress();
-  }, [night, pinned]);
-
-  // The live message in the launch channel. Same trigger and the same `tracked`
-  // gate as presence; the card it publishes never names the drink.
-  useEffect(() => {
-    if (!tracked || !info || SURFACE !== "discord") return;
-    publishProgress({
-      card: buildNightScorecard(info.nightNumber, round.guesses, round.status === "won", info.ingredientCount),
-      puzzleNumber: info.nightNumber,
-      live: round.status === "playing",
-    });
-    // Keyed on the guess count, like presence: the array's identity changes on
-    // renders that added no guess, and each one would be another upload.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tracked, info, round.status, round.guesses.length]);
-
-  // The tab opens on the same beat as the check. Written out rather than taken
-  // from useCheckOpening because the bar's toast list is its own and the hook
-  // takes it as an argument — see roundLifecycle.ts.
-  useEffect(() => {
-    if (round.status === "playing" || checkOpened) return;
-    if (restoredFinished.current) {
-      setCheckOpened(true);
-      setShowTab(true);
-      return;
-    }
-    const won = round.status === "won";
-    if (won) setToast(POUR_TOASTS[round.guesses.length - 1] ?? POUR_TOASTS[0]);
-    const t = setTimeout(
-      () => {
-        setToast(null);
-        setCheckOpened(true);
-        setShowTab(true);
-      },
-      won ? 1700 : 800,
-    );
-    return () => clearTimeout(t);
-  }, [round.status, round.guesses.length, checkOpened]);
+  // The analytics id, the seated beacon, Rich Presence and the Discord
+  // progress message, shared with the diner (useRoundTelemetry.ts). The card
+  // it publishes never names the drink, and "After Dark" is the mode label
+  // the presence fold already carries.
+  useRoundTelemetry({
+    tracked,
+    surface: SURFACE,
+    ready: info !== null,
+    round: { status: round.status, guesses: round.guesses.length, analyticsId: round.analyticsId },
+    kind: "nightcap",
+    puzzleNumber: info?.nightNumber ?? 0,
+    openedAt,
+    boardKey: `${night}|${pinned ?? ""}`,
+    buildCard: () =>
+      buildNightScorecard(info?.nightNumber ?? 0, round.guesses, round.status === "won", info?.ingredientCount ?? 0),
+    assignId: (id) => {
+      const started = { ...round, analyticsId: id };
+      setRound(started);
+      persist(started);
+    },
+  });
 
   const [liveGuess, setLiveGuess] = useState("");
   const [liveCoaster, setLiveCoaster] = useState("");
@@ -697,7 +606,6 @@ function TabModal({
   onLeave: () => void;
   onClose: () => void;
 }) {
-  const [shareState, setShareState] = useState<ShareState>("idle");
   const won = round.status === "won";
 
   /**
@@ -713,62 +621,40 @@ function TabModal({
    * too would inflate a figure the dashboard already reads, from an action
    * taken hours later on a different screen.
    */
-  const share = async () => {
-    setShareState("idle");
-    const lunch = loadRound(localToday());
-    const lunchBlock =
-      lunch.status !== "playing" && lunch.guesses.length > 0
-        ? buildShareText(
-            puzzleNumberFor(lunch.date),
-            lunch.guesses,
-            lunch.status === "won",
-            // Stamped on the round when it was played (storage.ts). A round
-            // saved before that shipped has none, and 0 makes buildShareText
-            // drop the pantry column rather than print "2/0" — a grid claiming
-            // two of nothing is worse than one that just shows its tiles.
-            lunch.ingredientCount ?? 0,
-          )
-        : null;
-    const nightBlock = buildNightShareText(info.nightNumber, round.guesses, won, info.ingredientCount);
-    const message = shareMessage(joinShareBlocks([lunchBlock, nightBlock]));
-
-    if (tracked && round.analyticsId) {
-      beaconShare({
-        roundId: round.analyticsId,
-        puzzleNumber: info.nightNumber,
-        date: round.night,
-        kind: "nightcap",
-        surface: SURFACE,
-      });
-    }
-    if (SURFACE === "discord") {
-      if (canShareToChannel()) {
-        setShareState("working");
-        const card = buildNightScorecard(info.nightNumber, round.guesses, won, info.ingredientCount);
-        if (await shareToChannel(card)) {
-          setShareState("channel");
-          return;
-        }
+  const sharing = useShare({
+    surface: SURFACE,
+    idle: "📤 Share the night",
+    message: () => {
+      const lunch = loadRound(localToday());
+      const lunchBlock =
+        lunch.status !== "playing" && lunch.guesses.length > 0
+          ? buildShareText(
+              puzzleNumberFor(lunch.date),
+              lunch.guesses,
+              lunch.status === "won",
+              // Stamped on the round when it was played (storage.ts). A round
+              // saved before that shipped has none, and 0 makes buildShareText
+              // drop the pantry column rather than print "2/0" — a grid claiming
+              // two of nothing is worse than one that just shows its tiles.
+              lunch.ingredientCount ?? 0,
+            )
+          : null;
+      const nightBlock = buildNightShareText(info.nightNumber, round.guesses, won, info.ingredientCount);
+      return shareMessage(joinShareBlocks([lunchBlock, nightBlock]));
+    },
+    card: () => buildNightScorecard(info.nightNumber, round.guesses, won, info.ingredientCount),
+    onShare: () => {
+      if (tracked && round.analyticsId) {
+        beaconShare({
+          roundId: round.analyticsId,
+          puzzleNumber: info.nightNumber,
+          date: round.night,
+          kind: "nightcap",
+          surface: SURFACE,
+        });
       }
-      setShareState((await copyShareText(message)) ? "copied" : "failed");
-      return;
-    }
-    if (canUseNativeShare(message)) {
-      try {
-        await navigator.share({ text: message });
-        setShareState("sent");
-        return;
-      } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-      }
-    }
-    setShareState((await copyShareText(message)) ? "copied" : "failed");
-  };
-
-  useEffect(() => {
-    if (shareState === "channel" || shareState === "sent" || shareState === "copied") playSfx("share-success");
-    else if (shareState === "failed") playSfx("error");
-  }, [shareState]);
+    },
+  });
 
   // Coaster 3 is the near-giveaway, so it doubles as the one-line definition
   // under the answer — the same job beat 5 does on the check.
@@ -777,9 +663,9 @@ function TabModal({
   const actions = (
     <>
       <div className="check-actions">
-        <button className="share-btn share-btn--primary" onClick={share} disabled={shareState === "working"}>
-          <span className="share-btn__label" key={shareState}>
-            {shareLabel(shareState, SURFACE)}
+        <button className="share-btn share-btn--primary" onClick={sharing.share} disabled={sharing.busy}>
+          <span className="share-btn__label" key={sharing.state}>
+            {sharing.label}
           </span>
         </button>
       </div>
