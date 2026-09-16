@@ -4,6 +4,7 @@ import type {
   Announcement,
   AnnouncementSeenInput,
   DailyInfo,
+  DailyTally,
   DishPoolEntry,
   DishRequestInput,
   DrinkGuessFeedback,
@@ -70,6 +71,11 @@ export function postGuess(body: {
 
 export function fetchReveal(date: string, preview?: string, random?: string, special?: string): Promise<RevealInfo> {
   return request(withParams("/api/reveal", { date, preview, random, special }));
+}
+
+/** How the room did on one day's Special. Aggregate-only; see shared/tally.ts. */
+export function fetchTally(date: string): Promise<DailyTally> {
+  return request(withParams("/api/stats/tally", { date }));
 }
 
 // ---- After Dark ----

@@ -1377,12 +1377,19 @@ textarea.dish-request__input {
 
 /* The reason to come back, under the stats: one quiet centred line in the
    receipt's fine print, never louder than the verdict. */
-.receipt__streak {
+.receipt__streak,
+.receipt__tally {
   text-align: center;
   color: var(--ink-soft);
   font-size: 0.85rem;
   line-height: 1.5;
   margin: 0 0 12px;
+}
+
+/* The two lines stack tight when both print: the streak is about you and the
+   tally about the room, and a 12px gap between them read as two sections. */
+.receipt__streak + .receipt__tally {
+  margin-top: -8px;
 }
 
 .dist__row {
@@ -2282,6 +2289,7 @@ textarea.dish-request__input {
 .modal--receipt .story { animation: receipt-line-in 0.3s ease 0.42s both; }
 .modal--receipt .stats-grid { animation: receipt-line-in 0.3s ease 0.48s both; }
 .modal--receipt .receipt__streak { animation: receipt-line-in 0.3s ease 0.52s both; }
+.modal--receipt .receipt__tally { animation: receipt-line-in 0.3s ease 0.55s both; }
 /* The credit is stamped, not printed: it lands oversized and settles, arriving
    last so the eye is already at the bottom of the check when the ask appears.
    Its own keyframe rather than receipt-line-in — the press is a scale, not a
@@ -3080,6 +3088,7 @@ textarea.dish-request__input {
   .modal--receipt .story,
   .modal--receipt .stats-grid,
   .modal--receipt .receipt__streak,
+  .modal--receipt .receipt__tally,
   .modal--receipt .fan-stamp,
   .modal--receipt .modal__footer,
   .modal--receipt .dist__bar,

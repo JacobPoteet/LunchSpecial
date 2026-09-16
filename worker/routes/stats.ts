@@ -4,6 +4,8 @@
 
 import { Hono } from "hono";
 import { MAX_GUESSES, type PublicBreakdown, type PublicStats } from "../../shared/types";
+import { foldTally, type TallyRow } from "../../shared/tally";
+import { isPlayableDate } from "../game";
 import type { CountryRow } from "../countries";
 import type { FunnelBucketRow } from "../funnel";
 import type { GrowthRow } from "../growth";
@@ -164,6 +166,36 @@ app.get("/breakdown", async (c) => {
 
   const res = c.json(await loadBreakdown(c.env));
   res.headers.set("Cache-Control", `public, max-age=${BREAKDOWN_TTL_SECONDS}`);
+  c.executionCtx.waitUntil(cache.put(cacheKey, res.clone()));
+  return res;
+});
+
+// The day's tally for the check (GitHub #186): how many finished today's
+// Special, how many got it, and in how many guesses. Daily rounds only — a
+// Leftover replay of this date is played on another day and a Nightcap is out
+// of four — and completed rounds only, so an open board is not a miss. Any
+// playable date is answerable, which is what stops it saying anything about
+// tomorrow. Edge-cached per date: the check is opened once per finished
+// round, and the number moving a few minutes late is invisible.
+const TALLY_TTL_SECONDS = 300;
+
+app.get("/tally", async (c) => {
+  const date = c.req.query("date") ?? "";
+  if (!isPlayableDate(date)) return c.json({ error: "Invalid date" }, 400);
+
+  const cache = caches.default;
+  const cacheKey = new Request(new URL(`/api/stats/tally?date=${date}`, new URL(c.req.url).origin).toString());
+  const hit = await cache.match(cacheKey);
+  if (hit) return new Response(hit.body, hit);
+
+  const rows = await c.env.DB.prepare(
+    `SELECT guesses, solved FROM analytics_rounds
+       WHERE kind = 'daily' AND play_date = ? AND completed = 1`,
+  )
+    .bind(date)
+    .all<TallyRow>();
+  const res = c.json(foldTally(rows.results, MAX_GUESSES));
+  res.headers.set("Cache-Control", `public, max-age=${TALLY_TTL_SECONDS}`);
   c.executionCtx.waitUntil(cache.put(cacheKey, res.clone()));
   return res;
 });

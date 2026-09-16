@@ -1275,6 +1275,19 @@ export interface ExperimentReport {
   series: ExperimentDay[];
 }
 
+/**
+ * How the room did on one day's Special (GitHub #186): completed daily rounds
+ * only, folded in shared/tally.ts. Public and aggregate-only, like PublicStats.
+ * The check prints it only once `finished` clears SMALL_SAMPLE_MIN.
+ */
+export interface DailyTally {
+  /** Completed daily rounds on that date, solved or not. */
+  finished: number;
+  solved: number;
+  /** distribution[i] = rounds solved in i+1 guesses. MAX_GUESSES wide. */
+  distribution: number[];
+}
+
 /** Public engagement totals for the README badges. Aggregate-only, no guess content. */
 export interface PublicStats {
   /** Rounds started. */

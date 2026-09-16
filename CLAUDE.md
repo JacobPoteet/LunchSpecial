@@ -342,6 +342,8 @@ shared/activity.ts    activity feed (rounds + arrivals + day totals → round st
 shared/announce.ts    the guess-feedback wording, one table feeding colour, glyph and screen reader
 shared/coach.ts       the first visit: which coach mark is up, read off the round (never a step counter)
 shared/streak.ts      whether the streak is alive (last round today or yesterday), the board mark, the check line
+shared/tally.ts       the day's tally (completed daily rounds → finished/solved/distribution) and the
+                      check's line for it, null under SMALL_SAMPLE_MIN
 shared/night.ts       the After Dark clock — night key, the 20:00-03:00 window, last call,
                       night numbering, and what the Worker will accept. The ONE place the
                       game's fixed-ET rollover is deliberately broken
@@ -361,6 +363,8 @@ worker/routes/public.ts   /api/dishes, /daily, /guess, /reveal — never leak ta
                           (CATALOGUE_CACHE_CONTROL, 5 min); keep it off /daily and the beacons
 worker/routes/stats.ts    /api/stats — public, no auth, aggregate-only, sends Access-Control-Allow-Origin: *
                           /api/stats/breakdown — edge-cached 600s in caches.default
+                          /api/stats/tally?date= — the check's "68% of diners got it", daily kind +
+                          completed only, playable dates only, edge-cached 300s per date
                           /api/stats/badge?metric=rounds|solved|solveRate|shared — shields.io schema
 worker/routes/analytics.ts  the beacon handlers, mounted at /api/rounds/* (see "Beacon paths" below)
 worker/routes/admin.ts    /api/admin/*: login/logout/session, dish CRUD, ingredients vocab, schedule
@@ -438,6 +442,10 @@ The server accepts a **playable date**: today (±2 days of ET now, for clock and
 ### The streak
 
 `Stats.currentStreak` only moves when a round is recorded, so a streak that died last week still reads as 5 in storage. **Every place the streak is printed goes through `shared/streak.ts`**, which takes `lastCompletedDate` and today and answers 0 unless the last recorded round was today or yesterday. Three surfaces read it: the mark beside the date on the board (`🔥 N-day streak`, from 2, **Today's Special only**, since a Leftover or a Chef's Choice never touches it), the Streak tile in the stats panel, and the one line under the stats on the check that is about tomorrow rather than today (keep it / start one / starts fresh). A loss is not told the number it just lost. Don't print `currentStreak` raw anywhere.
+
+### The daily tally
+
+The check's "68% of diners got today's Special · most in 3" comes from `GET /api/stats/tally?date=` and `shared/tally.ts`. Three rules: **it prints only on the real daily** (`isToday`, not `asDaily`: a preview is a different dish dressed as today's), **it prints nothing under `SMALL_SAMPLE_MIN` finishes** (the dashboard's rule that a thin rate isn't quoted applies to players too, and the floor lives in `tallyLine`, not the component), and **the percentage is of finished rounds**, so a hard Special reads as hard rather than popular. Never on the share text.
 
 ### Sharing a finished round
 

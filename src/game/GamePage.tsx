@@ -8,6 +8,7 @@ import {
   fetchDaily,
   fetchDishes,
   fetchReveal,
+  fetchTally,
   localToday,
   markAnnouncementSeen,
   newAnalyticsId,
@@ -23,6 +24,7 @@ import { FanStamp, RequestForm } from "./RequestForm";
 import { CoachMark, CoachSpotlight } from "./Coach";
 import { coachBeat as pickCoachBeat, coachingDone } from "../../shared/coach";
 import { boardStreakMark, checkStreakLine, liveStreak } from "../../shared/streak";
+import { tallyLine } from "../../shared/tally";
 import { dateLabel, isPastPuzzleDate } from "./archive";
 import { currentNight, useBarInvite, type BarInvite } from "./night";
 import { useCheckOpening } from "./roundLifecycle";
@@ -312,6 +314,7 @@ function ResultModal({
   stats,
   today,
   asDaily,
+  isToday,
   isRandom,
   kind,
   canShare,
@@ -328,6 +331,12 @@ function ResultModal({
   stats: Stats;
   /** Today's ET day, for deciding whether the streak is alive. */
   today: string;
+  /**
+   * The real daily, and only that: the tally is a fact about today's Special
+   * and a rehearsal round (preview, playtest) is a different dish dressed as
+   * it, so `asDaily` is deliberately not enough here.
+   */
+  isToday: boolean;
   /**
    * Wear the daily's finish: countdown, share button, stats panel. True for the
    * real daily and for the two rehearsal modes — an admin preview and a
@@ -346,6 +355,21 @@ function ResultModal({
   onClose: () => void;
 }) {
   const [shareState, setShareState] = useState<ShareState>("idle");
+  // How the room did (GitHub #186). Asked for as the check opens and never
+  // waited on; a failed fetch prints nothing, and so does a thin sample —
+  // tallyLine() is where the floor lives. Null until it has something to say.
+  const [tally, setTally] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isToday) return;
+    let live = true;
+    fetchTally(round.date).then(
+      (t) => live && setTally(tallyLine(t)),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [isToday, round.date]);
   // Resolved once as the check opens: off Discord, or in a DM where there's no
   // channel to invite anyone to, there's no button.
   const [showInvite] = useState(() => SURFACE === "discord" && canInvite());
@@ -489,6 +513,7 @@ function ResultModal({
               stats were recorded before this rendered, so a win's streak
               already counts this round (GitHub #185). */}
           <p className="receipt__streak">{checkStreakLine({ ...stats, today, won })}</p>
+          {tally && <p className="receipt__tally">{tally}</p>}
         </>
       )}
       {reveal?.isFanSubmission && <FanStamp name={reveal.name} kind="dish" />}
@@ -1240,6 +1265,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           stats={stats}
           today={today}
           asDaily={dressedAsDaily}
+          isToday={isDaily}
           isRandom={isRandom}
           kind={analyticsKind}
           canShare={dressedAsDaily || isArchive}
