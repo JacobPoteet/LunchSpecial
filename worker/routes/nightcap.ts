@@ -23,6 +23,7 @@ import { serverToday } from "../db";
 import { getCoasters, getDrinkById, getDrinkBySlug, getTargetDrink } from "../drinkdb";
 import { computeDrinkFeedback } from "../nightcap";
 import { classifyDrinkPreview } from "../showcase";
+import { CATALOGUE_CACHE_CONTROL } from "./public";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -78,6 +79,8 @@ app.get("/drinks", async (c) => {
   const res = await c.env.DB.prepare(
     "SELECT id, name, slug, country FROM drinks WHERE is_active = 1 ORDER BY name",
   ).all<DrinkPoolEntry>();
+  // Same header as /api/dishes, and for the same reason — see public.ts.
+  c.header("Cache-Control", CATALOGUE_CACHE_CONTROL);
   return c.json(res.results);
 });
 
