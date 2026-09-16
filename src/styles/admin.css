@@ -2231,6 +2231,15 @@
   color: var(--ink);
 }
 
+/* The next week's mix, under the summary. Softer than the summary because it
+   is a reading rather than a to-do: the gap above is something to fill, this
+   is something to know before you fill it. */
+.sched-balance {
+  margin: -4px 0 8px;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
 /* The window nav. `from`/`to` have always been on the route; this is the part
    that was missing, so the board can page past its own six weeks. */
 .sched-window {
