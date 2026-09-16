@@ -8,7 +8,7 @@ const miss: GuessFeedback = {
   matchedIngredients: ["onion", "garlic"],
   unmatchedIngredients: ["beef", "red wine"],
   attributes: {
-    country: { value: "France", match: "near" },
+    country: { value: "France", region: "europe", match: "near" },
     course: { value: "entree", match: "hit" },
     temperature: { value: "hot", match: "hit" },
     protein: { value: "beef", match: "miss" },
@@ -22,8 +22,18 @@ describe("guessAnnouncement", () => {
   it("reads a miss as position, ingredients, tiles, what's left", () => {
     expect(say(miss)).toBe(
       "Guess 3 of 6: Boeuf Bourguignon. 2 of 6 ingredients match. " +
-        "country close, course match, served match, protein no match. 3 guesses left.",
+        "country close (Europe), course match, served match, protein no match. 3 guesses left.",
     );
+  });
+
+  // The region is the whole reason a near tile is worth a second line: the
+  // buckets are the game's, not the atlas's. Said only on a near, and only
+  // for the country tile, and left out on a row saved before it shipped.
+  it("names the region on a near country tile and nowhere else", () => {
+    const hit = { ...miss, attributes: { ...miss.attributes, country: { value: "Italy", region: "europe" as const, match: "hit" as const } } };
+    expect(say(hit)).toContain("country match, course");
+    const old = { ...miss, attributes: { ...miss.attributes, country: { value: "France", match: "near" as const } } };
+    expect(say(old)).toContain("country close, course");
   });
 
   // The four tiles are all hits on a win, so reading them out would only delay

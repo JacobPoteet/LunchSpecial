@@ -76,7 +76,7 @@ async function resolveDrink(
  */
 app.get("/drinks", async (c) => {
   const res = await c.env.DB.prepare(
-    "SELECT id, name, slug FROM drinks WHERE is_active = 1 ORDER BY name",
+    "SELECT id, name, slug, country FROM drinks WHERE is_active = 1 ORDER BY name",
   ).all<DrinkPoolEntry>();
   return c.json(res.results);
 });

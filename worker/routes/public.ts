@@ -3,7 +3,7 @@ import type {
   Announcement,
   AnnouncementAudience,
   DailyInfo,
-  DishSummary,
+  DishPoolEntry,
   GuessFeedback,
   RevealInfo,
 } from "../../shared/types";
@@ -56,7 +56,7 @@ async function resolveTarget(
 }
 
 app.get("/dishes", async (c) => {
-  const res = await c.env.DB.prepare("SELECT id, name FROM dishes WHERE is_active = 1 ORDER BY name").all<DishSummary>();
+  const res = await c.env.DB.prepare("SELECT id, name, country FROM dishes WHERE is_active = 1 ORDER BY name").all<DishPoolEntry>();
   return c.json(res.results);
 });
 

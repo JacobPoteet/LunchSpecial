@@ -399,6 +399,8 @@ scripts/build-assets.mjs  one build for every generated image (icons / press+Dis
 
 - **6 guesses.** Clue N is returned by `POST /guess` after miss N (N=1..5, from `clues.order_index`).
 - **Feedback:** ingredient set intersection + 4 attribute tiles. Country: hit = same country, near = same `region`, miss. Course / temperature / protein: hit|miss.
+- **A near country tile names its region** (`attributes.country.region`, the *guess's* bucket, labelled through `REGION_LABELS`), on the tile and in the sr-only verdict, because the nine buckets are the game's and not the atlas's. `region` is optional on the wire only so rows saved before it shipped still render.
+- **The order bar shows the country beside each name and never searches it.** `DishPoolEntry` / `DrinkPoolEntry` carry `country`; `GuessInput` matches on `name` alone and takes the handle as a `hint` render prop. Searching it is the `<datalist>` mistake the schedule picker already made.
 - **Reveal is client-initiated after game over** (Wordle trust model — don't "fix" this).
 - **Unscheduled date** → deterministic FNV-hash pick from active dishes, so the game never 404s.
 

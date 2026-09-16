@@ -13,7 +13,15 @@
  * hold. Nothing here reads the target dish — the same rule the board follows.
  */
 
-import type { AttributeFeedback, DrinkAttributeFeedback, DrinkGuessFeedback, GuessFeedback, MatchLevel } from "./types";
+import { REGION_LABELS } from "./types";
+import type {
+  AttributeFeedback,
+  DrinkAttributeFeedback,
+  DrinkGuessFeedback,
+  GuessFeedback,
+  MatchLevel,
+  Region,
+} from "./types";
 
 /**
  * The verdict, in words. Also what the tiles carry in their own hidden text
@@ -45,6 +53,16 @@ const ATTRIBUTES: Array<[keyof AttributeFeedback, string]> = [
   ["protein", "protein"],
 ];
 
+/**
+ * What a near country tile adds: the region the game means. The eye gets the
+ * same words on a second line of the tile (see AttrTile), so a screen reader
+ * hears exactly what a sighted player reads, which is the whole rule.
+ */
+export function regionAside(key: string, cell: { match: MatchLevel; region?: Region }): string {
+  if (key !== "country" || cell.match !== "near" || !cell.region) return "";
+  return ` (${REGION_LABELS[cell.region]})`;
+}
+
 /** "1 guess" / "3 guesses" — the word is irregular, so both forms are named. */
 function count(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
@@ -73,7 +91,7 @@ export function guessAnnouncement(input: {
 
   const tiles = ATTRIBUTES.map(([key, label]) => {
     const cell = guess.attributes[key];
-    return `${label} ${MATCH_WORDS[cell.match]}`;
+    return `${label} ${MATCH_WORDS[cell.match]}${regionAside(key, cell)}`;
   }).join(", ");
 
   const remaining = maxGuesses - guessNumber;
@@ -137,7 +155,7 @@ export function drinkGuessAnnouncement(input: {
 
   const tiles = DRINK_ATTRIBUTES.map(([key, label]) => {
     const cell = guess.attributes[key];
-    return `${label} ${MATCH_WORDS[cell.match]}`;
+    return `${label} ${MATCH_WORDS[cell.match]}${regionAside(key, cell)}`;
   }).join(", ");
 
   const remaining = maxGuesses - guessNumber;

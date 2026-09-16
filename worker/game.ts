@@ -19,6 +19,7 @@ export function compareAttributes(guess: DishRecord, target: DishRecord): Attrib
   return {
     country: {
       value: guess.country,
+      region: guess.region,
       match:
         guess.country === target.country ? "hit" : guess.region === target.region ? "near" : "miss",
     },

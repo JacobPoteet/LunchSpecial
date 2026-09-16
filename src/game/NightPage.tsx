@@ -592,6 +592,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
                   onGuess={submitGuess}
                   placeholder="Order a drink… (type to search)"
                   label="Guess a drink"
+                  hint={(d) => d.country}
                 />
                 <p className="tally">
                   {"•".repeat(remaining)}

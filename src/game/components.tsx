@@ -2,7 +2,8 @@
 // autocomplete input, modal shell, countdown.
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import type { DishSummary, DrinkGuessFeedback, DrinkSummary, GuessFeedback, MatchLevel } from "../../shared/types";
+import type { DishSummary, DrinkGuessFeedback, DrinkSummary, GuessFeedback, MatchLevel, Region } from "../../shared/types";
+import { REGION_LABELS } from "../../shared/types";
 import { MATCH_MARKS, MATCH_WORDS } from "../../shared/announce";
 import { gameToday, hms, msUntilGameMidnight } from "../../shared/time";
 import { playSfx, setMuffled } from "../audio";
@@ -210,12 +211,21 @@ function AttrTile({
   value,
   match,
   index,
+  region,
 }: {
   label: string;
   value: string;
   match: MatchLevel;
   index: number;
+  /**
+   * The guess's region bucket, country tiles only. A near tile names it on a
+   * second line: "~" says the player is warm, and the name says which of the
+   * game's nine buckets the game means, which is not always the atlas's
+   * (GitHub #187). Absent on rows saved before the field shipped.
+   */
+  region?: Region;
 }) {
+  const near = match === "near" && region ? REGION_LABELS[region] : null;
   return (
     <div
       className={`attr-tile attr-tile--revealed attr-tile--${match}`}
@@ -235,7 +245,11 @@ function AttrTile({
         <span className="attr-tile__label-text">{label}</span>
       </span>
       <span className="attr-tile__value">{value}</span>
-      <span className="sr-only">{MATCH_WORDS[match]}</span>
+      {near && <span className="attr-tile__region">{near}</span>}
+      <span className="sr-only">
+        {MATCH_WORDS[match]}
+        {near ? ` (${near})` : ""}
+      </span>
     </div>
   );
 }
@@ -289,7 +303,7 @@ export function GuessRow({
         </span>
       </p>
       <div className="attr-tiles">
-        <AttrTile label="Country" value={a.country.value} match={a.country.match} index={0} />
+        <AttrTile label="Country" value={a.country.value} match={a.country.match} region={a.country.region} index={0} />
         <AttrTile label="Course" value={a.course.value} match={a.course.match} index={1} />
         <AttrTile label="Served" value={a.temperature.value} match={a.temperature.match} index={2} />
         <AttrTile label="Protein" value={a.protein.value} match={a.protein.match} index={3} />
@@ -384,6 +398,7 @@ export function GuessInput<T extends { id: number; name: string }>({
   describedBy,
   onMatches,
   lead,
+  hint,
 }: {
   dishes: T[];
   excludeIds: Set<number>;
@@ -403,6 +418,13 @@ export function GuessInput<T extends { id: number; name: string }>({
   onMatches?: (count: number) => void;
   /** Rendered above the row, inside this stacking context. The coach mark. */
   lead?: React.ReactNode;
+  /**
+   * A short handle shown beside each name in the list ("Vietnam"). Shown and
+   * never searched: matching stays on the name alone, or typing a country
+   * would fill the list with dishes that have nothing to do with the query.
+   * The admin's schedule picker learned this from `<datalist>`.
+   */
+  hint?: (item: T) => string | undefined;
 }) {
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
@@ -540,6 +562,7 @@ export function GuessInput<T extends { id: number; name: string }>({
               onClick={() => pick(d)}
             >
               {d.name}
+              {hint?.(d) && <span className="guess-input__hint">{hint(d)}</span>}
             </li>
           ))}
         </ul>
@@ -691,7 +714,7 @@ export function DrinkGuessRow({
         </span>
       </p>
       <div className="attr-tiles">
-        <AttrTile label="Country" value={a.country.value} match={a.country.match} index={0} />
+        <AttrTile label="Country" value={a.country.value} match={a.country.match} region={a.country.region} index={0} />
         {/* A spiritless drink says so in the tile rather than showing "none",
             which reads as missing data on a row where every other cell is a
             value. It is a value: two mocktails match each other. */}

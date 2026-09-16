@@ -360,6 +360,24 @@
   padding: 9px 12px;
   border-radius: 6px;
   font-size: 1rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* The country beside a dish's name in the list (GitHub #187): a handle for
+   somebody who half-knows the dish, kept small and right-aligned so the name
+   still reads first. It inherits the row's colour, so the highlighted row's
+   --on-near covers it too; a second opacity on it would be a contrast change
+   in disguise. Shrinks before the name does, and never wraps. */
+.guess-input__hint {
+  flex: 0 1 auto;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-style: italic;
 }
 
 .guess-input__option[aria-selected="true"],
@@ -536,6 +554,21 @@
   font-size: 0.8rem;
   font-weight: bold;
   text-transform: capitalize;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The region under a near country tile (GitHub #187): the bucket the game
+   means, in the tile's own ink at the label's size. Only a near tile has one,
+   so that row's tiles stand a line taller than a row without: the grid
+   stretches its siblings to match, and the extra height is the one tile in
+   the row worth a second look. */
+.attr-tile__region {
+  display: block;
+  font-size: 0.62rem;
+  line-height: 1.2;
+  margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
