@@ -55,8 +55,20 @@ async function resolveTarget(
   return dish ? { dish } : { error: "No dish available" as const };
 }
 
+/**
+ * The two catalogue reads (this and /api/night/drinks) are the only public
+ * GETs with a cache header. The pool changes when a dish is added or edited,
+ * a few times a week, and every page load fetched it fresh. Five minutes is
+ * the longest an admin's rename can lag the order bar, which is fine; the
+ * stale-while-revalidate window means a returning player never waits on it.
+ * Nothing else on /api/* is cached — /daily, /guess and the beacons are all
+ * per-request answers — so keep this header off them.
+ */
+export const CATALOGUE_CACHE_CONTROL = "public, max-age=300, stale-while-revalidate=3600";
+
 app.get("/dishes", async (c) => {
   const res = await c.env.DB.prepare("SELECT id, name, country FROM dishes WHERE is_active = 1 ORDER BY name").all<DishPoolEntry>();
+  c.header("Cache-Control", CATALOGUE_CACHE_CONTROL);
   return c.json(res.results);
 });
 

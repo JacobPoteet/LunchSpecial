@@ -352,7 +352,9 @@ worker/routes/nightcap.ts /api/night/*: drinks pool, info, guess, reveal. Its ow
 worker/routes/discord.ts  /token (OAuth hop), /attachment (score-card PNG), /interactions (signed
                           callbacks, Ed25519-verified or 401), /progress (patch the live message)
 worker/routes/public.ts   /api/dishes, /daily, /guess, /reveal — never leak target except via /reveal
-                          + /announcements, /announcements/seen, /requests
+                          + /announcements, /announcements/seen, /requests. /dishes and
+                          /night/drinks are the ONLY public GETs with a Cache-Control header
+                          (CATALOGUE_CACHE_CONTROL, 5 min); keep it off /daily and the beacons
 worker/routes/stats.ts    /api/stats — public, no auth, aggregate-only, sends Access-Control-Allow-Origin: *
                           /api/stats/breakdown — edge-cached 600s in caches.default
                           /api/stats/badge?metric=rounds|solved|solveRate|shared — shields.io schema
@@ -667,6 +669,7 @@ Finish with `npm test && npm run check`.
 - Don't add npm deps casually — the only runtime deps are hono, react, react-dom
 - Windows repo (CRLF warnings from git are noise; ignore)
 - Changing art: swap ai-*.svg in place (same viewBox ratio), update ASSETS.md; the neon logo is CSS text, not an image
+- **The game ships fonts as `.woff2` only.** The `.ttf` beside each in `src/assets/fonts/` is the press-kit source and is never referenced from CSS. A replacement face gets converted (ASSETS.md says how), never pointed at as TTF
 
 ## Accessibility (player-facing UI)
 

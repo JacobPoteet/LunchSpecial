@@ -154,8 +154,8 @@ so the press page links that one.
 
 | File | Family | License | Use |
 |---|---|---|---|
-| `src/assets/fonts/alfa-slab-one.ttf` | Alfa Slab One | SIL OFL 1.1 | Display headings, menu titles, buttons |
-| `src/assets/fonts/yellowtail.ttf` | Yellowtail | SIL OFL 1.1 | Neon script logo "Lunch Special" |
+| `src/assets/fonts/alfa-slab-one.woff2` (+ `.ttf` source) | Alfa Slab One | SIL OFL 1.1 | Display headings, menu titles, buttons |
+| `src/assets/fonts/yellowtail.woff2` (+ `.ttf` source) | Yellowtail | SIL OFL 1.1 | Neon script logo "Lunch Special" |
 | `docs/fonts/bitter.woff2` | Bitter (variable 400–700, latin subset) | SIL OFL 1.1 | Headings on the GitHub Pages breakdown only |
 
 Bitter lives in **one** place and stays there — it is not part of the game bundle or the
@@ -164,13 +164,21 @@ size; Bitter is the same Clarendon genre drawn for screens, so the breakdown pag
 the diner register without the blockiness. The game itself still heads everything in Alfa
 Slab One, where the strings are short enough to carry it.
 
+**The game ships the `.woff2` pair and nothing else** (56 KB against the TTFs' 152 KB,
+which weighed more than the game's JavaScript). `base.css` references only the WOFF2s, so
+Vite bundles only those; the `.ttf` files beside them are the *source* the press copies
+are made from and are never served by the game. They were converted once with
+`wawoff2` (lossless repackaging, same glyphs, same OFL) and committed; if a face is ever
+replaced, convert the new TTF the same way rather than pointing `base.css` back at it.
+
 The same two `.ttf` files exist in three places, and that is **intentional** — each copy
 serves a different host or consumer, so don't "dedupe" them: `src/assets/fonts/` is the
-game bundle (Vite content-hashes these), `public/press/fonts/` are stable-URL press
-downloads, and `docs/fonts/` belongs to the GitHub Pages project-breakdown site (a separate
-host that can't reach Vite's hashed filenames). Collapsing them would trade 152 KB for a
-cross-origin dependency between two deploys. `npm run assets -- press` copies the press
-pair from `src/assets/fonts/`, so those two can no longer drift.
+source (and, as WOFF2, the game bundle), `public/press/fonts/` are stable-URL press
+downloads (kept as TTF because that is what somebody installs), and `docs/fonts/` belongs
+to the GitHub Pages project-breakdown site (a separate host that can't reach Vite's hashed
+filenames). Collapsing them would trade a few hundred KB for a cross-origin dependency
+between two deploys. `npm run assets -- press` copies the press pair from
+`src/assets/fonts/`, so those two can no longer drift.
 
 The neon logo is **live text** styled with CSS glow (`.marquee__script`), not an image — a hand-lettered SVG logo would be a welcome replacement (target: ~4:1 aspect, works from 320px wide).
 
