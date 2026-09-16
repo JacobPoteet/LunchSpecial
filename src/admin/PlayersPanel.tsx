@@ -722,12 +722,12 @@ function CountryPie({ mix }: { mix: CountryMix }) {
   const c = size / 2;
   const r = c - 2;
 
-  let t = 0;
-  const drawn = slices.map((s) => {
-    const from = t;
-    t += s.players / total;
-    return { ...s, from, to: t };
-  });
+  // Each slice starts where the last one ended: a running fraction of the
+  // circle, folded rather than accumulated in a reassigned local.
+  const drawn = slices.reduce<Array<(typeof slices)[number] & { from: number; to: number }>>((acc, s) => {
+    const from = acc.length ? acc[acc.length - 1].to : 0;
+    return [...acc, { ...s, from, to: from + s.players / total }];
+  }, []);
 
   return (
     <div className="cpie">

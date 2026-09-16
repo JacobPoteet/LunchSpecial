@@ -374,6 +374,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
     });
     // Keyed on the guess count, like presence: the array's identity changes on
     // renders that added no guess, and each one would be another upload.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracked, info, round.status, round.guesses.length]);
 
   // The tab opens on the same beat as the check. Written out rather than taken

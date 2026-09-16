@@ -1,0 +1,23 @@
+{
+  // oxlint, not ESLint: the repo is on TypeScript 7, the native compiler, which
+  // has no JS API for typescript-eslint's parser to call. oxlint parses TS
+  // itself and carries the two react-hooks rules this gate exists for.
+  // `npm run lint`; CI runs it after the typecheck.
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "oxc"],
+  "categories": {
+    "correctness": "error"
+  },
+  "rules": {
+    // The two rules CLAUDE.md used to state in prose ("resetProgress() must
+    // stay declared above the publisher", "an updater must stay pure").
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    // Off on purpose. This codebase resets state from an effect when a prop
+    // changes (a picked day, a surface toggle) in ten places, each with a
+    // comment saying why, and the alternative the rule wants (derive during
+    // render, or key the component) is the bigger change for no bug fixed.
+    "react/set-state-in-effect": "off"
+  },
+  "ignorePatterns": ["dist/", "node_modules/", "docs/", "worker-configuration.d.ts"]
+}

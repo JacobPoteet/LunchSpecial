@@ -111,6 +111,7 @@ export function Modal({
   // per open: `requestClose` is rebuilt every render, and re-subscribing on each
   // one is noise on the one path that has to be reliable.
   const closeRef = useRef(requestClose);
+  // eslint-disable-next-line react/refs -- the "latest ref" pattern; the write is the point
   closeRef.current = requestClose;
 
   useEffect(() => {

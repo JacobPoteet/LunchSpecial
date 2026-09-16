@@ -19,6 +19,9 @@ npm run negroni      # a Nightcap on ONE named pour, opening hours ignored (?bar
 npm run admin        # vite dev + opens /admin: straight to the login, skipping the game (password below)
 npm test             # vitest — worker/**/*.test.ts + shared/**/*.test.ts (every pure fold has one)
 npm run check        # tsc -b (3 project refs: app / worker / node)
+npm run lint         # oxlint (.oxlintrc.json): rules-of-hooks is an error, exhaustive-deps a warning.
+                     # oxlint and not ESLint because TypeScript 7 is the native compiler with no JS
+                     # API for typescript-eslint to parse against. CI runs it after the typecheck
 npm run a11y         # axe over the RUNNING game (needs `npm run dev` in another terminal).
                      # Plays a round first — the tiles and chips don't exist on an empty board
 npm run build        # tsc -b && vite build → dist/
@@ -58,7 +61,7 @@ Local admin password: `ADMIN_PASSWORD` in `.dev.vars` (gitignored; currently `lu
 
 | Workflow | Fires on | Does |
 |---|---|---|
-| `ci.yml` | push + PR to `main` | **test** job: `npm test` → `npm run check`. **a11y** job (parallel): local D1 migrate + seed → start `npm run dev` → `npm run a11y` |
+| `ci.yml` | push + PR to `main` | **test** job: `npm test` → `npm run check` → `npm run lint`. **a11y** job (parallel): local D1 migrate + seed → start `npm run dev` → `npm run a11y` |
 | `codeql.yml` | push + PR to `main`, weekly cron (Mon 04:27 UTC) | security-and-quality scan |
 | `deploy.yml` | `v*` tag, or manual dispatch | test + check + remote D1 migrate + deploy |
 
@@ -126,6 +129,7 @@ On the player's **first guess** the app posts one message into the launch channe
 - **Verify the signature or don't answer.** `worker/discordsig.ts` checks the **raw** body — re-serializing parsed JSON changes the signed message and fails every request. Discord validates a newly-saved endpoint by sending a deliberately bad signature and requiring a 401, so a 401 there is a passing grade.
 - **Updates are trailing, not queued.** The message shows a *position*, so three guesses landing during an upload should show the third.
 - **`resetProgress()` must stay declared above the publisher in GamePage.** Effects fire in order; a board restored from localStorage publishes on mount, and resetting afterwards orphans that post.
+- **A deliberate hole in a dependency list carries an `eslint-disable-next-line react-hooks/exhaustive-deps` on the line before the array, with the reason in the comment above it.** oxlint honours the eslint-flavoured comment, and the eight in the tree are all the "keyed on the guess count, not the array" kind. `react/set-state-in-effect` is off in `.oxlintrc.json` on purpose; don't turn it on without reading the comment there.
 - **`shareInteraction` is undocumented.** Every field is read off its zod schema. If it breaks, the manual share button still works and only the loop is lost.
 
 ### The room the game is in (`src/discord/social.ts`)
@@ -646,7 +650,7 @@ Four things that hold regardless:
 
 **Adding drinks is the same job against the other catalogue, and it has its own skill: `create-drinks`.** One `drinks` row plus exactly 3 `drink_clues` rows, ≥3 ingredients, written against the coaster sheet in that skill's section 3 (the bartender's voice, the three beats, the budgets, and the fourteen rules — twelve of which the linter enforces). Rows go in `seed/seed.sql` *and* an additive migration keyed by slug, INSERTs only, and **never a `drink_schedule` row**. Keep the pool inside the 55–75% alcoholic band the linter enforces — if a batch is all cocktails, it will fail CI, and correctly.
 
-Finish with `npm test && npm run check`.
+Finish with `npm test && npm run check && npm run lint`.
 
 ## Conventions / gotchas
 
@@ -701,4 +705,4 @@ Three passes, every time, before `gh pr create`:
 
 ## Verify a change
 
-`npm test && npm run check`, then dev server (`npm run a11y` in a second terminal while it's up), then by hand: play a full round (guess wrong twice → clue tickets appear → guess right → receipt modal), **then `npm run lastcall` and walk the hand-off into a Nightcap**, check /admin dashboard/editor/schedule and the Bar section, and mobile at 375px (no horizontal scroll). For UI changes also run the keyboard-only and reduced-motion passes (unplug the mouse and play a full round opening every modal; then DevTools → Rendering → emulate `prefers-reduced-motion: reduce` and confirm nothing moves and nothing sticks), plus 320px and 200% zoom. Seeded local answer for 2026-07-17 is Hamburger (id 51); schedule table maps the rest.
+`npm test && npm run check && npm run lint`, then dev server (`npm run a11y` in a second terminal while it's up), then by hand: play a full round (guess wrong twice → clue tickets appear → guess right → receipt modal), **then `npm run lastcall` and walk the hand-off into a Nightcap**, check /admin dashboard/editor/schedule and the Bar section, and mobile at 375px (no horizontal scroll). For UI changes also run the keyboard-only and reduced-motion passes (unplug the mouse and play a full round opening every modal; then DevTools → Rendering → emulate `prefers-reduced-motion: reduce` and confirm nothing moves and nothing sticks), plus 320px and 200% zoom. Seeded local answer for 2026-07-17 is Hamburger (id 51); schedule table maps the rest.

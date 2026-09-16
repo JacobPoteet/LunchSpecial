@@ -78,6 +78,9 @@ jobs:
 
       - run: npm test
       - run: npm run check
+      # oxlint: the rules-of-hooks / exhaustive-deps gate (GitHub #190). Errors
+      # fail the job; warnings are printed and don't. Config in .oxlintrc.json.
+      - run: npm run lint
 
   # Automated accessibility pass (GitHub #130). Every accessibility finding so far
   # was made by reading source by hand; this catches the mechanical third of WCAG
