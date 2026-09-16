@@ -28,6 +28,7 @@ export function compareDrinkAttributes(guess: DrinkRecord, target: DrinkRecord):
   return {
     country: {
       value: guess.country,
+      region: guess.region,
       match: guess.country === target.country ? "hit" : guess.region === target.region ? "near" : "miss",
     },
     spirit: { value: guess.spirit, match: guess.spirit === target.spirit ? "hit" : "miss" },

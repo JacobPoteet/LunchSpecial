@@ -13,7 +13,7 @@ import {
   newAnalyticsId,
   postGuess,
 } from "../api";
-import type { Announcement, DailyInfo, DishSummary, RevealInfo, RoundKind, Surface } from "../../shared/types";
+import type { Announcement, DailyInfo, DishPoolEntry, DishSummary, RevealInfo, RoundKind, Surface } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
 import { ClueTicket, Countdown, GuessInput, GuessRow, Modal, StoryDetails, useNewDayAvailable } from "./components";
 import AnnouncementModal from "./AnnouncementModal";
@@ -566,7 +566,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // preview that couldn't reach them could only rehearse the board.
   const dressedAsDaily = isDaily || isPreview || !!playtest;
 
-  const [dishes, setDishes] = useState<DishSummary[]>([]);
+  const [dishes, setDishes] = useState<DishPoolEntry[]>([]);
   const [daily, setDaily] = useState<DailyInfo | null>(null);
   const [round, setRound] = useState<RoundState>(() => {
     // Seeded before the mount (see src/main.tsx), so the check opens instantly
@@ -1151,6 +1151,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
                   coach={coachBeat === "order" || coachBeat === "pick" ? coachBeat : undefined}
                   describedBy={coachBeat === "order" || coachBeat === "pick" ? coachId : undefined}
                   onMatches={setMatches}
+                  hint={(d) => d.country}
                   lead={
                     coachBeat === "order" || coachBeat === "pick" ? (
                       <CoachMark beat={coachBeat} id={coachId} onDismiss={endCoaching} />

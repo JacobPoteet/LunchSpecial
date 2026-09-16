@@ -24,6 +24,24 @@ export const REGIONS = [
 ] as const;
 export type Region = (typeof REGIONS)[number];
 
+/**
+ * The region as the board says it. The slugs are the game's own buckets, and
+ * the buckets are not the atlas's (Mexico is Latin America here, Turkey is the
+ * Middle East), which is why a near tile names its bucket rather than leaving
+ * the player to guess which one the game put their guess in (GitHub #187).
+ */
+export const REGION_LABELS: Record<Region, string> = {
+  "north-america": "North America",
+  "latin-america": "Latin America",
+  europe: "Europe",
+  "middle-east": "Middle East",
+  africa: "Africa",
+  "south-asia": "South Asia",
+  "east-asia": "East Asia",
+  "southeast-asia": "Southeast Asia",
+  oceania: "Oceania",
+};
+
 export type MatchLevel = "hit" | "near" | "miss";
 
 /**
@@ -137,6 +155,16 @@ export interface DishSummary {
   name: string;
 }
 
+/**
+ * One dish as the order bar lists it. The country rides along so the list can
+ * show "Pho · Vietnam" to somebody who half-knows the dish; it is shown, never
+ * searched (see GuessInput). A guessed dish's country is on the board the
+ * moment it is ordered, so this exposes nothing the game doesn't already say.
+ */
+export interface DishPoolEntry extends DishSummary {
+  country: string;
+}
+
 export interface Dish {
   id: number;
   name: string;
@@ -157,8 +185,13 @@ export interface Dish {
 }
 
 export interface AttributeFeedback {
-  /** Guessed dish's value + how it compares to the Special. near = same region, different country. */
-  country: { value: string; match: MatchLevel };
+  /**
+   * Guessed dish's value + how it compares to the Special. near = same region,
+   * different country. `region` is the guess's bucket, which a near tile names
+   * so the player learns which one the game means. Optional only because a
+   * round saved before it shipped has rows without it.
+   */
+  country: { value: string; region?: Region; match: MatchLevel };
   course: { value: Course; match: MatchLevel };
   temperature: { value: Temperature; match: MatchLevel };
   protein: { value: Protein; match: MatchLevel };
@@ -225,6 +258,8 @@ export interface DrinkSummary {
  */
 export interface DrinkPoolEntry extends DrinkSummary {
   slug: string;
+  /** Shown beside the name in the bar's order list, exactly as a dish's is. */
+  country: string;
 }
 
 export interface Drink {
@@ -245,7 +280,7 @@ export interface Drink {
 
 /** A drink's four tiles, the bar's answer to {@link AttributeFeedback}. */
 export interface DrinkAttributeFeedback {
-  country: { value: string; match: MatchLevel };
+  country: { value: string; region?: Region; match: MatchLevel };
   spirit: { value: Spirit; match: MatchLevel };
   temperature: { value: Temperature; match: MatchLevel };
   profile: { value: Profile; match: MatchLevel };

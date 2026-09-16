@@ -63,7 +63,10 @@ describe("computeFeedback", () => {
 
   it("scores country near when regions match but countries differ", () => {
     const fb = computeFeedback(croque, carbonara);
-    expect(fb.attributes.country).toEqual({ value: "France", match: "near" });
+    // The guess's region rides along so a near tile can name the bucket it
+    // means (GitHub #187). Always the GUESS's region: on a near it is also the
+    // target's, and on a miss it says nothing about the target at all.
+    expect(fb.attributes.country).toEqual({ value: "France", region: "europe", match: "near" });
     expect(fb.attributes.course.match).toBe("hit");
     expect(fb.attributes.protein.match).toBe("hit");
   });

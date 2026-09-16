@@ -4,8 +4,8 @@ import type {
   Announcement,
   AnnouncementSeenInput,
   DailyInfo,
+  DishPoolEntry,
   DishRequestInput,
-  DishSummary,
   DrinkGuessFeedback,
   DrinkPoolEntry,
   GuessFeedback,
@@ -44,7 +44,7 @@ function withParams(path: string, params: Record<string, string | undefined>): s
   return qs ? `${path}?${qs}` : path;
 }
 
-export function fetchDishes(): Promise<DishSummary[]> {
+export function fetchDishes(): Promise<DishPoolEntry[]> {
   return request("/api/dishes");
 }
 
