@@ -285,8 +285,12 @@ wrangler.jsonc        assets SPA fallback + run_worker_first:["/api/*"] + D1 bin
 migrations/           0001_init.sql = dishes/clues/schedule. Additive only. 0044 is the latest
 seed/seed.sql         canonical dish AND drink catalogues + a 30-day schedule from 2026-07-17 and a
                       30-night block from NIGHT_EPOCH_DATE. Idempotent (DELETEs first)
-shared/types.ts       ALL shared types + enums (COURSES, REGIONS, SPIRITS, PROFILES…) + MAX_GUESSES
-                      + DRINK_MAX_GUESSES + EPOCH_DATE + NIGHT_EPOCH_DATE
+shared/types.ts       re-exports shared/types/*, one file per concern; import "../shared/types" as before
+shared/types/         game.ts (enums COURSES/REGIONS/…, MAX_GUESSES, EPOCH_DATE, dish/guess/reveal),
+                      night.ts (DRINK_MAX_GUESSES, NIGHT_EPOCH_DATE, SPIRITS, PROFILES, drink shapes,
+                      the After Dark tab), admin.ts (catalogue rows, editor inputs, schedule, requests),
+                      announcements.ts, analytics.ts (every dashboard payload, public stats, menu mix),
+                      experiments.ts, issues.ts. A new shape goes in the file that owns its concern
 worker/index.ts       Hono entry; only /api/* reaches the Worker (assets serve the rest)
 worker/game.ts        PURE game logic (feedback, puzzleNumber, date validation, fallback pick)
 worker/auth.ts        HMAC tokens: session cookie + preview/showcase tokens (stateless,
@@ -370,10 +374,14 @@ worker/routes/stats.ts    /api/stats — public, no auth, aggregate-only, sends 
                           completed only, playable dates only, edge-cached 300s per date
                           /api/stats/badge?metric=rounds|solved|solveRate|shared — shields.io schema
 worker/routes/analytics.ts  the beacon handlers, mounted at /api/rounds/* (see "Beacon paths" below)
-worker/routes/admin.ts    /api/admin/*: login/logout/session, dish CRUD, ingredients vocab, schedule
-                          GET/PUT, autofill, schedule/shuffle, preview + showcase tokens, dashboard, analytics
-                          aggregates + /recent-rounds, /menu-mix, /dish-report, /device-data GET+DELETE,
-                          /experiments CRUD, /announcements CRUD, /issues GET+POST
+worker/routes/admin/      /api/admin/*, one sub-app per concern, mounted by index.ts. MOUNT ORDER IS
+                          LOAD-BEARING: auth.ts (login/logout/session) goes above the session guard,
+                          everything else below it. dishes.ts (+ ingredients), schedule.ts (+ autofill,
+                          shuffle, preview), requests.ts, announcements.ts, analytics.ts (dashboard,
+                          menu-mix, analytics, dish-report), experiments.ts, activity.ts (recent-rounds,
+                          device-data), issues.ts, bar.ts (drinks, nights, drink-preview, showcase,
+                          night-report). shared.ts holds slugify + surfaceClause, the two helpers more
+                          than one file reads
 
 src/audio/            engine.ts = the Web Audio graph (two buses, buffer cache, gesture unlock, audio-clock
                       scheduling); music.ts = the ambient bed; prefs.ts = the mute pref; index.ts = the
