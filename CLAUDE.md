@@ -337,6 +337,7 @@ shared/schedule.ts    the admin specials board — schedule window × catalogue 
 shared/activity.ts    activity feed (rounds + arrivals + day totals → round states, durations, visits)
 shared/announce.ts    the guess-feedback wording, one table feeding colour, glyph and screen reader
 shared/coach.ts       the first visit: which coach mark is up, read off the round (never a step counter)
+shared/streak.ts      whether the streak is alive (last round today or yesterday), the board mark, the check line
 shared/night.ts       the After Dark clock — night key, the 20:00-03:00 window, last call,
                       night numbering, and what the Worker will accept. The ONE place the
                       game's fixed-ET rollover is deliberately broken
@@ -425,6 +426,10 @@ The server accepts a **playable date**: today (±2 days of ET now, for clock and
 - **Playtest** pins a dish by slug (`getDishBySlug`, resolved in `resolveTarget` ahead of `random`). The worker takes `?special=` unconditionally (slugs are already public via `/api/dishes`), but **the client only honours it behind `import.meta.env.DEV`**. An unknown slug 400s onto the closed-kitchen sign.
 - **Showcase** is the demo link sent to someone who has never played: today's real Special, seeded as already won, with After Dark unlocked whatever the hour. See "The showcase link" under After Dark.
 - **Preview and playtest are dressed as the daily** — real puzzle number, "Daily Special" line, countdown, share button, stats panel, 📅 Play again (`dressedAsDaily` in GamePage, taken by the check as `asDaily`). Only the top banner marks them, because the end-of-round screen is the part most worth trying before players reach it. Finishing one unlocks the archive. Two seams are deliberate: the stats panel shows the numbers you walked in with, and the share button copies a real grid but fires no beacon.
+
+### The streak
+
+`Stats.currentStreak` only moves when a round is recorded, so a streak that died last week still reads as 5 in storage. **Every place the streak is printed goes through `shared/streak.ts`**, which takes `lastCompletedDate` and today and answers 0 unless the last recorded round was today or yesterday. Three surfaces read it: the mark beside the date on the board (`🔥 N-day streak`, from 2, **Today's Special only**, since a Leftover or a Chef's Choice never touches it), the Streak tile in the stats panel, and the one line under the stats on the check that is about tomorrow rather than today (keep it / start one / starts fresh). A loss is not told the number it just lost. Don't print `currentStreak` raw anywhere.
 
 ### Sharing a finished round
 

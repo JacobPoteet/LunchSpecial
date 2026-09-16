@@ -22,6 +22,7 @@ import { BuildTag } from "./BuildTag";
 import { FanStamp, RequestForm } from "./RequestForm";
 import { CoachMark, CoachSpotlight } from "./Coach";
 import { coachBeat as pickCoachBeat, coachingDone } from "../../shared/coach";
+import { boardStreakMark, checkStreakLine, liveStreak } from "../../shared/streak";
 import { dateLabel, isPastPuzzleDate } from "./archive";
 import { currentNight, useBarInvite, type BarInvite } from "./night";
 import { useCheckOpening } from "./roundLifecycle";
@@ -149,9 +150,14 @@ function HowToModal({ onClose }: { onClose: () => void }) {
  * Wordle marks the bar you landed on. Omitted outside a fresh win (the "My
  * stats" modal, or a loss), where no single row is "yours".
  */
-function StatsPanel({ stats, highlight }: { stats: Stats; highlight?: number }) {
+function StatsPanel({ stats, today, highlight }: { stats: Stats; today: string; highlight?: number }) {
   const winPct = stats.played === 0 ? 0 : Math.round((stats.wins / stats.played) * 100);
   const maxDist = Math.max(1, ...stats.dist);
+  // The stored count only moves when a round is recorded, so a streak that
+  // died last week still reads as 5 in storage. shared/streak.ts decides
+  // whether it is alive; a dead one prints as 0 here rather than as a number
+  // the next win is about to reset anyway.
+  const streak = liveStreak({ ...stats, today });
 
   // One accent, on the bar that is *yours* — the row `dist__row--current`
   // highlights after a fresh win. Sounding every bar as it grows would turn the
@@ -168,7 +174,7 @@ function StatsPanel({ stats, highlight }: { stats: Stats; highlight?: number }) 
       <div className="stats-grid">
         <div><span className="stat__num">{stats.played}</span><span className="stat__label">Played</span></div>
         <div><span className="stat__num">{winPct}%</span><span className="stat__label">Win rate</span></div>
-        <div><span className="stat__num">{stats.currentStreak}</span><span className="stat__label">Streak</span></div>
+        <div><span className="stat__num">{streak}</span><span className="stat__label">Streak</span></div>
         <div><span className="stat__num">{stats.maxStreak}</span><span className="stat__label">Best</span></div>
       </div>
       <div className="dist">
@@ -304,6 +310,7 @@ function ResultModal({
   daily,
   reveal,
   stats,
+  today,
   asDaily,
   isRandom,
   kind,
@@ -319,6 +326,8 @@ function ResultModal({
   daily: DailyInfo;
   reveal: RevealInfo | null;
   stats: Stats;
+  /** Today's ET day, for deciding whether the streak is alive. */
+  today: string;
   /**
    * Wear the daily's finish: countdown, share button, stats panel. True for the
    * real daily and for the two rehearsal modes — an admin preview and a
@@ -473,7 +482,15 @@ function ResultModal({
       {/* A rehearsal round (preview, playtest) shows the panel but hasn't been
           folded into it — the numbers are the ones you walked in with, since
           nothing was recorded. */}
-      {asDaily && <StatsPanel stats={stats} highlight={won ? round.guesses.length : undefined} />}
+      {asDaily && (
+        <>
+          <StatsPanel stats={stats} today={today} highlight={won ? round.guesses.length : undefined} />
+          {/* The one line on the check about tomorrow rather than today. The
+              stats were recorded before this rendered, so a win's streak
+              already counts this round (GitHub #185). */}
+          <p className="receipt__streak">{checkStreakLine({ ...stats, today, won })}</p>
+        </>
+      )}
       {reveal?.isFanSubmission && <FanStamp name={reveal.name} kind="dish" />}
       <RequestForm kind="dish" promoted={reveal?.isFanSubmission === true} />
     </Modal>
@@ -999,6 +1016,11 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   );
 
   const guessedIds = useMemo(() => new Set(round.guesses.map((g) => g.dish.id)), [round.guesses]);
+  // The streak beside the date, on Today's Special only: it is a fact about
+  // the daily, and a Leftover or a Chef's Choice never touches it. Read off
+  // `stats`, which recordResult replaces the moment a round ends, so a win
+  // ticks it up on the board behind the check.
+  const streakMark = isDaily ? boardStreakMark({ ...stats, today }) : null;
   const remaining = MAX_GUESSES - round.guesses.length;
 
   return (
@@ -1069,6 +1091,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           <p className="menu-card__meta">
             {daily && (!ephemeral || dressedAsDaily) ? <>Special No. {daily.puzzleNumber} — </> : null}
             {dateLabel(date)}
+            {streakMark && <span className="menu-card__streak"> · {streakMark}</span>}
           </p>
           <div className="menu-card__toolbar">
             <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowHowTo(true); }}>How to play</button>
@@ -1195,7 +1218,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
       {showStats && (
         <Modal onClose={() => setShowStats(false)} label="My stats">
           <h2 className="receipt__title" style={{ textAlign: "center" }}>My stats</h2>
-          <StatsPanel stats={stats} />
+          <StatsPanel stats={stats} today={today} />
         </Modal>
       )}
       {showArchive && (
@@ -1213,6 +1236,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           daily={daily}
           reveal={reveal}
           stats={stats}
+          today={today}
           asDaily={dressedAsDaily}
           isRandom={isRandom}
           kind={analyticsKind}
