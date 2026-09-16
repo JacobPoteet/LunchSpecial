@@ -893,6 +893,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
     });
     // Keyed on the guess *count*, like presence: the array's identity changes on
     // renders that didn't add a guess, and each one would be another upload.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracked, daily, round.status, round.guesses.length]);
 
   /**
