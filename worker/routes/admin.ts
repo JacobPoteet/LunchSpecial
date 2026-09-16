@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import type {
   AdminAnnouncement,
+  Course,
   AdminDashboard,
   AdminDishDetail,
   AdminDishInput,
@@ -97,6 +98,7 @@ import { foldExperimentSeries, type ExperimentHourRow } from "../experiments";
 import { foldFunnel, type FunnelBucketRow } from "../funnel";
 import { foldRhythm, type RhythmRow } from "../rhythm";
 import { pickUnserved, unservedDishes, type ShuffleDishRow } from "../shuffle";
+import { fillVaried, type Booking, type VarietyCandidate } from "../variety";
 import {
   createToken,
   passwordMatches,
@@ -428,42 +430,62 @@ app.post("/schedule/autofill", async (c) => {
   const windowEnd = addDays(today, 29);
   const blockStart = addDays(today, -60);
 
+  // Everything already on the board inside the repeat window, WITH the dish's
+  // region/course/country: the fill reads what each empty day sits next to
+  // (worker/variety.ts), not only which dishes are spoken for.
   const scheduled = await c.env.DB
-    .prepare("SELECT date, dish_id FROM schedule WHERE date >= ?")
+    .prepare(
+      `SELECT s.date, s.dish_id, d.region, d.course, d.country
+         FROM schedule s JOIN dishes d ON d.id = s.dish_id
+        WHERE s.date >= ?`,
+    )
     .bind(blockStart)
-    .all<{ date: string; dish_id: number }>();
+    .all<{ date: string; dish_id: number; region: Region; course: Course; country: string }>();
   const takenDates = new Set(scheduled.results.filter((r) => r.date >= today).map((r) => r.date));
   const recentlyUsed = new Set(scheduled.results.map((r) => r.dish_id));
+  const bookings: Booking[] = scheduled.results.map((r) => ({
+    date: r.date,
+    region: r.region,
+    course: r.course,
+    country: r.country,
+  }));
 
   const dishes = await c.env.DB
     .prepare(
-      `SELECT d.id, d.ingredients,
+      `SELECT d.id, d.region, d.course, d.country, d.ingredients,
          (SELECT COUNT(*) FROM clues c WHERE c.dish_id = d.id) AS clue_count,
          (SELECT MAX(s.date) FROM schedule s WHERE s.dish_id = d.id AND s.date < ?) AS last_served
        FROM dishes d WHERE d.is_active = 1`,
     )
     .bind(today)
-    .all<{ id: number; ingredients: string; clue_count: number; last_served: string | null }>();
+    .all<{
+      id: number;
+      region: Region;
+      course: Course;
+      country: string;
+      ingredients: string;
+      clue_count: number;
+      last_served: string | null;
+    }>();
 
-  const eligible = dishes.results
+  const pool: VarietyCandidate[] = dishes.results
     .filter(
       (d) =>
         d.clue_count === 5 &&
         (JSON.parse(d.ingredients) as string[]).length >= 3 &&
         !recentlyUsed.has(d.id),
     )
-    // Never-served first, then least recently served.
-    .sort((a, b) => (a.last_served ?? "").localeCompare(b.last_served ?? ""));
+    .map((d) => ({ id: d.id, region: d.region, course: d.course, country: d.country, lastServed: d.last_served }));
 
-  const statements = [];
-  let filled = 0;
-  for (let d = today; d <= windowEnd && filled < eligible.length; d = addDays(d, 1)) {
-    if (takenDates.has(d)) continue;
-    statements.push(
-      c.env.DB.prepare("INSERT INTO schedule (date, dish_id) VALUES (?, ?)").bind(d, eligible[filled].id),
-    );
-    filled++;
-  }
+  const empty: string[] = [];
+  for (let d = today; d <= windowEnd; d = addDays(d, 1)) if (!takenDates.has(d)) empty.push(d);
+
+  // Rest tier first, then what the day sits next to, then exact rest. Each
+  // booking is fed back so the next empty day sees it.
+  const made = fillVaried(pool, bookings, empty);
+  const statements = made.map((m) =>
+    c.env.DB.prepare("INSERT INTO schedule (date, dish_id) VALUES (?, ?)").bind(m.date, m.id),
+  );
   if (statements.length > 0) await c.env.DB.batch(statements);
   return c.json({ filled: statements.length });
 });

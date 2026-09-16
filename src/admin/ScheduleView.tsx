@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AdminDishRow, ScheduleEntry } from "../../shared/types";
 import { addDays, daysBetween, gameToday } from "../../shared/time";
-import { buildBoard, matchDishes, resolveDishName, summarizeBoard, type BoardRow } from "../../shared/schedule";
+import {
+  balanceLine,
+  boardBalance,
+  buildBoard,
+  matchDishes,
+  resolveDishName,
+  summarizeBoard,
+  type BoardRow,
+} from "../../shared/schedule";
 import * as api from "./api";
 
 /** How far ◀ / ▶ move the window. Roughly a month, so two presses clear the default view. */
@@ -102,6 +110,9 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
   const schedulable = useMemo(() => dishes.filter((d) => d.isActive && d.schedulable), [dishes]);
   const rows = useMemo(() => (entries ? buildBoard(entries, dishes, today) : []), [entries, dishes, today]);
   const summary = useMemo(() => summarizeBoard(rows), [rows]);
+  // What the next week looks like (GitHub #189). The autofill avoids these
+  // clashes; a hand booking is told about them here and never stopped.
+  const balance = useMemo(() => balanceLine(boardBalance(rows)), [rows]);
 
   const say = (date: string | null, ok: boolean, text: string) => setFlash({ date, ok, text });
 
@@ -258,6 +269,7 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
           " · no gaps in view"
         )}
       </p>
+      {balance && <p className="sched-balance">{balance}</p>}
 
       <div className="btn-row sched-window">
         <button className="btn btn--ghost" onClick={() => shift(-PAGE_DAYS)}>
@@ -281,8 +293,9 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
 
       <p className="dash-note" style={{ marginBottom: 10 }}>
         Past days are locked. Only dishes marked <span className="badge">ready</span> can be booked. 🎲 rolls a dish
-        that has never been the Special; Clear hands the day back to the automatic fallback pick. Dates roll over at
-        midnight Eastern Time (America/New_York).
+        that has never been the Special; Clear hands the day back to the automatic fallback pick. Auto-fill keeps a
+        region off consecutive days, a country apart by two weeks and two desserts apart; the line above says what
+        the next week holds either way. Dates roll over at midnight Eastern Time (America/New_York).
       </p>
 
       <ul className="sched-list">

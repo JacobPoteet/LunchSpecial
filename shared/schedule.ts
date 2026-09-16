@@ -21,7 +21,8 @@
 //    been scheduled at all; hand-booking is the path where you might want the
 //    repeat, so the row says how close it is and books it anyway.
 
-import type { AdminDishRow, ScheduleEntry } from "./types";
+import type { AdminDishRow, Course, Region, ScheduleEntry } from "./types";
+import { COURSES, REGION_LABELS } from "./types";
 import { daysBetween } from "./time";
 
 /**
@@ -139,6 +140,76 @@ export function summarizeBoard(rows: BoardRow[]): BoardSummary {
   }
   return { emptyAhead, firstGap, bookedAhead };
 }
+
+/** How many booked days the balance line reads, from today. */
+export const BALANCE_DAYS = 7;
+
+/** What the next week of bookings looks like, for the line above the rows. */
+export interface BoardBalance {
+  /** Booked days read, at most BALANCE_DAYS. */
+  booked: number;
+  /** Regions served, most first; ties by name. */
+  regions: Array<{ region: Region; count: number }>;
+  /** Courses served, in COURSE order, zero-count ones included. */
+  courses: Array<{ course: Course; count: number }>;
+  /** Countries booked more than once inside the week. */
+  repeats: string[];
+}
+
+/**
+ * The next BALANCE_DAYS booked days from today, counted by region, course and
+ * repeated country. Informational: the autofill avoids these clashes
+ * (worker/variety.ts) and a hand booking is told about them, never stopped.
+ * Empty days are skipped rather than counted, so a half-booked week reads as
+ * what it is.
+ */
+export function boardBalance(rows: BoardRow[]): BoardBalance {
+  const ahead = rows.filter((r) => !r.isPast && r.dish).slice(0, BALANCE_DAYS);
+  const regions = new Map<Region, number>();
+  const courses = new Map<Course, number>();
+  const countries = new Map<string, number>();
+  for (const r of ahead) {
+    const d = r.dish!;
+    regions.set(d.region, (regions.get(d.region) ?? 0) + 1);
+    courses.set(d.course, (courses.get(d.course) ?? 0) + 1);
+    countries.set(d.country, (countries.get(d.country) ?? 0) + 1);
+  }
+  return {
+    booked: ahead.length,
+    regions: [...regions]
+      .map(([region, count]) => ({ region, count }))
+      .sort((a, b) => b.count - a.count || REGION_LABELS[a.region].localeCompare(REGION_LABELS[b.region])),
+    courses: COURSES.map((course) => ({
+      course,
+      count: courses.get(course) ?? 0,
+    })),
+    repeats: [...countries].filter(([, n]) => n > 1).map(([c]) => c).sort(),
+  };
+}
+
+/**
+ * The balance as one line: "Next 7: Europe ×3, Latin America ×2 · 5 entrées,
+ * 2 desserts · Italy twice". Null with nothing booked ahead.
+ */
+export function balanceLine(b: BoardBalance): string | null {
+  if (b.booked === 0) return null;
+  const regions = b.regions.map((r) => `${REGION_LABELS[r.region]} ×${r.count}`).join(", ");
+  const courses = b.courses
+    .filter((c) => c.count > 0)
+    .map((c) => `${c.count} ${COURSE_PLURALS[c.course][c.count === 1 ? 0 : 1]}`)
+    .join(", ");
+  const parts = [`Next ${b.booked}: ${regions}`, courses];
+  if (b.repeats.length) parts.push(`${b.repeats.join(", ")} twice`);
+  return parts.join(" · ");
+}
+
+const COURSE_PLURALS: Record<Course, [string, string]> = {
+  breakfast: ["breakfast", "breakfasts"],
+  appetizer: ["appetizer", "appetizers"],
+  entree: ["entrée", "entrées"],
+  dessert: ["dessert", "desserts"],
+  drink: ["drink", "drinks"],
+};
 
 /**
  * Name to dish, for the board's picker. Names are matched case-insensitively and

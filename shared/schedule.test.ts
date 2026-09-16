@@ -6,6 +6,8 @@ import {
   REPEAT_WINDOW_DAYS,
   resolveDishName,
   summarizeBoard,
+  balanceLine,
+  boardBalance,
   type BoardRow,
 } from "./schedule";
 import type { AdminDishRow, ScheduleEntry } from "./types";
@@ -176,6 +178,46 @@ describe("summarizeBoard", () => {
     const b = summarizeBoard(rows([entry(TODAY, 1, "Ramen"), entry("2026-09-11", 1, "Ramen")]));
     expect(b.firstGap).toBeNull();
     expect(b.emptyAhead).toBe(0);
+  });
+});
+
+describe("boardBalance", () => {
+  const ramen = dish();
+  const pho = dish({ id: 2, name: "Pho", country: "Vietnam", region: "southeast-asia" });
+  const tiramisu = dish({ id: 3, name: "Tiramisu", country: "Italy", region: "europe", course: "dessert" });
+  const carbonara = dish({ id: 4, name: "Carbonara", country: "Italy", region: "europe" });
+  const catalogue = [ramen, pho, tiramisu, carbonara];
+  const board = (entries: ScheduleEntry[]) => buildBoard(entries, catalogue, TODAY);
+
+  it("counts the next week's regions, courses and repeated countries", () => {
+    const b = boardBalance(
+      board([
+        entry("2026-09-09", 1, "Ramen"), // past: ignored
+        entry(TODAY, 3, "Tiramisu"),
+        entry("2026-09-11"),
+        entry("2026-09-12", 4, "Carbonara"),
+        entry("2026-09-13", 2, "Pho"),
+      ]),
+    );
+    expect(b.booked).toBe(3);
+    expect(b.regions).toEqual([
+      { region: "europe", count: 2 },
+      { region: "southeast-asia", count: 1 },
+    ]);
+    expect(b.courses.find((c) => c.course === "dessert")?.count).toBe(1);
+    expect(b.courses.find((c) => c.course === "entree")?.count).toBe(2);
+    expect(b.repeats).toEqual(["Italy"]);
+  });
+
+  it("reads at most seven booked days", () => {
+    const entries = Array.from({ length: 10 }, (_, i) => entry(`2026-09-${10 + i}`, 1, "Ramen"));
+    expect(boardBalance(board(entries)).booked).toBe(7);
+  });
+
+  it("prints one line, and nothing for an empty week", () => {
+    const b = boardBalance(board([entry(TODAY, 3, "Tiramisu"), entry("2026-09-11", 4, "Carbonara"), entry("2026-09-12", 2, "Pho")]));
+    expect(balanceLine(b)).toBe("Next 3: Europe ×2, Southeast Asia ×1 · 2 entrées, 1 dessert · Italy twice");
+    expect(balanceLine(boardBalance(board([entry(TODAY)])))).toBeNull();
   });
 });
 
