@@ -219,10 +219,13 @@ function AttrTile({
   match: MatchLevel;
   index: number;
   /**
-   * The guess's region bucket, country tiles only. A near tile names it on a
-   * second line: "~" says the player is warm, and the name says which of the
-   * game's nine buckets the game means, which is not always the atlas's
-   * (GitHub #187). Absent on rows saved before the field shipped.
+   * The guess's region bucket, country tiles only. A near tile names it in
+   * place of its label: "~" says the player is warm, and the name says which
+   * of the game's nine buckets the game means, which is not always the
+   * atlas's (GitHub #187). It takes the label's line rather than a line of
+   * its own, so every tile in every row stands the same height — a second
+   * line on one tile stretched its three siblings and the whole row (#202).
+   * Absent on rows saved before the field shipped.
    */
   region?: Region;
 }) {
@@ -231,7 +234,7 @@ function AttrTile({
     <div
       className={`attr-tile attr-tile--revealed attr-tile--${match}`}
       style={{ "--i": index } as React.CSSProperties}
-      title={`${label}: ${value} (${match})`}
+      title={`${label}: ${value} (${match}${near ? `, ${near}` : ""})`}
     >
       {/* Hit / near / miss used to be background colour and nothing else, which
           left a player who can't separate the green from the mustard with no
@@ -243,10 +246,11 @@ function AttrTile({
         <span className="attr-tile__mark" aria-hidden="true">
           {MATCH_MARKS[match]}
         </span>
-        <span className="attr-tile__label-text">{label}</span>
+        <span className={`attr-tile__label-text${near ? " attr-tile__label-text--region" : ""}`}>
+          {near ?? label}
+        </span>
       </span>
       <span className="attr-tile__value">{value}</span>
-      {near && <span className="attr-tile__region">{near}</span>}
       <span className="sr-only">
         {MATCH_WORDS[match]}
         {near ? ` (${near})` : ""}

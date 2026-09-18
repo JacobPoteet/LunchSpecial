@@ -568,19 +568,15 @@
   white-space: nowrap;
 }
 
-/* The region under a near country tile (GitHub #187): the bucket the game
-   means, in the tile's own ink at the label's size. Only a near tile has one,
-   so that row's tiles stand a line taller than a row without: the grid
-   stretches its siblings to match, and the extra height is the one tile in
-   the row worth a second look. */
-.attr-tile__region {
-  display: block;
-  font-size: 0.62rem;
-  line-height: 1.2;
-  margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* The region on a near country tile (GitHub #187) takes the label's line:
+   "~ Europe" where the other rows read "~ Country". It used to sit on a line
+   of its own under the value, and one tile a line taller stretched the three
+   beside it and made that row stand out from every other (#202). Same size
+   and ink as the label it replaces; the tracking comes off because "Southeast
+   Asia" at 0.12em is wider than a 320px tile, and it still ellipsizes like
+   the label does. The sr-only verdict carries the whole name. */
+.attr-tile__label-text--region {
+  letter-spacing: 0.03em;
 }
 
 .chips {
