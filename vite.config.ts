@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { cloudflare } from "@cloudflare/vite-plugin";
-import type { BuildInfo } from "./shared/build";
+import type { BuildInfo } from "./shared/build.ts";
 
 /**
  * One git command, or "" if it can't be answered. Nothing here may throw: a
