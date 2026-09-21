@@ -8,17 +8,17 @@
 //
 // It used to be a fixed badge in the bottom-right corner, above the modals, so
 // that a screenshot of the check carried it too. On a phone that badge covered
-// the bottom of the check and a third of the footer's width, so it is now one
-// line of the page footer, beside the byline, and prints the version rather
-// than the sha (shared/build.ts, `buildVersion`). The full label with the
+// the bottom of the check and a third of the footer's width, so it is now the
+// last line of the page footer, under the links (the byline is the author's
+// line and stays theirs), and prints the version rather than the sha (shared/build.ts, `buildVersion`). The full label with the
 // commit lives on the admin's own footer, where "did that deploy land" is asked.
 
 import { buildTitle, buildVersion } from "../../shared/build";
 
 export function BuildTag() {
   return (
-    <span className="footer-note__build" title={buildTitle(__BUILD__)}>
+    <p className="footer-note__build" title={buildTitle(__BUILD__)}>
       {buildVersion(__BUILD__)}
-    </span>
+    </p>
   );
 }

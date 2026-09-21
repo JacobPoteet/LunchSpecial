@@ -579,12 +579,11 @@ function BarScene({ children }: { children: React.ReactNode }) {
           in this place, not a second product, so the credit under it doesn't
           change when the lights do. */}
       <footer className="footer-note">
-        <p>
-          Created by <b>Jacob Poteet</b> · <BuildTag />
-        </p>
+        <p>Created by <b>Jacob Poteet</b></p>
         <p className="footer-note__links">
           <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/press">Press</a>
         </p>
+        <BuildTag />
       </footer>
     </div>
   );

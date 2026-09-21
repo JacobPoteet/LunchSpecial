@@ -1052,12 +1052,11 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
       </main>
 
       <footer className="footer-note">
-        <p>
-          Created by <b>Jacob Poteet</b> · <BuildTag />
-        </p>
+        <p>Created by <b>Jacob Poteet</b></p>
         <p className="footer-note__links">
           <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/press">Press</a>
         </p>
+        <BuildTag />
       </footer>
 
       {showSpotlight && <CoachSpotlight />}

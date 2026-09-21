@@ -2091,16 +2091,17 @@ textarea.dish-request__input {
   text-decoration: underline;
 }
 
-/* The build marker (src/game/BuildTag.tsx), one span in the footer line
-   beside the byline. Monospace so a version reads as a version; it inherits
-   the footer's colour and size, which keeps it from competing with the
-   credit. It used to be a fixed badge above the modals, which on a phone
-   covered the bottom of the check. */
+/* The build marker (src/game/BuildTag.tsx), the footer's last line, under the
+   links. Monospace so a version reads as a version, a step smaller and dimmer
+   than the credit above it so it never competes with the byline. It used to be
+   a fixed badge above the modals, which on a phone covered the bottom of the
+   check. */
 .footer-note__build {
+  margin-top: 6px;
   font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  font-size: 0.92em;
-  letter-spacing: 0.03em;
-  white-space: nowrap;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  opacity: 0.75;
 }
 
 /* ---- animations (issue #7) ----
