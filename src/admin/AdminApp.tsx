@@ -181,13 +181,6 @@ export default function AdminApp() {
               >
                 Clock out
               </button>
-              {/* Always on, unlike the player-facing marker: this is the back
-                  office, it has no screenshot to keep clean, and "did that
-                  deploy actually land" is a question you ask here. The title
-                  carries the full sha and the build time. */}
-              <span className="admin-nav__build" title={buildTitle(__BUILD__)}>
-                {buildLabel(__BUILD__)}
-              </span>
             </nav>
           )}
         </header>
@@ -229,6 +222,14 @@ export default function AdminApp() {
             {filing && <IssueComposer context={filing} onClose={() => setFiling(null)} />}
           </>
         )}
+        {/* The full label, sha included, on every screen of the back office —
+            "did that deploy actually land" is a question you ask here, and the
+            sha is the answer. At the bottom rather than in the nav: the nav
+            wraps on a narrow window and a marker in it landed in a different
+            place on every panel. The title carries the full sha and build time. */}
+        <footer className="admin__build" title={buildTitle(__BUILD__)}>
+          {buildLabel(__BUILD__)}
+        </footer>
       </div>
     </div>
   );
