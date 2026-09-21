@@ -341,6 +341,8 @@ shared/sample.ts      Wilson intervals, SMALL_SAMPLE_MIN, weighted median/percen
 shared/attribution.ts utm_source normaliser + SOURCE_DIRECT
 shared/experiment.ts  before/after comparison — windowing, pooled rates, verdicts, "how many more days"
 shared/dishfilter.ts  admin dish-list query — facet matching, facet counts, rest days, sorts, normalize
+shared/search.ts      name search — accent folding and prefix-before-contains ranking, one copy for
+                      the order bar and the schedule picker
 shared/schedule.ts    the admin specials board — schedule window × catalogue → rows with dish meta,
                       nearest-other-serving gap; board gap summary; name → dish; picker search
 shared/activity.ts    activity feed (rounds + arrivals + day totals → round states, durations, visits)
@@ -426,6 +428,7 @@ scripts/build-assets.mjs  one build for every generated image (icons / press+Dis
 - **Feedback:** ingredient set intersection + 4 attribute tiles. Country: hit = same country, near = same `region`, miss. Course / temperature / protein: hit|miss.
 - **A near country tile names its region** (`attributes.country.region`, the *guess's* bucket, labelled through `REGION_LABELS`), **in place of the tile's label** (`~ Europe` where the other rows read `~ Country`) and in the sr-only verdict, because the nine buckets are the game's and not the atlas's. `region` is optional on the wire only so rows saved before it shipped still render. **Never on a line of its own**: one tile a line taller stretches the three beside it and every tile in every row has to stand the same height.
 - **The order bar shows the country beside each name and never searches it.** `DishPoolEntry` / `DrinkPoolEntry` carry `country`; `GuessInput` matches on `name` alone and takes the handle as a `hint` render prop. Searching it is the `<datalist>` mistake the schedule picker already made.
+- **Names that start with the query come before names that contain it**, in the order bar and the schedule picker alike, through the one fold `rankByName` in `shared/search.ts` (case and accents folded). A contains filter over a name-sorted catalogue put "Shepherd's Pie" above "Pho" for "p" (#204). Don't re-implement the search in a component.
 - **Reveal is client-initiated after game over** (Wordle trust model — don't "fix" this).
 - **Unscheduled date** → deterministic FNV-hash pick from active dishes, so the game never 404s.
 

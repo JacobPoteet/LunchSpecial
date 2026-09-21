@@ -6,14 +6,8 @@ import type { DishSummary, DrinkGuessFeedback, DrinkSummary, GuessFeedback, Matc
 import { REGION_LABELS } from "../../shared/types";
 import { MATCH_MARKS, MATCH_WORDS } from "../../shared/announce";
 import { gameToday, hms, msUntilGameMidnight } from "../../shared/time";
+import { rankByName } from "../../shared/search";
 import { playSfx, setMuffled } from "../audio";
-
-// Strip diacritics so accented dish names (Crème Brûlée) are searchable from an
-// English keyboard ("creme brulee"). NFD splits a letter from its combining
-// accent, then we drop the accent marks.
-function foldAccents(s: string): string {
-  return s.normalize("NFD").replace(/\p{Diacritic}/gu, "");
-}
 
 function prefersReducedMotion(): boolean {
   return (
@@ -446,13 +440,12 @@ export function GuessInput<T extends { id: number; name: string }>({
   // measured this list open rather than clicked through (GitHub #179).
   const listId = useId();
 
-  const options = useMemo(() => {
-    const q = foldAccents(text.trim().toLowerCase());
-    if (!q) return [];
-    return dishes
-      .filter((d) => !excludeIds.has(d.id) && foldAccents(d.name.toLowerCase()).includes(q))
-      .slice(0, 8);
-  }, [text, dishes, excludeIds]);
+  // Prefix matches first, then the rest (GitHub #204): a plain contains filter
+  // over a catalogue sorted by name put "Shepherd's Pie" above "Pho" for "p".
+  const options = useMemo(
+    () => rankByName(text, dishes.filter((d) => !excludeIds.has(d.id)), 8),
+    [text, dishes, excludeIds],
+  );
 
   useEffect(() => {
     setHighlight(0);

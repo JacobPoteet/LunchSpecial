@@ -24,6 +24,7 @@
 import type { AdminDishRow, Course, Region, ScheduleEntry } from "./types";
 import { COURSES, REGION_LABELS } from "./types";
 import { daysBetween } from "./time";
+import { rankByName } from "./search";
 
 /**
  * The anti-repeat window, mirroring the one autofill enforces in
@@ -227,33 +228,21 @@ export function resolveDishName(name: string, dishes: AdminDishRow[]): AdminDish
 export const DISH_MATCH_LIMIT = 8;
 
 /**
- * Dishes whose **name** contains the query, best first: names that start with it
- * ahead of names that merely contain it, each group keeping the order it came in
- * (the dishes route sorts by name, so that is alphabetical).
+ * The picker's suggestions: `rankByName` (shared/search.ts) over the catalogue,
+ * except that an empty query offers the head of the catalogue rather than
+ * nothing, so focusing the field shows what the control does.
  *
  * Name only, on purpose. This replaced a native `<datalist>`, which searches
- * every scrap of text in an option — so listing the country beside a dish meant
+ * every scrap of text in an option, so listing the country beside a dish meant
  * typing three letters matched a country and the list filled with dishes whose
  * names had nothing to do with what you typed. The country still shows on each
  * suggestion; it just isn't what you're searching.
- *
- * An empty query offers the head of the catalogue rather than nothing, so
- * focusing the field shows what the control does.
  */
 export function matchDishes(
   query: string,
   dishes: AdminDishRow[],
   limit: number = DISH_MATCH_LIMIT,
 ): AdminDishRow[] {
-  const key = query.trim().toLowerCase();
-  if (key === "") return dishes.slice(0, limit);
-  const starts: AdminDishRow[] = [];
-  const contains: AdminDishRow[] = [];
-  for (const dish of dishes) {
-    const name = dish.name.toLowerCase();
-    const at = name.indexOf(key);
-    if (at === 0) starts.push(dish);
-    else if (at > 0) contains.push(dish);
-  }
-  return [...starts, ...contains].slice(0, limit);
+  if (query.trim() === "") return dishes.slice(0, limit);
+  return rankByName(query, dishes, limit);
 }
