@@ -6,17 +6,19 @@
 // switch it on first. So it is always on, everywhere, the way a game's build ID
 // sits in the corner of the title screen.
 //
-// It is fixed rather than in the page flow (see .build-tag in game.css) so a
-// screenshot of the check carries it too, and `aria-hidden` because to a player
-// it is not content — it's a fact about the bundle, addressed to whoever is
-// looking at the picture later.
+// It used to be a fixed badge in the bottom-right corner, above the modals, so
+// that a screenshot of the check carried it too. On a phone that badge covered
+// the bottom of the check and a third of the footer's width, so it is now the
+// last line of the page footer, under the links (the byline is the author's
+// line and stays theirs), and prints the version rather than the sha (shared/build.ts, `buildVersion`). The full label with the
+// commit lives on the admin's own footer, where "did that deploy land" is asked.
 
-import { buildLabel } from "../../shared/build";
+import { buildTitle, buildVersion } from "../../shared/build";
 
 export function BuildTag() {
   return (
-    <p className="build-tag" aria-hidden="true">
-      {buildLabel(__BUILD__)}
+    <p className="footer-note__build" title={buildTitle(__BUILD__)}>
+      {buildVersion(__BUILD__)}
     </p>
   );
 }

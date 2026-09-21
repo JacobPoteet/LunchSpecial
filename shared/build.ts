@@ -73,6 +73,21 @@ export function buildLabel(b: BuildInfo): string {
 }
 
 /**
+ * The version alone: `v1.7.0`, or the branch, with the dirty `*` kept. This is
+ * what the player-facing footer prints, beside the byline. The sha is left off
+ * on purpose: on a phone the full label ran to a third of the footer's width
+ * and the fixed badge it used to sit in covered the bottom of the check. A
+ * screenshot still says which release it was; the exact commit is what the
+ * release tag resolves to, and the admin's line carries the sha for the cases
+ * where "which deploy" is the question.
+ */
+export function buildVersion(b: BuildInfo): string {
+  const ref = shortRef(b.ref) || shortCommit(b.commit);
+  if (!ref) return "dev";
+  return b.dirty ? `${ref}*` : ref;
+}
+
+/**
  * The longer form, for somewhere with room for it: the full sha and the build
  * time. Used as the admin line's `title`, where a hover is available and the
  * exact commit is what you'd paste into `git show`.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLabel, buildTitle, shortCommit, UNKNOWN_BUILD, REF_MAX, type BuildInfo } from "./build";
+import { buildLabel, buildTitle, buildVersion, shortCommit, UNKNOWN_BUILD, REF_MAX, type BuildInfo } from "./build";
 
 const info = (over: Partial<BuildInfo> = {}): BuildInfo => ({ ...UNKNOWN_BUILD, ...over });
 
@@ -51,6 +51,21 @@ describe("buildLabel", () => {
   it("truncates a long branch so the badge can't grow across the board", () => {
     const label = buildLabel(info({ ref: "j".repeat(60), commit: "c61d712a9f3b" }));
     expect(label).toBe(`${"j".repeat(REF_MAX - 1)}… · c61d712`);
+  });
+});
+
+describe("buildVersion", () => {
+  it("names the tag and leaves the sha off", () => {
+    expect(buildVersion(info({ ref: "v1.7.0", commit: "c61d712a9f3b" }))).toBe("v1.7.0");
+  });
+
+  it("keeps the dirty mark, which is still the thing worth seeing in a clip", () => {
+    expect(buildVersion(info({ ref: "main", commit: "c61d712a9f3b", dirty: true }))).toBe("main*");
+  });
+
+  it("falls back to the sha when there is no ref, and to dev when there is nothing", () => {
+    expect(buildVersion(info({ commit: "c61d712a9f3b" }))).toBe("c61d712");
+    expect(buildVersion(UNKNOWN_BUILD)).toBe("dev");
   });
 });
 

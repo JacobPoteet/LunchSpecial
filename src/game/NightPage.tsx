@@ -556,7 +556,6 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
           onClose={() => setShowTab(false)}
         />
       )}
-      <BuildTag />
     </BarScene>
   );
 }
@@ -584,6 +583,7 @@ function BarScene({ children }: { children: React.ReactNode }) {
         <p className="footer-note__links">
           <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/press">Press</a>
         </p>
+        <BuildTag />
       </footer>
     </div>
   );

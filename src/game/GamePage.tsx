@@ -1056,6 +1056,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         <p className="footer-note__links">
           <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/press">Press</a>
         </p>
+        <BuildTag />
       </footer>
 
       {showSpotlight && <CoachSpotlight />}
@@ -1107,10 +1108,6 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           onClose={() => setShowResult(false)}
         />
       )}
-
-      {/* Last in the scene and fixed to a corner, so a screenshot of the check
-          carries it too. */}
-      <BuildTag />
     </div>
   );
 }
