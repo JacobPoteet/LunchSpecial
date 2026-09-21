@@ -2092,8 +2092,10 @@ textarea.dish-request__input {
 }
 
 /* The build marker (src/game/BuildTag.tsx), the footer's last line, under the
-   links. Monospace so a version reads as a version, a step smaller and dimmer
-   than the credit above it so it never competes with the byline. It used to be
+   links. Monospace so a version reads as a version, a step smaller than the
+   credit above it so it never competes with the byline. Smaller, not dimmer:
+   the footer's cream is already at 0.62 for exactly 5.23:1 (see .footer-note),
+   and an opacity on top of that measured 3.61 in the a11y scan. It used to be
    a fixed badge above the modals, which on a phone covered the bottom of the
    check. */
 .footer-note__build {
@@ -2101,7 +2103,6 @@ textarea.dish-request__input {
   font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   font-size: 0.68rem;
   letter-spacing: 0.06em;
-  opacity: 0.75;
 }
 
 /* ---- animations (issue #7) ----
