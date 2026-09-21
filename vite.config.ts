@@ -22,11 +22,17 @@ function git(...args: string[]): string {
  * screen by src/game/BuildTag.tsx and the admin nav.
  *
  * CI's environment is read *first*, and that ordering is the load-bearing part:
- * actions/checkout is shallow and carries no tags, so `git describe` there
- * would either fail or name the wrong thing, while GITHUB_REF_NAME is exactly
- * the tag that triggered the deploy. A local build has no such variables and
- * falls through to git. Neither is available in some sandboxes, and that's a
- * supported state too — see shared/build.ts.
+ * a default actions/checkout is shallow and carries no tags, so `git describe`
+ * there would either fail or name the wrong thing, while GITHUB_REF_NAME is
+ * exactly the tag that triggered the deploy. A local build has no such
+ * variables and falls through to git. Neither is available in some sandboxes,
+ * and that's a supported state too — see shared/build.ts.
+ *
+ * The version is the one field that is NOT simply the ref. GITHUB_REF_NAME is
+ * a tag on a tag push and a branch on a manual dispatch, and the branch is
+ * what production printed for a week. So the ref is only taken as the version
+ * when it looks like one, and otherwise the nearest `v*` tag behind HEAD is
+ * asked for — which is why deploy.yml checks out the full history.
  *
  * Read once, when vite loads this config. Under `npm run dev` that means the
  * value is fixed at server start and a commit made mid-session won't show up
@@ -34,9 +40,11 @@ function git(...args: string[]): string {
  */
 function buildInfo(): BuildInfo {
   const ci = process.env.GITHUB_SHA ?? "";
+  const ref = process.env.GITHUB_REF_NAME || git("rev-parse", "--abbrev-ref", "HEAD");
   return {
     commit: ci || git("rev-parse", "HEAD"),
-    ref: process.env.GITHUB_REF_NAME || git("rev-parse", "--abbrev-ref", "HEAD"),
+    version: /^v\d/.test(ref) ? ref : git("describe", "--tags", "--abbrev=0", "--match", "v*"),
+    ref,
     time: `${new Date().toISOString().slice(0, 16)}Z`,
     // A CI checkout is clean by construction, and asking git would cost a
     // subprocess to be told so. Untracked files don't count: a stray backup or

@@ -20,7 +20,13 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
+      # Full history, not the shallow default: the build marker names the
+      # nearest v* tag behind HEAD (vite.config.ts), and a deploy dispatched
+      # by hand from a branch has to be able to find it. A tag push carries
+      # the tag in GITHUB_REF_NAME regardless.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v7
         with:
