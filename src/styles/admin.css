@@ -1185,6 +1185,49 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The pooled "Elsewhere" wedge stays one slice — a sliver thinner than its own
+   border buys nothing — but its legend row expands in place to name every
+   country it's standing in for. */
+.cpie__expand-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.cpie__expand-btn:hover,
+.cpie__expand-btn:focus-visible { color: var(--teal); }
+
+.cpie__caret { font-size: 0.7rem; color: var(--ink-soft); }
+
+.cpie__sublist {
+  grid-column: 1 / -1;
+  list-style: none;
+  margin: 4px 0 2px;
+  padding: 6px 0 0 19px;
+  border-top: 1px dashed var(--paper-edge);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.cpie__subrow {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+.cpie__subrow .cpie__name { color: var(--ink); flex: 1 1 auto; }
+.cpie__subrow .cpie__detail { color: var(--ink-soft); font-size: 0.76rem; flex: none; }
+
 /* The all-time strip trails a full day's worth of charts now — give it air. */
 .analytics-block + .dash-subhead { margin-top: 22px; }
 
