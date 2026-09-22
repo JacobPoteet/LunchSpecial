@@ -505,6 +505,17 @@ interface Slice {
 }
 
 /**
+ * The entries pooled into the "Elsewhere" slice — everything past the head plus
+ * every country with rounds but no attributed device. Split out from
+ * {@link toSlices} so the legend can list them individually on request without
+ * re-deriving the same cut.
+ */
+function tailEntries(entries: CountryUsage[]): CountryUsage[] {
+  const ranked = entries.filter((e) => e.players > 0);
+  return [...ranked.slice(MAX_COUNTRY_SLICES), ...entries.filter((e) => e.players === 0)];
+}
+
+/**
  * Cut the mix into at most {@link MAX_COUNTRY_SLICES} slices plus a pooled tail.
  *
  * A country with rounds but no attributed device (a client too old to send one)
@@ -514,7 +525,7 @@ interface Slice {
 function toSlices(entries: CountryUsage[]): Slice[] {
   const ranked = entries.filter((e) => e.players > 0);
   const head = ranked.slice(0, MAX_COUNTRY_SLICES);
-  const tail = [...ranked.slice(MAX_COUNTRY_SLICES), ...entries.filter((e) => e.players === 0)];
+  const tail = tailEntries(entries);
   const slices: Slice[] = head.map((e, i) => ({
     key: e.code,
     label: countryName(e.code),
@@ -714,10 +725,19 @@ function SourceTable({ mix }: { mix: SourceMix }) {
  * 3. **Untracked rounds are stated, never drawn.** Rounds recorded before the
  *    country column carry no country; folding them in would invent a place, and
  *    dropping them silently would overstate every real slice.
+ *
+ * The pooled tail stays a single wedge — a slice thinner than its own border
+ * buys nothing — but the *legend* row for it expands in place to the full list
+ * of countries it's standing in for, each with the same player/round counts the
+ * head rows show. `mix.entries` already carries every country the fold saw
+ * (worker/countries.ts sorts the whole thing, not just the head), so this is a
+ * display-only reveal — no extra fetch, and the total the pie draws never moves.
  */
 function CountryPie({ mix }: { mix: CountryMix }) {
   const slices = toSlices(mix.entries);
+  const tail = tailEntries(mix.entries);
   const total = slices.reduce((n, s) => n + s.players, 0);
+  const [expanded, setExpanded] = useState(false);
   const size = 180;
   const c = size / 2;
   const r = c - 2;
@@ -761,17 +781,47 @@ function CountryPie({ mix }: { mix: CountryMix }) {
         )}
       </svg>
       <ul className="cpie__legend">
-        {drawn.map((s) => (
-          <li className="cpie__row" key={s.key}>
-            <span className={`cpie__dot cpie__dot--${s.rank < 0 ? "rest" : s.rank}`} />
-            <span className="cpie__name">{s.label}</span>
-            <span className="cpie__share">{pct(s.players, total)}%</span>
-            <span className="cpie__detail">
-              {s.players} player{s.players === 1 ? "" : "s"} · {s.rounds} round
-              {s.rounds === 1 ? "" : "s"}
-            </span>
-          </li>
-        ))}
+        {drawn.map((s) => {
+          const isRest = s.key === "__rest";
+          return (
+            <li className={`cpie__row${isRest ? " cpie__row--rest" : ""}`} key={s.key}>
+              <span className={`cpie__dot cpie__dot--${s.rank < 0 ? "rest" : s.rank}`} />
+              {isRest ? (
+                <button
+                  type="button"
+                  className="cpie__name cpie__expand-btn"
+                  onClick={() => setExpanded((v) => !v)}
+                  aria-expanded={expanded}
+                >
+                  {s.label}
+                  <span className="cpie__caret" aria-hidden="true">
+                    {expanded ? "▾" : "▸"}
+                  </span>
+                </button>
+              ) : (
+                <span className="cpie__name">{s.label}</span>
+              )}
+              <span className="cpie__share">{pct(s.players, total)}%</span>
+              <span className="cpie__detail">
+                {s.players} player{s.players === 1 ? "" : "s"} · {s.rounds} round
+                {s.rounds === 1 ? "" : "s"}
+              </span>
+              {isRest && expanded && (
+                <ul className="cpie__sublist">
+                  {tail.map((e) => (
+                    <li className="cpie__subrow" key={e.code}>
+                      <span className="cpie__name">{countryName(e.code)}</span>
+                      <span className="cpie__detail">
+                        {e.players} player{e.players === 1 ? "" : "s"} · {e.rounds} round
+                        {e.rounds === 1 ? "" : "s"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
