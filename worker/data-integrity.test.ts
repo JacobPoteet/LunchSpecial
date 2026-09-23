@@ -225,6 +225,7 @@ const COUNTRY_ALIASES: Record<string, string[]> = {
   bermuda: ["bermuda", "bermudian"],
   barbados: ["barbados", "barbadian", "bajan"],
   pakistan: ["pakistan", "pakistani"],
+  ecuador: ["ecuador", "ecuadorian"],
 };
 
 /**
