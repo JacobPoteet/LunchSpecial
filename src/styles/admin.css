@@ -577,78 +577,6 @@
 .metric--player-new { border-left-color: var(--cherry); }
 .metric--player-returning { border-left-color: var(--teal); }
 
-/* Two-line new-vs-returning players chart. */
-.pchart { width: 100%; }
-
-.pchart__legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-  margin-bottom: 8px;
-  font-size: 0.7rem;
-  color: var(--ink-soft);
-}
-
-.pchart__legend-item { display: inline-flex; align-items: center; gap: 6px; }
-
-.pchart__swatch {
-  width: 14px;
-  height: 3px;
-  border-radius: 2px;
-  display: inline-block;
-}
-.pchart__swatch--new { background: var(--cherry); }
-.pchart__swatch--returning { background: var(--teal); }
-
-/* The "not tracked" key: a hatch, so it reads as absence rather than a third series. */
-.pchart__swatch--untracked {
-  height: 10px;
-  background: repeating-linear-gradient(
-    -45deg,
-    rgba(27, 79, 74, 0.28) 0 1px,
-    transparent 1px 4px
-  );
-  border: 1px solid rgba(27, 79, 74, 0.22);
-}
-
-.pchart__svg {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-.pchart__grid { stroke: rgba(27, 79, 74, 0.18); stroke-width: 1; }
-
-.pchart__axis {
-  fill: var(--ink-soft);
-  font-family: var(--font-body);
-  font-size: 11px;
-}
-
-.pchart__line { stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
-.pchart__line--new { stroke: var(--cherry); }
-.pchart__line--returning { stroke: var(--teal); }
-
-.pchart__dot--new { fill: var(--cherry); }
-.pchart__dot--returning { fill: var(--teal); }
-
-/* Span before player tracking shipped: hatched, with no line drawn over it. The
-   metric didn't exist those days, and a flat line at 0 would claim it did. */
-.pchart__hatch { stroke: rgba(27, 79, 74, 0.3); stroke-width: 1; }
-
-.pchart__boundary {
-  stroke: rgba(27, 79, 74, 0.5);
-  stroke-width: 1;
-  stroke-dasharray: 3 3;
-}
-
-.pchart__untracked-label {
-  fill: var(--ink-soft);
-  font-family: var(--font-body);
-  font-size: 10px;
-  letter-spacing: 0.04em;
-}
-
 /* All-time cumulative games-played chart, with its constant-pace reference line. */
 .gchart { width: 100%; }
 
@@ -3508,3 +3436,146 @@
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
+
+/* ---- Audience reads (weekly KPI, weekly active, cohorts, first visits) ----- */
+
+/* New vs returning keep the colours the player tiles and the old daily line
+   chart already gave them: cherry new, teal returning. No new meaning. */
+.wkpi__dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  vertical-align: baseline;
+}
+.wkpi__dot--new { background: var(--cherry); }
+.wkpi__dot--returning { background: var(--teal); }
+
+.wkpi {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.wkpi__col {
+  background: rgba(27, 79, 74, 0.06);
+  border-radius: var(--radius-paper);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.wkpi__col--lead { background: rgba(232, 165, 58, 0.14); }
+
+.wkpi__label {
+  font-family: var(--font-gothic);
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.wkpi__num {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  line-height: 1.1;
+  color: var(--teal);
+}
+
+.wkpi__split,
+.wkpi__change { font-size: 0.85rem; color: var(--ink); }
+
+/* Direction is carried by the arrow glyph and the verdict text; the weight is
+   only emphasis, so nothing here is colour alone. */
+.wkpi__change--up,
+.wkpi__change--down { font-weight: 700; }
+
+.wkpi__verdict {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.wau-legend {
+  display: flex;
+  gap: 14px;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+
+/* Value labels and ticks are absolutely placed, with the track's padding
+   reserving their room: in the flow they would steal height from the bar. */
+.wau {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  height: 150px;
+  padding: 16px 0 18px;
+}
+
+.wau__col {
+  flex: 1;
+  position: relative;
+}
+
+.wau__col--partial .wau__bar { opacity: 0.45; }
+
+.wau__bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 2px 2px 0 0;
+  overflow: hidden;
+}
+
+.wau__seg { display: block; width: 100%; }
+.wau__seg--new { background: var(--cherry); }
+.wau__seg--returning { background: var(--teal); }
+
+.wau__num {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin-bottom: 2px;
+  text-align: center;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.wau__tick {
+  position: absolute;
+  left: 50%;
+  bottom: -16px;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.cohort td,
+.cohort th { text-align: center; }
+.cohort__cell { font-size: 0.8rem; }
+.cohort__cell--open { background: repeating-linear-gradient(135deg, transparent 0 4px, rgba(27, 79, 74, 0.07) 4px 6px); }
+.cohort__row--small td { color: var(--ink-soft); }
+
+.arrivals td { position: relative; }
+.arrivals td:first-child { white-space: nowrap; }
+.arrivals__bar {
+  position: absolute;
+  left: 0;
+  bottom: 2px;
+  height: 3px;
+  background: var(--teal);
+  border-radius: 2px;
+  opacity: 0.55;
+}
+.arrivals__pct { font-weight: 700; }
+.arrivals__na { color: var(--ink-soft); font-size: 0.8rem; }
+.arrivals .rate-range { display: inline; margin-left: 4px; }

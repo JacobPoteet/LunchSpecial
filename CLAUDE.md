@@ -318,6 +318,8 @@ worker/dishstats.ts   per-dish performance (win rate / guesses / DNF / shares)
 worker/experiments.ts all-time daily series (zero-filled raw per-ET-day rows)
 worker/funnel.ts      player funnel (per-device stages)
 worker/players.ts     repeat visits (foldRetention)
+worker/audience.ts    weekly active devices, the last-7-days KPI, weekly cohorts, and the arrival
+                      funnel split first visit / returning — every surface's slice in one payload
 worker/pastrounds.ts  one device's finished daily rounds → one outcome per past date, for the calendar
 worker/device.ts      one device's rows, the review shown before a wipe
 worker/shuffle.ts     the unserved-dish pick behind the Tomorrow's Special shuffle
@@ -381,7 +383,7 @@ worker/routes/admin/      /api/admin/*, one sub-app per concern, mounted by inde
                           LOAD-BEARING: auth.ts (login/logout/session) goes above the session guard,
                           everything else below it. dishes.ts (+ ingredients), schedule.ts (+ autofill,
                           shuffle, preview), requests.ts, announcements.ts, analytics.ts (dashboard,
-                          menu-mix, analytics, dish-report), experiments.ts, activity.ts (recent-rounds,
+                          menu-mix, analytics, audience, dish-report), experiments.ts, activity.ts (recent-rounds,
                           device-data), issues.ts, bar.ts (drinks, nights, drink-preview, showcase,
                           night-report). shared.ts holds slugify + surfaceClause, the two helpers more
                           than one file reads
@@ -410,6 +412,8 @@ src/game/             GamePage (orchestrator), Icon.tsx (the icon set; no emoji 
                       BuildTag.tsx (the always-on build marker, the footer's last line)
 src/admin/            BarView (drink list + editor + nightly board), AfterDarkPanel (the 7th tab)
 src/admin/            AdminApp (session+nav), api.ts, IssueComposer, Dashboard (7 tabs), OverviewPanel, DishReportPanel,
+                      SpecialDayPanel (Menu's day slice + difficulty, the day picker's home),
+                      AudiencePanels (weekly KPI, weekly chart, cohort grid, first-visit funnel),
                       MenuMixPanel, PlayersPanel, TrendsPanel, ExperimentsPanel, ActivityPanel
                       (+ MyDataPanel), RequestsView, AnnouncementsPanel, analyticsUi.tsx, DayPicker,
                       DishList, DishEditor, ScheduleView
@@ -541,9 +545,15 @@ No colour is ever assigned to a player. Following one device in the activity fee
 
 ### Dashboard tabs
 
-Six tabs, each holding one **question** rather than one data source. **Today** (what's live, what's booked, today's service) · **Menu** (what we serve and how it lands) · **Players** (who's playing) · **Trends** (time only) · **Experiments** (did anything we did cause any of it) · **Activity** (the raw feed). The URL mirrors the tab in `?tab=`; Today's key is `today`. Every tab is surface-aware; **Menu is the mixed case**, where the toggle governs the dish report and not the catalogue mix, which the panel says out loud.
+Seven tabs, each holding one **question** rather than one data source. **Today** (the last 7 days' active devices, what's live, what's booked, today's service) · **Menu** (how the Special played, how hard the puzzle runs, every dish, the mix) · **Players** (who's playing: totals, the funnel, first visits against regulars, cohorts, repeat visits, sources, countries) · **After Dark** · **Trends** (time only, led by devices per week) · **Experiments** (did anything we did cause any of it) · **Activity** (the raw feed). The URL mirrors the tab in `?tab=`; Today's key is `today`. Every tab is surface-aware; **Menu is the mixed case**, where the toggle governs the dish report and not the catalogue mix, which the panel says out loud.
 
-The engagement panel's day slice defaults to today, and a 📅 `DayPicker` can swap in any earlier ET day. Only days in `activeDates` are clickable. All-time charts are unaffected by the picked day; the Activity tab has its own day scope over its own `activeDays`, which **include arrival-only days** — a day where everybody bounced recorded no rounds and is exactly the day worth opening.
+- **Puzzle reads live on Menu, audience reads on Players.** The day slice, the guess distribution and time to solve are about the dish, so they sit beside the dish report. Don't move them back onto Players.
+- **The 📅 `DayPicker` lives on Menu only**, and leaving Menu resets it to today (`setTab` in `Dashboard.tsx`). It re-points the shared `/analytics` fetch, and when it lived on Players it silently turned Today's "At a glance" into the picked day. Only days in `activeDates` are clickable. The Activity tab has its own day scope over its own `activeDays`, which **include arrival-only days** — a day where everybody bounced recorded no rounds and is exactly the day worth opening.
+- **`/api/admin/audience` (`worker/audience.ts`) is the one place "active" is defined: a device that started a round.** Not one that opened a board, because the visit beacon is weeks younger than `player_id` and an arrival-based count would step up the day it shipped. It returns every surface's slice in one payload, because the KPI row and the first-visit funnel print web and Discord **side by side** rather than behind the toggle; the weekly chart and the cohort grid follow the toggle by picking a slice.
+- **The KPI compares the last 7 complete days with the 7 before, and today is never in it** (a part-day reads as a drop every morning). The change is judged by `countChange` in `shared/sample.ts` (two Poisson counts, 1.96σ), which errs toward "noise" because consecutive weeks share their regulars.
+- **The cohort grid and the weekly chart never print a zero for a week that hasn't finished.** A cohort cell is null until that week's Sunday is behind today; the running week's column is drawn faded and labelled "so far". The first tracked week is flagged, because its "new" includes everyone who played before `player_id` existed.
+- **The first-visit funnel exists because the pooled one hides the web's bounce.** Regulars nearly always guess and first-timers often don't, so a pooled play rate describes neither. Its "back within 7 days" is censored like every return rate, and the sentence comparing guessed against bounced first-timers says out loud that it's a correlation.
+- **Trends leads with devices per week, not the running total.** A running total can only climb and reads as growth in a week fewer people played.
 
 ### Dish list filters (admin Dishes page)
 

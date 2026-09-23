@@ -1,4 +1,4 @@
-// /api/admin/dashboard, /menu-mix, /analytics and /dish-report: the reads
+// /api/admin/dashboard, /menu-mix, /analytics, /audience and /dish-report: the reads
 // behind the Today, Menu, Players and Trends tabs. Query here, fold in the
 // module beside each, assert on the fold.
 
@@ -47,6 +47,7 @@ import {
   playersOn,
   type PlayerBucketRow,
 } from "../../players";
+import { foldAudience, type AudienceRoundRow, type AudienceVisitRow } from "../../audience";
 import { assembleMenuMix, type MenuDishRow, type MenuScheduleRow } from "../../menu";
 import { addDays, gameToday, msUntilGameMidnight } from "../../../shared/time";
 
@@ -593,6 +594,39 @@ app.get("/dish-report", async (c) => {
   ]);
   return c.json(
     foldDishStats(roundsRes.results as unknown as DishStatRow[], metaRes.results as unknown as DishMetaRow[]),
+  );
+});
+
+// Weekly active devices, the cohort grid and the first-visit funnel. Not
+// surface-filtered: the fold returns every surface's slice at once, because the
+// KPI row and the first-visit funnel print web and Discord side by side. See
+// worker/audience.ts. Named for what it is, and nothing a blocker matches on.
+app.get("/audience", async (c) => {
+  const [roundsRes, visitsRes, trackingRes] = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `SELECT player_id, surface, strftime('%Y-%m-%d %H', started_at) AS bucket,
+         COUNT(*) AS started,
+         COALESCE(SUM(completed), 0) AS completed,
+         COALESCE(SUM(shared), 0) AS shared
+         FROM analytics_rounds
+         WHERE player_id IS NOT NULL AND started_at IS NOT NULL
+         GROUP BY player_id, surface, bucket`,
+    ),
+    c.env.DB.prepare("SELECT player_id, surface, visit_day FROM analytics_visits"),
+    // The same instrument mark /analytics derives, deliberately unfiltered.
+    c.env.DB.prepare(
+      `SELECT MIN(started_at) AS first_tracked FROM analytics_rounds
+         WHERE player_id IS NOT NULL AND started_at IS NOT NULL`,
+    ),
+  ]);
+  const firstTracked = (trackingRes.results[0] as { first_tracked: string | null } | undefined)?.first_tracked;
+  return c.json(
+    foldAudience(
+      roundsRes.results as unknown as AudienceRoundRow[],
+      visitsRes.results as unknown as AudienceVisitRow[],
+      serverToday(),
+      firstTracked ? etDayOfUtcStamp(firstTracked) : null,
+    ),
   );
 });
 

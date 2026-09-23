@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { DishFilter } from "../../shared/dishfilter";
-import type { AdminDashboard, AnalyticsSummary, ExperimentReport } from "../../shared/types";
+import type { AdminDashboard, AnalyticsSummary, AudienceReport, ExperimentReport } from "../../shared/types";
 import * as api from "./api";
 import type { AdminView } from "./AdminApp";
 import ActivityPanel from "./ActivityPanel";
@@ -10,7 +10,9 @@ import ExperimentsPanel from "./ExperimentsPanel";
 import MenuMixPanel from "./MenuMixPanel";
 import OverviewPanel from "./OverviewPanel";
 import PlayersPanel from "./PlayersPanel";
+import SpecialDayPanel from "./SpecialDayPanel";
 import TrendsPanel from "./TrendsPanel";
+import { WeeklyKpi } from "./AudiencePanels";
 import { SurfaceToggle, type SurfaceFilter } from "./analyticsUi";
 
 /**
@@ -92,7 +94,7 @@ export default function Dashboard({
   /** Jump to the dish list with a filter applied — the Menu tab's charts use it. */
   onOpenDishes: (filter: Partial<DishFilter>) => void;
 }) {
-  const [tab, setTab] = useState<DashboardTab>(tabFromUrl);
+  const [tab, setTabState] = useState<DashboardTab>(tabFromUrl);
 
   const [dash, setDash] = useState<AdminDashboard | null>(null);
   const [dashError, setDashError] = useState<string | null>(null);
@@ -117,6 +119,21 @@ export default function Dashboard({
   // that row in the dish report. Cleared by the report once it has scrolled to
   // it, so re-clicking the same dish highlights it again.
   const [focusDish, setFocusDish] = useState<number | null>(null);
+
+  // Weekly active, cohorts and the first-visit funnel. Every surface comes back
+  // in one payload, so the toggle never refetches it; fetched once, the first
+  // time a tab that reads it opens.
+  const [audience, setAudience] = useState<AudienceReport | null>(null);
+  const [audienceError, setAudienceError] = useState<string | null>(null);
+  const wantsAudience = tab === "today" || tab === "players" || tab === "trends";
+
+  // The day picker lives on Menu and re-points the shared /analytics fetch.
+  // Leaving Menu hands the day back to today, so Today's "At a glance" and the
+  // Players funnel never quietly show a day somebody picked on another tab.
+  const setTab = (next: DashboardTab) => {
+    if (next !== "menu") setDate(null);
+    setTabState(next);
+  };
 
   const [report, setReport] = useState<ExperimentReport | null>(null);
   const [reportError, setReportError] = useState<string | null>(null);
@@ -144,6 +161,19 @@ export default function Dashboard({
       live = false;
     };
   }, [surface, date]);
+
+  useEffect(() => {
+    if (!wantsAudience || audience !== null) return;
+    let live = true;
+    setAudienceError(null);
+    api.getAudience().then(
+      (d) => live && setAudience(d),
+      (e: Error) => live && setAudienceError(e.message),
+    );
+    return () => {
+      live = false;
+    };
+  }, [wantsAudience, audience]);
 
   // The change log, shared by two tabs: Experiments reads all of it, Trends
   // needs only the labels and dates for its chart markers. Fetched here so the
@@ -185,6 +215,7 @@ export default function Dashboard({
         )}
       </div>
 
+      {tab === "today" && <WeeklyKpi data={audience} error={audienceError} />}
       {tab === "today" && (
         <OverviewPanel
           data={dash}
@@ -201,12 +232,19 @@ export default function Dashboard({
           }}
         />
       )}
-      {/* Menu and Activity fetch their own endpoints — mounting them only when
-          their tab is open keeps the dashboard's first paint to two calls.
-          Performance leads the mix: "how did it land" is the read you'd act on,
-          and the composition below is the context it came from. */}
+      {/* The dish report, the menu mix and Activity fetch their own endpoints,
+          so they only run when their tab is open. The Special's day slice
+          leads: "how did today's puzzle land" is the read you'd act on first,
+          then every dish, then the composition they came from. */}
       {tab === "menu" && (
         <>
+          <SpecialDayPanel
+            data={analytics}
+            error={analyticsError}
+            surface={surface}
+            date={date}
+            onPickDate={setDate}
+          />
           <DishReportPanel surface={surface} focusDish={focusDish} onFocused={() => setFocusDish(null)} />
           <MenuMixPanel onOpenDishes={onOpenDishes} />
         </>
@@ -216,8 +254,8 @@ export default function Dashboard({
           data={analytics}
           error={analyticsError}
           surface={surface}
-          date={date}
-          onPickDate={setDate}
+          audience={audience}
+          audienceError={audienceError}
         />
       )}
       {/* Fetches its own endpoint, so it only runs when its tab is open. The
@@ -231,6 +269,8 @@ export default function Dashboard({
           error={analyticsError}
           surface={surface}
           experiments={report?.experiments ?? []}
+          audience={audience}
+          audienceError={audienceError}
         />
       )}
       {tab === "experiments" && (

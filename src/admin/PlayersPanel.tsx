@@ -1,7 +1,7 @@
 import { Fragment, useState } from "react";
 import type {
-  AnalyticsDay,
   AnalyticsSummary,
+  AudienceReport,
   CountryMix,
   CountryUsage,
   FunnelCounts,
@@ -11,38 +11,33 @@ import type {
   RetentionStep,
   SourceMix,
 } from "../../shared/types";
-import { DNF_GRACE_MINUTES, MAX_GUESSES } from "../../shared/types";
+import { DNF_GRACE_MINUTES } from "../../shared/types";
 import { SOURCE_DIRECT } from "../../shared/attribution";
 import { rate, separated } from "../../shared/sample";
-import DayPicker from "./DayPicker";
+import { ArrivalSplit, CohortGrid } from "./AudiencePanels";
 import {
-  GuessBars,
   PlayersRow,
   RangeHint,
   RatesRow,
-  SolveTimeRead,
   StartedByKindRow,
-  avgGuesses,
   countryName,
-  difficultyNote,
   noRoundsNote,
   pct,
   shortDate,
-  sumKinds,
   untrackedNote,
   type SurfaceFilter,
 } from "./analyticsUi";
 
-import { Icon } from "../game/Icon";
 /**
- * The "who is playing, and how are they doing" tab.
+ * The "who is playing" tab, and nothing else: totals, where arrivals drop out,
+ * first visits against regulars, whether new players stick, how they arrived
+ * and where they are.
  *
- * It absorbed the three audience charts that used to sit under Trends — the
- * new-vs-returning lines, the repeat-visit ladder and the country pie. They were
- * filed there because they're drawn over time, but "how many came back" and "is
- * the game growing" are different questions, and splitting the audience across
- * two tabs meant neither tab answered one thing completely. Trends is now purely
- * about time; everything about *people* is here.
+ * How the puzzle played (the day slice, guess distribution, time to solve)
+ * moved to Menu beside the dish report, which asks the same question one dish
+ * at a time. The daily new-vs-returning lines were replaced by the weekly chart
+ * on Trends: at this game's volume a day's split is a handful of people, and
+ * the daily breakdown table there still carries it per day.
  */
 
 /**
@@ -843,162 +838,20 @@ function CountryPie({ mix }: { mix: CountryMix }) {
   );
 }
 
-/** The two lines' colours for the new-vs-returning chart, matching admin.css. */
-const PLAYER_SERIES: { key: "newPlayers" | "returningPlayers"; cls: string; label: string }[] = [
-  { key: "newPlayers", cls: "new", label: "New players" },
-  { key: "returningPlayers", cls: "returning", label: "Returning players" },
-];
-
-/**
- * Two-line SVG chart of new vs returning players per ET day.
- *
- * `player_id` shipped after launch (migrations/0008), so the earliest days here
- * recorded rounds but no players. Those days are **not** drawn as zeros — that
- * would assert "nobody new played" when the truth is "nobody was counting". They
- * get a hatched "not tracked" band instead, and the lines start at the boundary.
- *
- * The band rather than a shorter x-axis is deliberate: a series that quietly
- * began later would still line up with the full-width charts elsewhere on the
- * dashboard and read as the same days.
- */
-function PlayerLineChart({ days, trackingStart }: { days: AnalyticsDay[]; trackingStart: string | null }) {
-  const W = 660;
-  const H = 190;
-  const padL = 26;
-  const padR = 12;
-  const padT = 12;
-  const padB = 24;
-  const n = days.length;
-  // Days carry null player counts until tracking started; everything from the
-  // first non-null onward is measured (a measured day can legitimately be 0).
-  const firstIdx = days.findIndex((d) => d.newPlayers !== null);
-  const x = (i: number) =>
-    n <= 1 ? padL + (W - padL - padR) / 2 : padL + (i / (n - 1)) * (W - padL - padR);
-
-  if (firstIdx === -1) {
-    return <p className="dash-note">{untrackedNote(trackingStart)}</p>;
-  }
-
-  const tracked = days.slice(firstIdx);
-  const max = Math.max(1, ...tracked.map((d) => Math.max(d.newPlayers ?? 0, d.returningPlayers ?? 0)));
-  const y = (v: number) => padT + (1 - v / max) * (H - padT - padB);
-  const path = (key: "newPlayers" | "returningPlayers") =>
-    tracked
-      .map((d, j) => `${j === 0 ? "M" : "L"}${x(j + firstIdx).toFixed(1)},${y(d[key] ?? 0).toFixed(1)}`)
-      .join(" ");
-  const xTickStep = Math.max(1, Math.ceil(n / 6));
-  const yTicks = [...new Set([0, Math.round(max / 2), max])];
-  // Where measurement begins. firstIdx 0 means the whole window is tracked.
-  const boundaryX = x(firstIdx);
-  const bandW = boundaryX - padL;
-  const hasBand = firstIdx > 0 && bandW > 0;
-
-  return (
-    <div className="pchart">
-      <div className="pchart__legend">
-        {PLAYER_SERIES.map((s) => (
-          <span className="pchart__legend-item" key={s.key}>
-            <span className={`pchart__swatch pchart__swatch--${s.cls}`} />
-            {s.label}
-          </span>
-        ))}
-        {hasBand && (
-          <span className="pchart__legend-item">
-            <span className="pchart__swatch pchart__swatch--untracked" />
-            Not tracked
-          </span>
-        )}
-      </div>
-      <svg
-        className="pchart__svg"
-        viewBox={`0 0 ${W} ${H}`}
-        role="img"
-        aria-label={
-          hasBand
-            ? `New vs returning players per day. Not tracked before ${days[firstIdx].date}.`
-            : "New vs returning players per day"
-        }
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <pattern id="pchart-hatch" width="6" height="6" patternUnits="userSpaceOnUse">
-            <path className="pchart__hatch" d="M0,6 l6,-6" />
-          </pattern>
-        </defs>
-        {yTicks.map((v) => (
-          <g key={v}>
-            <line className="pchart__grid" x1={padL} y1={y(v)} x2={W - padR} y2={y(v)} />
-            <text className="pchart__axis" x={padL - 6} y={y(v)} textAnchor="end" dominantBaseline="middle">
-              {v}
-            </text>
-          </g>
-        ))}
-        {hasBand && (
-          <>
-            {/* No line is drawn over this span — the metric didn't exist yet. */}
-            <rect
-              className="pchart__untracked"
-              x={padL}
-              y={padT}
-              width={bandW}
-              height={H - padT - padB}
-              fill="url(#pchart-hatch)"
-            >
-              <title>{untrackedNote(trackingStart)}</title>
-            </rect>
-            <line className="pchart__boundary" x1={boundaryX} y1={padT} x2={boundaryX} y2={H - padB} />
-            {bandW >= 70 && (
-              <text className="pchart__untracked-label" x={padL + bandW / 2} y={padT + 14} textAnchor="middle">
-                not tracked
-              </text>
-            )}
-          </>
-        )}
-        {PLAYER_SERIES.map((s) => (
-          <path key={s.key} className={`pchart__line pchart__line--${s.cls}`} d={path(s.key)} fill="none" />
-        ))}
-        {n <= 45 &&
-          PLAYER_SERIES.map((s) =>
-            tracked.map((d, j) => (
-              <circle
-                key={`${s.key}-${d.date}`}
-                className={`pchart__dot pchart__dot--${s.cls}`}
-                cx={x(j + firstIdx)}
-                cy={y(d[s.key] ?? 0)}
-                r={2.6}
-              >
-                <title>{`${d.date} · ${d[s.key]} ${s.label.toLowerCase()}`}</title>
-              </circle>
-            )),
-          )}
-        {days.map((d, i) =>
-          i % xTickStep === 0 || i === n - 1 ? (
-            <text key={d.date} className="pchart__axis" x={x(i)} y={H - 6} textAnchor="middle">
-              {shortDate(d.date)}
-            </text>
-          ) : null,
-        )}
-      </svg>
-    </div>
-  );
-}
-
 export default function PlayersPanel({
   data,
   error,
   surface,
-  date,
-  onPickDate,
+  audience,
+  audienceError,
 }: {
   data: AnalyticsSummary | null;
   error: string | null;
   surface: SurfaceFilter;
-  /** null = follow today (so the panel keeps tracking the midnight-ET rollover). */
-  date: string | null;
-  onPickDate: (date: string | null) => void;
+  /** Weekly cohorts and the first-visit funnel. See AudiencePanels.tsx. */
+  audience: AudienceReport | null;
+  audienceError: string | null;
 }) {
-  const [picking, setPicking] = useState(false);
-
   if (error) {
     return (
       <section className="panel">
@@ -1019,169 +872,44 @@ export default function PlayersPanel({
   const {
     totals,
     startedByKind,
-    guessDistribution,
-    fails,
     day,
     today,
-    activeDates,
     playerTrackingStart,
-    daily,
     players,
     retention,
     countries,
     sources,
-    solveTimes,
     funnel,
     visits,
   } = data;
-  // The server settles what day we're actually looking at, so trust `day.date`
-  // over the requested one (a future/garbage date falls back to today).
-  const isToday = day.date === today;
 
   if (totals.started === 0) {
     return (
       <section className="panel">
         <h2>Players</h2>
-        <p className="dash-note">
-          {noRoundsNote(surface)}
-          {date !== null && (
-            <>
-              {" "}
-              <button className="link-btn" onClick={() => onPickDate(null)}>
-                Back to today
-              </button>
-            </>
-          )}
-        </p>
+        <p className="dash-note">{noRoundsNote(surface)}</p>
       </section>
     );
   }
 
-  const allTimeAvg = avgGuesses(guessDistribution);
-  const dayAvg = avgGuesses(day.guessDistribution);
-  // How this day's Special played against the average, worded once in
-  // analyticsUi so the Overview's copy of this read can't drift from it.
-  const difficulty = difficultyNote(day.guessDistribution, guessDistribution, isToday);
-
-  // Any game started that day (across all three kinds), vs. its Special alone.
-  const dayStartedAny = sumKinds(day.startedByKind);
-  const span = `last ${daily.length} day${daily.length === 1 ? "" : "s"}`;
   const headline = retention && retentionNote(retention.steps, retention.windowDays);
   const sourceHeadline = sourceNote(sources);
   const countrySlices = toSlices(countries.entries);
 
   return (
     <>
-      {/* Day slice. Defaults to today; the calendar swaps in an earlier service
-          (only days that recorded activity are offered). */}
-      <section className="panel">
-        <div className="analytics-head">
-          <h2>
-            {isToday ? "Today's Special" : "The Special"} · {day.dishName ?? day.date}
-            {day.dishName && ` · ${day.date}`}
-          </h2>
-          <div className="analytics-head__tools">
-            <button className="btn btn--ghost btn--small" onClick={() => setPicking(true)}>
-              <Icon name="calendar" /> {isToday ? "Today" : day.date}
-            </button>
-            {!isToday && (
-              <button className="link-btn" onClick={() => onPickDate(null)}>
-                Back to today
-              </button>
-            )}
-          </div>
-        </div>
-        {picking && (
-          <DayPicker
-            activeDates={activeDates}
-            selected={day.date}
-            today={today}
-            onPick={(d) => {
-              onPickDate(d === today ? null : d);
-              setPicking(false);
-            }}
-            onClose={() => setPicking(false)}
-          />
-        )}
-        {dayStartedAny === 0 ? (
-          <p className="dash-note">
-            {isToday
-              ? "No plays recorded for today yet — check back once the diner fills up."
-              : `Nobody played on ${day.date}.`}
-          </p>
-        ) : (
-          <>
-            {/* Games started that day, split by kind — the Special leads. */}
-            <StartedByKindRow startedByKind={day.startedByKind} />
-            {day.totals.started === 0 ? (
-              <p className="dash-note">
-                Only leftovers and chef's specials {isToday ? "so far today" : "that day"} — the Special
-                itself went unplayed.
-              </p>
-            ) : (
-              <RatesRow totals={day.totals} />
-            )}
-            {/* New vs returning players that day (all kinds, one count per device).
-                Null — a day before tracking shipped — shows as "—", not 0. */}
-            <PlayersRow players={day.players} trackingStart={playerTrackingStart} />
-            <div className="analytics-split">
-              <div>
-                <h3 className="analytics-sub">
-                  Guess distribution · {isToday ? "today's" : "that day's"} Special
-                </h3>
-                <GuessBars dist={day.guessDistribution} fails={day.fails} />
-              </div>
-              <div>
-                <h3 className="analytics-sub">Average guesses</h3>
-                <div className="metric-row" style={{ marginBottom: 0 }}>
-                  <div className="metric">
-                    <span className="metric__num">{dayAvg === null ? "—" : dayAvg.toFixed(2)}</span>
-                    <span className="metric__label">{isToday ? "Today" : shortDate(day.date)}</span>
-                  </div>
-                  <div className="metric">
-                    <span className="metric__num">{allTimeAvg === null ? "—" : allTimeAvg.toFixed(2)}</span>
-                    <span className="metric__label">All time</span>
-                  </div>
-                </div>
-                {difficulty && (
-                  <p className="dash-note" style={{ marginTop: 8 }}>
-                    {difficulty}
-                  </p>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-      </section>
-
+      {/* Audience only. The Special's day slice and the difficulty reads live
+          on Menu now, beside the dish report: how a puzzle played is a question
+          about the puzzle, and this tab is about the people. */}
       <section className="panel">
         <h2>All time</h2>
         {/* Games started across the game's life, Today's Special first. */}
         <StartedByKindRow startedByKind={startedByKind} />
         <RatesRow totals={totals} />
         <PlayersRow players={players} trackingStart={playerTrackingStart} />
-
-        <div className="analytics-split">
-          <div>
-            <h3 className="analytics-sub">Guess distribution</h3>
-            <GuessBars dist={guessDistribution} fails={fails} />
-          </div>
-          <div>
-            {/* The other half of difficulty. Two dishes can share a guess
-                distribution and be nothing alike if one of them took people ten
-                minutes of staring — and until now this was recorded and unread. */}
-            <h3 className="analytics-sub">Time to solve</h3>
-            <SolveTimeRead times={solveTimes} />
-            <p className="dash-note" style={{ marginTop: 8 }}>
-              Measured from the first guess to game over, so a round left open in a tab counts the whole
-              time it was open — which is why this is a median and a p90, never an average.
-            </p>
-          </div>
-        </div>
-
         <p className="dash-note" style={{ marginTop: 10 }}>
-          Anonymous counts only — {MAX_GUESSES} guesses max, no record of which dishes players ordered. A
-          “player” is an anonymous device (localStorage), counted once regardless of game kind.
+          Anonymous counts only. A “player” is an anonymous device (localStorage), counted once regardless of
+          game kind.
           {playerTrackingStart && (
             <>
               {" "}
@@ -1198,46 +926,21 @@ export default function PlayersPanel({
           the ones who stayed came back another day. */}
       <FunnelSection
         funnel={funnel}
-        isToday={isToday}
+        isToday={day.date === today}
         dayDate={day.date}
         visitsSince={visits.since}
       />
 
-      <section className="panel">
-        <h2>New vs returning · {span}</h2>
-        {daily.length === 0 ? (
-          <p className="dash-note">No dated activity yet.</p>
-        ) : (
-          <>
-            <PlayerLineChart days={daily} trackingStart={playerTrackingStart} />
-            <p className="dash-note" style={{ marginTop: 8 }}>
-              {players === null ? (
-                untrackedNote(playerTrackingStart)
-              ) : (
-                <>
-                  {players.new} player{players.new === 1 ? "" : "s"} all time · {players.returning} ha
-                  {players.returning === 1 ? "s" : "ve"} come back on a later day.
-                </>
-              )}
-            </p>
-            {/* The instrument switched on mid-life, so the first tracked days are
-                biased as well as the untracked ones are missing: anyone who had
-                already played reappears as "new". Say so rather than let the
-                boundary spike read as a launch. */}
-            {playerTrackingStart && daily.length > 0 && daily[0].newPlayers === null && (
-              <p className="dash-note">
-                Player tracking started {playerTrackingStart}; the shaded span ran before it and wasn't
-                measured. Devices that had already played count as “new” on their first tracked day, so
-                “new” is overstated and “returning” understated around {playerTrackingStart}.
-              </p>
-            )}
-          </>
-        )}
-      </section>
+      {/* The same funnel with first visits pulled apart from regulars, per
+          surface. Pooled, the regulars' near-certain guess hides how many
+          first-timers leave without one. Not toggle-filtered: the two surfaces
+          side by side is the point. */}
+      <ArrivalSplit data={audience} error={audienceError} />
 
-      {/* Under new-vs-returning because it's the same question asked deeper: that
-          chart counts how many came back, this one asks how likely it was — and
-          unlike the chart, it's all-time, not the last 30 days. */}
+      {/* Cohorts ask "do they come back" by when they arrived; the repeat-visit
+          ladder under it asks it by how many times they already have. */}
+      <CohortGrid data={audience} error={audienceError} surface={surface} />
+
       <section className="panel">
         <h2>Repeat visits</h2>
         {retention === null || retention.steps.length === 0 ? (
