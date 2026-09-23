@@ -156,15 +156,17 @@ so the press page links that one.
 |---|---|---|---|
 | `src/assets/fonts/alfa-slab-one.woff2` (+ `.ttf` source) | Alfa Slab One | SIL OFL 1.1 | Display headings, menu titles, buttons |
 | `src/assets/fonts/yellowtail.woff2` (+ `.ttf` source) | Yellowtail | SIL OFL 1.1 | Neon script logo "Lunch Special" |
+| `src/assets/fonts/league-gothic.woff2` (+ `.ttf` source) | League Gothic (variable, width axis; The League of Moveable Type, from the google/fonts repo) | SIL OFL 1.1 | Tabs, section heads, tile labels, small print, the sign's blue tube |
 | `docs/fonts/bitter.woff2` | Bitter (variable 400–700, latin subset) | SIL OFL 1.1 | Headings on the GitHub Pages breakdown only |
 
 Bitter lives in **one** place and stays there — it is not part of the game bundle or the
 press kit. It exists because Alfa Slab One is unreadable in a run of words at heading
 size; Bitter is the same Clarendon genre drawn for screens, so the breakdown page keeps
-the diner register without the blockiness. The game itself still heads everything in Alfa
-Slab One, where the strings are short enough to carry it.
+the diner register without the blockiness. The game itself still heads its signs in Alfa
+Slab One, where the strings are short enough to carry it, and sets everything under about
+1rem in League Gothic.
 
-**The game ships the `.woff2` pair and nothing else** (56 KB against the TTFs' 152 KB,
+**The game ships the `.woff2` files and nothing else** (League Gothic added 27 KB to the original pair's 56 KB; the pair's TTFs were 152 KB,
 which weighed more than the game's JavaScript). `base.css` references only the WOFF2s, so
 Vite bundles only those; the `.ttf` files beside them are the *source* the press copies
 are made from and are never served by the game. They were converted once with

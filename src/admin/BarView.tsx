@@ -20,6 +20,7 @@ import type { RequestDraft } from "./AdminApp";
 import * as api from "./api";
 import { shortDate } from "./analyticsUi";
 
+import { Icon } from "../game/Icon";
 type BarPage = { view: "list" } | { view: "editor"; id: number | null } | { view: "board" };
 
 /** Open a preview in a new tab. A signed token is the only way past the clock. */
@@ -740,8 +741,13 @@ function NightlyBoard({ onDone }: { onDone: () => void }) {
                   <td>
                     <div className="btn-row">
                       {!locked && (
-                        <button className="btn btn--ghost" onClick={() => roll(e.night)}>
-                          🎲
+                        <button
+                          className="btn btn--ghost"
+                          aria-label="Shuffle this night"
+                          title="Roll a drink that has never been on onto this night"
+                          onClick={() => roll(e.night)}
+                        >
+                          <Icon name="dice" />
                         </button>
                       )}
                       <button
@@ -760,7 +766,7 @@ function NightlyBoard({ onDone }: { onDone: () => void }) {
       </div>
       <p className="dash-note">
         An unbooked night runs on the deterministic fallback pour and never 404s — clearing a night is
-        a booking decision, not a hole. The 🎲 rolls a drink that has never been on, past or future.
+        a booking decision, not a hole. Shuffle rolls a drink that has never been on, past or future.
       </p>
     </section>
   );

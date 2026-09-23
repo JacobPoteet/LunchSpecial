@@ -134,53 +134,57 @@ export default function AdminApp() {
         <header className="admin__masthead">
           <h1 className="admin__title">
             Lunch Special
-            <small>BACK OFFICE</small>
+            <small>Back office</small>
           </h1>
           {session === "in" && (
             <nav className="admin-nav">
-              <button className={view === "dashboard" ? "active" : ""} onClick={() => changeView("dashboard")}>
-                Dashboard
-              </button>
-              <button className={view === "dishes" ? "active" : ""} onClick={() => changeView("dishes")}>
-                Dishes
-              </button>
-              <button className={view === "schedule" ? "active" : ""} onClick={() => changeView("schedule")}>
-                Schedule
-              </button>
-              {/* Its own destination beside Schedule rather than a tab
-                  inside it: the bar has its own catalogue, its own clue count
-                  and its own board, and the one thing that must never happen
-                  is a drink being booked onto a lunch day. */}
-              <button className={view === "bar" ? "active" : ""} onClick={() => changeView("bar")}>
-                Bar
-              </button>
-              <button
-                className={view === "announcements" ? "active" : ""}
-                onClick={() => changeView("announcements")}
-              >
-                Announcements
-              </button>
-              <button className={view === "requests" ? "active" : ""} onClick={() => changeView("requests")}>
-                Requests
-                {requestCount ? <span className="nav-badge">{requestCount}</span> : null}
-              </button>
-              {/* An action, not a destination, which is why it takes the
-                  mustard tint the nav's other pills don't — but it lives in
-                  the nav because "Clock out" set that precedent and because it
-                  has to be reachable from every panel, not just one tab. */}
-              <button
-                className="admin-nav__action"
-                onClick={() => setFiling(currentIssueContext(view, editing))}
-              >
-                File an issue
-              </button>
-              <button
-                onClick={() => {
-                  api.logout().finally(() => setSession("out"));
-                }}
-              >
-                Clock out
-              </button>
+              <div className="admin-nav__group">
+                <button className={view === "dashboard" ? "active" : ""} onClick={() => changeView("dashboard")}>
+                  Dashboard
+                </button>
+                <button className={view === "dishes" ? "active" : ""} onClick={() => changeView("dishes")}>
+                  Dishes
+                </button>
+                <button className={view === "schedule" ? "active" : ""} onClick={() => changeView("schedule")}>
+                  Schedule
+                </button>
+                {/* Its own destination beside Schedule rather than a tab
+                    inside it: the bar has its own catalogue, its own clue count
+                    and its own board, and the one thing that must never happen
+                    is a drink being booked onto a lunch day. */}
+                <button className={view === "bar" ? "active" : ""} onClick={() => changeView("bar")}>
+                  Bar
+                </button>
+                <button
+                  className={view === "announcements" ? "active" : ""}
+                  onClick={() => changeView("announcements")}
+                >
+                  Announcements
+                </button>
+                <button className={view === "requests" ? "active" : ""} onClick={() => changeView("requests")}>
+                  Requests
+                  {requestCount ? <span className="nav-badge">{requestCount}</span> : null}
+                </button>
+              </div>
+              <div className="admin-nav__group admin-nav__group--actions">
+                {/* An action, not a destination, which is why it takes the
+                    mustard tint the nav's other pills don't — but it lives in
+                    the nav because "Clock out" set that precedent and because it
+                    has to be reachable from every panel, not just one tab. */}
+                <button
+                  className="admin-nav__action"
+                  onClick={() => setFiling(currentIssueContext(view, editing))}
+                >
+                  File an issue
+                </button>
+                <button
+                  onClick={() => {
+                    api.logout().finally(() => setSession("out"));
+                  }}
+                >
+                  Clock out
+                </button>
+              </div>
             </nav>
           )}
         </header>

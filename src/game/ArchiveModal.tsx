@@ -16,12 +16,13 @@ import { fetchPastRounds } from "../api";
 import { isPuzzleDate, puzzleNumberFor } from "./archive";
 import { EPOCH_DATE } from "../../shared/types";
 import { playSfx } from "../audio";
+import { Icon } from "./Icon";
 
 /** Status of a single puzzle date, for the calendar cells. */
 type DayStatus = GameStatus | "unplayed";
 
 const STATUS_GLYPH: Record<DayStatus, string> = {
-  won: "🛎️",
+  won: "✓",
   lost: "✗",
   playing: "…",
   unplayed: "",
@@ -252,13 +253,13 @@ export default function ArchiveModal({
       <h3 className="chefs-choice__title">Chef's Choice</h3>
       <p className="chefs-choice__note">A dish at random — won't touch your streak.</p>
       <button className="share-btn chefs-choice__btn" onClick={() => { playSfx("ui-click"); onRandom(); }}>
-        🎲 Cook me something
+        <Icon name="dice" /> Cook me something
       </button>
     </div>
   );
 
   return (
-    <Modal onClose={onClose} variant="archive" footer={chefsChoice} label="Menu archive">
+    <Modal onClose={onClose} variant="archive" footer={chefsChoice} label="Leftovers">
       <h2 className="archive-cal__title">Leftovers</h2>
       <p className="archive-cal__lede">Replay any Special you missed.</p>
       <div className="archive-cal__legend">

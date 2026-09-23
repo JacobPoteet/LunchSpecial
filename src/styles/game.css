@@ -71,14 +71,25 @@
   font-weight: 400;
 }
 
+/* The second tube: block letters in cool neon under the warm script, the way
+   the signs in the backdrop pair them. Before this it was cream Alfa Slab at
+   0.42em tracking, a web page's eyebrow label sitting under a sign. White-hot
+   core, blue halo, same construction as the script above it. Never --cream,
+   which is the dark ground under After Dark. */
 .marquee__sub {
-  font-family: var(--font-display);
-  font-size: clamp(0.6rem, 2vw, 0.8rem);
-  letter-spacing: 0.42em;
-  text-indent: 0.42em;
-  color: var(--cream);
-  opacity: 0.85;
-  margin: 6px 0 0;
+  font-family: var(--font-gothic);
+  font-size: clamp(1.05rem, 3.8vw, 1.35rem);
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-indent: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.1;
+  color: #eef8ff;
+  text-shadow:
+    0 0 3px rgba(124, 200, 255, 0.95),
+    0 0 10px rgba(124, 200, 255, 0.75),
+    0 0 24px rgba(124, 200, 255, 0.5);
+  margin: 8px 0 0;
 }
 
 /* ---- menu card ---- */
@@ -94,7 +105,7 @@
     var(--paper-sheen),
     var(--paper);
   border: 2px solid var(--cherry-dark);
-  border-radius: 8px;
+  border-radius: var(--radius-paper);
   box-shadow: var(--shadow-card);
   padding: 24px 22px 22px;
 }
@@ -107,7 +118,7 @@
   position: absolute;
   inset: 5px;
   border: 1px solid var(--cherry-dark);
-  border-radius: 5px;
+  border-radius: 1px;
   opacity: 0.45;
   pointer-events: none;
 }
@@ -145,85 +156,131 @@
   color: var(--cherry-dark);
 }
 
+/* The quiet line under the loud one: italic serif, sentence case. It was
+   tracked capitals like everything else on the card, and with the masthead,
+   the toolbar and the Special label all in caps there was no level left for
+   the card to drop to. */
 .menu-card__meta {
-  font-size: 0.76rem;
+  font-size: 0.92rem;
+  font-style: italic;
   color: var(--ink-soft);
-  font-style: normal;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
   margin: 6px 0 0;
 }
 
-/* The streak beside the date (GitHub #185). Same line, same size; only the
-   colour lifts it, and the flame is the glyph that carries the meaning for
-   anyone who can't see the colour. `white-space` keeps "5-day streak" from
-   wrapping between the number and the word. */
+/* The streak beside the date (GitHub #185). Same line, same size; the colour
+   lifts it and the flame carries the meaning for anyone who can't see the
+   colour. Mustard ink rather than cherry, which the card keeps for things you
+   press. `white-space` keeps "5-day streak" from wrapping between the number
+   and the word. */
 .menu-card__streak {
-  color: var(--cherry-dark);
+  color: var(--mustard-ink);
+  font-style: normal;
   white-space: nowrap;
+}
+
+.menu-card__streak .icon {
+  vertical-align: -0.12em;
+  margin-right: 0.2em;
 }
 
 .menu-card__toolbar {
   display: flex;
   justify-content: center;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 6px;
+  margin-top: 10px;
   /* A finished daily shows five controls (how-to, stats, archive, check, mute)
      and at 375px they no longer fit on one line. Wrapping between the pills is
      the graceful version of that; without it the row stays put and the labels
-     break *inside* their pills instead, so "Menu archive" becomes two lines in
+     break *inside* their pills instead, so "Your check" becomes two lines in
      a rounded box and reads as broken rather than as a second row. */
   flex-wrap: wrap;
 }
 
+/* The toolbar's tabs. Ink, not cherry: they are the card's chrome, and cherry
+   is kept for the things on this screen you are meant to press (Order, Share,
+   the door to the bar). 30px tall, clear of the 24px WCAG 2.5.8 minimum the
+   old 0.62rem slab pills missed by a couple of pixels. */
 .icon-btn {
-  font-family: var(--font-display);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  font-family: var(--font-gothic);
   /* Paired with the toolbar's flex-wrap: a pill is an atom, so the row breaks
      between buttons and never through a label. */
   white-space: nowrap;
-  border: 1.5px solid rgba(143, 31, 46, 0.6);
+  border: 1.5px solid color-mix(in srgb, var(--ink) 30%, transparent);
   background: transparent;
-  color: var(--cherry-dark);
+  color: var(--ink);
   border-radius: 999px;
-  font-size: 0.62rem;
-  padding: 4px 12px;
-  letter-spacing: 0.1em;
+  font-size: 1.02rem;
+  line-height: 1;
+  padding: 0 11px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
+.icon-btn .icon {
+  font-size: 0.95em;
+  flex: none;
+}
+
+/* "How to play" is the one tab drawn as its icon alone: a question mark in a
+   circle needs no word beside it, and the word cost the row its fit at 375px.
+   Its name is the aria-label. */
+.icon-btn--solo {
+  width: 30px;
+  padding: 0;
+  justify-content: center;
+}
+
+.icon-btn--solo .icon {
+  font-size: 1.15rem;
+}
+
 .icon-btn:hover {
-  background: var(--cherry-hover);
-  border-color: var(--cherry-hover);
+  background: var(--ink);
+  border-color: var(--ink);
   color: var(--paper);
 }
 
 /* The mute button. An icon among text pills, so it borrows .icon-btn's border,
-   colour and hover inversion but sizes itself off the icon instead of a label —
-   square padding and a 1:1 box, so it reads as a control of the same family
+   colour and hover inversion but sizes itself off the icon instead of a label,
+   square and the same 30px tall, so it reads as a control of the same family
    rather than a pill that lost its text. The SVG strokes `currentColor`, which
    is what makes the hover invert come for free. */
 .sound-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid rgba(143, 31, 46, 0.6);
+  border: 1.5px solid color-mix(in srgb, var(--ink) 30%, transparent);
   background: transparent;
-  color: var(--cherry-dark);
+  color: var(--ink);
   border-radius: 999px;
   padding: 0;
-  width: 26px;
-  height: 26px;
-  /* The text pills are 0.62rem uppercase in a display face; matching their box
-     exactly would make this taller than it needs to be, so it matches their
-     optical height instead and centres on the same baseline row. */
+  width: 30px;
+  height: 30px;
   align-self: center;
   cursor: pointer;
 }
 
 .sound-btn:hover {
-  background: var(--cherry-hover);
-  border-color: var(--cherry-hover);
+  background: var(--ink);
+  border-color: var(--ink);
   color: var(--paper);
+}
+
+/* Icon.tsx. Sized in em so an icon matches the text it sits beside, and
+   dropped a hair below the baseline, where a 24-unit glyph's optical centre
+   lines up with a cap height. */
+.icon {
+  flex: none;
+  vertical-align: -0.14em;
+}
+
+.guess-row__dish .icon {
+  color: var(--hit-ink);
+  margin-right: 0.25em;
 }
 
 .sound-btn__icon {
@@ -264,13 +321,15 @@
   min-width: 0;
 }
 
+/* A menu's section head, in the printer's gothic. */
 .special-line__label {
   display: flex;
   align-items: baseline;
   gap: 7px;
-  font-family: var(--font-display);
-  font-size: 0.85rem;
-  letter-spacing: 0.08em;
+  font-family: var(--font-gothic);
+  font-size: 1.3rem;
+  line-height: 1.1;
+  letter-spacing: 0.07em;
   color: var(--cherry-dark);
   text-transform: uppercase;
   margin: 0;
@@ -405,14 +464,51 @@
   font-style: italic;
 }
 
-/* Small print, like the fine print at the bottom of a menu section. */
+/* The guess budget as a punch card: one hole per order, punched as it goes
+   in. The holes are aria-hidden and the words beside them say the same thing,
+   so neither the colour nor the shape carries it alone. */
 .tally {
-  text-align: center;
-  font-size: 0.78rem;
-  color: var(--ink-soft);
-  margin: 6px 0 14px;
-  letter-spacing: 0.14em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 8px 0 14px;
+}
+
+.tally__holes {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.tally__hole {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid color-mix(in srgb, var(--ink-soft) 60%, transparent);
+}
+
+/* Punched through: the dark of the card's backing shows, with the lip of the
+   hole catching light along its lower edge. */
+.tally__hole--punched {
+  border-color: transparent;
+  background: var(--ink);
+  box-shadow:
+    inset 0 2px 2px rgba(0, 0, 0, 0.45),
+    0 1px 0 color-mix(in srgb, var(--paper-bright) 80%, transparent);
+  animation: punch-in 0.22s ease-out backwards;
+}
+
+@keyframes punch-in {
+  from { transform: scale(1.5); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.tally__text {
+  font-family: var(--font-gothic);
+  font-size: 1.02rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 /* ---- guess rows ---- */
@@ -430,7 +526,7 @@
 .guess-row {
   border: 1px solid var(--paper-edge);
   background: var(--row-fill);
-  border-radius: 6px;
+  border-radius: var(--radius-paper);
   padding: 10px 12px;
 }
 
@@ -494,7 +590,7 @@
 }
 
 .attr-tile {
-  border-radius: 7px;
+  border-radius: 4px;
   padding: 5px 4px 6px;
   text-align: center;
   border: 1.5px solid transparent;
@@ -529,8 +625,10 @@
   align-items: baseline;
   justify-content: center;
   gap: 3px;
-  font-size: 0.56rem;
-  letter-spacing: 0.12em;
+  font-family: var(--font-gothic);
+  font-size: 0.84rem;
+  line-height: 1.05;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   /* The label is subordinate to the value, but only just: it sits on the
      darkest of the three fills (--hit), where white at 0.85 composites to
@@ -552,6 +650,9 @@
    line box the label already sets. */
 .attr-tile__mark {
   flex: 0 0 auto;
+  /* The gothic has no ✓ or ×, so the mark keeps the body face rather than
+     falling through to whatever the platform substitutes. */
+  font-family: var(--font-body);
   font-size: 0.7rem;
   line-height: 1;
   letter-spacing: normal;
@@ -623,16 +724,17 @@
 .ticket {
   position: relative;
   background: var(--paper-bright);
-  border-radius: 4px;
+  border-radius: 2px;
   box-shadow: 0 3px 10px rgba(20, 17, 16, 0.18);
   padding: 10px 14px 12px;
   border-top: 8px solid var(--cherry);
 }
 
 .ticket__head {
-  font-family: var(--font-display);
-  font-size: 0.66rem;
-  letter-spacing: 0.22em;
+  font-family: var(--font-gothic);
+  font-size: 1rem;
+  line-height: 1.1;
+  letter-spacing: 0.1em;
   color: var(--cherry);
   text-transform: uppercase;
   margin: 0 0 4px;
@@ -661,12 +763,14 @@
   margin: 0;
 }
 
+/* No opacity: ink-soft is already the quiet step, and opacity on text is a
+   contrast change in disguise. */
 .menu-card__thanks-fine {
-  font-size: 0.68rem;
-  letter-spacing: 0.1em;
+  font-family: var(--font-gothic);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  opacity: 0.8;
   margin: 5px 0 0;
 }
 
@@ -686,7 +790,7 @@
 
 .modal {
   background: var(--paper);
-  border-radius: 12px;
+  border-radius: 6px;
   max-width: 460px;
   width: 100%;
   max-height: calc(100dvh - 48px);
@@ -707,10 +811,30 @@
   overflow: hidden;
 }
 
+/* Torn off the pad, top and bottom: a zigzag cut by two masks, each covering a
+   little over half the card so the seam can't show. A mask drops the card's
+   drop shadow with it, which costs nothing here: white stock on a 72% scrim
+   needs no shadow to lift it. The corners are square because a tear has none. */
 .modal--receipt {
+  --tooth: 6px;
   background: var(--paper-bright);
-  border-radius: 4px;
+  border-radius: 0;
   font-variant-numeric: tabular-nums;
+  -webkit-mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--tooth)) 51% repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--tooth)) 51% repeat-x;
+  mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--tooth)) 51% repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--tooth)) 51% repeat-x;
+}
+
+/* Clear of the teeth, so its focus ring isn't cut by the tear. */
+.modal--receipt .modal__close {
+  top: 8px;
+}
+
+.modal--receipt .modal__footer {
+  padding-bottom: calc(16px + var(--tooth));
 }
 
 /* An announcement: a note posted on the board. The mustard band is the whole
@@ -738,8 +862,9 @@
   gap: 8px;
   margin: 0 0 6px;
   padding-right: 40px; /* clears .modal__close */
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
+  font-family: var(--font-gothic);
+  font-size: 0.98rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
@@ -870,25 +995,116 @@
 }
 
 .receipt__title {
-  font-family: var(--font-display);
-  letter-spacing: 0.14em;
-  font-size: 1.15rem;
+  font-family: var(--font-gothic);
+  letter-spacing: 0.1em;
+  font-size: 1.3rem;
+  line-height: 1.1;
   margin: 0;
   text-transform: uppercase;
 }
 
 .receipt__verdict {
   font-family: var(--font-script);
-  font-size: 2.2rem;
-  margin: 4px 0 0;
+  font-size: 2rem;
+  line-height: 1.15;
+  margin: 6px 0 0;
   color: var(--cherry);
 }
 
+/* The answer is the payoff, so it is the biggest type on the check. It was
+   bold Georgia at 1.25rem under a 2.2rem script verdict, which put the answer
+   below the reaction to it. */
 .receipt__dish {
   text-align: center;
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.65rem;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+/* ---- the guest check ----
+
+   The top of the check is a diner guest check's printed head: the house name
+   and the check number across the top, a ruled row of boxes under it. The
+   boxes hold real facts about the round (the date, the orders it took, which
+   menu it came off), so the ruling is information and not ornament.
+
+   Receipt stock rather than the pale green real ones were printed on: green
+   means a match everywhere else in this game. */
+.guest-check {
   margin: 0 0 4px;
-  font-size: 1.25rem;
-  font-weight: bold;
+}
+
+.guest-check__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  /* Clears .modal__close, which sits over this row's right end. */
+  padding-right: 34px;
+  margin-bottom: 8px;
+}
+
+.guest-check__house {
+  margin: 0;
+  font-family: var(--font-script);
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--cherry);
+}
+
+/* Printed in red on every pad. 1.2rem in a bold face is large text, where
+   cherry on receipt stock clears the 3:1 it needs. */
+.guest-check__no {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--cherry);
+  white-space: nowrap;
+}
+
+.guest-check__no small {
+  font-family: var(--font-gothic);
+  font-size: 0.85em;
+  letter-spacing: 0.06em;
+  margin-right: 0.2em;
+}
+
+.guest-check__boxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.3fr;
+  margin: 0;
+  border: 1.5px solid color-mix(in srgb, var(--cherry-dark) 55%, transparent);
+  text-align: left;
+}
+
+.guest-check__box {
+  padding: 3px 7px 5px;
+  min-width: 0;
+}
+
+.guest-check__box + .guest-check__box {
+  border-left: 1.5px solid color-mix(in srgb, var(--cherry-dark) 55%, transparent);
+}
+
+.guest-check__box dt {
+  font-family: var(--font-gothic);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.guest-check__box dd {
+  margin: 1px 0 0;
+  font-size: 0.95rem;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .receipt__facts {
@@ -964,8 +1180,9 @@
 
 .fan-stamp__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 0.74rem;
+  font-family: var(--font-gothic);
+  font-size: 1.02rem;
+  line-height: 1.1;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink);
@@ -995,9 +1212,10 @@
   border: 1.5px solid rgba(43, 35, 32, 0.22);
   border-radius: var(--radius);
   color: var(--ink-soft);
-  font-family: var(--font-display);
-  font-size: 0.8rem;
-  letter-spacing: 0.05em;
+  font-family: var(--font-gothic);
+  font-size: 1.08rem;
+  line-height: 1.1;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   cursor: pointer;
   transition: color 0.15s ease, border-color 0.15s ease;
@@ -1060,8 +1278,8 @@
   border-radius: 50%;
   background: var(--paper-edge);
   color: var(--ink);
-  font-family: var(--font-display);
-  font-size: 0.68rem;
+  font-family: var(--font-gothic);
+  font-size: 0.92rem;
 }
 
 .story__text {
@@ -1150,9 +1368,9 @@
 }
 
 .countdown__label {
-  font-family: var(--font-display);
-  font-size: 0.62rem;
-  letter-spacing: 0.09em;
+  font-family: var(--font-gothic);
+  font-size: 0.92rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
@@ -1183,13 +1401,18 @@
 .replay-btn {
   flex: 1 1 0;
   min-width: 0;
-  font-family: var(--font-display);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-gothic);
   background: transparent;
   color: var(--ink-soft);
-  border: 1.5px solid rgba(43, 35, 32, 0.25);
+  border: 1.5px solid color-mix(in srgb, var(--ink) 25%, transparent);
   border-radius: var(--radius);
-  font-size: 0.82rem;
-  letter-spacing: 0.04em;
+  font-size: 1.08rem;
+  line-height: 1.1;
+  letter-spacing: 0.06em;
   padding: 8px 6px;
   text-transform: uppercase;
   cursor: pointer;
@@ -1234,9 +1457,10 @@
   border-top: 2px dashed var(--paper-edge);
   background: transparent;
   color: var(--ink-soft);
-  font-family: var(--font-display);
-  font-size: 0.82rem;
-  letter-spacing: 0.04em;
+  font-family: var(--font-gothic);
+  font-size: 1.08rem;
+  line-height: 1.1;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
   transition: color 0.15s ease;
@@ -1276,9 +1500,9 @@
 
 .dish-request__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 0.82rem;
-  letter-spacing: 0.04em;
+  font-family: var(--font-gothic);
+  font-size: 1.08rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink);
   text-align: center;
@@ -1358,8 +1582,9 @@ textarea.dish-request__input {
 }
 
 .stat__label {
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
+  font-family: var(--font-gothic);
+  font-size: 0.92rem;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
@@ -1605,9 +1830,10 @@ textarea.dish-request__input {
   /* Not --ink: under After Dark that is a pale cream, and cream on mustard is
      1.7:1. Same token and same reason as the near tile. */
   color: var(--on-near);
-  font-family: var(--font-display);
-  font-size: 0.78rem;
-  letter-spacing: 0.14em;
+  font-family: var(--font-gothic);
+  font-size: 1rem;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   text-align: center;
   border-radius: 999px;
@@ -1615,127 +1841,113 @@ textarea.dish-request__input {
   margin-bottom: 12px;
 }
 
-/* Dev-only free-play bar (random-dish testing). */
-.freeplay-bar {
+/* ---- the slips ----
+
+   Every band across the top of the card says the same kind of thing: you are
+   somewhere other than an ordinary day's lunch, and here is what to do about
+   it. It used to say so in four costumes (dashed teal, striped mustard, solid
+   cherry, a teal tint), which read as four different kinds of message. Now it
+   is one slip of paper clipped to the menu, the tag on the left and the action
+   on the right, and only the edge changes colour:
+
+     newday      cherry     the one that wants acting on
+     archive     teal       replaying an old day
+     freeplay    mustard    Chef's Choice
+     counter     teal       who else is here (no action)
+     bar-return  cherry     the way out of the bar
+     lastcall    cherry     a fact, not an alarm (no action)
+
+   The edge is the fast channel and never the only one: the tag says it. */
+.newday-bar,
+.archive-bar,
+.freeplay-bar,
+.counter-bar,
+.bar-return,
+.lastcall-bar {
+  --slip: var(--teal);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: 8px 12px;
-  background: repeating-linear-gradient(
-    45deg,
-    rgba(232, 165, 58, 0.18),
-    rgba(232, 165, 58, 0.18) 10px,
-    rgba(232, 165, 58, 0.32) 10px,
-    rgba(232, 165, 58, 0.32) 20px
-  );
-  border: 1.5px dashed var(--mustard);
-  border-radius: var(--radius);
-  padding: 8px 14px;
+  justify-content: space-between;
+  gap: 6px 12px;
+  background: var(--paper-bright);
+  border: 1px solid var(--paper-edge);
+  border-left: 5px solid var(--slip);
+  border-radius: var(--radius-paper);
+  padding: 6px 7px 6px 12px;
   margin-bottom: 12px;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 12%, transparent);
 }
 
-.freeplay-bar__tag {
-  font-family: var(--font-display);
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
+.newday-bar,
+.bar-return,
+.lastcall-bar {
+  --slip: var(--cherry);
+}
+
+.freeplay-bar {
+  --slip: var(--mustard);
+}
+
+.newday-bar__tag,
+.archive-bar__tag,
+.freeplay-bar__tag,
+.counter-bar__tag,
+.bar-return__tag,
+.lastcall-bar__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-gothic);
+  font-size: 1.05rem;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }
 
-.freeplay-bar__btn {
-  font-family: var(--font-display);
-  background: var(--ink);
-  color: var(--cream);
+.newday-bar__btn,
+.archive-bar__btn,
+.freeplay-bar__btn,
+.bar-return__btn {
+  min-height: 30px;
+  font-family: var(--font-gothic);
+  font-size: 1rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   border: none;
   border-radius: 999px;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 5px 14px;
+  padding: 0 14px;
+  background: var(--ink);
+  color: var(--paper);
 }
 
+.newday-bar__btn:hover,
+.archive-bar__btn:hover,
 .freeplay-bar__btn:hover {
+  background: var(--cherry-hover);
+  color: var(--on-cherry);
+}
+
+/* The two that want pressing are the cherry ones. */
+.newday-bar__btn,
+.bar-return__btn {
   background: var(--cherry);
   color: var(--on-cherry);
 }
 
-/* Who else is in this Discord Activity instance. Quieter than the other bars —
-   solid rather than dashed, no button — because it's the only one that isn't
-   telling the player something about the round they're in. It never renders
-   with a count of zero, so there's no empty state to style. */
-.counter-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(42, 122, 118, 0.1);
-  border: 1.5px solid rgba(42, 122, 118, 0.28);
-  border-radius: var(--radius);
-  padding: 6px 14px;
-  margin-bottom: 12px;
+.bar-return__btn:hover,
+.bar-return__btn:active {
+  background: var(--cherry-hover);
+  color: var(--on-cherry);
 }
 
-.counter-bar__tag {
-  font-family: var(--font-display);
-  font-size: 0.68rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-
-/* Archive mode banner (replaying a previous day). */
-.archive-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 8px 12px;
-  background: rgba(42, 122, 118, 0.14);
-  border: 1.5px dashed var(--teal);
-  border-radius: var(--radius);
-  padding: 8px 14px;
-  margin-bottom: 12px;
-}
-
-.archive-bar__tag {
-  font-family: var(--font-display);
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink);
-}
-
-.archive-bar__btn {
-  font-family: var(--font-display);
-  background: var(--teal);
-  color: var(--cream);
-  border: none;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 5px 14px;
-}
-
-.archive-bar__btn:hover {
-  background: var(--teal-dark);
-}
-
-/* Midnight-ET rollover notice: the tab has been open across a day boundary, so
-   the board below is yesterday's. Cherry rather than the archive's teal or
-   free-play's mustard — it's the one bar that wants to be acted on, not just
-   read, and the glow keeps it findable if it appears while nobody's looking. */
+/* Midnight-ET rollover: the tab has been open across a day boundary, so the
+   board below is yesterday's. It slides in, because it can appear while nobody
+   is looking. */
 .newday-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 8px 12px;
-  background: rgba(201, 53, 74, 0.14);
-  border: 1.5px solid var(--cherry);
-  border-radius: var(--radius);
-  padding: 8px 14px;
-  margin-bottom: 12px;
   animation: newday-in 0.32s ease both;
 }
 
@@ -1746,29 +1958,6 @@ textarea.dish-request__input {
   }
 }
 
-.newday-bar__tag {
-  font-family: var(--font-display);
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink);
-}
-
-.newday-bar__btn {
-  font-family: var(--font-display);
-  background: var(--cherry);
-  color: var(--on-cherry);
-  border: none;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 5px 14px;
-}
-
-.newday-bar__btn:hover {
-  background: var(--cherry-hover);
-}
 
 /* ---- kitchen's closed (initial load failed) ---- */
 
@@ -1888,9 +2077,10 @@ textarea.dish-request__input {
 }
 
 .archive-cal__month-name {
-  font-family: var(--font-display);
-  font-size: 0.9rem;
-  letter-spacing: 0.06em;
+  font-family: var(--font-gothic);
+  font-size: 1.25rem;
+  font-weight: 400;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--ink);
   text-align: center;
@@ -1929,8 +2119,8 @@ textarea.dish-request__input {
 
 .archive-cal__dow {
   text-align: center;
-  font-size: 0.66rem;
-  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-family: var(--font-gothic);
   letter-spacing: 0.04em;
   color: var(--ink-soft);
   padding-bottom: 2px;
@@ -2035,13 +2225,16 @@ textarea.dish-request__input {
 }
 
 .chefs-choice__title {
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  letter-spacing: 0.08em;
+  font-family: var(--font-gothic);
+  font-size: 1.3rem;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   /* --cherry-dark, not --cherry: this band is the one place a cherry heading
      lands on --cream rather than --paper, where the lighter one is 4.41:1 —
-     and at 15.2px bold it doesn't reach the large-text allowance. */
+     and at 21px in a regular-weight gothic it doesn't reach the large-text
+     allowance. */
   color: var(--cherry-dark);
   margin: 0 0 3px;
 }
@@ -2504,6 +2697,8 @@ textarea.dish-request__input {
 .archive-bar__btn:focus-visible,
 .freeplay-bar__btn:focus-visible,
 .newday-bar__btn:focus-visible,
+.bar-return__btn:focus-visible,
+.bar-band__btn:focus-visible,
 .archive-cal__nav-btn:focus-visible,
 .notice__ok:focus-visible,
 .footer-note a:focus-visible {
@@ -2811,53 +3006,11 @@ textarea.dish-request__input {
 
 /* The toolbar pill, for a returning player who finished lunch at noon and
    shouldn't have to reopen their check to find the bar. */
+/* The one cherry tab: it's a door, not chrome. No bold, because the gothic
+   ships one weight and a synthesized bold smears it. */
 .icon-btn--bar {
   border-color: var(--cherry);
   color: var(--cherry-dark);
-  font-weight: 700;
-}
-
-/* ---- the way back ----
-   Mirrors `.archive-bar`, which is the diner's existing answer to "you are
-   somewhere other than today, here is the way out". It replaced a pill in the
-   bar's toolbar, which sat among How-to and Sound and read as one more filter
-   rather than as a door — the way back has to look like a way back. */
-.bar-return {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 8px 12px;
-  background: color-mix(in srgb, var(--cherry) 12%, transparent);
-  border: 1.5px dashed var(--cherry);
-  border-radius: var(--radius);
-  padding: 8px 14px;
-  margin-bottom: 12px;
-}
-
-.bar-return__tag {
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
-  color: var(--ink-soft);
-  text-transform: uppercase;
-}
-
-.bar-return__btn {
-  font-family: var(--font-display);
-  background: var(--cherry);
-  color: var(--on-cherry);
-  border: none;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 5px 14px;
-}
-
-.bar-return__btn:hover,
-.bar-return__btn:active {
-  background: var(--cherry-hover);
-  color: var(--cream);
 }
 
 /* ---- the walk there ---- */
@@ -2987,10 +3140,12 @@ textarea.dish-request__input {
 /* A glass instead of the cloche. Same slot, same size, so the header's rhythm
    is unchanged between the two boards. */
 .special-line--bar .special-line__glass {
-  font-size: 2rem;
+  display: grid;
+  place-items: center;
+  font-size: 2.4rem;
   line-height: 1;
-  width: 44px;
-  text-align: center;
+  width: 54px;
+  color: var(--cherry);
 }
 
 .win-toast--bar {
@@ -3004,28 +3159,6 @@ textarea.dish-request__input {
   border-style: solid;
   border-color: var(--paper-edge);
   background: color-mix(in srgb, var(--cherry) 6%, var(--paper));
-}
-
-/* ---- last call ---- */
-
-/* Only inside the final hour and only while a round is live — see NightPage.
-   Quiet, because it is a fact and not an alarm: the round you are in will
-   finish regardless, since last call is a door and not a timer. */
-.lastcall-bar {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 10px;
-  padding: 5px 10px;
-  border: 1px dashed var(--cherry-dark);
-  border-radius: var(--radius);
-  background: color-mix(in srgb, var(--cherry) 8%, transparent);
-}
-
-.lastcall-bar__tag {
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-  color: var(--ink-soft);
-  font-variant-numeric: tabular-nums;
 }
 
 /* ---- the signs on the door ---- */
@@ -3099,6 +3232,7 @@ textarea.dish-request__input {
   .lights-out__scrim,
   .lights-out__sign,
   /* The first visit. The dim and the callouts still appear; nothing pulses. */
+  .tally__hole--punched,
   .coach,
   .coach-spotlight,
   .guess-input--coach-order input:not(:focus),

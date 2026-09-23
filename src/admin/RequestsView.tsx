@@ -5,6 +5,7 @@ import type { RequestDraft } from "./AdminApp";
 import { Modal } from "../game/components";
 import * as api from "./api";
 
+import { Icon } from "../game/Icon";
 /**
  * Build the exact `/create-dishes` (or `/create-drinks`) line the skill
  * understands, so a whole section of the inbox can be pasted into a chat with
@@ -149,7 +150,7 @@ export default function RequestsView({
               {list.length > 0 && (
                 <div className="btn-row">
                   <button className="btn" onClick={() => copy(kind)}>
-                    {copied === kind ? "Copied!" : "📋 Copy all for Claude"}
+                    {copied === kind ? "Copied!" : <><Icon name="receipt" /> Copy all for Claude</>}
                   </button>
                   <button className="btn btn--ghost" onClick={() => setConfirmingClear(kind)}>
                     Clear all

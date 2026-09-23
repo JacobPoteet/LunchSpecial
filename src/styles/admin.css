@@ -29,32 +29,57 @@
   font-weight: 400;
 }
 
+/* The second tube, the same construction as the game's sign: blue block
+   letters under the pink script. It was 0.62rem slab at 0.3em tracking, the
+   eyebrow label the game's sign also lost. */
 .admin__title small {
-  font-family: var(--font-display);
-  font-size: 0.62rem;
-  letter-spacing: 0.3em;
-  color: var(--cream);
-  text-shadow: none;
   display: block;
-  margin-top: 2px;
+  margin-top: 4px;
+  font-family: var(--font-gothic);
+  font-size: 1rem;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #eef8ff;
+  text-shadow:
+    0 0 3px rgba(124, 200, 255, 0.95),
+    0 0 10px rgba(124, 200, 255, 0.7),
+    0 0 22px rgba(124, 200, 255, 0.45);
 }
 
+/* Two groups: the places you go, then the two things you do from anywhere
+   (file an issue, clock out). They used to share one wrapping row, where an
+   action read as one more destination. */
 .admin-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px 18px;
+  flex-wrap: wrap;
+}
+
+.admin-nav__group {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
 }
 
+.admin-nav__group--actions {
+  padding-left: 18px;
+  border-left: 1px solid color-mix(in srgb, var(--cream) 30%, transparent);
+}
+
 .admin-nav button {
-  font-family: var(--font-display);
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
+  font-family: var(--font-gothic);
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  border: 2px solid var(--cream);
+  border: 1.5px solid color-mix(in srgb, var(--cream) 55%, transparent);
   background: transparent;
   color: var(--cream);
   border-radius: 999px;
-  padding: 7px 16px;
+  line-height: 1;
+  min-height: 32px;
+  padding: 0 14px;
 }
 
 .admin-nav button.active,
@@ -106,9 +131,9 @@
   gap: 10px;
   flex-wrap: wrap;
   background: var(--paper);
-  border-radius: 12px;
-  padding: 6px 10px;
-  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-paper);
+  padding: 4px 10px 0;
+  box-shadow: var(--shadow-sheet);
   margin-bottom: 16px;
 }
 
@@ -119,17 +144,17 @@
 }
 
 .admin-tabs__btn {
-  font-family: var(--font-display);
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
+  font-family: var(--font-gothic);
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
   border: none;
   border-bottom: 3px solid transparent;
-  border-radius: 8px 8px 0 0;
+  border-radius: 0;
   background: transparent;
   color: var(--teal);
-  padding: 9px 14px 6px;
+  padding: 10px 14px 8px;
   cursor: pointer;
 }
 
@@ -162,19 +187,28 @@
   .admin-tabs__btn { padding-left: 11px; padding-right: 11px; }
 }
 
+/* A sheet of paper on the desk, not a card floating over a photo. The game's
+   heavy --shadow-card lifts ONE card off a busy backdrop; stacked six deep on
+   flat teal it made every panel shout at the same volume. */
 .panel {
   background: var(--paper);
-  border-radius: 12px;
-  padding: 18px;
-  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-paper);
+  padding: 18px 20px 20px;
+  box-shadow: var(--shadow-sheet);
   margin-bottom: 16px;
 }
 
+/* Every panel heading is a question ("Where players drop off", "Did anyone
+   come back for a drink?"), so it is set as one: sentence case in the body
+   serif. Uppercase slab turned a question into a shout, and a run of words in
+   Alfa Slab is the thing ASSETS.md already says it can't do. */
 .panel h2 {
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1.22rem;
+  line-height: 1.25;
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--teal);
   margin: 0 0 12px;
 }
@@ -184,9 +218,9 @@
 }
 
 .btn {
-  font-family: var(--font-display);
-  font-size: 0.82rem;
-  letter-spacing: 0.05em;
+  font-family: var(--font-gothic);
+  font-size: 1.08rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   /* Transparent rather than none, so a solid button is exactly as tall as the
      ghost variant's 2px border makes it. They stand side by side in most rows
@@ -195,6 +229,7 @@
   border: 2px solid transparent;
   border-radius: var(--radius);
   padding: 9px 16px;
+  line-height: 1.1;
   background: var(--teal);
   color: var(--cream);
 }
@@ -204,7 +239,7 @@
    it's the button in the announcement modal's footer — so it takes the same
    text colour as the cherry buttons in game.css. */
 .btn--red { background: var(--cherry); color: var(--on-cherry); }
-.btn--red:hover { background: var(--cherry-dark); }
+.btn--red:hover { background: var(--cherry-hover); }
 .btn--ghost {
   background: transparent;
   color: var(--teal);
@@ -272,9 +307,9 @@
 /* Splits a panel into named blocks (Today / All time) without promoting either
    to its own card — they're two reads on the same thing. */
 .dash-subhead {
-  font-family: var(--font-display);
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
+  font-family: var(--font-gothic);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
   margin: 0 0 8px;
@@ -325,7 +360,7 @@
 
 .metric {
   background: rgba(27, 79, 74, 0.06);
-  border-radius: 10px;
+  border-radius: var(--radius-paper);
   padding: 10px 12px;
   text-align: center;
 }
@@ -339,9 +374,10 @@
 }
 
 .metric__label {
+  font-family: var(--font-gothic);
   display: block;
-  font-size: 0.68rem;
-  letter-spacing: 0.1em;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
   margin-top: 3px;
@@ -370,7 +406,6 @@
 
 .metric--primary .metric__label {
   color: var(--ink);
-  font-weight: 700;
 }
 
 /* Colour key shared by the kind tiles and the daily bar graph. */
@@ -426,9 +461,9 @@
   overflow: hidden;
 }
 .surface-toggle__btn {
-  font-family: var(--font-display);
-  font-size: 0.72rem;
-  letter-spacing: 0.05em;
+  font-family: var(--font-gothic);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   border: none;
   background: transparent;
@@ -445,12 +480,12 @@
 .surface-toggle__btn:disabled:hover { background: transparent; }
 
 .analytics-sub {
-  /* Body serif, not the heavy display slab — far more legible at this small,
-     uppercase, letter-spaced size. Display font stays on the panel h2. */
-  font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
+  /* The printer's gothic, like every small label in the back office. It was the
+     body serif in bold caps, which was the legible choice while the only other
+     option was the slab. */
+  font-family: var(--font-gothic);
+  font-size: 1.02rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
   margin: 0 0 8px;
@@ -461,11 +496,11 @@
 .gd__row { display: flex; align-items: center; gap: 8px; }
 
 .gd__key {
-  font-family: var(--font-display);
+  font-family: var(--font-gothic);
   width: 14px;
   text-align: center;
   color: var(--ink-soft);
-  font-size: 0.85rem;
+  font-size: 1.05rem;
 }
 
 .gd__bar {
@@ -501,7 +536,7 @@
 }
 
 .spark__num {
-  font-size: 0.65rem;
+  font-size: 0.66rem;
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
   line-height: 1;
@@ -529,7 +564,7 @@
 .spark__tick {
   position: absolute;
   bottom: -14px;
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   color: var(--ink-soft);
   white-space: nowrap;
 }
@@ -728,7 +763,7 @@
 .hourly__num {
   position: absolute;
   bottom: calc(var(--h, 0%) + 2px);
-  font-size: 0.6rem;
+  font-size: 0.66rem;
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
   line-height: 1;
@@ -744,7 +779,7 @@
 .hourly__tick {
   position: absolute;
   bottom: -14px;
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   color: var(--ink-soft);
 }
 
@@ -771,17 +806,155 @@
 
 .hourly__caption { margin-top: 18px; font-size: 0.78rem; }
 
-/* The three sentences under the day tiles: pace, difficulty, liveness. Each is
-   a full read on its own, so they're a list rather than a run-on paragraph. */
+/* The three sentences beside the day's tape: pace, difficulty, liveness. Each
+   is a full read on its own, so they're a list rather than a run-on paragraph,
+   and each hangs off a rule like a note pinned beside the tape. */
 .dash-reads {
   list-style: none;
   margin: 0 0 4px;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 10px;
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.ztape-row .dash-reads li {
+  padding-left: 12px;
+  border-left: 3px solid var(--paper-edge);
+}
+
+/* ---- the day's tape (Today tab) ----
+
+   The day's figures as a register's end-of-day tape: one strip of till roll,
+   torn at both ends, a dotted leader out to each figure. The check's sibling in
+   the game. The wrapper carries the shadow because a mask cuts away any shadow
+   drawn on the element it masks; a filter on the parent draws round what the
+   mask left, so the torn edge gets its outline. */
+.ztape-row {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: 16px 28px;
+  align-items: start;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 640px) {
+  .ztape-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+.ztape {
+  filter: drop-shadow(0 1px 1.5px rgba(43, 35, 32, 0.28));
+}
+
+.ztape__paper {
+  --tooth: 5px;
+  background: var(--paper-bright);
+  padding: calc(12px + var(--tooth)) 16px calc(12px + var(--tooth));
+  -webkit-mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--tooth)) 51% repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--tooth)) 51% repeat-x;
+  mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--tooth)) 51% repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--tooth)) 51% repeat-x;
+}
+
+.ztape__head {
+  margin: 0 0 8px;
+  padding-bottom: 8px;
+  border-bottom: 1.5px dashed var(--paper-edge);
+  text-align: center;
+}
+
+.ztape__day {
+  display: block;
+  font-family: var(--font-gothic);
+  font-size: 1.2rem;
+  line-height: 1.1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.ztape__dish {
+  display: block;
+  margin-top: 2px;
+  font-style: italic;
+  font-size: 0.9rem;
   color: var(--ink-soft);
-  font-size: 0.86rem;
+}
+
+.ztape__lines {
+  margin: 0;
+}
+
+.ztape__line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 0;
+}
+
+/* The label grows and draws the leader after itself, so the figure sits flush
+   right at whatever width the tape is. A leader as its own element would be a
+   stray child of the <dl>. */
+.ztape__line dt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-gothic);
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.ztape__line dt::after {
+  content: "";
+  flex: 1;
+  min-width: 12px;
+  border-bottom: 2px dotted rgba(91, 79, 69, 0.45);
+}
+
+.ztape__line dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  line-height: 1.1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* The line the rest hang off. */
+.ztape__line--total dt {
+  color: var(--ink);
+}
+
+.ztape__line--total dd {
+  font-size: 1.55rem;
+  color: var(--teal);
+}
+
+/* A subset of the line above it: indented, and a step quieter. */
+.ztape__line--sub dt {
+  padding-left: 16px;
+  font-size: 0.98rem;
+}
+
+.ztape__line--sub dd {
+  font-size: 1rem;
+  color: var(--ink-soft);
+}
+
+.ztape__line .rate-range {
+  margin-top: 2px;
+  font-family: var(--font-body);
 }
 
 /* The all-time footer under the day slice: total play time in big type, with the
@@ -819,13 +992,13 @@
 }
 
 .alltime__label {
+  font-family: var(--font-gothic);
   display: block;
   margin-top: 4px;
-  font-size: 0.68rem;
-  letter-spacing: 0.1em;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink);
-  font-weight: 700;
 }
 
 .alltime__foot {
@@ -928,10 +1101,10 @@
 }
 
 .retention__key {
-  font-family: var(--font-display);
-  font-size: 0.82rem;
+  font-family: var(--font-gothic);
+  font-size: 1.05rem;
   color: var(--ink-soft);
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
   padding-top: 1px;
 }
 
@@ -1017,10 +1190,9 @@
 }
 
 .funnel__label {
-  font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
+  font-family: var(--font-gothic);
+  font-size: 1rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
   cursor: help;
@@ -1066,8 +1238,8 @@
 }
 
 .funnel__step-pct {
-  font-family: var(--font-display);
-  font-size: 0.92rem;
+  font-family: var(--font-gothic);
+  font-size: 1.2rem;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
@@ -1169,8 +1341,8 @@
 .cpie__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .cpie__share {
-  font-family: var(--font-display);
-  font-size: 0.95rem;
+  font-family: var(--font-gothic);
+  font-size: 1.2rem;
   color: var(--teal);
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -1253,9 +1425,8 @@
 
 .day-table th {
   text-align: right;
-  font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 0.7rem;
+  font-family: var(--font-gothic);
+  font-size: 0.95rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -1293,9 +1464,8 @@
 
 .ev-badge {
   display: inline-block;
-  font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 0.68rem;
+  font-family: var(--font-gothic);
+  font-size: 0.9rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 2px 8px;
@@ -1318,8 +1488,8 @@
   padding: 1px 6px;
   border: 1px solid var(--teal);
   border-radius: 999px;
-  font-family: var(--font-display);
-  font-size: 0.6rem;
+  font-family: var(--font-gothic);
+  font-size: 0.82rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--teal);
@@ -1484,9 +1654,8 @@
 .act-filters__label {
   flex: none;
   width: 62px;
-  font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 0.68rem;
+  font-family: var(--font-gothic);
+  font-size: 0.95rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -1741,9 +1910,9 @@
 
 .admin-table th {
   text-align: left;
-  font-family: var(--font-display);
-  font-size: 0.66rem;
-  letter-spacing: 0.12em;
+  font-family: var(--font-gothic);
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
   padding: 8px 10px;
@@ -1837,9 +2006,9 @@
 }
 
 .sort-picker span {
-  font-family: var(--font-display);
-  font-size: 0.6rem;
-  letter-spacing: 0.12em;
+  font-family: var(--font-gothic);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
@@ -1862,9 +2031,9 @@
 }
 
 .facet__label {
-  font-family: var(--font-display);
-  font-size: 0.6rem;
-  letter-spacing: 0.1em;
+  font-family: var(--font-gothic);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
   /* Optically centres the label on the first row of chips. */
@@ -2007,9 +2176,9 @@
 
 .field label {
   display: block;
-  font-family: var(--font-display);
-  font-size: 0.64rem;
-  letter-spacing: 0.12em;
+  font-family: var(--font-gothic);
+  font-size: 0.92rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
   margin-bottom: 4px;
@@ -2126,9 +2295,9 @@
 }
 
 .preview-pane h3 {
-  font-family: var(--font-display);
-  font-size: 0.72rem;
-  letter-spacing: 0.14em;
+  font-family: var(--font-gothic);
+  font-size: 1.02rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--teal);
   margin: 0 0 10px;
@@ -2150,12 +2319,12 @@
 /* A served day is settled, so it recedes — but not out of reach: its Edit and
    Test buttons still work, and 0.5 opacity took them below readable. */
 .sched-row--past { opacity: 0.68; }
-.sched-row--today { background: rgba(232, 165, 58, 0.18); border-radius: 8px; }
+.sched-row--today { background: rgba(232, 165, 58, 0.18); border-radius: var(--radius-paper); }
 .sched-row--empty .sched-dish::placeholder { color: var(--cherry); font-style: italic; opacity: 1; }
 
 .sched-date {
-  font-family: var(--font-display);
-  font-size: 0.8rem;
+  font-family: var(--font-gothic);
+  font-size: 1.08rem;
   min-width: 130px;
   color: var(--ink);
 }
@@ -2292,8 +2461,8 @@
 }
 
 .sched-window__span {
-  font-family: var(--font-display);
-  font-size: 0.8rem;
+  font-family: var(--font-gothic);
+  font-size: 1.08rem;
   color: var(--ink-soft);
   min-width: 130px;
   text-align: center;
@@ -2315,20 +2484,21 @@
 .form-error {
   background: var(--cherry);
   color: #fff;
-  border-radius: 8px;
+  border-radius: var(--radius-paper);
   padding: 8px 12px;
   margin-bottom: 10px;
   font-size: 0.9rem;
 }
 
 .form-ok {
+  font-family: var(--font-gothic);
   background: var(--hit-soft);
   color: var(--hit);
   border: 1px solid var(--hit);
-  border-radius: 8px;
+  border-radius: var(--radius-paper);
   padding: 8px 12px;
   margin-bottom: 10px;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
 }
 
 @media (max-width: 640px) {
@@ -2336,7 +2506,7 @@
   .admin-table, .admin-table tbody, .admin-table tr, .admin-table td { display: block; width: 100%; }
   .admin-table tr {
     border: 1.5px solid var(--paper-edge);
-    border-radius: 10px;
+    border-radius: var(--radius-paper);
     margin-bottom: 10px;
     padding: 6px 4px;
     background: #fffdf6;
@@ -2357,12 +2527,12 @@
 /* Qualified for the same reason .modal--notice .notice__title is: this modal
    opens from inside a .panel, and `.panel h2` would otherwise win. */
 .modal .daypick__title {
-  font-family: var(--font-display);
+  font-family: var(--font-gothic);
   color: var(--teal);
   margin: 0 0 4px;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-align: center;
 }
 
@@ -2400,8 +2570,8 @@
 .daypick__month { margin-bottom: 16px; }
 
 .daypick__month-name {
-  font-family: var(--font-display);
-  font-size: 0.9rem;
+  font-family: var(--font-gothic);
+  font-size: 1.2rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink);
@@ -2417,9 +2587,9 @@
 
 .daypick__dow {
   text-align: center;
-  font-size: 0.66rem;
-  font-family: var(--font-display);
-  letter-spacing: 0.04em;
+  font-size: 0.9rem;
+  font-family: var(--font-gothic);
+  letter-spacing: 0.06em;
   color: var(--ink-soft);
   padding-bottom: 2px;
 }
@@ -2510,9 +2680,9 @@
 
 .announce-group__title {
   margin: 0 0 2px;
-  font-family: var(--font-display);
-  font-size: 0.78rem;
-  letter-spacing: 0.12em;
+  font-family: var(--font-gothic);
+  font-size: 1.08rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
@@ -2542,7 +2712,7 @@
   padding: 14px 16px;
   border: 1.5px solid var(--paper-edge);
   border-left: 5px solid var(--miss);
-  border-radius: 10px;
+  border-radius: var(--radius-paper);
   background: #fffdf6;
 }
 
@@ -2639,11 +2809,12 @@
    quiet — it qualifies the number, it isn't a second number. It only renders at
    all under SMALL_SAMPLE_MIN (see shared/sample.ts), so its presence is itself
    the signal that the figure beside it is soft. */
+/* No opacity: ink-soft is already the quiet step, and opacity on text is a
+   contrast change in disguise (the lesson the game's check learned twice). */
 .rate-range {
   display: block;
-  font-size: 0.68rem;
+  font-size: 0.74rem;
   color: var(--ink-soft);
-  opacity: 0.85;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -2667,9 +2838,10 @@
 .dash-details { margin-top: 10px; }
 
 .dash-details > summary {
+  font-family: var(--font-gothic);
   cursor: pointer;
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--teal);
   list-style: none;
@@ -2749,8 +2921,9 @@
 }
 
 .wprofile__key {
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
+  font-family: var(--font-gothic);
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
@@ -2780,9 +2953,9 @@
 }
 
 .wprofile__num {
-  font-family: var(--font-display);
+  font-family: var(--font-gothic);
   color: var(--teal);
-  font-size: 0.9rem;
+  font-size: 1.15rem;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
@@ -2882,9 +3055,9 @@
    a <span> rather than a nested <label>. Same look either way. */
 .field > span {
   display: block;
-  font-family: var(--font-display);
-  font-size: 0.64rem;
-  letter-spacing: 0.12em;
+  font-family: var(--font-gothic);
+  font-size: 0.92rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
   margin-bottom: 4px;
@@ -2903,9 +3076,10 @@
 .xp__control { flex: 0 1 auto; }
 
 .xp__control > span {
+  font-family: var(--font-gothic);
   display: block;
-  font-size: 0.62rem;
-  letter-spacing: 0.12em;
+  font-size: 0.88rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
   margin-bottom: 3px;
@@ -2924,7 +3098,7 @@
 .xp__offplan {
   margin: 0 0 12px;
   padding: 8px 11px;
-  border-radius: 8px;
+  border-radius: var(--radius-paper);
   background: rgba(232, 165, 58, 0.16);
   font-size: 0.85rem;
   color: var(--ink);
@@ -2936,7 +3110,7 @@
   flex-wrap: wrap;
   gap: 10px;
   padding: 9px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-paper);
   border-left: 5px solid var(--miss);
   background: rgba(27, 79, 74, 0.06);
   margin-bottom: 12px;
@@ -2962,9 +3136,10 @@
 }
 
 .xp__metric {
+  font-family: var(--font-gothic);
   margin-left: auto;
-  font-size: 0.68rem;
-  letter-spacing: 0.1em;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
@@ -2981,7 +3156,7 @@
   min-width: 84px;
   text-align: center;
   background: rgba(27, 79, 74, 0.06);
-  border-radius: 10px;
+  border-radius: var(--radius-paper);
   padding: 9px 12px;
 }
 
@@ -2995,9 +3170,10 @@
 }
 
 .xp__side-label {
+  font-family: var(--font-gothic);
   display: block;
-  font-size: 0.64rem;
-  letter-spacing: 0.1em;
+  font-size: 0.88rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
   margin-top: 3px;
@@ -3010,7 +3186,7 @@
   font-size: 0.88rem;
   color: var(--ink);
   padding: 8px 11px;
-  border-radius: 8px;
+  border-radius: var(--radius-paper);
   background: rgba(27, 79, 74, 0.06);
 }
 
@@ -3220,9 +3396,10 @@
 }
 
 .night-board__label {
+  font-family: var(--font-gothic);
   margin: 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.14em;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
@@ -3254,8 +3431,9 @@
 }
 
 .night-stat__label {
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
+  font-family: var(--font-gothic);
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }

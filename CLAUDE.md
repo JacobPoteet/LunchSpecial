@@ -402,7 +402,7 @@ src/game/             NightPage (the bar board), night.ts (the browser's half of
                       useRoundTelemetry.ts (the analytics id, the seated beacon, presence and the
                       progress message, one hook for both boards), useShare.ts (the share
                       dispatcher and its label, one hook for both checks)
-src/game/             GamePage (orchestrator), components.tsx (Modal/GuessRow/ClueTicket/GuessInput/
+src/game/             GamePage (orchestrator), Icon.tsx (the icon set; no emoji in chrome), components.tsx (Modal/GuessRow/ClueTicket/GuessInput/PunchCard/
                       Countdown), RequestForm.tsx (the suggest box + fan stamp, dish or drink),
                       Coach.tsx (the first visit's coach marks + spotlight),
                       SoundToggle.tsx, storage.ts, share.ts, attribution.ts,
@@ -457,11 +457,11 @@ The server accepts a **playable date**: today (±2 days of ET now, for clock and
 - **Chef's Choice** is spoiler-free (never touches `schedule`), so it ships in prod. Nothing gates it server-side; dev keeps `/play` and `?freeplay` as convenience entrances.
 - **Playtest** pins a dish by slug (`getDishBySlug`, resolved in `resolveTarget` ahead of `random`). The worker takes `?special=` unconditionally (slugs are already public via `/api/dishes`), but **the client only honours it behind `import.meta.env.DEV`**. An unknown slug 400s onto the closed-kitchen sign.
 - **Showcase** is the demo link sent to someone who has never played: today's real Special, seeded as already won, with After Dark unlocked whatever the hour. See "The showcase link" under After Dark.
-- **Preview and playtest are dressed as the daily** — real puzzle number, "Daily Special" line, countdown, share button, stats panel, 📅 Play again (`dressedAsDaily` in GamePage, taken by the check as `asDaily`). Only the top banner marks them, because the end-of-round screen is the part most worth trying before players reach it. Finishing one unlocks the archive. Two seams are deliberate: the stats panel shows the numbers you walked in with, and the share button copies a real grid but fires no beacon.
+- **Preview and playtest are dressed as the daily** — real puzzle number, "Daily Special" line, countdown, share button, stats panel, Play again (`dressedAsDaily` in GamePage, taken by the check as `asDaily`). Only the top banner marks them, because the end-of-round screen is the part most worth trying before players reach it. Finishing one unlocks the archive. Two seams are deliberate: the stats panel shows the numbers you walked in with, and the share button copies a real grid but fires no beacon.
 
 ### The streak
 
-`Stats.currentStreak` only moves when a round is recorded, so a streak that died last week still reads as 5 in storage. **Every place the streak is printed goes through `shared/streak.ts`**, which takes `lastCompletedDate` and today and answers 0 unless the last recorded round was today or yesterday. Three surfaces read it: the mark beside the date on the board (`🔥 N-day streak`, from 2, **Today's Special only**, since a Leftover or a Chef's Choice never touches it), the Streak tile in the stats panel, and the one line under the stats on the check that is about tomorrow rather than today (keep it / start one / starts fresh). A loss is not told the number it just lost. Don't print `currentStreak` raw anywhere.
+`Stats.currentStreak` only moves when a round is recorded, so a streak that died last week still reads as 5 in storage. **Every place the streak is printed goes through `shared/streak.ts`**, which takes `lastCompletedDate` and today and answers 0 unless the last recorded round was today or yesterday. Three surfaces read it: the mark beside the date on the board (`N-day streak` beside a flame icon, from 2, **Today's Special only**, since a Leftover or a Chef's Choice never touches it), the Streak tile in the stats panel, and the one line under the stats on the check that is about tomorrow rather than today (keep it / start one / starts fresh). A loss is not told the number it just lost. Don't print `currentStreak` raw anywhere.
 
 ### The daily tally
 
@@ -469,7 +469,7 @@ The check's "68% of diners got today's Special · most in 3" comes from `GET /ap
 
 ### Sharing a finished round
 
-**Which target runs is only settled at click time, so the idle label names none of them.** It reads "📤 Share" everywhere and the *result* says where the round went.
+**Which target runs is only settled at click time, so the idle label names none of them.** It reads "Share" everywhere (beside the share icon, which only the idle state draws) and the *result* says where the round went.
 
 | Surface | Target | Result label |
 |---|---|---|
@@ -702,6 +702,8 @@ Finish with `npm test && npm run check && npm run lint`.
 - Don't add npm deps casually — the only runtime deps are hono, react, react-dom
 - Windows repo (CRLF warnings from git are noise; ignore)
 - Changing art: swap ai-*.svg in place (same viewBox ratio), update ASSETS.md; the neon logo is CSS text, not an image
+- **No emoji in the game's chrome.** Buttons, slips, toasts and the toolbar draw `Icon` (`src/game/Icon.tsx`): one stroke set in `currentColor`, so the night palette reaches it and it renders the same on every platform. The share text keeps its emoji, because that grid is the message. A new icon is a path added to `PATHS`, never an emoji in a label
+- **Three faces, three jobs.** Alfa Slab One is the sign (headings, dish names, primary buttons, 1rem and up), Yellowtail the neon and the flourishes, League Gothic (`--font-gothic`) the printer: tabs, section heads, tile labels and small print. Don't set Alfa Slab below about 1rem; it turns to blocks. Paper surfaces take `--radius-paper`, controls `--radius`
 - **The game ships fonts as `.woff2` only.** The `.ttf` beside each in `src/assets/fonts/` is the press-kit source and is never referenced from CSS. A replacement face gets converted (ASSETS.md says how), never pointed at as TTF
 
 ## Accessibility (player-facing UI)

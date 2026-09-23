@@ -15,7 +15,8 @@ import {
 } from "../api";
 import type { Announcement, DailyInfo, DishPoolEntry, DishSummary, RevealInfo, RoundKind } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
-import { ClueTicket, Countdown, GuessInput, GuessRow, Modal, StoryDetails, useNewDayAvailable } from "./components";
+import { ClueTicket, Countdown, GuessInput, GuessRow, Modal, PunchCard, StoryDetails, useNewDayAvailable } from "./components";
+import { Icon } from "./Icon";
 import AnnouncementModal from "./AnnouncementModal";
 import ArchiveModal from "./ArchiveModal";
 import { BuildTag } from "./BuildTag";
@@ -98,7 +99,7 @@ function WinToast({ text }: { text: string }) {
   return (
     <div className="win-toast" role="status" aria-live="polite">
       <span className="win-toast__bell" aria-hidden="true">
-        🛎️
+        <Icon name="bell" />
       </span>
       {text}
     </div>
@@ -136,7 +137,7 @@ function HowToModal({ onClose }: { onClose: () => void }) {
         </div>
         <p>
           Every miss earns a <strong>clue ticket</strong>, five in all. Settle today's check and the{" "}
-          <strong>Menu archive</strong> opens: every Special you missed, or a random one off the cook.
+          <strong>Leftovers</strong> open: every Special you missed, or a random one off the cook.
         </p>
       </div>
     </Modal>
@@ -213,7 +214,7 @@ function KitchenClosed({ detail, onRetry }: { detail: string | null; onRetry: ()
       </p>
       {detail && <p className="closed__detail">{detail}</p>}
       <button className="replay-btn" onClick={() => { playSfx("ui-click"); onRetry(); }}>
-        🛎️ Ring the bell again
+        <Icon name="bell" /> Ring the bell again
       </button>
     </div>
   );
@@ -247,7 +248,9 @@ function BarBand({ invite, onEnter }: { invite: BarInvite; onEnter: () => void }
   if (invite === "none") return null;
   if (invite === "soon") {
     return (
-      <p className="bar-band bar-band--soon">🍸 After Dark opens at 8, your time.</p>
+      <p className="bar-band bar-band--soon">
+        <Icon name="glass" /> After Dark opens at 8, your time.
+      </p>
     );
   }
   const settled = invite === "settled";
@@ -261,13 +264,72 @@ function BarBand({ invite, onEnter }: { invite: BarInvite; onEnter: () => void }
         }}
       >
         <span className="bar-band__text">
-          <span className="bar-band__tag">🍸 {settled ? "Your tab is at the bar" : "The bar's open"}</span>
+          <span className="bar-band__tag">
+            <Icon name="glass" /> {settled ? "Your tab is at the bar" : "The bar's open"}
+          </span>
           <span className="bar-band__sub">
             {settled ? "Go back and take another look" : "One drink, four guesses, gone by morning"}
           </span>
         </span>
-        <span className="bar-band__arrow" aria-hidden="true">→</span>
+        <span className="bar-band__arrow" aria-hidden="true">
+          <Icon name="arrow" />
+        </span>
       </button>
+    </div>
+  );
+}
+
+/** 2026-09-23 -> 9/23/26, the way it's written on a pad. Read off the string,
+ * so no timezone can move the day. */
+function padDate(date: string): string {
+  const [y, m, d] = date.split("-");
+  return `${Number(m)}/${Number(d)}/${y.slice(2)}`;
+}
+
+/**
+ * The printed head of a diner guest check: the house, the check number in red,
+ * and a ruled row of boxes. Each box is a fact about this round rather than
+ * decoration: when it was, how many orders it took, which menu it came off. A
+ * Chef's Choice has no Special number, so it has no check number either.
+ */
+function GuestCheckHead({
+  checkNo,
+  date,
+  orders,
+  menu,
+}: {
+  checkNo: number | null;
+  date: string;
+  orders: number;
+  menu: string;
+}) {
+  return (
+    <div className="guest-check">
+      <div className="guest-check__top">
+        <p className="guest-check__house">Lunch Special</p>
+        {checkNo !== null && checkNo > 0 && (
+          <p className="guest-check__no">
+            <small>No.</small>
+            {checkNo}
+          </p>
+        )}
+      </div>
+      <dl className="guest-check__boxes">
+        <div className="guest-check__box">
+          <dt>Date</dt>
+          <dd>{padDate(date)}</dd>
+        </div>
+        <div className="guest-check__box">
+          <dt>Orders</dt>
+          <dd>
+            {orders} of {MAX_GUESSES}
+          </dd>
+        </div>
+        <div className="guest-check__box">
+          <dt>Menu</dt>
+          <dd>{menu}</dd>
+        </div>
+      </dl>
     </div>
   );
 }
@@ -369,7 +431,7 @@ function ResultModal({
               {/* Keyed on the state so the label remounts and cross-fades
                   instead of hot-swapping text under the player's thumb. */}
               <span className="share-btn__label" key={sharing.state}>
-                {sharing.label}
+                {sharing.state === "idle" && <Icon name="share" />} {sharing.label}
               </span>
             </button>
           )}
@@ -379,12 +441,12 @@ function ResultModal({
         <div className="replay-actions">
           {isRandom && (
             <button className="replay-btn" onClick={() => { playSfx("ui-click"); onNewGame(); }}>
-              🎲 New random dish
+              <Icon name="dice" /> New random dish
             </button>
           )}
           {canArchive && (
             <button className="replay-btn" onClick={() => { playSfx("ui-click"); onArchive(); }}>
-              📅 Play again
+              <Icon name="calendar" /> Play again
             </button>
           )}
           {/* The check is where an invite belongs — Discord's own guidance is
@@ -393,7 +455,7 @@ function ResultModal({
               yet. You've just finished; who else should be doing this? */}
           {showInvite && (
             <button className="replay-btn" onClick={openInvite}>
-              🍽️ Invite the table
+              <Icon name="cutlery" /> Invite the table
             </button>
           )}
         </div>
@@ -404,8 +466,17 @@ function ResultModal({
   return (
     <Modal onClose={onClose} variant="receipt" footer={actions} label="Your check">
       <div className="receipt__head">
-        <p className="receipt__title">Lunch Special - your check</p>
-        <p className="receipt__verdict">{won ? "On the house!" : "Better luck tomorrow"}</p>
+        <GuestCheckHead
+          checkNo={isRandom ? null : daily.puzzleNumber}
+          date={round.date}
+          orders={round.guesses.length}
+          menu={isRandom ? "Chef's Choice" : asDaily ? "Daily Special" : "Leftovers"}
+        />
+        {/* "Tomorrow" is a promise only the daily can make: a Leftover or a
+            Chef's Choice can be played again right now. */}
+        <p className="receipt__verdict">
+          {won ? "On the house!" : asDaily ? "Better luck tomorrow" : "Better luck next time"}
+        </p>
       </div>
       {reveal && (
         <>
@@ -911,7 +982,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
             whatever mode the player is in, so it needs to be read first. */}
         {newDayAvailable && (
           <div className="newday-bar" role="status" aria-live="polite">
-            <span className="newday-bar__tag">🛎️ A new Special is up</span>
+            <span className="newday-bar__tag"><Icon name="bell" /> A new Special is up</span>
             <button className="newday-bar__btn" onClick={() => { playSfx("ui-click"); goToday(); }}>
               Serve it
             </button>
@@ -919,13 +990,13 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         )}
         {isArchive && (
           <div className="archive-bar">
-            <span className="archive-bar__tag">📅 From the archive</span>
+            <span className="archive-bar__tag"><Icon name="calendar" /> From the archive</span>
             <button className="archive-bar__btn" onClick={() => { playSfx("ui-click"); goToday(); }}>Back to today</button>
           </div>
         )}
         {isRandom && (
           <div className="freeplay-bar">
-            <span className="freeplay-bar__tag">🎲 Random recipe — nothing saved</span>
+            <span className="freeplay-bar__tag"><Icon name="dice" /> Random recipe — nothing saved</span>
             <button className="freeplay-bar__btn" onClick={() => { playSfx("ui-click"); newGame(); }}>New random dish</button>
           </div>
         )}
@@ -935,7 +1006,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         {company > 0 && (
           <div className="counter-bar" role="status" aria-live="polite">
             <span className="counter-bar__tag">
-              🍽️ {company} {company === 1 ? "other is" : "others are"} at the counter
+              <Icon name="cutlery" /> {company} {company === 1 ? "other is" : "others are"} at the counter
             </span>
           </div>
         )}
@@ -944,16 +1015,36 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           <p className="menu-card__meta">
             {daily && (!ephemeral || dressedAsDaily) ? <>Special No. {daily.puzzleNumber} — </> : null}
             {dateLabel(date)}
-            {streakMark && <span className="menu-card__streak"> · {streakMark}</span>}
+            {streakMark && (
+              <>
+                {" · "}
+                <span className="menu-card__streak">
+                  <Icon name="flame" />
+                  {streakMark}
+                </span>
+              </>
+            )}
           </p>
           <div className="menu-card__toolbar">
-            <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowHowTo(true); }}>How to play</button>
-            <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowStats(true); }}>My stats</button>
+            <button
+              className="icon-btn icon-btn--solo"
+              aria-label="How to play"
+              onClick={() => { playSfx("ui-click"); setShowHowTo(true); }}
+            >
+              <Icon name="help" />
+            </button>
+            <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowStats(true); }}>
+              <Icon name="stats" /> My stats
+            </button>
             {canArchive && (
-              <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowArchive(true); }}>Menu archive</button>
+              <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowArchive(true); }}>
+                <Icon name="calendar" /> Leftovers
+              </button>
             )}
             {round.status !== "playing" && (
-              <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowResult(true); }}>Your check</button>
+              <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowResult(true); }}>
+                <Icon name="receipt" /> Your check
+              </button>
             )}
             {/* A returning player who finished lunch at noon shouldn't have to
                 reopen their check to find the bar. Only while it's actually
@@ -963,7 +1054,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
                 className="icon-btn icon-btn--bar"
                 onClick={() => { playSfx("ui-click"); onEnterBar(); }}
               >
-                🍸 After Dark
+                <Icon name="glass" /> After Dark
               </button>
             )}
             <SoundToggle />
@@ -1011,10 +1102,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
                     ) : null
                   }
                 />
-                <p className="tally">
-                  {"•".repeat(remaining)}
-                  {"◦".repeat(MAX_GUESSES - remaining)} {remaining} {remaining === 1 ? "guess" : "guesses"} left
-                </p>
+                <PunchCard used={MAX_GUESSES - remaining} total={MAX_GUESSES} />
               </>
             )}
           </>

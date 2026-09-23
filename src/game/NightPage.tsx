@@ -22,7 +22,8 @@ import { useCheckOpening } from "./roundLifecycle";
 import { useRoundTelemetry } from "./useRoundTelemetry";
 import { useShare } from "./useShare";
 import { DRINK_CLUE_COUNT, DRINK_MAX_GUESSES } from "../../shared/types";
-import { Coaster, DrinkGuessRow, GuessInput, Modal, StoryDetails } from "./components";
+import { Coaster, DrinkGuessRow, GuessInput, Modal, PunchCard, StoryDetails } from "./components";
+import { Icon } from "./Icon";
 import { FanStamp, RequestForm } from "./RequestForm";
 import { BuildTag } from "./BuildTag";
 import { SoundToggle } from "./SoundToggle";
@@ -409,7 +410,9 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
       <p className="sr-only" role="status" aria-live="polite">{liveCoaster}</p>
       {toast && (
         <div className="win-toast win-toast--bar" role="status" aria-live="polite">
-          <span className="win-toast__bell" aria-hidden="true">🍸</span>
+          <span className="win-toast__bell" aria-hidden="true">
+            <Icon name="glass" />
+          </span>
           {toast}
         </div>
       )}
@@ -434,7 +437,9 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
             is here because the toolbar pill it replaces read as a filter rather
             than as a door. */}
         <div className="bar-return">
-          <span className="bar-return__tag">🍸 After Dark</span>
+          <span className="bar-return__tag">
+            <Icon name="glass" /> After Dark
+          </span>
           <button className="bar-return__btn" onClick={() => { playSfx("ui-click"); onLeave(); }}>
             Back to the diner
           </button>
@@ -461,7 +466,8 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
             there is nothing left to hurry for. */}
         {lastCall > 0 && lastCall < 3_600_000 && round.status === "playing" && (
           <div className="lastcall-bar" role="status" aria-live="polite">
-            <span className="lastcall-bar__tag">🕒 Last call in {hms(lastCall).m}:{hms(lastCall).s}</span>
+            <span className="lastcall-bar__tag">
+              <Icon name="clock" /> Last call in {hms(lastCall).m}:{hms(lastCall).s}</span>
           </div>
         )}
 
@@ -476,7 +482,9 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
         ) : (
           <>
             <div className="special-line special-line--bar">
-              <span className="special-line__glass" aria-hidden="true">🍸</span>
+              <span className="special-line__glass" aria-hidden="true">
+                <Icon name="glass" />
+              </span>
               <div className="special-line__body">
                 <p className="special-line__label">
                   <span>Tonight's Nightcap</span>
@@ -504,11 +512,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
                   label="Guess a drink"
                   hint={(d) => d.country}
                 />
-                <p className="tally">
-                  {"•".repeat(remaining)}
-                  {"◦".repeat(DRINK_MAX_GUESSES - remaining)} {remaining}{" "}
-                  {remaining === 1 ? "guess" : "guesses"} left
-                </p>
+                <PunchCard used={DRINK_MAX_GUESSES - remaining} total={DRINK_MAX_GUESSES} />
               </>
             )}
           </>
@@ -623,7 +627,7 @@ function TabModal({
    */
   const sharing = useShare({
     surface: SURFACE,
-    idle: "📤 Share the night",
+    idle: "Share the night",
     message: () => {
       const lunch = loadRound(localToday());
       const lunchBlock =
@@ -665,7 +669,7 @@ function TabModal({
       <div className="check-actions">
         <button className="share-btn share-btn--primary" onClick={sharing.share} disabled={sharing.busy}>
           <span className="share-btn__label" key={sharing.state}>
-            {sharing.label}
+            {sharing.state === "idle" && <Icon name="share" />} {sharing.label}
           </span>
         </button>
       </div>

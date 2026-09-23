@@ -174,7 +174,7 @@ const SCANS = [
       await page.waitForSelector(".modal--receipt");
       await page.click(".modal__close");
       await page.waitForSelector(".modal--receipt", { state: "detached" });
-      await page.click('button:has-text("Menu archive")');
+      await page.click('button:has-text("Leftovers")');
       await page.waitForSelector(".archive-cal__day");
     },
   },

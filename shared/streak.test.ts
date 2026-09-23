@@ -32,8 +32,8 @@ describe("boardStreakMark", () => {
   });
 
   it("marks a live streak of two or more", () => {
-    expect(boardStreakMark({ currentStreak: 2, lastCompletedDate: "2026-09-15", today })).toBe("🔥 2-day streak");
-    expect(boardStreakMark({ currentStreak: 12, lastCompletedDate: today, today })).toBe("🔥 12-day streak");
+    expect(boardStreakMark({ currentStreak: 2, lastCompletedDate: "2026-09-15", today })).toBe("2-day streak");
+    expect(boardStreakMark({ currentStreak: 12, lastCompletedDate: today, today })).toBe("12-day streak");
   });
 
   it("says nothing about a dead streak", () => {

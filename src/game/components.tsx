@@ -8,6 +8,7 @@ import { MATCH_MARKS, MATCH_WORDS } from "../../shared/announce";
 import { gameToday, hms, msUntilGameMidnight } from "../../shared/time";
 import { rankByName } from "../../shared/search";
 import { playSfx, setMuffled } from "../audio";
+import { Icon } from "./Icon";
 
 function prefersReducedMotion(): boolean {
   return (
@@ -293,7 +294,7 @@ export function GuessRow({
     <div className={guess.correct ? "guess-row guess-row--correct" : "guess-row"}>
       <p className="guess-row__name">
         <span className="guess-row__dish">
-          {guess.correct ? "🛎️ " : ""}
+          {guess.correct && <Icon name="bell" />}
           {guess.dish.name}
         </span>
         <span className="leader" aria-hidden="true" />
@@ -350,7 +351,9 @@ export function StoryDetails({ clues, noun }: { clues: string[]; noun: "clues" |
         aria-expanded={open}
         aria-controls="receipt-story"
       >
-        <span>🔍 {open ? `Hide the ${noun}` : `All ${clues.length} ${noun}`}</span>
+        <span>
+          <Icon name="search" /> {open ? `Hide the ${noun}` : `All ${clues.length} ${noun}`}
+        </span>
         <span className={open ? "story__chevron story__chevron--open" : "story__chevron"} aria-hidden="true">
           ▾
         </span>
@@ -368,6 +371,27 @@ export function StoryDetails({ clues, noun }: { clues: string[]; noun: "clues" |
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * The guess budget as a punch card: a hole per order, punched as each one goes
+ * in. The holes are for the eye and hidden from a screen reader; the words
+ * beside them say the same thing. Shared by the diner (six) and the bar (four).
+ */
+export function PunchCard({ used, total }: { used: number; total: number }) {
+  const left = total - used;
+  return (
+    <p className="tally">
+      <span className="tally__holes" aria-hidden="true">
+        {Array.from({ length: total }, (_, i) => (
+          <span key={i} className={i < used ? "tally__hole tally__hole--punched" : "tally__hole"} />
+        ))}
+      </span>
+      <span className="tally__text">
+        {left} {left === 1 ? "guess" : "guesses"} left
+      </span>
+    </p>
   );
 }
 
@@ -703,7 +727,7 @@ export function DrinkGuessRow({
     <div className={guess.correct ? "guess-row guess-row--correct" : "guess-row"}>
       <p className="guess-row__name">
         <span className="guess-row__dish">
-          {guess.correct ? "🍸 " : ""}
+          {guess.correct && <Icon name="glass" />}
           {guess.drink.name}
         </span>
         <span className="leader" aria-hidden="true" />

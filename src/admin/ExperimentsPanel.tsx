@@ -20,6 +20,7 @@ import { gameToday } from "../../shared/time";
 import * as api from "./api";
 import { SAMPLE_NOTE, shortDate } from "./analyticsUi";
 
+import { Icon } from "../game/Icon";
 /**
  * The tab the rest of the dashboard exists to serve.
  *
@@ -279,7 +280,7 @@ function ExperimentCard({
           )}
         </div>
         <span className="xp__arrow" aria-hidden="true">
-          →
+          <Icon name="arrow" />
         </span>
         <div className="xp__side">
           <span className="xp__side-num">{valueLabel(c.after, c.isRate)}</span>
