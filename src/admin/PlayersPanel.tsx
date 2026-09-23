@@ -516,11 +516,25 @@ function tailEntries(entries: CountryUsage[]): CountryUsage[] {
 }
 
 /**
+ * Why a country with rounds shows 0 players (#211), or null if it has some. Two
+ * causes, and the fold counts both: the device is counted in the country it
+ * played more from, or the round never got a device because its start beacon
+ * was lost. Without this the row reads as an error.
+ */
+function zeroPlayerReason(e: CountryUsage): string | null {
+  if (e.players > 0) return null;
+  const parts: string[] = [];
+  if (e.homedElsewhere > 0) parts.push(`${e.homedElsewhere} counted in another country`);
+  if (e.unattributed > 0) parts.push(`${e.unattributed} with no device recorded`);
+  return parts.length ? parts.join(", ") : null;
+}
+
+/**
  * Cut the mix into at most {@link MAX_COUNTRY_SLICES} slices plus a pooled tail.
  *
- * A country with rounds but no attributed device (a client too old to send one)
- * can't take a slice of a device pie, but its rounds are real — it pools into the
- * tail rather than vanishing, so the round counts still add up.
+ * A country with rounds but no attributed device can't take a slice of a device
+ * pie, but its rounds are real — it pools into the tail rather than vanishing, so
+ * the round counts still add up. {@link zeroPlayerReason} says why it has none.
  */
 function toSlices(entries: CountryUsage[]): Slice[] {
   const ranked = entries.filter((e) => e.players > 0);
@@ -814,6 +828,7 @@ function CountryPie({ mix }: { mix: CountryMix }) {
                       <span className="cpie__detail">
                         {e.players} player{e.players === 1 ? "" : "s"} · {e.rounds} round
                         {e.rounds === 1 ? "" : "s"}
+                        {zeroPlayerReason(e) && ` (${zeroPlayerReason(e)})`}
                       </span>
                     </li>
                   ))}

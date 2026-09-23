@@ -63,6 +63,21 @@ describe("foldCountries", () => {
     const mix = foldCountries([row("GB", null, 5)]);
     expect(slices(mix)).toEqual([["GB", 0, 5]]);
     expect(mix).toMatchObject({ rounds: 5, players: 0 });
+    expect(mix.entries[0]).toMatchObject({ unattributed: 5, homedElsewhere: 0 });
+  });
+
+  // #211: "Singapore · 0 players · 1 round" read as a bug. Each cause of a zero
+  // is named on the entry so the legend can say which one it was.
+  it("says where a zero-player country's device went", () => {
+    const mix = foldCountries([row("US", "traveller", 4), row("SG", "traveller", 1), row("SG", null, 2)]);
+    expect(mix.entries.find((e) => e.code === "SG")).toEqual({
+      code: "SG",
+      players: 0,
+      rounds: 3,
+      homedElsewhere: 1,
+      unattributed: 2,
+    });
+    expect(mix.entries.find((e) => e.code === "US")).toMatchObject({ homedElsewhere: 0, unattributed: 0 });
   });
 
   it("keeps Cloudflare's non-country answers as their own slices", () => {
