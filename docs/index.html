@@ -3587,11 +3587,8 @@
       <div class="topbar__in">
         <a class="topbar__mark" href="#top"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 18.5h17" /><path d="M5 18.5a7 7 0 0 1 14 0" /><path d="M12 11.5v-2" /><path d="M10.2 9.2h3.6" /></svg> Lunch Special</a>
         <nav class="topbar__nav" aria-label="Sections">
-          <a href="#goals">Goals</a>
-          <a href="#design">Design</a>
+          <a href="#game">The game</a>
           <a href="#after-dark">After Dark</a>
-          <a href="#stack">Stack</a>
-          <a href="#engineering">Engineering</a>
           <a href="#numbers">Numbers</a>
           <a href="#experiment">Experiment</a>
           <a href="#built">How it&rsquo;s built</a>
@@ -3625,11 +3622,9 @@
         </p>
 
         <p class="hero__lede">
-          Every guess is a real dish, and the kitchen tells you what that dish shares with the
-          Special. Finish it after 8pm your time and the bar opens: one drink, four guesses, gone
-          by morning. I designed and built the gameplay, the CMS behind
-          <b class="js-dishes">407</b> dishes and <b>108</b> drinks, the telemetry underneath,
-          and the experiment log.
+          Wordle with a menu instead of a dictionary. After 8pm your time, a finished lunch opens a
+          second puzzle: one drink, four guesses. I designed and built the game, the CMS behind
+          <b class="js-dishes">407</b> dishes and 108 drinks, and the telemetry that measures it.
         </p>
 
         <p class="serving" id="serving" title="Computed from the game's epoch and its America/New_York rollover">
@@ -3648,7 +3643,7 @@
             <span class="tile__live" aria-hidden="true"></span>
             <span class="tile__n" data-n="1550">1,550</span>
             <span class="tile__label">Games played</span>
-            <span class="tile__sub">across four modes, two surfaces</span>
+            <span class="tile__sub">four modes, web and Discord</span>
           </div>
           <div class="tile" data-tile="dishes">
             <span class="tile__live" aria-hidden="true"></span>
@@ -3669,186 +3664,25 @@
             <span class="tile__sub"><span class="js-ret">94 of 510</span> devices, no accounts</span>
           </div>
         </div>
-        <p class="tiles__foot">
-          Read live from the production database when this page loads.
-        </p>
+        <p class="tiles__foot">Read live from the production database when this page loads.</p>
       </div>
     </header>
 
     <!-- ==========================================================
-         SKIM LAYER — five claims
+         01 · THE GAME
          ========================================================== -->
-    <div class="skim">
-      <div class="wrap">
-        <p class="skim__k">The short version</p>
-        <div class="claims">
-          <a class="claim" href="#design">
-            <span class="claim__n">01</span>
-            <p class="claim__t">
-              A dish has no letter slots, so Wordle&rsquo;s colours mean nothing here. I designed
-              <em>a feedback system for food</em> and ran two channels at once, one for the player
-              who knows the dish and one for the player who has never heard of it.
-            </p>
-            <span class="claim__go">Design →</span>
-          </a>
-          <a class="claim" href="#design">
-            <span class="claim__n">02</span>
-            <p class="claim__t">
-              One beat sheet specifies every clue. The same five beats, <em><span class="js-clues">2,035</span> clues deep</em>, so
-              a dish a day stays a defined job instead of a blank page.
-            </p>
-            <span class="claim__go">Design →</span>
-          </a>
-          <a class="claim" href="#stack">
-            <span class="claim__n">03</span>
-            <p class="claim__t">
-              <em>One Worker</em> serves the game, the API and the database. It also serves the
-              Discord Activity, so a single pushed tag ships both audiences.
-            </p>
-            <span class="claim__go">Stack →</span>
-          </a>
-          <a class="claim" href="#engineering">
-            <span class="claim__n">04</span>
-            <p class="claim__t">
-              The instrument reports its own limits. Thin rates carry <em>95% intervals</em>,
-              unmeasured days stay blank instead of reading as zero, and &ldquo;too early to
-              tell&rdquo; is a verdict the dashboard can return.
-            </p>
-            <span class="claim__go">Engineering →</span>
-          </a>
-          <a class="claim" href="#experiment">
-            <span class="claim__n">05</span>
-            <p class="claim__t">
-              I logged a scheduling change, shipped it, then measured it. Finish rate moved from
-              <em>81% to 91%</em>. Read over a shorter window, the same change reports nothing.
-            </p>
-            <span class="claim__go">Experiment →</span>
-          </a>
-          <a class="claim" href="#after-dark">
-            <span class="claim__n">06</span>
-            <p class="claim__t">
-              After Dark breaks the game&rsquo;s one global clock on purpose. The bar opens at 8pm
-              <em>on your clock</em>, one file decides what that means, and the Special still rolls
-              over at midnight Eastern for everyone.
-            </p>
-            <span class="claim__go">After Dark →</span>
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <!-- ==========================================================
-         01 · GOALS
-         ========================================================== -->
-    <section id="goals">
+    <section id="game">
       <div class="wrap">
         <div class="shead reveal">
           <span class="shead__n">01</span>
-          <h2 class="shead__t">What I set out to make</h2>
-          <span class="shead__k">goals</span>
-        </div>
-
-        <p>
-          Cooking is my favorite hobby, and I wanted a game that taught people something about food they
-          already eat. Like a lot of couples, my wife and I love to play daily guessing games
-          together so combining that format with a food theme seemed like a promising idea.
-          Initially I was inspired by the Wordle loop but major changes would need to be made to
-          give the player a chance at guessing the daily dish. A word is
-          an ordered list of letters, so green can mean right letter, right slot. A dish has no
-          slots. Pad Thai and Bibimbap do not line up character by character in any way a player
-          would care about.
-        </p>
-        <p>I wrote down what the game had to do before I built any of it.</p>
-
-        <div class="cards deal reveal">
-          <div class="card" style="--i: 0">
-            <span class="card__k">Goal 01</span>
-            <p class="card__t">Readable at a glance</p>
-            <p>
-              A player reads the board mid-round, between guesses. Anything needing a paragraph to
-              interpret has already failed.
-            </p>
-          </div>
-          <div class="card" style="--i: 1">
-            <span class="card__k">Goal 02</span>
-            <p class="card__t">Effortlessly sharable</p>
-            <p>
-              A result nobody can paste into a group chat gives the game no distribution. The grid
-              is the entire marketing budget.
-            </p>
-          </div>
-          <div class="card" style="--i: 2">
-            <span class="card__k">Goal 03</span>
-            <p class="card__t">Narrowing enough to finish</p>
-            <p>
-              A pool of uncountable dishes in someone's mind has to filter down to one after six
-              guesses.
-            </p>
-          </div>
-        </div>
-
-        <h3>I left the unfairness in</h3>
-        <p>
-          The game asks you to know things about food, and that knowledge is not handed out evenly.
-          A player in Ohio and a player in Lagos open a round on Shakshuka from different places. I
-          could have designed that away by scoring nothing except what the tiles hand you, and I
-          kept it, because the gap is the part worth playing for.
-        </p>
-        <p>
-          Wordle can be played well without knowing the word. Letter frequency, position and
-          elimination will carry you to answers you have never used in your life, which is a real
-          skill and a skill at <em>Wordle</em>. Naming the Special is a skill at food. It draws on
-          what you have eaten, what you have read, and what you can infer from a Tunisian breakfast
-          sharing a pantry with a French summer stew.
-        </p>
-        <p>
-          Culinary knowledge also improves, which is what makes the unfairness survivable. Nobody
-          takes every Special, and I would miss plenty myself if I were not the one booking the
-          menu. A round you lose still ends with you knowing the dish, where it came from and what
-          goes in it, so the next one starts further along. That is the deal the beat sheet makes:
-          every miss buys information, and the information keeps working after the round is over.
-        </p>
-
-        <div class="takeaway reveal">
-          <span class="takeaway__k">Takeaway</span>
-          <p>
-            An even start would have cost the game the thing that makes solving it feel like
-            anything. I owed players a route from wherever they began instead, and that is what the
-            beat sheet is for.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==========================================================
-         02 · DESIGN
-         ========================================================== -->
-    <section id="design">
-      <div class="wrap">
-        <div class="shead reveal">
-          <span class="shead__n">02</span>
-          <h2 class="shead__t">How I designed it</h2>
+          <h2 class="shead__t">A dish has no letter slots</h2>
           <span class="shead__k">feedback · clues · fiction</span>
         </div>
 
-        <h3>Two channels, running at once</h3>
         <p>
-          The first channel rewards deduction. The second concedes information as you fail. Together
-          they let a player who knows Tunisian food and a player who does not both reach the same
-          answer, at different speeds.
-        </p>
-        <p>
-          Channel one scores your guess on four attributes and on how its ingredients overlap the
-          Special&rsquo;s. Country carries the only middle state: the same country turns green, and a
-          different country in the same region turns amber. That single warm signal is what makes
-          triangulating across a map possible. Channel two is the clue ticket. Miss, and the kitchen
-          slides the next one across the counter.
-        </p>
-        <p>
-          An amber tile names the region it means, <code>~ Europe</code> in place of its label,
-          because the nine regions are the game&rsquo;s buckets and a player cannot guess them from
-          an atlas. Each tile also carries a glyph and a hidden verdict for a screen reader, so a
-          player who cannot tell the green from the amber still reads the row.
+          So each guess is scored on four attributes and the ingredients it shares with the
+          Special. Country is the only tile with a middle state: amber means right region, and the
+          tile names it. Each miss also buys a clue. Try it:
         </p>
 
         <div class="demo reveal">
@@ -3868,176 +3702,39 @@
           </div>
         </div>
 
-        <p class="note">
-          The ingredient line reports which of your guess&rsquo;s ingredients the Special also uses,
-          and how many of the Special&rsquo;s total that covers. It never lists the ones you have not
-          found. Five of eight tells you three remain without telling you what they are. The real
-          order bar prints each dish&rsquo;s country beside its name and never searches it, and
-          ranks names that start with what you typed above names that only contain it.
-        </p>
-
-        <h3>One beat sheet specifies every clue</h3>
+        <h3>Five beats, one brief for every clue</h3>
         <p>
-          A daily game eats a piece of authored content every 24 hours and never stops. Treating
-          <span class="js-dishes">407</span> dishes as <span class="js-dishes">407</span> separate
-          creative problems collapses around week eight, so I specified the dramatic order once
-          instead: five beats, the same sequence for every dish, running from a map to a
-          near-giveaway. Each beat states what its clue has to accomplish and what it must not give
-          away, which is the difference between a brief and a blank page.
+          A daily game needs a new dish every day, so every clue follows the same five-beat sheet,
+          from a region to a near-giveaway. A linter in CI enforces the budgets and banned phrases
+          on all <span class="js-clues">2,035</span> of them.
         </p>
-
         <div class="beats reveal">
-          <div class="ticket" style="--i: 0">
-            <span class="beat__n">1</span>
-            <div>
-              <p class="beat__t">Broad geography</p>
-              <p class="beat__d">Gives the region and never the country.</p>
-            </div>
-          </div>
-          <div class="ticket" style="--i: 1">
-            <span class="beat__n">2</span>
-            <div>
-              <p class="beat__t">Origin and history</p>
-              <p class="beat__d">
-                The first beat with a voice, where the dish becomes a place rather than a puzzle
-                token.
-              </p>
-            </div>
-          </div>
-          <div class="ticket" style="--i: 2">
-            <span class="beat__n">3</span>
-            <div>
-              <p class="beat__t">What makes it unmistakable</p>
-              <p class="beat__d">
-                True of this dish and almost no other. The film, the street cart, the argument over
-                who invented it, the thing that burns you. The beat people repeat to someone else
-                afterwards.
-              </p>
-            </div>
-          </div>
-          <div class="ticket" style="--i: 3">
-            <span class="beat__n">4</span>
-            <div>
-              <p class="beat__t">A key ingredient or technique</p>
-              <p class="beat__d">
-                You, or the cook, doing the cooking. Turns knowing about the dish into being able
-                to name it.
-              </p>
-            </div>
-          </div>
-          <div class="ticket" style="--i: 4">
-            <span class="beat__n">5</span>
-            <div>
-              <p class="beat__t">Near-giveaway</p>
-              <p class="beat__d">
-                The country, and what the plate looks like. Missing here should feel unlucky,
-                never unfair.
-              </p>
-            </div>
-          </div>
+          <div class="ticket" style="--i: 0"><span class="beat__n">1</span><div><p class="beat__t">Broad geography</p><p class="beat__d">The region, never the country.</p></div></div>
+          <div class="ticket" style="--i: 1"><span class="beat__n">2</span><div><p class="beat__t">Origin and history</p><p class="beat__d">Who made it, when, why.</p></div></div>
+          <div class="ticket" style="--i: 2"><span class="beat__n">3</span><div><p class="beat__t">What makes it unmistakable</p><p class="beat__d">True of this dish and almost no other.</p></div></div>
+          <div class="ticket" style="--i: 3"><span class="beat__n">4</span><div><p class="beat__t">A key ingredient or technique</p><p class="beat__d">You, or the cook, doing the cooking.</p></div></div>
+          <div class="ticket" style="--i: 4"><span class="beat__n">5</span><div><p class="beat__t">Near-giveaway</p><p class="beat__d">The country, and what the plate looks like.</p></div></div>
         </div>
 
-        <p>
-          Clue 3 for Pierogi and clue 3 for Ceviche are the same job, and that sameness is what makes
-          the pool extensible: the brief holds still while the subject changes. The beat sheet also
-          fixes pacing, which is the part players feel. Beat 3 lands on the third miss, when someone
-          needs a reason to stay in the round, and beat 5 arrives at the point where losing would
-          otherwise feel arbitrary.
-        </p>
-
-        <div class="worked reveal">
-          <p class="worked__h">
-            <span class="worked__dish">Margherita Pizza</span>
-            <span class="worked__meta">one dish against the spec</span>
-          </p>
-          <div class="worked__row">
-            <span class="worked__n">1</span>
-            <p class="worked__c">
-              A southern European classic, from a city in the shadow of a volcano.
-              <span class="worked__why">Gives the region and one image. Names nothing.</span>
-            </p>
-          </div>
-          <div class="worked__row">
-            <span class="worked__n">2</span>
-            <p class="worked__c">
-              Born in Naples, where street ovens fed the working class for centuries.
-              <span class="worked__why">Country spent. The dish acquires a class and a century.</span>
-            </p>
-          </div>
-          <div class="worked__row">
-            <span class="worked__n">3</span>
-            <p class="worked__c">
-              Named for a queen who visited in 1889 and picked the patriotic option.
-              <span class="worked__why">The beat that survives the round, and still not the answer.</span>
-            </p>
-          </div>
-          <div class="worked__row">
-            <span class="worked__n">4</span>
-            <p class="worked__c">
-              You stretch dough thin, dress it with tomato, mozzarella and basil, and blast it in a wood oven.
-              <span class="worked__why">Puts you at the oven. Solvable from here.</span>
-            </p>
-          </div>
-          <div class="worked__row">
-            <span class="worked__n">5</span>
-            <p class="worked__c">
-              Italy&rsquo;s blistered wood-fired round, red and white under torn green leaves.
-              <span class="worked__why">Names the country and describes the plate. Everything but the name.</span>
-            </p>
-          </div>
-        </div>
-
-        <p>
-          Beat 3 carries the heaviest load, so it is the beat the spec is strictest about. A player
-          who loses the round should still come away with the queen and the flag, because that is the
-          part they repeat to somebody at lunch. Beats 1 and 5 read as constraints more than as
-          prose: one must stop at the region, the other names the country and describes the plate,
-          and doubles as the definition line on the check. Judging whether a clue belongs on its
-          beat takes about ten seconds, and that is the property I was after.
-        </p>
-        <p>
-          The mechanical half of the sheet runs in CI. <code>worker/data-integrity.test.ts</code>
-          checks every clue in the catalogue against its beat&rsquo;s character budget, its sentence
-          cap, a banned-opener list, a praise list and a one-name-word rule, and fails the build on
-          a miss. I renamed beat 3 once already: as &ldquo;Fame&rdquo; it let 52 clues praise a dish
-          without stating a fact about it.
-        </p>
-
-        <h3>The fiction carries the interface</h3>
+        <h3>The diner is the tutorial</h3>
         <div class="split">
-          <div>
-            <p>
-              Each piece of interface takes the name it would have in a diner, and those names do
-              work a tutorial would otherwise have to do. Nobody needs telling what a receipt is for.
-            </p>
-            <div class="tablewrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>In the fiction</th>
-                    <th>What it is</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr><td><b>The Special</b></td><td>Today&rsquo;s puzzle. One dish, every player, worldwide.</td></tr>
-                  <tr><td><b>A clue ticket</b></td><td>The beat the kitchen hands you after a miss.</td></tr>
-                  <tr><td><b>The check</b></td><td>End of round: result, streak, how the room did, share.</td></tr>
-                  <tr><td><b>Leftovers</b></td><td>The archive of days you missed.</td></tr>
-                  <tr><td><b>Chef&rsquo;s Choice</b></td><td>A random dish, no stakes, no streak.</td></tr>
-                  <tr><td><b>A note from the kitchen</b></td><td>An announcement from me to players.</td></tr>
-                  <tr><td><b>The Nightcap</b></td><td>After Dark&rsquo;s puzzle. One drink a night, 8pm to 3am.</td></tr>
-                  <tr><td><b>A coaster</b></td><td>The bar&rsquo;s clue ticket.</td></tr>
-                  <tr><td><b>The tab</b></td><td>The bar&rsquo;s check.</td></tr>
-                </tbody>
-              </table>
-            </div>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>In the fiction</th><th>What it is</th></tr></thead>
+              <tbody>
+                <tr><td><b>The Special</b></td><td>Today&rsquo;s puzzle</td></tr>
+                <tr><td><b>A clue ticket</b></td><td>A clue after a miss</td></tr>
+                <tr><td><b>The check</b></td><td>Result, streak, share</td></tr>
+                <tr><td><b>Leftovers</b></td><td>The archive</td></tr>
+                <tr><td><b>Chef&rsquo;s Choice</b></td><td>A random dish</td></tr>
+                <tr><td><b>The Nightcap</b></td><td>The nightly drink</td></tr>
+                <tr><td><b>A coaster</b> · <b>the tab</b></td><td>The bar&rsquo;s clue and check</td></tr>
+              </tbody>
+            </table>
           </div>
           <div>
             <div class="receipt reveal">
               <p class="receipt__h"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 18.5h17" /><path d="M5 18.5a7 7 0 0 1 14 0" /><path d="M12 11.5v-2" /><path d="M10.2 9.2h3.6" /></svg> LUNCH SPECIAL</p>
-              <p class="receipt__sub" style="text-align: center; margin: 0; color: var(--ink-mute); font-size: 0.72rem">
-                No. 29 &middot; solved in 5
-              </p>
               <div class="receipt__r"></div>
               <p class="receipt__g">
                 Lunch Special #29 — 5/6<br />
@@ -4048,71 +3745,27 @@
                 🟩🟩🟩🟩 🛎️
               </p>
               <div class="receipt__r"></div>
-              <p style="margin: 0; font-size: 0.72rem; color: var(--ink-mute); max-width: none">
-                lunchspecial.app
-              </p>
+              <p style="margin: 0; font-size: 0.72rem; color: var(--ink-mute); max-width: none">lunchspecial.app</p>
             </div>
           </div>
         </div>
-
-        <p>
-          I specified that card before the feedback system and before the schema. A daily game with
-          no shareable result has no distribution, so the shape of an emoji grid became a hard
-          constraint on what the feedback was allowed to be: four tiles to a row, one pantry count,
-          no dish names, and nothing that spoils the answer for whoever reads it over breakfast. For
-          most people the card is the only part of this game they will see, which is a decent
-          argument for designing it first.
-        </p>
-        <p>
-          The check also answers two questions a regular asks. From the second day, your streak
-          sits beside the date on the board, and the check says what tomorrow does to it. Once 30
-          diners have finished, it prints how the room did, in a line shaped like &ldquo;68% of diners got today&rsquo;s
-          Special &middot; most in 3&rdquo;. Under 30 it prints nothing, the same floor the
-          dashboard uses before it quotes a rate.
-        </p>
-        <p>
-          In the printed-menu pass I carried the fiction down to the type. The game sets its sign in a
-          slab, its neon in a script and its small print in a condensed gothic, and stroke icons
-          replaced emoji in the chrome so a button draws the same on Windows and on a phone. This
-          page uses the same three faces. The share grid keeps its emoji, because that grid is
-          the message.
-        </p>
-
-        <div class="takeaway reveal">
-          <span class="takeaway__k">Takeaway</span>
-          <p>
-            Narrative design here is a production system. A fixed dramatic order keeps
-            <span class="js-clues">2,035</span> clues consistent with each other, and the fiction
-            absorbs most of the tutorial.
-          </p>
-        </div>
+        <p class="note">I designed the share card first. It never names the dish.</p>
       </div>
     </section>
 
     <!-- ==========================================================
-         03 · AFTER DARK: the pinned story
-         One mock window holds still while six steps scroll past it.
-         position: sticky plus one IntersectionObserver with a thin band
-         across the viewport. No scroll library, native scroll speed.
+         02 · AFTER DARK: the pinned story
          ========================================================== -->
     <section id="after-dark">
       <div class="wrap">
         <div class="shead reveal">
-          <span class="shead__n">03</span>
-          <h2 class="shead__t">After Dark: a second puzzle on your own clock</h2>
-          <span class="shead__k">opened 4 Sep 2026 · v1.8.0</span>
+          <span class="shead__n">02</span>
+          <h2 class="shead__t">After Dark</h2>
+          <span class="shead__k">since v1.8.0 · 4 Sep 2026</span>
         </div>
-
         <p>
-          Everything else in the game rolls over at midnight Eastern for everyone, because a grid
-          pasted into a group chat has to point at a puzzle the whole chat can see. After Dark
-          breaks that rule on purpose. Between 8pm and 3am on your own clock, a finished lunch
-          opens a bar with one drink a night, four guesses and three clues.
-        </p>
-        <p>
-          It is the largest thing I have added since launch: its own tables, its own clue sheet,
-          its own palette, a fourth kind of round on the dashboard, and 80 new tests in the pull
-          request that opened it. Scroll through one evening at the bar.
+          A second puzzle, open 8pm to 3am on your own clock. One drink, four guesses, three
+          clues. Scroll through one evening at the bar.
         </p>
       </div>
 
@@ -4225,551 +3878,55 @@ https://lunchspecial.app</pre>
           </div>
           <p class="story__cap">A demo evening on a pinned pour, not tonight&rsquo;s answer</p>
         </div>
-
         <div class="story__steps">
           <article class="step" data-step="1">
             <span class="step__n">01 &middot; The door</span>
-            <h3>Finish lunch, and a band opens under the check</h3>
-            <p>
-              The bar is gated on finishing today&rsquo;s Special, the way Leftovers is. That gate
-              gives the mode a reason to exist after lunch and makes one metric exact: everyone
-              counted as able to walk in could have walked in.
-            </p>
-            <p>
-              The band fades in a beat after the check settles, so you finish reading your result
-              first. Before 8pm it is a sentence, &ldquo;After Dark opens at 8, your time,&rdquo;
-              because a button that works in two hours is worse than a line of copy. At 8 it turns
-              into a button with the check still open. Nothing navigates until you press it.
-            </p>
+            <h3>Finish lunch and the bar opens</h3>
+            <p>The invite fades in under the check a beat after it settles. Before 8pm it is a sentence, not a disabled button.</p>
           </article>
-
           <article class="step" data-step="2">
             <span class="step__n">02 &middot; Lights out</span>
-            <h3>One attribute re-themes every component</h3>
-            <p>
-              Pressing the band runs a 1.4 second sweep, then sets <code>data-after-dark</code> on
-              the root element. <code>base.css</code> redefines the palette under that attribute
-              and no component has a night copy, which is what stops two boards drifting apart.
-            </p>
-            <p>
-              Swapping the palette showed me every rule that hardcoded a colour. A card laid a 35% near-white sheen
-              over its paper, so a token reading <code>#1d1714</code> painted
-              <code>#6e6962</code> and the board came out washed grey. The sheen, the stipple and
-              the row fill became tokens, and <code>npm run a11y</code> now measures four bar
-              states on the painted page.
-            </p>
+            <h3>One attribute re-themes the game</h3>
+            <p><code>data-after-dark</code> swaps the palette tokens. No component has a night copy, and axe checks four bar states.</p>
           </article>
-
           <article class="step" data-step="3">
             <span class="step__n">03 &middot; The board</span>
-            <h3>Four guesses, and two tiles that mean something else</h3>
-            <p>
-              Course says nothing when every row is a drink, and no drink has a protein, so the bar
-              reads <b>country &middot; spirit &middot; served &middot; profile</b>. Country keeps
-              its amber state. A mocktail&rsquo;s spirit is the value <code>none</code>, so two
-              mocktails match each other.
-            </p>
-            <p>
-              Drinks live in their own three tables instead of a <code>kind</code> column on dishes.
-              About ten queries read the dish pool with no kind filter, and the eleventh someone
-              writes is how a Negroni goes out as Tuesday&rsquo;s lunch. A linter holds the pool
-              between 55% and 75% alcoholic. It sits at 68 of 108.
-            </p>
+            <h3>Two tiles change meaning</h3>
+            <p>Country, spirit, served, profile. Drinks live in their own tables, so a Negroni can never go out as Tuesday&rsquo;s lunch.</p>
           </article>
-
           <article class="step" data-step="4">
             <span class="step__n">04 &middot; A miss</span>
-            <h3>A miss slides a coaster across the bar</h3>
-            <p>
-              Four guesses means at most three misses, so the bar writes three clues. Its sheet is
-              <b>The room</b>, <b>The pour</b> and <b>Last call</b>, and it folds the kitchen&rsquo;s
-              origin and method beats into the middle one, because a bartender has the length of a
-              pour to tell you about it.
-            </p>
-            <p>
-              The clue linter reads both sheets through one function that takes the sheet as an
-              argument. A forked copy is how the drinks catalogue would stop enforcing the
-              banned-praise list six months from now.
-            </p>
+            <h3>A miss slides a coaster across</h3>
+            <p>Four guesses allow three misses, so the bar writes three clues. The same linter reads both beat sheets.</p>
           </article>
-
           <article class="step" data-step="5">
             <span class="step__n">05 &middot; The clock</span>
-            <h3>A night belongs to the day the evening began</h3>
-            <p>
-              A round begun at 23:50 and finished at 00:10 is one sitting on one drink, so the night
-              key is the calendar day the evening started on, fixed when you walk in and never
-              recomputed. <code>shared/night.ts</code> is the only file that decides it, and every
-              function in it takes the clock as an argument.
-            </p>
-            <p>
-              Last call is a door. The countdown shows in the final hour and a round still running
-              at 3am finishes. The Worker never learns your timezone: it accepts a night within a
-              day of Eastern, which covers every real offset from UTC&minus;11 to UTC+14.
-            </p>
+            <h3>A night belongs to the evening it began</h3>
+            <p>A round from 23:50 to 00:10 is one night. One file decides it, and a round running at 3am still finishes.</p>
           </article>
-
           <article class="step" data-step="6">
             <span class="step__n">06 &middot; The tab</span>
-            <h3>The tab shares both grids in one message</h3>
-            <p>
-              The door is finishing lunch, so by the time you can press share both rounds exist.
-              The message stacks them and appends the link once. The bar&rsquo;s miss square is
-              black, and its pantry glyph is a glass, so a channel with both pasted in stays
-              readable without a second legend.
-            </p>
-            <p>
-              The share counts against the Nightcap alone. Marking the lunch round shared too would
-              inflate a figure the dashboard already reads, from a press made hours later on a
-              different screen.
-            </p>
+            <h3>One message shares both grids</h3>
+            <p>The bar&rsquo;s miss square is black, so both grids read in one chat without a second legend.</p>
           </article>
         </div>
       </div>
-
-      <div class="wrap">
-        <h3>The dashboard&rsquo;s bill for a fourth kind of round</h3>
-        <p>
-          A Nightcap is a fourth round kind, and two columns change meaning under it:
-          <code>play_date</code> holds a local night key and <code>guesses</code> counts out of
-          four. Adding the kind made the compiler point at every place that had to decide, and two
-          of them were pooling a &ldquo;won in 4&rdquo; out of four with a &ldquo;won in 4&rdquo;
-          out of six on one axis. The bar has its own four-wide distribution now.
-        </p>
-        <p>
-          The beacon carries the player&rsquo;s UTC offset, and SQL reads the local hour off the
-          start timestamp. An hour bucket in UTC splits in two across every half-hour zone, and
-          the first version put every player in India an hour early. The crossover rate from lunch
-          to the bar counts only nights after the bar opened and only nights that have ended, so
-          a device that finished lunch at noon is not a no-show at a bar that opens at eight.
-        </p>
-        <p>
-          Someone who has never played can see the bar at two in the afternoon through a showcase link: today&rsquo;s
-          real Special, already won, with the door lit. It writes nothing to the visitor&rsquo;s
-          storage and records no analytics. I cut every signed token to fit it in an email, from
-          106 characters to 60, by truncating the HMAC to 128 bits and writing the expiry in
-          base36.
-        </p>
-
-        <div class="takeaway reveal">
-          <span class="takeaway__k">Takeaway</span>
-          <p>
-            The bar reuses the board, the feedback fold and the share path, and keeps its own
-            tables, clock and clue sheet. Each boundary sits where sharing would have let one mode
-            break the other.
-          </p>
-        </div>
-      </div>
     </section>
 
     <!-- ==========================================================
-         04 · STACK
-         ========================================================== -->
-    <section id="stack">
-      <div class="wrap">
-        <div class="shead reveal">
-          <span class="shead__n">04</span>
-          <h2 class="shead__t">The stack, and what each choice bought</h2>
-          <span class="shead__k">hono · react · react-dom · discord sdk</span>
-        </div>
-
-        <p>
-          A spec that makes a dish a day routine is worth nothing if shipping that dish takes a
-          week. So every choice below buys the same thing: the shortest distance one person can
-          manage between having an idea and watching it get measured. One Cloudflare Worker serves
-          the React bundle, answers the API and queries a SQLite database on the same platform.
-          There is no second service to keep warm and no deploy that half succeeds. The whole game
-          runs on four runtime dependencies, listed above.
-        </p>
-
-        <div class="tablewrap reveal">
-          <table>
-            <thead>
-              <tr>
-                <th>The goal it serves</th>
-                <th>Choice</th>
-                <th>What it bought</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="t-goal">Idea to live in an evening</td>
-                <td class="t-choice">One Worker: React SPA, Hono API, D1</td>
-                <td>One thing to deploy. Nothing to orchestrate between two services, and no state where half the release landed.</td>
-              </tr>
-              <tr>
-                <td class="t-goal">Playtesting that is not lying to me</td>
-                <td class="t-choice"><code>@cloudflare/vite-plugin</code>, worker in workerd locally</td>
-                <td>My laptop and production run the same engine. No mock API to drift out of sync, so what I feel in a playtest is what players get.</td>
-              </tr>
-              <tr>
-                <td class="t-goal">A mistyped region must fail loudly</td>
-                <td class="t-choice">D1 with column-level CHECK constraints</td>
-                <td>A bad enum becomes a failed insert instead of a tile that never matches anything again and never says why.</td>
-              </tr>
-              <tr>
-                <td class="t-goal">No sign-up between a player and the game</td>
-                <td class="t-choice">No accounts. Player state in localStorage</td>
-                <td>Nothing personal to defend. The cost is real and I state it throughout: every audience figure here counts devices, not people.</td>
-              </tr>
-              <tr>
-                <td class="t-goal">A second audience without a second product</td>
-                <td class="t-choice">Discord Activity on the same deploy</td>
-                <td>The SDK sits behind a dynamic import and is fetched only inside the iframe, so web visitors never download it. All that ships to everyone is the check for the iframe.</td>
-              </tr>
-              <tr>
-                <td class="t-goal">Shipping without babysitting</td>
-                <td class="t-choice"><b>CI/CD</b>: GitHub Actions, CodeQL, Dependabot</td>
-                <td>A pushed tag runs the tests, the typecheck, the migrations and the deploy. Releasing on a weeknight is a five-minute decision.</td>
-              </tr>
-              <tr>
-                <td class="t-goal">Knowing whether the change worked</td>
-                <td class="t-choice"><b>Analytics and an experiment log</b>, in the admin panel</td>
-                <td>Measurement ships as part of the product. A daily game without it is one you tune by feel, which is how I got the difficulty wrong the first time.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <p class="note">
-          Only <code>/api/*</code> wakes the Worker. The board itself is a static file, so loading
-          the game costs nothing and only a guess spends compute.
-        </p>
-
-        <div class="takeaway reveal">
-          <span class="takeaway__k">Takeaway</span>
-          <p>
-            Four runtime dependencies and one thing to deploy. I kept the stack unambitious so
-            the time could go into the menu.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==========================================================
-         05 · ENGINEERING
-         ========================================================== -->
-    <section id="engineering">
-      <div class="wrap">
-        <div class="shead reveal">
-          <span class="shead__n">05</span>
-          <h2 class="shead__t">How it was engineered</h2>
-          <span class="shead__k">715 tests · 45 files</span>
-        </div>
-
-        <p>
-          The game engine took a few days. Everything since has been the apparatus around it,
-          because you operate a daily game rather than finish it. I built each station once the one
-          before it started asking questions I could not answer. Authoring got a CMS once writing
-          dishes as raw SQL stopped being funny, and that same panel took over the schedule when I
-          lost track of what was booked. Measurement arrived the week I admitted I had no idea
-          whether the puzzles were too easy.
-        </p>
-
-        <div class="diagram reveal">
-          <p class="diagram__k">One turn of the loop</p>
-          <svg viewBox="0 0 520 420" role="img" aria-label="A closed six-station loop: author, schedule, play, measure, hypothesise, ship, returning to author.">
-            <circle class="ring-path d-flow" cx="260" cy="200" r="150" stroke-dasharray="9 7" />
-
-            <text x="260" y="192" text-anchor="middle" class="d-s" style="font-size: 10px; letter-spacing: 0.18em">ONE TURN</text>
-            <text x="260" y="210" text-anchor="middle" class="d-s" style="font-size: 10px; letter-spacing: 0.18em">OF THE LOOP</text>
-
-            <g class="ring-station">
-              <circle cx="260" cy="50" r="47" />
-              <text class="ring-n" x="260" y="38" text-anchor="middle">01</text>
-              <text x="260" y="54" text-anchor="middle">Author</text>
-              <text class="ring-d" x="260" y="68" text-anchor="middle">dish + 5 clues</text>
-            </g>
-            <g class="ring-station">
-              <circle cx="390" cy="125" r="47" />
-              <text class="ring-n" x="390" y="113" text-anchor="middle">02</text>
-              <text x="390" y="129" text-anchor="middle">Schedule</text>
-              <text class="ring-d" x="390" y="143" text-anchor="middle">30 days out</text>
-            </g>
-            <g class="ring-station">
-              <circle cx="390" cy="275" r="47" />
-              <text class="ring-n" x="390" y="263" text-anchor="middle">03</text>
-              <text x="390" y="279" text-anchor="middle">Play</text>
-              <text class="ring-d" x="390" y="293" text-anchor="middle">web + Discord</text>
-            </g>
-            <g class="ring-station">
-              <circle cx="260" cy="350" r="47" />
-              <text class="ring-n" x="260" y="338" text-anchor="middle">04</text>
-              <text x="260" y="354" text-anchor="middle">Measure</text>
-              <text class="ring-d" x="260" y="368" text-anchor="middle">4 beacons</text>
-            </g>
-            <g class="ring-station">
-              <circle cx="130" cy="275" r="47" />
-              <text class="ring-n" x="130" y="263" text-anchor="middle">05</text>
-              <text x="130" y="279" text-anchor="middle">Hypothesise</text>
-              <text class="ring-d" x="130" y="293" text-anchor="middle">metric first</text>
-            </g>
-            <g class="ring-station">
-              <circle cx="130" cy="125" r="47" />
-              <text class="ring-n" x="130" y="113" text-anchor="middle">06</text>
-              <text x="130" y="129" text-anchor="middle">Ship</text>
-              <text class="ring-d" x="130" y="143" text-anchor="middle">tag → live</text>
-            </g>
-          </svg>
-        </div>
-
-        <h3>A release starts with a tag</h3>
-        <p>
-          Everything after the tag runs without me. Migrations go before the deploy, so the schema is
-          never behind the code expecting it.
-        </p>
-
-        <div class="diagram reveal">
-          <p class="diagram__k">CI/CD · git tag v1.1.0 &amp;&amp; git push origin v1.1.0</p>
-          <div class="pipe">
-            <div class="pipe__step" style="--i: 0">
-              <span class="pipe__n">Trigger</span>
-              <span class="pipe__t">Push a v* tag</span>
-              <span class="pipe__d">deploy.yml</span>
-            </div>
-            <div class="pipe__step" style="--i: 1">
-              <span class="pipe__n">Gate 1</span>
-              <span class="pipe__t">Tests</span>
-              <span class="pipe__d">715 across 45 files</span>
-            </div>
-            <div class="pipe__step" style="--i: 2">
-              <span class="pipe__n">Gate 2</span>
-              <span class="pipe__t">Typecheck</span>
-              <span class="pipe__d">tsc -b, 3 projects</span>
-            </div>
-            <div class="pipe__step" style="--i: 3">
-              <span class="pipe__n">Schema</span>
-              <span class="pipe__t">Migrate D1</span>
-              <span class="pipe__d">additive, idempotent</span>
-            </div>
-            <div class="pipe__step pipe__step--go" style="--i: 4">
-              <span class="pipe__n">Release</span>
-              <span class="pipe__t">Deploy the Worker</span>
-              <span class="pipe__d">one build</span>
-            </div>
-          </div>
-          <div class="surfaces">
-            <div class="surface">
-              <b>lunchspecial.app</b>
-              <span>the public game</span>
-            </div>
-            <div class="surface">
-              <b>The Discord Activity</b>
-              <span>same build, framed through Discord&rsquo;s proxy</span>
-            </div>
-          </div>
-        </div>
-
-        <p>
-          The Activity rides that same build. Discord does not host the code. It frames
-          lunchspecial.app through its proxy under a URL mapping, so the tag that ships the website
-          ships the Activity, and the only thing the browser fetches after it spots the iframe is
-          Discord&rsquo;s SDK. Two more workflows carry the routine load. Every pull request runs
-          the tests, the typecheck and oxlint, and a second job starts the game and runs axe over
-          nine of its screens. CodeQL scans the repository on each push and once a week.
-        </p>
-
-        <h3>The tool I built for the writer, who happens to be me</h3>
-        <p>
-          What I keep calling the admin panel is one page behind a password, and it has two halves.
-          One is a <strong>CMS</strong>, a content management system: the place a dish and its five
-          clues get written, validated and booked onto a date, doing the job for a menu that a
-          newsroom tool does for articles. The other half is the dashboard that measures what
-          players then do with them. Everything in the section above comes off that second half;
-          the first is the one I would point at if you asked what I would bring to a content team.
-        </p>
-        <p>
-          The CMS authors a dish against a live preview of the real board, so I see the tiles a
-          player will see before the dish is ever scheduled. It refuses to book a dish carrying
-          fewer than three ingredients or anything other than five clues, which turns the beat sheet
-          from a rule I have to remember into a rule the tool enforces. It books the calendar 30
-          days out, by hand or by an autofill that skips whatever has been served in the last 60
-          days. The autofill then ranks what is left by how the dish sits beside its neighbours:
-          the same region two days running, or the same country inside a fortnight, costs a dish
-          its place. A line above the board prints the next seven days&rsquo; mix and blocks
-          nothing.
-        </p>
-        <p>
-          The dashboard half opens on devices per week and a last-7-days figure that never counts
-          today, because a part-day reads as a drop every morning. Web and Discord print side by
-          side there, since the two surfaces play like two games.
-        </p>
-        <p>
-          None of that was necessary for one author. I built it as though somebody else would use
-          it, because a schedule I keep in my head stops working the moment there are two of us, and
-          because the constraints worth encoding are exactly the ones I would otherwise have to
-          explain to every new writer.
-        </p>
-
-        <h3>Talking to players without shipping a build</h3>
-        <p>
-          The same panel posts notices. A note from the kitchen gets written, dated and aimed at an
-          audience from the admin side, and putting one up is not a release. That is the difference
-          between a game I operate and a game I redeploy.
-        </p>
-        <p>
-          One rule governs where they land. A notice appears on Today&rsquo;s Special and nowhere
-          else, never on a Leftover, a Chef&rsquo;s Choice or a playtest, because those are side
-          doors and somebody replaying a Thursday from three weeks ago did not come for an
-          announcement. A first-timer finishes the coached first round before any notice shows. The card also
-          drops in from above and bounces, where every other modal in the game rises from the
-          bottom, so a player can tell a notice from their check before reading either. Afterwards
-          the panel reports how many devices saw it, split by surface, which is the only way to
-          find out whether a notice was read or merely posted.
-        </p>
-
-        <div class="notice-fig">
-          <div class="notice-stage">
-            <div class="notice-card">
-              <div class="notice-card__in">
-                <p class="notice-card__eyebrow">
-                  A note from the kitchen<span class="notice-card__count">1 of 2</span>
-                </p>
-                <h4 class="notice-card__title">Thirteen new dishes on the menu</h4>
-                <p class="notice-card__body">
-                  Every one of them arrived through the <strong>suggest a dish</strong> form on your
-                  check, and each gets <a href="#credited">credited</a> when it comes up as the
-                  Special. Keep them coming.
-                </p>
-              </div>
-              <div class="notice-card__foot">
-                <button class="notice-card__ok" type="button" tabindex="-1">Back to the Special</button>
-              </div>
-            </div>
-            <button class="notice-replay" id="notice-replay" type="button">↻ Play it again</button>
-          </div>
-
-          <div class="notice-where">
-            <p class="notice-where__k">Where a notice appears</p>
-            <ul>
-              <li class="yes">Today&rsquo;s Special</li>
-              <li class="no">Leftovers</li>
-              <li class="no">Chef&rsquo;s Choice</li>
-              <li class="no">Preview &amp; playtest</li>
-            </ul>
-            <p class="notice-where__note">
-              The bottom three are side doors, and a notice waiting behind one of them would
-              interrupt somebody who came for a different reason.
-            </p>
-          </div>
-        </div>
-
-        <h3 id="credited">Players add to the menu</h3>
-        <p>
-          The loop runs the other way too. After finishing a round, a button on the bottom of the modal shows "suggest a dish
-          for the menu" that prompts for a dish to be added. Players can give the name, a country if you know it, and a note.
-        </p>
-        <p>
-          Suggestions land in an inbox on the admin side where each one is either
-          cleared or promoted, and promoting it opens the dish editor with the name and country
-          already in the fields, at which point it has to clear the same bar as everything
-          else on the menu. The bar&rsquo;s tab asks for a drink the same way, into the same inbox,
-          and promoting one opens the drink editor instead.
-        </p>
-
-        <div class="fanfig">
-          <div class="check-stage">
-            <div class="check-bot">
-              <p class="check-bot__gap">&middot; &middot; &middot; the rest of the check &middot; &middot; &middot;</p>
-              <div class="check-bot__cut"></div>
-              <p class="check-bot__tail">Next Special in 6:12:44</p>
-              <div class="fan-seal">
-                <span class="fan-seal__star" aria-hidden="true">&#9733;</span>
-                <div>
-                  <p class="fan-seal__t">Off a customer&rsquo;s ticket</p>
-                  <p class="fan-seal__b">A regular asked for Zeppole. Yours could be next.</p>
-                </div>
-              </div>
-              <span class="suggest-cta"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v5.5a2 2 0 0 0 4 0V3" /><path d="M8 3v5" /><path d="M8 10.5V21" /><path d="M17 21V3c-2 1.5-3 4-3 7.5 0 1.2.8 2 2 2h1" /></svg> Suggest a dish for the menu</span>
-            </div>
-          </div>
-
-          <div class="notice-where">
-            <p class="notice-where__k">What the credit changes</p>
-            <ul>
-              <li class="yes">The seal on the check</li>
-              <li class="no">Which day it is served</li>
-              <li class="no">The odds in Chef&rsquo;s Choice</li>
-              <li class="no">The tiles and the clues</li>
-              <li class="no">Every figure on the dashboard</li>
-            </ul>
-            <p class="notice-where__note">
-              One flag, read in exactly one place. A dish that came in through the form is judged on
-              the same terms as the rest of the menu.
-            </p>
-          </div>
-        </div>
-
-        <p>
-          Where the seal sits is a height decision rather than a layout preference. The check is the
-          tallest card in the game on a 375px screen, so the credit goes at the very foot of it,
-          directly on top of the suggest button, instead of up beside the dish name where it would
-          read as a label on the answer. It is square rather than tilted, because a tilt reads as a
-          sticker and then demands padding on four corners to keep them off the text around it. And
-          it carries the section break itself: the dashed rule the suggest form draws above itself is
-          dropped whenever the seal is there, so crediting a dish costs the card one short band
-          rather than a separator and a seal. Mustard, not cherry, because nothing on that card is
-          allowed to outrank the verdict.
-        </p>
-        <p>
-          Whether the credit brings a player back on the day their dish runs, I do not know. It is
-          not instrumented, and the honest version of this page says so rather than assuming the
-          flattering answer.
-        </p>
-
-        <h3>The arithmetic is separated from the database</h3>
-        <p>
-          Queries need a database. Arithmetic does not. Every number on this page comes out of a
-          pure function that takes rows and returns a shape, which is why 715 tests sit behind them
-          and why I trust a chart I have never eyeballed. The public endpoint this page reads runs
-          <strong>the same folds</strong> as my private dashboard, so the two cannot drift into
-          quoting different numbers at each other.
-        </p>
-
-        <h3>One trade-off, made with my eyes open</h3>
-        <p>
-          The client keeps the round&rsquo;s bookkeeping and asks for the reveal after game over, the
-          way Wordle does. Anyone determined can read the answer out of a network tab. Closing that
-          needs server-side sessions, and therefore accounts. The cheat costs one player their own
-          round; the account system would cost every player a sign-up.
-        </p>
-
-        <div class="takeaway reveal">
-          <span class="takeaway__k">Takeaway</span>
-          <p>
-            A daily game is an operation rather than a launch. I built the stations in the order the
-            game demanded them.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==========================================================
-         06 · THE NUMBERS
+         03 · THE NUMBERS
          ========================================================== -->
     <section id="numbers">
       <div class="wrap">
         <div class="shead reveal">
-          <span class="shead__n">06</span>
+          <span class="shead__n">03</span>
           <h2 class="shead__t">What the numbers say</h2>
           <span class="shead__k">read live</span>
         </div>
-
         <p>
-          Everything below comes out of production the moment you load this page. The audience is
-          small and self-selected: <span class="js-rounds">1,550</span> rounds from
-          <span class="js-devices">510</span> devices, of whom
-          <span class="js-ret2">94</span> came back on a second day. Read it as a method and a first
-          result rather than a finding about daily games in general.
-        </p>
-        <p>
-          At this size the honest problem is that a rate off 12 completions and a rate off 400 look
-          identical printed. So any rate I quote from fewer than 30 observations carries its 95%
-          interval, and nothing else does, because an interval on every number teaches you to skip
-          them. The intervals are Wilson rather than the textbook formula, because this game lives
-          exactly where the textbook one fails: tiny samples, and rates pinned near 0 or 1, where it
-          returns an interval of zero width. The most confident thing a small dashboard can print is
-          usually the most wrong.
+          <span class="js-rounds">1,550</span> rounds from <span class="js-devices">510</span>
+          devices. Rates from fewer than 30 observations carry a Wilson 95% interval, and an
+          unmeasured day stays blank rather than reading as zero.
         </p>
 
         <div class="chart">
@@ -4976,19 +4133,13 @@ https://lunchspecial.app</pre>
         </div>
 
         <div class="chart reveal">
-          <div class="chart__h">
-            <p class="chart__t">Guesses needed to solve</p>
-          </div>
+          <div class="chart__h"><p class="chart__t">Guesses needed to solve</p></div>
           <p class="chart__sub" id="dist-sub">1,153 solved rounds &middot; 227 more ran out of guesses</p>
           <div class="bars" id="chart-dist"></div>
           <div class="legend">
             <span><i style="background: var(--ev-start)"></i>Solved</span>
             <span><i style="background: var(--ev-finish)"></i>Ran out of guesses</span>
           </div>
-          <p class="chart__note">
-            The full six-guess budget gets used and a real share of rounds end unsolved, which is
-            the shape I wanted and did not have at launch. See the third finding below.
-          </p>
         </div>
 
         <div class="charts2">
@@ -4998,36 +4149,13 @@ https://lunchspecial.app</pre>
             <div class="bars" id="chart-modes"></div>
             <p class="chart__note" id="modes-note"></p>
           </div>
-
           <div class="chart reveal">
             <div class="chart__h"><p class="chart__t">Where players drop off</p></div>
             <p class="chart__sub" id="funnel-sub">devices, pooled over the days arrivals have been measured</p>
             <div class="bars" id="chart-funnel"></div>
-            <p class="chart__note">
-              Every stage counts devices rather than rounds, which is the only reason this is allowed
-              to be a funnel. One player doing the Special plus three Leftovers is one arrival and
-              four starts, and stacked as stages those numbers would grow as they descend.
-            </p>
+            <p class="chart__note">Every stage counts devices, not rounds, so it can be a funnel.</p>
           </div>
         </div>
-
-        <h3>That top row cost me a release, and I had the definition right</h3>
-        <p>
-          A round counts as started on the player&rsquo;s first submitted guess. Opening a page is
-          not playing a game, and I still think that is the correct definition. It also meant that
-          everyone who arrived and never guessed was invisible to me. Games started was the widest
-          number I had, with nothing above it, so a change that doubled interest while halving
-          conversion would have looked identical to no change at all.
-        </p>
-        <p>
-          One row per device per ET day closed it, and the <em>Arrived</em> row above is what that
-          bought. The rows underneath it changed meaning at the same time: the first row counts
-          people and every row below counts games, so dividing one straight into the other reports
-          play rates over 100%. Both rows name their unit for that reason. I also had to give the
-          admin panel a way to delete its own play-testing, because at tens of rounds a day one
-          person reloading the game to check a change writes arrival rows and nothing else, and
-          those rows read as pure bounce in the funnel I had built the week before.
-        </p>
 
         <div class="chart reveal">
           <div class="chart__h"><p class="chart__t">Games played, running total</p></div>
@@ -5037,90 +4165,42 @@ https://lunchspecial.app</pre>
             <span><i style="background: var(--ev-start)"></i>Running total</span>
             <span><i class="dash"></i>Constant-pace reference</span>
           </div>
-          <p class="chart__note">
-            A cumulative curve can only rise, so the fact it goes up carries no information. The bend
-            does. The dashed line is the same run at one constant pace, fitted by least squares, and
-            the curve pulling above it means the game is gaining. Without that reference every
-            cumulative chart looks like success.
-          </p>
+          <p class="chart__note">A running total only rises. The dashed least-squares line shows whether the pace is.</p>
         </div>
 
-        <h3>Three things I did not expect</h3>
         <div class="cards reveal">
           <div class="finding">
             <span class="finding__k">Finding 01</span>
-            <p class="finding__t">The side doors became more than a quarter of all play</p>
-            <p>
-              I built Leftovers as a courtesy for anyone who found the game late. Together with
-              Chef&rsquo;s Choice it now accounts for <b class="js-optional">28%</b> of every round
-              played, and <b class="js-optfinish">92%</b> of those rounds run to the end, against
-              <b class="js-dailyfinish">87%</b> for the Special itself.
-            </p>
-            <p style="margin-top: 9px">
-              <b>So:</b> I stopped treating the archive as an accessory. It now unlocks the moment
-              today&rsquo;s check is settled rather than sitting behind a menu, and the dish report
-              in my dashboard counts a Leftover as a genuine first attempt at that dish, which
-              tripled the sample behind every per-dish difficulty read. Since v1.11 a finished
-              Special also files itself into the Leftovers calendar, and a one-time recovery
-              brought back the days before that fix as outcomes, never as boards.
-            </p>
+            <p class="finding__t">The side doors took over a quarter of play</p>
+            <p>Leftovers and Chef&rsquo;s Choice are <b class="js-optional">28%</b> of rounds, and <b class="js-optfinish">92%</b> of them finish. So the archive now opens as soon as today&rsquo;s check settles.</p>
           </div>
           <div class="finding">
             <span class="finding__k">Finding 02</span>
-            <p class="finding__t">The Discord Activity out-recruits the website</p>
-            <p>
-              Discord reaches <b class="js-dc-dev">300</b> devices against the web&rsquo;s
-              <b class="js-web-dev">211</b>, off <b class="js-dc-rounds">579</b> rounds against
-              <b class="js-web-rounds">971</b>. More people, each playing less. The embed recruits
-              and the website is where the habit forms.
-            </p>
-            <p style="margin-top: 9px">
-              <b>So:</b> I built the loop that suits recruiting rather than the one that suits
-              retention. A player&rsquo;s first guess posts one message into the channel they
-              launched from, showing their board and a button to play; every later guess edits that
-              same message, so a whole round costs the channel one post. I am watching whether it
-              converts, and it is the next thing I will log as an experiment.
-            </p>
+            <p class="finding__t">Discord recruits, the web retains</p>
+            <p>Discord reaches <b class="js-dc-dev">300</b> devices to the web&rsquo;s <b class="js-web-dev">211</b>, on fewer rounds. Each guess there edits one live message in the channel.</p>
           </div>
           <div class="finding">
             <span class="finding__k">Finding 03</span>
-            <p class="finding__t">The menu was too easy, and the data said so before I did</p>
-            <p>
-              Mean solve sat at 2.8 guesses. The sixth guess went unused and the last two clue beats
-              went unread, which meant I had written content nobody reached. The pool skewed toward
-              globally famous dishes, good for a launch and wrong by week four. I added 60 dishes
-              chosen to close the gaps. Mean is now <b class="js-avg">3.2</b>, the budget gets spent,
-              and <b class="js-loss">16%</b> of finished rounds end unsolved.
-            </p>
+            <p class="finding__t">The menu was too easy</p>
+            <p>Mean solve was 2.8 and nobody reached the last clues. Sixty harder dishes later it is <b class="js-avg">3.2</b>, and <b class="js-loss">16%</b> of rounds end unsolved.</p>
           </div>
-        </div>
-
-        <div class="takeaway reveal">
-          <span class="takeaway__k">Takeaway</span>
-          <p>
-            The instrument told me the game was too easy and that my courtesy feature was carrying more
-            than a quarter of the play. Neither was visible from inside the design.
-          </p>
         </div>
       </div>
     </section>
 
     <!-- ==========================================================
-         07 · THE EXPERIMENT
+         04 · THE EXPERIMENT
          ========================================================== -->
     <section id="experiment" class="exp">
       <div class="wrap">
         <div class="shead reveal">
-          <span class="shead__n">07</span>
-          <h2 class="shead__t">One change, logged before I shipped it</h2>
+          <span class="shead__n">04</span>
+          <h2 class="shead__t">One change, logged before it shipped</h2>
           <span class="shead__k">verdict · 14-day window</span>
         </div>
-
         <p>
-          Every chart above says what happened. None of them says whether I caused it. So the
-          database also holds a change log: one row per deliberate change, carrying what I expected
-          and which metric it was meant to move, both written down before the change went out. The
-          dashboard splits the daily series at the ship date and compares the halves.
+          The dashboard keeps a change log. Each row names its metric and its window before the
+          change ships, then compares the halves.
         </p>
 
         <div class="check reveal" id="check">
@@ -5165,219 +4245,113 @@ https://lunchspecial.app</pre>
         </div>
 
         <p>
-          I had picked the schedule for variety by instinct until this day. From here I booked it
-          against the menu-mix panel, which compares the region, course, protein and temperature
-          ratios of what I have served against the pool those dishes are drawn from. More of the
-          board became guessable from the tiles alone, and more players reached the end.
+          Read at 7 days, the same change reports no difference: 84% against 89%, intervals
+          overlapping. Picking the window after seeing the data is picking the answer.
         </p>
-
-        <h3>The two windows are not the same length, and that is not a choice</h3>
-        <p>
-          The fixed 14 days applies to the after period, which is the half I could have gamed by
-          stopping on a good week. The before period is 8 days because the game was 8 days old when
-          I shipped the change, so that is the entire history that existed. An asymmetry I picked
-          would be a problem. This one is a ceiling, and the smaller sample sits on the side that
-          makes the result harder to claim rather than easier: the before period&rsquo;s interval is
-          the wider of the two, and the verdict still needed them not to overlap.
-        </p>
-
-        <h3>Why the after window gets fixed before the change ships</h3>
-        <p>
-          Read at 7 days instead of 14, the same comparison returns <strong>no change</strong>: 84%
-          against 89%, with intervals that overlap. Nothing about the game differs between those two
-          readings, only how much of the surrounding variation each window swallows. Choosing the
-          window after seeing the data means choosing the answer.
-        </p>
-
-        <div class="rules reveal">
-          <div class="rule-c">
-            <b>The metric is named first</b>
-            <span>Picked afterwards, it is whichever of the eight moved most. Reading a different one than the change was logged against prints a warning.</span>
-          </div>
-          <div class="rule-c">
-            <b>Rates are pooled, never averaged</b>
-            <span>Total solved over total completed. Averaging daily percentages lets a one-round Tuesday outvote a whole weekend.</span>
-          </div>
-          <div class="rule-c">
-            <b>Counts and rates get different tests</b>
-            <span>A count&rsquo;s noise is day-to-day spread. A rate&rsquo;s is binomial. Judging a share rate by how much traffic wobbled answers the wrong question.</span>
-          </div>
-          <div class="rule-c">
-            <b>&ldquo;Too early to tell&rdquo; is a verdict</b>
-            <span>At this volume it is the honest answer for a fortnight, and it arrives with an estimate of how many more days the change needs.</span>
-          </div>
-        </div>
-
-        <p class="note">
-          Finish rate was the metric because the arrivals beacon in the section above had made it
-          readable. Naming a metric up front only works when you can already measure the thing you
-          are about to name.
-        </p>
-
-        <div class="takeaway reveal">
-          <span class="takeaway__k">Takeaway</span>
-          <p>
-            I claim a change once it separates from ordinary variation, and the system tells me when
-            it cannot.
-          </p>
-        </div>
       </div>
     </section>
 
     <!-- ==========================================================
-         08 · HOW IT'S BUILT
-         The architecture is HTML, not an image, so it reflows on a phone.
-         Every decision card comes from the project's decision log or a
-         merged pull request, and every count is dated.
+         05 · HOW IT'S BUILT
          ========================================================== -->
     <section id="built">
       <div class="wrap">
         <div class="shead reveal">
-          <span class="shead__n">08</span>
+          <span class="shead__n">05</span>
           <h2 class="shead__t">How it&rsquo;s built</h2>
           <span class="shead__k">architecture · decisions · checks</span>
         </div>
-
-        <p>
-          One Cloudflare Worker, one SQLite database and four runtime dependencies. The diagram
-          shows which process handles what. The cards under it are six of the 102 decisions in the
-          project&rsquo;s decision log, each with the option it ruled out and what came of it.
-        </p>
 
         <div class="arch reveal" id="arch">
           <div class="arch__layer">
             <p class="arch__k">Client</p>
             <div class="arch__row">
-              <div class="arch__box">
-                <b>Browser</b>
-                <span>React 19 single-page app. <code>localStorage</code> holds the round, the streak and an anonymous device id. No accounts.</span>
-              </div>
-              <div class="arch__box">
-                <b>Discord iframe</b>
-                <span>The same bundle, framed through Discord&rsquo;s proxy. The Embedded App SDK loads by dynamic import, only when <code>frame_id</code> is present.</span>
-              </div>
+              <div class="arch__box"><b>Browser</b><span>React 19. <code>localStorage</code> holds the round. No accounts.</span></div>
+              <div class="arch__box"><b>Discord iframe</b><span>Same bundle. The SDK loads only inside Discord.</span></div>
             </div>
           </div>
-          <div class="arch__link"><span>relative <code>/api/*</code> calls, same origin</span></div>
+          <div class="arch__link"><span>same-origin <code>/api/*</code></span></div>
           <div class="arch__layer arch__layer--edge">
             <p class="arch__k">One Cloudflare Worker</p>
             <div class="arch__row">
-              <div class="arch__box">
-                <b>Static assets</b>
-                <span>The app, fonts and art. Served without waking the Worker.</span>
-              </div>
-              <div class="arch__box">
-                <b>Hono API</b>
-                <span><code>run_worker_first: ["/api/*"]</code>. Routers for the Special, the bar, beacons, public stats, the admin and Discord.</span>
-              </div>
-              <div class="arch__box">
-                <b>HMAC tokens</b>
-                <span>Stateless. The admin session, preview links and the showcase link, all signed with one secret.</span>
-              </div>
+              <div class="arch__box"><b>Static assets</b><span>Served without waking the Worker.</span></div>
+              <div class="arch__box"><b>Hono API</b><span>Game, bar, beacons, stats, admin, Discord.</span></div>
+              <div class="arch__box"><b>HMAC tokens</b><span>Stateless admin and preview links.</span></div>
             </div>
           </div>
           <div class="arch__link"><span>rows in, shapes out</span></div>
           <div class="arch__layer">
-            <p class="arch__k">Pure folds &middot; <code>worker/</code> and <code>shared/</code></p>
+            <p class="arch__k">Pure folds, unit-tested</p>
             <div class="arch__row">
-              <div class="arch__box">
-                <b>Game rules</b>
-                <span>Feedback for dishes and drinks, the daily rollover, the night clock.</span>
-              </div>
-              <div class="arch__box">
-                <b>Measurement</b>
-                <span>Every dashboard figure, the Wilson intervals and the experiment verdicts.</span>
-              </div>
-              <div class="arch__box">
-                <b>Content</b>
-                <span>Both beat sheets, and the clue linter that reads them.</span>
-              </div>
+              <div class="arch__box"><b>Game rules</b><span>Feedback, the rollover, the night clock.</span></div>
+              <div class="arch__box"><b>Measurement</b><span>Every dashboard figure and verdict.</span></div>
+              <div class="arch__box"><b>Content</b><span>Beat sheets and the clue linter.</span></div>
             </div>
           </div>
-          <div class="arch__link"><span>SQL, in the route</span></div>
+          <div class="arch__link"><span>SQL</span></div>
           <div class="arch__layer arch__layer--data">
             <p class="arch__k">D1 (SQLite) &middot; 45 additive migrations</p>
             <div class="arch__row">
-              <div class="arch__box">
-                <b>Catalogue</b>
-                <span><code>dishes</code>, <code>clues</code>, <code>schedule</code>, and the bar&rsquo;s own <code>drinks</code>, <code>drink_clues</code>, <code>drink_schedule</code>.</span>
-              </div>
-              <div class="arch__box">
-                <b>Telemetry</b>
-                <span><code>analytics_rounds</code>, <code>analytics_visits</code>, <code>experiments</code>. Country stamped server-side, no IP stored.</span>
-              </div>
-              <div class="arch__box">
-                <b>Operations</b>
-                <span><code>announcements</code>, <code>dish_requests</code>, <code>discord_messages</code>.</span>
-              </div>
+              <div class="arch__box"><b>Catalogue</b><span>Dishes and drinks, clues, schedules.</span></div>
+              <div class="arch__box"><b>Telemetry</b><span>Rounds, visits, experiments. No IPs.</span></div>
+              <div class="arch__box"><b>Operations</b><span>Notices, requests, Discord messages.</span></div>
             </div>
           </div>
-          <p class="arch__out">
-            Outside the Worker: <b>Discord&rsquo;s API</b> for the OAuth exchange, score-card
-            uploads and signed interactions, and <b>GitHub&rsquo;s API</b> for the admin&rsquo;s
-            issue composer. Both secrets stay on the Worker.
-          </p>
         </div>
 
-        <h3>Six decisions, and what each one ruled out</h3>
+        <h3>Six decisions</h3>
         <div class="dcards reveal">
           <div class="dcard">
-            <p class="dcard__t">One Worker serves the game, the API and the database</p>
-            <p>No second deploy target and no CORS. The Discord Activity frames the same origin, so one release ships both surfaces.</p>
-            <p class="dcard__x"><b>Ruled out</b> A static host with a separate API service.</p>
-            <p class="dcard__m"><b>Measured</b> The v1.12.0 release ran tests, typecheck, migrations and deploy in 55 seconds from the tag push.</p>
+            <p class="dcard__t">One Worker for game, API and database</p>
+            <p class="dcard__x"><b>Ruled out</b> A static host plus an API service.</p>
+            <p class="dcard__m"><b>Measured</b> Tag to live in 55 seconds, tests included.</p>
           </div>
           <div class="dcard">
-            <p class="dcard__t">Every derived number comes out of a pure fold</p>
-            <p>The arithmetic gets unit tests with no database, and the public endpoint this page reads runs the same folds as the private dashboard.</p>
-            <p class="dcard__x"><b>Ruled out</b> Rates computed in SQL or inside a React component.</p>
-            <p class="dcard__m"><b>Measured</b> 715 tests run in 2.1 seconds on my machine, no database attached.</p>
+            <p class="dcard__t">Every number comes from a pure fold</p>
+            <p class="dcard__x"><b>Ruled out</b> Rates computed in SQL or in components.</p>
+            <p class="dcard__m"><b>Measured</b> 715 tests in 2.1 seconds, no database.</p>
           </div>
           <div class="dcard">
             <p class="dcard__t">The Nightcap is a fourth round kind</p>
-            <p>Every kind-split query already existed. The cost is that two columns change meaning under it, which is written down in three places.</p>
-            <p class="dcard__x"><b>Ruled out</b> A second analytics table for the bar.</p>
-            <p class="dcard__m"><b>Result</b> The compiler pointed at six sites. Two were pooling four-guess and six-guess rounds on one axis, and both split.</p>
+            <p class="dcard__x"><b>Ruled out</b> A second analytics table.</p>
+            <p class="dcard__m"><b>Result</b> The compiler found two charts mixing four- and six-guess rounds.</p>
           </div>
           <div class="dcard">
-            <p class="dcard__t">The bar runs on your clock, keyed to the evening</p>
-            <p>A mode called After Dark that opened at 1am in London would not be after dark. The key is fixed when you walk in.</p>
-            <p class="dcard__x"><b>Ruled out</b> The diner&rsquo;s midnight-Eastern rollover, and recomputing the key at midnight.</p>
-            <p class="dcard__m"><b>Result</b> The Worker learns no timezone. A one-day window around Eastern covers UTC&minus;11 to UTC+14.</p>
+            <p class="dcard__t">The bar runs on the player&rsquo;s clock</p>
+            <p class="dcard__x"><b>Ruled out</b> The diner&rsquo;s midnight-Eastern rollover.</p>
+            <p class="dcard__m"><b>Result</b> The Worker never learns a timezone.</p>
           </div>
           <div class="dcard">
-            <p class="dcard__t">Shorten every token instead of storing a short code</p>
-            <p>A showcase link goes into an email. At about one link a month, a table, a migration and a lookup cost more than they return.</p>
-            <p class="dcard__x"><b>Ruled out</b> An 8-character code in D1, which would reach 36 characters and buy revocation.</p>
-            <p class="dcard__m"><b>Measured</b> 106 characters down to 60: a 128-bit HMAC, base36 seconds, a two-letter payload and <code>?s=</code>.</p>
+            <p class="dcard__t">Shorter tokens, no short-code table</p>
+            <p class="dcard__x"><b>Ruled out</b> A revocable code stored in D1.</p>
+            <p class="dcard__m"><b>Measured</b> Demo link cut from 106 to 60 characters.</p>
           </div>
           <div class="dcard">
-            <p class="dcard__t">A colour pair is a named token, never a one-off hex</p>
-            <p>A theme cannot swap what a rule hardcodes. Three contrast failures in this repo came from literal hexes in a component.</p>
-            <p class="dcard__x"><b>Ruled out</b> Literal colours inside component rules.</p>
-            <p class="dcard__m"><b>Measured</b> Under the night palette axe read the receipt title at 1.21:1. Named, the tile pairs read 5.05 and 7.24 in both themes.</p>
+            <p class="dcard__t">Colour pairs are named tokens</p>
+            <p class="dcard__x"><b>Ruled out</b> One-off hex values in components.</p>
+            <p class="dcard__m"><b>Measured</b> A 1.21:1 night-mode failure now reads 5.05 and up.</p>
           </div>
         </div>
 
         <h3>How a change gets checked</h3>
         <ol class="checks">
-          <li><code>npm test</code><span>715 vitest tests over the pure folds, plus the clue linter over every dish and drink in the catalogue.</span></li>
-          <li><code>npm run check</code><span><code>tsc -b</code> across three projects. Worker code gets no DOM types.</span></li>
-          <li><code>npm run lint</code><span>oxlint, with the rules of hooks as an error.</span></li>
-          <li><code>npm run a11y</code><span>axe over the running game. It plays a round with reduced motion on, scans nine states and fails on anything serious or critical.</span></li>
-          <li><b>By hand</b><span>A full round, then <code>npm run lastcall</code> into a Nightcap, 375px with no sideways scroll, a keyboard-only pass and a reduced-motion pass.</span></li>
-          <li><b>CI and release</b><span>Every pull request reruns the first four. A <code>v*</code> tag reruns tests and typecheck, migrates D1 and deploys. The game prints its release in the footer of every page, so a screenshot names its build.</span></li>
+          <li><code>npm test</code><span>715 unit tests, plus the clue linter.</span></li>
+          <li><code>npm run check</code><span>TypeScript across three projects.</span></li>
+          <li><code>npm run lint</code><span>oxlint.</span></li>
+          <li><code>npm run a11y</code><span>axe over nine screens of the running game.</span></li>
+          <li><b>By hand</b><span>A full round, a Nightcap, 375px, keyboard only.</span></li>
+          <li><b>Release</b><span>A <code>v*</code> tag re-tests, migrates and deploys.</span></li>
         </ol>
 
         <div class="stats reveal">
-          <div class="stat"><span class="stat__n">162</span><span class="stat__l">merged pull requests since 18 July</span></div>
-          <div class="stat"><span class="stat__n">715</span><span class="stat__l">unit tests, all TypeScript, in 45 files</span></div>
-          <div class="stat"><span class="stat__n">9</span><span class="stat__l">screens axe scans on every pull request</span></div>
-          <div class="stat"><span class="stat__n">102</span><span class="stat__l">decisions logged, plus 16 approaches tried and dropped</span></div>
-          <div class="stat"><span class="stat__n">45</span><span class="stat__l">D1 migrations, every one additive</span></div>
-          <div class="stat"><span class="stat__n">152&rarr;56</span><span class="stat__l">KB of fonts after the switch to WOFF2, measured in #196</span></div>
+          <div class="stat"><span class="stat__n">162</span><span class="stat__l">merged pull requests</span></div>
+          <div class="stat"><span class="stat__n">715</span><span class="stat__l">TypeScript unit tests</span></div>
+          <div class="stat"><span class="stat__n">9</span><span class="stat__l">screens scanned by axe</span></div>
+          <div class="stat"><span class="stat__n">102</span><span class="stat__l">decisions logged</span></div>
+          <div class="stat"><span class="stat__n">45</span><span class="stat__l">additive migrations</span></div>
+          <div class="stat"><span class="stat__n">152&rarr;56</span><span class="stat__l">KB of fonts after WOFF2</span></div>
         </div>
-        <p class="stats__foot">Counted from the repository and the decision log on 23 September 2026, at v1.12.0.</p>
+        <p class="stats__foot">Counted 23 September 2026, at v1.12.0.</p>
 
         <div class="byline">
           <p class="byline__t">Designed, built and documented by Jacob Poteet</p>
@@ -5387,80 +4361,43 @@ https://lunchspecial.app</pre>
             <a href="https://github.com/JacobPoteet/LunchSpecial/pulls?q=is%3Apr+is%3Amerged">Merged pull requests</a>
           </p>
           <p class="byline__more">
-            Three walkthroughs go deeper:
-            <a href="lessons/analytics-pipeline.html">the analytics pipeline</a>,
-            <a href="lessons/admin-dashboard.html">the admin dashboard</a> and
-            <a href="lessons/discord-activity.html">the Discord Activity</a>.
+            Deeper walkthroughs:
+            <a href="lessons/analytics-pipeline.html">analytics</a>,
+            <a href="lessons/admin-dashboard.html">the dashboard</a>,
+            <a href="lessons/discord-activity.html">Discord</a>.
           </p>
         </div>
       </div>
     </section>
 
     <!-- ==========================================================
-         09 · WHAT TRANSFERS
+         06 · WHAT TRANSFERS
          ========================================================== -->
     <section id="transfers">
       <div class="wrap">
         <div class="shead reveal">
-          <span class="shead__n">09</span>
-          <h2 class="shead__t">What of this transfers to a bigger game</h2>
-          <span class="shead__k">the honest version</span>
+          <span class="shead__n">06</span>
+          <h2 class="shead__t">What transfers to a bigger game</h2>
+          <span class="shead__k">three habits</span>
         </div>
-
-        <p>
-          Lunch Special is one designer, one database and a few hundred players. I am not going to
-          pretend that is a shipped title. Three of the habits behind it are the reason I built it
-          this way, and those are what I would bring to a team.
-        </p>
-
         <div class="cards reveal">
           <div class="card">
-            <span class="card__k">Transfers 01</span>
+            <span class="card__k">01</span>
             <p class="card__t">A beat sheet is a content pipeline</p>
-            <p>
-              The five beats exist so that a dish is a repeatable job rather than an inspiration. On
-              a bigger game the same spec is what keeps six writers on one voice, and what lets you
-              cost a content month instead of guessing at it. I built the CMS to enforce it rather
-              than trusting anyone to remember it, and that includes me.
-            </p>
+            <p>It keeps many writers on one voice and makes a content month costable.</p>
           </div>
           <div class="card">
-            <span class="card__k">Transfers 02</span>
-            <p class="card__t">A named metric settles an argument that seniority would otherwise settle</p>
-            <p>
-              Writing down the metric and the window before shipping costs ten minutes and removes
-              the move where everyone reads whichever number happened to move. On a team that is
-              worth more than it is solo, because solo the only person I can fool is me.
-            </p>
+            <span class="card__k">02</span>
+            <p class="card__t">Name the metric before you ship</p>
+            <p>It stops a team reading whichever number moved.</p>
           </div>
           <div class="card">
-            <span class="card__k">Transfers 03</span>
-            <p class="card__t">An instrument that cannot say &ldquo;I don&rsquo;t know&rdquo; will say something else</p>
-            <p>
-              Unmeasured days stay blank, thin rates carry their intervals, and &ldquo;too early to
-              tell&rdquo; is a verdict with a date attached. The failure this prevents scales up
-              rather than down: a telemetry gap read as a player collapse is an expensive mistake
-              with a publisher in the room.
-            </p>
+            <span class="card__k">03</span>
+            <p class="card__t">Let the instrument say &ldquo;I don&rsquo;t know&rdquo;</p>
+            <p>A telemetry gap read as a collapse is an expensive mistake.</p>
           </div>
         </div>
-
-        <h3>What this project does not show you</h3>
-        <p>
-          It does not show me working with other people, because there were none. I have never had
-          to defend a pre-registered metric to a producer who needs the number to move by Friday, or
-          hand this spec to a writer whose instincts differ from mine and find out which parts of
-          it were load-bearing and which were just my taste. Those are the parts I want next, and
-          they are the reason I am looking at studios rather than at another solo project.
-        </p>
-
-        <div class="takeaway reveal">
-          <span class="takeaway__k">Takeaway</span>
-          <p>
-            The scale is small and the habits are not: write the rules down, build the tool that
-            enforces them, and measure the change you claimed you were making.
-          </p>
-        </div>
+        <p>What it can&rsquo;t show: working with a team. That is what I want next.</p>
       </div>
     </section>
 
