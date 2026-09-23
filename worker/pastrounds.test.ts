@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { EPOCH_DATE } from "../shared/types";
-import { foldPastRounds, type PastRoundRow } from "./pastrounds";
+import { RECOVER_THROUGH, foldPastRounds, type PastRoundRow } from "./pastrounds";
 
 const row = (play_date: string, solved: number | null, guesses: number | null): PastRoundRow => ({
   play_date,
@@ -38,6 +38,12 @@ describe("foldPastRounds", () => {
     expect(foldPastRounds([row("2026-07-16", 1, 2), row(EPOCH_DATE, 1, 2)], TODAY)).toEqual([
       { date: EPOCH_DATE, solved: true, guesses: 2 },
     ]);
+  });
+
+  it("stops at RECOVER_THROUGH, the day the archive started keeping the rest", () => {
+    const later = "2026-12-01";
+    const rows = [row(RECOVER_THROUGH, 1, 4), row("2026-10-15", 1, 2)];
+    expect(foldPastRounds(rows, later)).toEqual([{ date: RECOVER_THROUGH, solved: true, guesses: 4 }]);
   });
 
   it("drops an impossible guess count rather than clamping it", () => {

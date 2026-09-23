@@ -87,7 +87,7 @@
       <div class="card">
         <p class="eyebrow">Lunch Special</p>
         <h1>Privacy Policy</h1>
-        <p class="meta">Effective date: July 20, 2026</p>
+        <p class="meta">Effective date: September 23, 2026</p>
 
         <p>
           Lunch Special is a free daily word game where you guess the diner's
@@ -112,7 +112,7 @@
           <code>localStorage</code>. This stays on your device and includes:
         </p>
         <ul>
-          <li>Your progress on the current puzzle and past puzzles you've replayed.</li>
+          <li>Your progress on the current puzzle, and your results on past puzzles.</li>
           <li>Your lifetime statistics and streak.</li>
           <li>A randomly generated device identifier (a UUID) that is not linked to your identity.</li>
         </ul>
@@ -126,8 +126,11 @@
           When a round starts, the game sends a small message to our server
           containing the random device identifier described above and the type
           of round played (today's Special, an archive replay, or a random
-          dish). We use this only to understand how many people play and to
-          distinguish new versus returning devices by day. Because we never
+          dish). When it ends, it sends whether you solved it and in how many
+          guesses. We use this to understand how many people play and to
+          distinguish new versus returning devices by day. The game can also ask
+          once for the results recorded under its own device identifier, to fill
+          in the archive calendar on that device. Because we never
           collect your name, email, or any other personal identifier, this
           information cannot reasonably be tied to you as an individual.
         </p>

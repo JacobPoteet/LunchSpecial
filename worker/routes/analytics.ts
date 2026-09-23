@@ -8,7 +8,7 @@ import { ROUND_KINDS, SURFACES, maxGuessesFor, type RoundKind, type Surface } fr
 import { getSeededDish, getTargetDish, serverToday } from "../db";
 import { getTargetDrink } from "../drinkdb";
 import { isValidDateString } from "../game";
-import { foldPastRounds, type PastRoundRow } from "../pastrounds";
+import { RECOVER_THROUGH, foldPastRounds, type PastRoundRow } from "../pastrounds";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -322,9 +322,9 @@ app.post("/past", async (c) => {
   }
   const { results } = await c.env.DB.prepare(
     `SELECT play_date, solved, guesses FROM analytics_rounds
-     WHERE player_id = ? AND kind = 'daily' AND completed = 1`,
+     WHERE player_id = ? AND kind = 'daily' AND completed = 1 AND play_date <= ?`,
   )
-    .bind(playerId)
+    .bind(playerId, RECOVER_THROUGH)
     .all<PastRoundRow>();
   c.header("Cache-Control", "no-store");
   return c.json(foldPastRounds(results, serverToday()));

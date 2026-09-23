@@ -7,6 +7,18 @@
 
 import { EPOCH_DATE, MAX_GUESSES, type PastRound } from "../shared/types";
 
+/**
+ * The last ET day this route recovers. The release carrying #215 started
+ * keeping finished Specials on the device, so later rows only repeat what the
+ * archive already holds, and for a device that started after it the answer is
+ * empty. That is how the route retires itself.
+ *
+ * It must be ON OR AFTER the day that release went out: a later date only
+ * returns a few days the archive already has, while an earlier one loses the
+ * days in between. Set a week past the planned tag to leave room for it to slip.
+ */
+export const RECOVER_THROUGH = "2026-09-30";
+
 export interface PastRoundRow {
   play_date: string;
   solved: number | null;
@@ -14,7 +26,8 @@ export interface PastRoundRow {
 }
 
 /**
- * One round per date, from EPOCH_DATE up to the day before `today`.
+ * One round per date, from EPOCH_DATE through RECOVER_THROUGH and never
+ * later than the day before `today`.
  *
  * A device can hold several rows for one date (two tabs each minted a round
  * id). The calendar needs one answer, and the best one is the round the
@@ -25,7 +38,7 @@ export interface PastRoundRow {
 export function foldPastRounds(rows: PastRoundRow[], today: string): PastRound[] {
   const best = new Map<string, PastRound>();
   for (const row of rows) {
-    if (row.play_date < EPOCH_DATE || row.play_date >= today) continue;
+    if (row.play_date < EPOCH_DATE || row.play_date >= today || row.play_date > RECOVER_THROUGH) continue;
     const guesses = Number(row.guesses);
     if (!Number.isInteger(guesses) || guesses < 1 || guesses > MAX_GUESSES) continue;
     const round: PastRound = { date: row.play_date, solved: row.solved === 1, guesses };
