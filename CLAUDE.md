@@ -282,7 +282,7 @@ The clock and the door are both awkward to reach on purpose, so there are four w
 
 ```
 wrangler.jsonc        assets SPA fallback + run_worker_first:["/api/*"] + D1 binding "DB"
-migrations/           0001_init.sql = dishes/clues/schedule. Additive only. 0044 is the latest
+migrations/           0001_init.sql = dishes/clues/schedule. Additive only. 0045 is the latest
 seed/seed.sql         canonical dish AND drink catalogues + a 30-day schedule from 2026-07-17 and a
                       30-night block from NIGHT_EPOCH_DATE. Idempotent (DELETEs first)
 shared/types.ts       re-exports shared/types/*, one file per concern; import "../shared/types" as before
