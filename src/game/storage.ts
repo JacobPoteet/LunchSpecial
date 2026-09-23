@@ -122,7 +122,29 @@ export function loadRound(date: string): RoundState {
 }
 
 export function saveRound(state: RoundState): void {
+  keepFinishedDaily(state);
   localStorage.setItem(STATE_KEY, JSON.stringify(state));
+}
+
+/**
+ * Keep a finished Special under its date in the archive, because the daily slot
+ * is overwritten tomorrow and the Leftovers calendar reads only the archive
+ * (#214). Runs before the slot is written, so withDailySlot still folds in the
+ * round the slot held until now: a player from before the fix gets their last
+ * finished day kept on the first save of a new one. Finished only, since an
+ * unfinished daily resumed from the calendar would complete a daily analytics
+ * row days late.
+ */
+function keepFinishedDaily(state: RoundState): void {
+  try {
+    const stored = readArchive();
+    const archive = withDailySlot(stored);
+    if (state.status !== "playing") archive[state.date] = state;
+    else if (archive === stored) return; // nothing new, spare the rewrite on every guess
+    localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive));
+  } catch {
+    // Storage full or blocked. Today's round still saves; the calendar misses a day.
+  }
 }
 
 export function emptyStats(): Stats {
@@ -173,10 +195,15 @@ export function recordResult(date: string, won: boolean, guessCount: number): St
 
 // ---- Archive rounds (previous days) ----
 //
-// Rounds for past puzzles, keyed by date, kept separate from today's round and
-// from lifetime Stats — replaying the archive never touches the daily streak.
+// Rounds for past puzzles, keyed by date, kept separate from lifetime Stats —
+// replaying the archive never touches the daily streak. A finished daily round
+// lands here too (see saveRound), so the calendar shows the days played live.
 
 export function loadArchive(): Record<string, RoundState> {
+  return withDailySlot(readArchive());
+}
+
+function readArchive(): Record<string, RoundState> {
   try {
     const raw = localStorage.getItem(ARCHIVE_KEY);
     if (raw) {
@@ -187,6 +214,31 @@ export function loadArchive(): Record<string, RoundState> {
     // corrupted archive — start fresh
   }
   return {};
+}
+
+/**
+ * Fold the daily slot's round into the archive if it finished and the archive
+ * lacks its date. Before #214 a finished Special never reached the archive, so
+ * for a player from then this slot is the one past day still on the device.
+ * Persisted by the next save (keepFinishedDaily), never here: a read stays a read.
+ */
+function withDailySlot(archive: Record<string, RoundState>): Record<string, RoundState> {
+  try {
+    const raw = localStorage.getItem(STATE_KEY);
+    if (!raw) return archive;
+    const daily = JSON.parse(raw) as RoundState;
+    if (
+      typeof daily?.date !== "string" ||
+      !Array.isArray(daily.guesses) ||
+      daily.status === "playing" ||
+      archive[daily.date]
+    ) {
+      return archive;
+    }
+    return { ...archive, [daily.date]: daily };
+  } catch {
+    return archive;
+  }
 }
 
 export function loadArchiveRound(date: string): RoundState {
