@@ -12,6 +12,7 @@ import { DISH_REQUEST_LIMITS } from "../../shared/types";
 import { currentSurface } from "../discord/bootstrap";
 import { playSfx } from "../audio";
 import { getPlayerId } from "./storage";
+import { Icon } from "./Icon";
 
 const SURFACE = currentSurface();
 
@@ -28,20 +29,20 @@ const COPY: Record<
   }
 > = {
   dish: {
-    toggle: "🍽️ Suggest a dish for the menu",
+    toggle: "Suggest a dish for the menu",
     title: "Suggest a dish for the menu",
     namePlaceholder: "Dish name (required)",
     submit: "Send to the kitchen",
-    thanks: "🧑‍🍳 Thanks, hon — the cook's got your request!",
+    thanks: "Thanks, hon — the cook's got your request!",
     stampTitle: "Off a customer's ticket",
     stampBody: (name) => `A regular asked for ${name}. Yours could be next.`,
   },
   drink: {
-    toggle: "🍹 Suggest a drink for the bar",
+    toggle: "Suggest a drink for the bar",
     title: "Suggest a drink for the bar",
     namePlaceholder: "Drink name (required)",
     submit: "Send to the bar",
-    thanks: "🍸 Thanks — the bartender's got your request!",
+    thanks: "Thanks — the bartender's got your request!",
     stampTitle: "Off a regular's tab",
     stampBody: (name) => `Somebody at the bar asked for ${name}. Yours could be next.`,
   },
@@ -110,7 +111,7 @@ export function RequestForm({ kind, promoted = false }: { kind: RequestKind; pro
         className={`dish-request__toggle${promoted ? " dish-request__toggle--promoted" : ""}`}
         onClick={() => setOpen(true)}
       >
-        {copy.toggle}
+        <Icon name={kind === "drink" ? "glass" : "cutlery"} /> {copy.toggle}
       </button>
     );
   }

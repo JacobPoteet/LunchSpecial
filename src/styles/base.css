@@ -10,6 +10,16 @@
   src: url("../assets/fonts/yellowtail.woff2") format("woff2");
   font-display: swap;
 }
+/* The printer's face: section heads, tabs, tile labels, the small print. A
+   condensed gothic is what a 1950s menu set its prices and headings in, beside
+   a slab or a script for the sign. Alfa Slab One is a sign face and turned to
+   blocks below about 1rem, which is where most of the game's labels live. A
+   variable font with a width axis; the game uses its default instance. */
+@font-face {
+  font-family: "League Gothic";
+  src: url("../assets/fonts/league-gothic.woff2") format("woff2");
+  font-display: swap;
+}
 
 :root {
   /* palette: golden-age diner */
@@ -99,7 +109,16 @@
   --font-display: "Alfa Slab One", "Arial Black", sans-serif;
   --font-script: "Yellowtail", "Brush Script MT", cursive;
   --font-body: Georgia, "Times New Roman", serif;
+  --font-gothic: "League Gothic", "Arial Narrow", "Roboto Condensed", sans-serif;
 
+  /* The second tube in the sign, under the pink script. The backdrop's own
+     signs pair a warm script with a cool block word, and so does this one. Only
+     ever drawn on the dark scene, never on paper. */
+  --neon-blue: #7cc8ff;
+
+  /* Two radii, by material. Paper (the card, the check, a ticket, a guess row)
+     is cut stock and near-square; a control is --radius. */
+  --radius-paper: 3px;
   --radius: 10px;
   --shadow-card: 0 18px 50px rgba(10, 20, 18, 0.45);
 }

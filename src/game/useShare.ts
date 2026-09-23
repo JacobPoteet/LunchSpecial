@@ -16,7 +16,7 @@ import { canUseNativeShare, copyShareText } from "./share";
 
 export type ShareState = "idle" | "working" | "channel" | "sent" | "copied" | "failed";
 
-export function shareLabel(state: ShareState, surface: Surface, idle = "📤 Share"): string {
+export function shareLabel(state: ShareState, surface: Surface, idle = "Share"): string {
   switch (state) {
     case "working":
       return "Plating up…";

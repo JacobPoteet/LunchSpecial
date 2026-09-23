@@ -4,7 +4,7 @@
 // so a player who played five days running and then stayed away for a week
 // still has a 5 in storage. That number is right in the "My stats" panel the
 // way Wordle's is (it resets on the next play), and wrong on a board: printing
-// "🔥 5-day streak" beside today's Special to someone whose streak died on
+// "5-day streak" beside today's Special to someone whose streak died on
 // Thursday is a lie about the one thing the mark exists to say. Everything
 // here therefore takes the date of the last recorded round and today, and
 // decides first whether the streak is alive at all.
@@ -35,10 +35,11 @@ export function liveStreak({ currentStreak, lastCompletedDate, today }: StreakIn
  * The mark beside the board's meta line, or null when there is nothing worth
  * saying. One day is not a streak yet — "1-day streak" is a sentence that
  * makes the mark look broken, and everyone who has played once has one.
+ * Words only: the board draws the flame beside them as an icon.
  */
 export function boardStreakMark(input: StreakInput): string | null {
   const n = liveStreak(input);
-  return n >= 2 ? `🔥 ${n}-day streak` : null;
+  return n >= 2 ? `${n}-day streak` : null;
 }
 
 /**
