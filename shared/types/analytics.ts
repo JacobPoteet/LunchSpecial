@@ -1123,3 +1123,103 @@ export interface PastRound {
   solved: boolean;
   guesses: number;
 }
+
+/**
+ * The audience reads behind the weekly-active KPI, the Trends lead chart, the
+ * cohort grid and the first-visit funnel. One payload, folded in
+ * worker/audience.ts, and deliberately **not** surface-filtered on the wire:
+ * every slice comes back for all three surfaces at once, because the KPI row
+ * and the first-visit funnel print web and Discord side by side, and the gap
+ * between them is the read. The panels that follow the toggle pick a slice.
+ *
+ * "Active" means **played**: a device that started at least one round that ET
+ * day. Not "opened a board", because the visit beacon is weeks younger than
+ * `player_id` and an arrival-based count would step up the day it shipped.
+ */
+export interface AudienceReport {
+  /** The server's ET today. */
+  today: string;
+  /** Earliest ET day any round carried a player id — same instrument mark as `playerTrackingStart`. */
+  trackingStart: string | null;
+  /** Earliest ET day with an arrival row, or null before the visit beacon. */
+  visitsSince: string | null;
+  bySurface: Record<"all" | Surface, AudienceSlice>;
+}
+
+export interface AudienceSlice {
+  /** Last 7 complete ET days against the 7 before them. Today is excluded: it's a part-day. */
+  lastWeek: ActiveWindow;
+  priorWeek: ActiveWindow;
+  /** Monday-start ET weeks from the first tracked week through the current one, oldest first. */
+  weeks: WeeklyActive[];
+  /** One row per week-of-first-play, oldest first. */
+  cohorts: WeeklyCohort[];
+  /** Arrivals split by whether that day was the device's first. Pooled since `visitsSince`. */
+  firstVisit: ArrivalFunnel;
+  returning: ArrivalFunnel;
+}
+
+/** Devices that played inside a window of ET days, split by whether it was their first. */
+export interface ActiveWindow {
+  /** Inclusive ET days. */
+  from: string;
+  to: string;
+  active: number;
+  /** First played day falls inside the window. */
+  new: number;
+  /** Active in the window, first played before it. */
+  returning: number;
+}
+
+export interface WeeklyActive {
+  /** The Monday that opens the week, as an ET day. */
+  weekStart: string;
+  new: number;
+  returning: number;
+  /** How many of the week's seven days have happened. Under 7 = the current, partial week. */
+  daysElapsed: number;
+  /**
+   * The first tracked week. Its "new" takes in every device that played before
+   * `player_id` existed, so it's overstated by however many that was.
+   */
+  firstTracked: boolean;
+}
+
+/**
+ * Devices whose first played day fell in one week, and how many played again in
+ * each later week. `back[k-1]` is week +k. **null means that week isn't over
+ * yet**: a cohort's +1 while +1 is still running is a question with no answer,
+ * and a zero there would read as everybody leaving.
+ */
+export interface WeeklyCohort {
+  weekStart: string;
+  size: number;
+  back: (number | null)[];
+  /** The first tracked week: it also holds devices that played before tracking began. */
+  firstTracked: boolean;
+}
+
+/**
+ * Device-days since the visit beacon, as a funnel. Every stage is a subset of
+ * the one above: `played` counts arrivals where that device started a round on
+ * the same ET day.
+ */
+export interface ArrivalFunnel {
+  arrived: number;
+  played: number;
+  finished: number;
+  shared: number;
+  /**
+   * First visits only (zeros on `returning`): came back — played or opened —
+   * within `RETENTION_WINDOW_DAYS` (worker/players.ts), split by whether they guessed on that
+   * first day. Censored like every return rate: an arrival younger than the
+   * window is `pending`, never a no-show.
+   */
+  cameBack: { ifPlayed: CameBack; ifBounced: CameBack };
+}
+
+export interface CameBack {
+  returned: number;
+  atRisk: number;
+  pending: number;
+}

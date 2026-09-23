@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import type {
+  AudienceReport,
   AnalyticsSummary,
   Experiment,
   GameGrowth,
@@ -7,6 +8,7 @@ import type {
   PlayRhythm,
   WeekdayPlay,
 } from "../../shared/types";
+import { WeeklyActiveChart } from "./AudiencePanels";
 import { KIND_META, KindLegend, hourLabel, noRoundsNote, pct, shortDate, type SurfaceFilter } from "./analyticsUi";
 
 /**
@@ -380,12 +382,17 @@ export default function TrendsPanel({
   error,
   surface,
   experiments,
+  audience,
+  audienceError,
 }: {
   data: AnalyticsSummary | null;
   error: string | null;
   surface: SurfaceFilter;
   /** The change log, drawn as markers over the time series. Empty until one is logged. */
   experiments: Experiment[];
+  /** Weekly active devices, the tab's lead chart. */
+  audience: AudienceReport | null;
+  audienceError: string | null;
 }) {
   if (error) {
     return (
@@ -432,36 +439,10 @@ export default function TrendsPanel({
 
   return (
     <>
-      {/* First, because it's the widest question on the tab: everything below it
-          asks what happened lately, this asks whether the game is gaining. */}
-      <section className="panel">
-        <h2>Total games played · all time</h2>
-        {growth.days.length === 0 ? (
-          <p className="dash-note">No dated activity yet.</p>
-        ) : (
-          <>
-            <p className="gchart__headline">
-              <strong className="gchart__total">{growth.days.at(-1)!.cumulative.toLocaleString()}</strong> games
-              played since {shortDate(growth.days[0].date)}.
-              {growth.trend && ` ${growthNote(growth.trend, growth.days[0].date)}`}
-            </p>
-            <GrowthChart growth={growth} experiments={experiments} />
-            <details className="dash-details">
-              <summary>How to read it</summary>
-              <p className="dash-note">
-                A running total of every game started, all three kinds together, by the ET day it was
-                started on — so it can only go up, and the reading is the <em>shape</em>: steepening means
-                the game is gaining, flattening means it's stalling.{" "}
-                {growth.trend
-                  ? "The dashed line is the same run at one constant pace (a least-squares fit through the curve), there to make that bend visible. It's a reference, not a forecast."
-                  : `The steady-pace line needs a longer run than ${growth.days.length} day${
-                      growth.days.length === 1 ? "" : "s"
-                    } — it'll appear once there's enough history to mean something.`}
-              </p>
-            </details>
-          </>
-        )}
-      </section>
+      {/* First, because it's the question the tab exists for: is the audience
+          growing? Counted in devices per week rather than rounds per day, so a
+          regular's four Leftovers don't read as four people. */}
+      <WeeklyActiveChart data={audience} error={audienceError} surface={surface} />
 
       <section className="panel">
         <h2>Games started · {span}</h2>
@@ -511,6 +492,38 @@ export default function TrendsPanel({
                 is on the Experiments tab.
               </p>
             )}
+          </>
+        )}
+      </section>
+
+      {/* Under the weekly chart, not above it: a running total can only climb,
+          so it reads as growth even in a week fewer people played. The bend is
+          the read, and the weekly chart shows the bend more plainly. */}
+      <section className="panel">
+        <h2>Total games played · all time</h2>
+        {growth.days.length === 0 ? (
+          <p className="dash-note">No dated activity yet.</p>
+        ) : (
+          <>
+            <p className="gchart__headline">
+              <strong className="gchart__total">{growth.days.at(-1)!.cumulative.toLocaleString()}</strong> games
+              played since {shortDate(growth.days[0].date)}.
+              {growth.trend && ` ${growthNote(growth.trend, growth.days[0].date)}`}
+            </p>
+            <GrowthChart growth={growth} experiments={experiments} />
+            <details className="dash-details">
+              <summary>How to read it</summary>
+              <p className="dash-note">
+                A running total of every game started, all three kinds together, by the ET day it was
+                started on — so it can only go up, and the reading is the <em>shape</em>: steepening means
+                the game is gaining, flattening means it's stalling.{" "}
+                {growth.trend
+                  ? "The dashed line is the same run at one constant pace (a least-squares fit through the curve), there to make that bend visible. It's a reference, not a forecast."
+                  : `The steady-pace line needs a longer run than ${growth.days.length} day${
+                      growth.days.length === 1 ? "" : "s"
+                    } — it'll appear once there's enough history to mean something.`}
+              </p>
+            </details>
           </>
         )}
       </section>

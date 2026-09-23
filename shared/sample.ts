@@ -139,3 +139,32 @@ export function percentileOf(
   }
   return sorted[sorted.length - 1][0];
 }
+
+/** Two counts from back-to-back windows, and whether the move is bigger than chance. */
+export interface CountChange {
+  delta: number;
+  /** Relative change against `before`, rounded; null when `before` is 0. */
+  pct: number | null;
+  /** Whether |delta| clears the noise band. */
+  clear: boolean;
+}
+
+/**
+ * Week-over-week on a count, judged as two Poisson draws: the difference is
+ * called real only when it clears 1.96 standard deviations of `sqrt(a + b)`.
+ *
+ * Conservative for this dashboard's use in a way worth knowing. The two weeks
+ * share their regulars, so the counts are positively correlated and the real
+ * spread of their difference is *narrower* than the Poisson one. This test says
+ * "within noise" more often than it strictly should, which is the direction
+ * `separated` already leans.
+ */
+export function countChange(now: number, before: number): CountChange {
+  const delta = now - before;
+  const spread = Math.sqrt(Math.max(0, now) + Math.max(0, before));
+  return {
+    delta,
+    pct: before > 0 ? Math.round((delta / before) * 100) : null,
+    clear: spread > 0 && Math.abs(delta) > Z * spread,
+  };
+}

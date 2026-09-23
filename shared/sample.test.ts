@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSmallSample, medianOf, percentileOf, rangeLabel, rate, separated, SMALL_SAMPLE_MIN } from "./sample";
+import { countChange, isSmallSample, medianOf, percentileOf, rangeLabel, rate, separated, SMALL_SAMPLE_MIN } from "./sample";
 
 describe("rate", () => {
   it("returns null for a measurement never made", () => {
@@ -126,5 +126,21 @@ describe("percentileOf", () => {
     const pairs = [[5, 2], [7, 2]] as const;
     expect(percentileOf(pairs, 0)).toBe(5);
     expect(percentileOf(pairs, 1)).toBe(7);
+  });
+});
+
+describe("countChange", () => {
+  it("calls a small move noise", () => {
+    expect(countChange(55, 50)).toEqual({ delta: 5, pct: 10, clear: false });
+  });
+
+  it("calls a large move real", () => {
+    // 1.96 * sqrt(160) ≈ 24.8, so a 40-device drop clears it.
+    expect(countChange(60, 100)).toEqual({ delta: -40, pct: -40, clear: true });
+  });
+
+  it("has no percentage off a zero week and no verdict off two", () => {
+    expect(countChange(4, 0).pct).toBeNull();
+    expect(countChange(0, 0)).toEqual({ delta: 0, pct: null, clear: false });
   });
 });

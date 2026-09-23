@@ -12,6 +12,7 @@ import type {
   AfterDarkReport,
   ActivityFeed,
   AnalyticsSummary,
+  AudienceReport,
   AnnouncementInput,
   DeviceDataDeleted,
   DeviceDataSummary,
@@ -125,6 +126,8 @@ export const getMenuMix = () => request<MenuMix>("/menu-mix");
  * Path is "/dish-report", not "/dish-stats" or anything with "analytics" in it —
  * see the route comment in worker/routes/admin.ts: ad blockers match those shapes.
  */
+/** Weekly active, cohorts and the first-visit funnel — every surface's slice in one call. */
+export const getAudience = () => request<AudienceReport>("/audience");
 export const getDishReport = (surface?: Surface) =>
   request<DishReport>(`/dish-report${surface ? `?surface=${surface}` : ""}`);
 /**
