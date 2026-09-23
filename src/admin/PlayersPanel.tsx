@@ -33,6 +33,7 @@ import {
   type SurfaceFilter,
 } from "./analyticsUi";
 
+import { Icon } from "../game/Icon";
 /**
  * The "who is playing, and how are they doing" tab.
  *
@@ -1081,7 +1082,7 @@ export default function PlayersPanel({
           </h2>
           <div className="analytics-head__tools">
             <button className="btn btn--ghost btn--small" onClick={() => setPicking(true)}>
-              📅 {isToday ? "Today" : day.date}
+              <Icon name="calendar" /> {isToday ? "Today" : day.date}
             </button>
             {!isToday && (
               <button className="link-btn" onClick={() => onPickDate(null)}>

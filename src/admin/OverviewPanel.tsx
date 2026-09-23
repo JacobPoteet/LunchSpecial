@@ -25,6 +25,7 @@ import {
   type SurfaceFilter,
 } from "./analyticsUi";
 
+import { Icon } from "../game/Icon";
 /** Live countdown to the next midnight-ET rollover, when today's Special switches. */
 function SwitchCountdown() {
   const [ms, setMs] = useState(() => msUntilGameMidnight());
@@ -57,6 +58,58 @@ function useNow(): number {
     return () => clearInterval(t);
   }, []);
   return now;
+}
+
+interface TapeLine {
+  label: string;
+  value: string;
+  /** The line the rest hang off, printed heavier. */
+  total?: boolean;
+  /** A subset of the line above it, printed indented under it. */
+  sub?: boolean;
+  /** The hover definition, as the tiles carried it. */
+  title?: string;
+  /** Small print under the figure: the win rate's interval. */
+  foot?: React.ReactNode;
+}
+
+/**
+ * The day's figures as a register's end-of-day tape: one printed strip, the
+ * day and the Special at its head, a line per figure with a dotted leader out
+ * to it. It replaced a row of identical tinted tiles, which put "Opened the
+ * game" and "The Special" at the same weight when one is the top of the funnel
+ * and the other a subset of the line above it. The tape can say both: the
+ * total prints heavier, the subset prints indented.
+ *
+ * Same rule as the tiles on what's missing: a figure that wasn't measured is
+ * left off the tape, never printed as 0.
+ */
+function ZTape({ head, dish, lines }: { head: string; dish: string | null; lines: TapeLine[] }) {
+  return (
+    <div className="ztape">
+      <div className="ztape__paper">
+        <p className="ztape__head">
+          <span className="ztape__day">{head}</span>
+          {dish && <span className="ztape__dish">{dish}</span>}
+        </p>
+        <dl className="ztape__lines">
+          {lines.map((l) => (
+            <div
+              key={l.label}
+              className={`ztape__line${l.total ? " ztape__line--total" : ""}${l.sub ? " ztape__line--sub" : ""}`}
+              title={l.title}
+            >
+              <dt>{l.label}</dt>
+              <dd>
+                {l.value}
+                {l.foot}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -131,10 +184,12 @@ function AtAGlance({
         <p className="dash-note">{noRoundsNote(surface)}</p>
       ) : (
         <>
-          <h3 className="dash-subhead">
-            {isToday ? "Today" : day.date}
-            {day.dishName && ` · ${day.dishName}`}
-          </h3>
+          {startedAny === 0 && (
+            <h3 className="dash-subhead">
+              {isToday ? "Today" : day.date}
+              {day.dishName && ` · ${day.dishName}`}
+            </h3>
+          )}
           {/* Nobody *played* is not the same as nothing happened. Since the visit
               beacon shipped, a day with arrivals and no games is the loudest
               signal on the dashboard — everyone who showed up bounced — so it
@@ -151,58 +206,62 @@ function AtAGlance({
             </p>
           ) : (
             <>
-              <div className="metric-row">
-                {/* The funnel's top, ahead of games started because it's the
-                    wider number — omitted entirely on days it wasn't measured. */}
-                {day.visited !== null && (
-                  <div className="metric" title="Devices that opened a playable board this day. One per device, however many times they came back to the tab.">
-                    <span className="metric__num">{day.visited}</span>
-                    <span className="metric__label">Opened the game</span>
-                  </div>
-                )}
-                <div className="metric metric--primary">
-                  <span className="metric__num">{startedAny}</span>
-                  <span className="metric__label">Games started</span>
-                </div>
-                <div className="metric">
-                  <span className="metric__num">{day.startedByKind.daily}</span>
-                  <span className="metric__label">The Special</span>
-                </div>
-                {/* All kinds, unlike Win rate — a leftover played through still
-                    counts as a game finished, and the Special-only totals can't
-                    see it. The players who *didn't* finish are the DNF figure
-                    under the Finishing bar; the tile leads with the ones who did. */}
-                <div
-                  className="metric"
-                  title={`Games started today that reached game over — all game modes. ${DNF_NOTE}`}
-                >
-                  <span className="metric__num">{day.allKinds.completed}</span>
-                  <span className="metric__label">Finished</span>
-                </div>
-                <div className="metric" title="The Special only — replays and Chef's Choice don't dilute the puzzle's own win rate.">
-                  <span className="metric__num">{pct(day.totals.solved, day.totals.completed)}%</span>
-                  <span className="metric__label">Win rate</span>
-                  {/* A morning's win rate is three players; say how wide that is
-                      rather than printing it at the same weight as an all-time one. */}
-                  <RangeHint n={day.totals.solved} of={day.totals.completed} />
-                </div>
-              </div>
+              <div className="ztape-row">
+                <ZTape
+                  head={isToday ? "Today" : day.date}
+                  dish={day.dishName}
+                  lines={[
+                    // The funnel's top, ahead of games started because it's the
+                    // wider number — left off entirely on days it wasn't
+                    // measured, never printed as a zero.
+                    ...(day.visited !== null
+                      ? [
+                          {
+                            label: "Opened the game",
+                            value: String(day.visited),
+                            title:
+                              "Devices that opened a playable board this day. One per device, however many times they came back to the tab.",
+                          },
+                        ]
+                      : []),
+                    { label: "Games started", value: String(startedAny), total: true },
+                    // A subset of the line above, so it prints indented under it.
+                    { label: "The Special", value: String(day.startedByKind.daily), sub: true },
+                    // All kinds, unlike Win rate — a leftover played through still
+                    // counts as a game finished. The players who *didn't* finish
+                    // are the DNF figure under the Finishing bar.
+                    {
+                      label: "Finished",
+                      value: String(day.allKinds.completed),
+                      title: `Games started today that reached game over — all game modes. ${DNF_NOTE}`,
+                    },
+                    {
+                      label: "Win rate",
+                      value: `${pct(day.totals.solved, day.totals.completed)}%`,
+                      title: "The Special only — replays and Chef's Choice don't dilute the puzzle's own win rate.",
+                      // A morning's win rate is three players; say how wide that
+                      // is rather than printing it at the weight of an all-time one.
+                      foot: <RangeHint n={day.totals.solved} of={day.totals.completed} />,
+                    },
+                  ]}
+                />
 
-              {/* The three reads a bare count can't give you. Each is omitted
-                  rather than faked when its input isn't there — no baseline yet,
-                  no solves yet, nothing started yet. */}
-              {(pace || difficulty || day.lastStartedAt) && (
-                <ul className="dash-reads">
-                  {pace && <li>{pace}</li>}
-                  {difficulty && <li>{difficulty}</li>}
-                  {day.lastStartedAt && (
-                    <li>
-                      Last order {ago(new Date(day.lastStartedAt).getTime(), now)}
-                      {isToday && " · beacons arriving"}.
-                    </li>
-                  )}
-                </ul>
-              )}
+                {/* The three reads a bare count can't give you, beside the tape
+                    they read. Each is omitted rather than faked when its input
+                    isn't there — no baseline yet, no solves yet, nothing started. */}
+                {(pace || difficulty || day.lastStartedAt) && (
+                  <ul className="dash-reads">
+                    {pace && <li>{pace}</li>}
+                    {difficulty && <li>{difficulty}</li>}
+                    {day.lastStartedAt && (
+                      <li>
+                        Last order {ago(new Date(day.lastStartedAt).getTime(), now)}
+                        {isToday && " · beacons arriving"}.
+                      </li>
+                    )}
+                  </ul>
+                )}
+              </div>
 
               <div className="analytics-block">
                 <h3 className="analytics-sub">How far they got</h3>
@@ -466,7 +525,7 @@ function TomorrowsSpecial({
 
   const shuffleBtn = (
     <button className="btn btn--ghost" onClick={shuffle} disabled={rolling}>
-      {rolling ? "Rolling…" : "🎲 Shuffle"}
+      {rolling ? "Rolling…" : <><Icon name="dice" /> Shuffle</>}
     </button>
   );
 

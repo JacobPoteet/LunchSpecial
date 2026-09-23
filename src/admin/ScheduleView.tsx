@@ -12,6 +12,7 @@ import {
 } from "../../shared/schedule";
 import * as api from "./api";
 
+import { Icon } from "../game/Icon";
 /** How far ◀ / ▶ move the window. Roughly a month, so two presses clear the default view. */
 const PAGE_DAYS = 30;
 
@@ -56,7 +57,7 @@ interface Flash {
  *   several hundred dishes and forty-odd unlocked days, so a select per row put
  *   tens of thousands of options in the DOM to let you choose one, and gave you
  *   no way to search them. Not a `<datalist>` either — see {@link Row}.
- * - **🎲**, when you don't. It rolls a dish that has never been the Special onto
+ * - **Shuffle** (the dice), when you don't. It rolls a dish that has never been the Special onto
  *   that day, and is meant to be pressed repeatedly until something appealing
  *   turns up. See worker/shuffle.ts for what "never" means and why consecutive
  *   clicks can't land on the dish already showing.
@@ -292,7 +293,7 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
       {flash && flash.date === null && <p className={flash.ok ? "form-ok" : "form-error"}>{flash.text}</p>}
 
       <p className="dash-note" style={{ marginBottom: 10 }}>
-        Past days are locked. Only dishes marked <span className="badge">ready</span> can be booked. 🎲 rolls a dish
+        Past days are locked. Only dishes marked <span className="badge">ready</span> can be booked. Shuffle rolls a dish
         that has never been the Special; Clear hands the day back to the automatic fallback pick. Auto-fill keeps a
         region off consecutive days, a country apart by two weeks and two desserts apart; the line above says what
         the next week holds either way. Dates roll over at midnight Eastern Time (America/New_York).
@@ -530,7 +531,7 @@ function Row({
             label={`Shuffle ${weekday(row.date)}`}
             onClick={onShuffle}
           >
-            🎲
+            <Icon name="dice" />
           </RowButton>
           <RowButton
             hidden={row.isPast || row.dishId === null}

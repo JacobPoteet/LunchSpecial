@@ -25,6 +25,7 @@ import { peekPlayerId } from "../game/storage";
 import DayPicker from "./DayPicker";
 import { ago, countryName, kindCls, kindLabel, type SurfaceFilter } from "./analyticsUi";
 
+import { Icon } from "../game/Icon";
 /**
  * Label + pip colour for each beacon in a round's arc.
  *
@@ -819,7 +820,7 @@ export default function ActivityPanel({
           title="Show one ET day's service instead of the most recent rounds"
           onClick={() => setPickingDay(true)}
         >
-          📅 {date ?? "All days"}
+          <Icon name="calendar" /> {date ?? "All days"}
         </button>
         {date && (
           <button className="btn btn--ghost btn--small" onClick={() => setDate(null)}>
