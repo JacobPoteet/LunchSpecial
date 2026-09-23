@@ -1111,3 +1111,15 @@ export interface AnalyticsSummary extends AnalyticsPeriod {
    */
   funnel: PlayerFunnel;
 }
+
+/**
+ * One past daily round this device finished, as the server recorded it. What
+ * `POST /api/rounds/past` answers with, so the Leftovers calendar can mark the
+ * days played before a finished Special was kept on the device (#216). There
+ * is no board: the beacons never carried guess content.
+ */
+export interface PastRound {
+  date: string;
+  solved: boolean;
+  guesses: number;
+}
