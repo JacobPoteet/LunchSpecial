@@ -3,17 +3,17 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Lunch Special — Project Breakdown</title>
+    <title>Lunch Special · Project Breakdown</title>
     <meta
       name="description"
-      content="How I designed and shipped Lunch Special, a daily dish-guessing game: the feedback system, the clue beat sheet, the single-Worker stack, and the experiment that moved finish rate from 81% to 91%."
+      content="How I designed, built and measure Lunch Special, a daily dish-guessing game with a second puzzle after 8pm: the feedback system, the clue beat sheet, the single-Worker stack, the decisions behind it, and the experiment that moved finish rate from 81% to 91%."
     />
     <meta name="robots" content="index, follow" />
     <link rel="icon" href="https://lunchspecial.app/favicon.svg" type="image/svg+xml" />
 
     <meta property="og:type" content="article" />
     <meta property="og:site_name" content="Lunch Special" />
-    <meta property="og:title" content="Lunch Special — Project Breakdown" />
+    <meta property="og:title" content="Lunch Special · Project Breakdown" />
     <meta
       property="og:description"
       content="A daily dish-guessing game, and the apparatus I built to design, ship and measure it. Live production numbers throughout."
@@ -21,30 +21,31 @@
     <meta property="og:image" content="https://lunchspecial.app/og-image.jpg" />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <link rel="preload" href="fonts/bitter.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="fonts/league-gothic.woff2" as="font" type="font/woff2" crossorigin />
 
     <style>
       /* ==========================================================
-         FONTS — self-hosted OFL faces, served from this directory.
+         FONTS: the game's three OFL faces, the same WOFF2 files it
+         ships (src/assets/fonts), copied into this directory.
+         Alfa Slab One is the sign, Yellowtail the neon, League Gothic
+         the printer. Georgia carries everything you read.
          ========================================================== */
       @font-face {
         font-family: "Alfa Slab One";
-        src: url("fonts/alfa-slab-one.ttf") format("truetype");
+        src: url("fonts/alfa-slab-one.woff2") format("woff2");
         font-weight: 400;
         font-display: swap;
       }
       @font-face {
         font-family: "Yellowtail";
-        src: url("fonts/yellowtail.ttf") format("truetype");
+        src: url("fonts/yellowtail.woff2") format("woff2");
         font-weight: 400;
         font-display: swap;
       }
-      /* Variable, latin subset. One 34KB file covers 400–700, so headings sit
-         at 600 without a second download. */
       @font-face {
-        font-family: "Bitter";
-        src: url("fonts/bitter.woff2") format("woff2");
-        font-weight: 400 700;
+        font-family: "League Gothic";
+        src: url("fonts/league-gothic.woff2") format("woff2");
+        font-weight: 400;
         font-display: swap;
       }
 
@@ -91,6 +92,7 @@
         --k-daily: #c9922a;
         --k-leftover: #1b7d74;
         --k-random: #c9354a;
+        --k-night: #7d2f5c;
         --ev-start: #1b7d74;
         --ev-finish: #c9354a;
         --ev-share: #c9922a;
@@ -99,12 +101,19 @@
         --shadow: 0 10px 28px rgba(18, 40, 36, 0.14);
         --shadow-lift: 0 18px 44px rgba(18, 40, 36, 0.2);
 
-        /* Two slabs on purpose. Alfa Slab One is the sign: the wordmark and the
-           headline numbers, short strings you glance at. At heading sizes it
-           closes its counters and a title reads as a block, so headings take
-           Bitter instead: same Clarendon lineage, drawn for screens. */
+        /* Three faces, three jobs, as in the game after its printed-menu pass.
+           Alfa Slab One is the sign (1rem and up only; below that it turns to
+           blocks). League Gothic is the printer: tabs, labels, small print.
+           --font-slab is bold Georgia now, the back office's panel-question
+           face, and every card title reads in it. */
         --font-display: "Alfa Slab One", "Arial Black", sans-serif;
-        --font-slab: "Bitter", Georgia, "Times New Roman", serif;
+        --font-slab: Georgia, "Iowan Old Style", "Times New Roman", serif;
+        --font-gothic: "League Gothic", "Arial Narrow", "Roboto Condensed", sans-serif;
+        --neon-blue: #7cc8ff;
+        /* Two radii, by material, as in base.css: paper is cut stock and
+           near-square, a control is rounded. */
+        --radius-paper: 3px;
+        --radius: 10px;
         --font-script: "Yellowtail", "Brush Script MT", cursive;
         --font-body: Georgia, "Iowan Old Style", "Times New Roman", serif;
         --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
@@ -158,6 +167,7 @@
           --k-daily: #d9a33c;
           --k-leftover: #2ba79c;
           --k-random: #f26374;
+          --k-night: #c77aa6;
           --ev-start: #2ba79c;
           --ev-finish: #f26374;
           --ev-share: #d9a33c;
@@ -196,6 +206,7 @@
         --k-daily: #d9a33c;
         --k-leftover: #2ba79c;
         --k-random: #f26374;
+        --k-night: #c77aa6;
         --ev-start: #2ba79c;
         --ev-finish: #f26374;
         --ev-share: #d9a33c;
@@ -2183,6 +2194,13 @@
       .exp .shead__n { color: var(--mustard); }
       .exp .shead__k { color: var(--band-mute); }
       .exp p { color: #e3d9c3; }
+      /* The check is paper inside the dark band. Without these, the band's
+         cream paragraph colour outranks the check's own and its header and
+         verdict print cream on cream. */
+      .exp .check p { color: var(--ink); }
+      .exp .check .check__sub,
+      .exp .check p[style] { color: var(--ink-mute); }
+      .exp .check .verdict { color: var(--hit); }
       .exp strong { color: #fff; }
       .exp h3 { color: var(--band-ink); }
       .exp .note {
@@ -2406,9 +2424,1116 @@
         }
       }
 
+      /* ==========================================================
+         PRINTED MENU: the game's front-end pass (#219) carried onto
+         this page. The printer's gothic takes every small label, the
+         sign's slab takes the section titles, paper goes square, and
+         the two receipts are torn off the pad. Later rules of equal
+         specificity win, so this block restyles without rewriting.
+         ========================================================== */
+      .ico {
+        width: 1em;
+        height: 1em;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.9;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vertical-align: -0.14em;
+        flex: none;
+      }
+      .hero__eyebrow,
+      .shead__k,
+      .takeaway__k,
+      .skim__k,
+      .claim__go,
+      .card__k,
+      thead th,
+      .picker__k,
+      .ticket__h,
+      .notice-where__k,
+      .check-bot__gap,
+      .diagram__k,
+      .pipe__n,
+      .reach__k,
+      .finding__k,
+      .check__sub,
+      .ba__k,
+      .tile__label,
+      .notice-card__eyebrow,
+      .worked__meta,
+      .step__n,
+      .arch__k,
+      .arch__link span,
+      .story__cap,
+      .stats__foot {
+        font-family: var(--font-gothic);
+        font-weight: 400;
+        font-size: 1rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .at__l {
+        font-family: var(--font-gothic);
+        font-size: 0.8rem;
+        letter-spacing: 0.06em;
+      }
+      .topbar__nav a,
+      .topbar__play,
+      .btn,
+      .foot__links a,
+      .notice-replay,
+      .picker__reset {
+        font-family: var(--font-gothic);
+        font-weight: 400;
+        font-size: 1.05rem;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+      .topbar__nav a {
+        padding: 6px 8px;
+      }
+      .btn--primary {
+        font-family: var(--font-display);
+        font-size: 1rem;
+        letter-spacing: 0.01em;
+        text-transform: none;
+      }
+      .btn,
+      .topbar__play,
+      .foot__links a {
+        border-radius: var(--radius);
+      }
+      .shead__t {
+        font-family: var(--font-display);
+        font-weight: 400;
+        font-size: clamp(1.45rem, 3.4vw, 2.15rem);
+        line-height: 1.12;
+      }
+      h3 {
+        font-family: var(--font-gothic);
+        font-weight: 400;
+        font-size: 1.75rem;
+        line-height: 1.1;
+        letter-spacing: 0.01em;
+      }
+      .topbar__mark {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      /* The sign, as the game hangs it: a pink script tube with a cool
+         gothic tube under it. */
+      .neon {
+        font-family: var(--font-script);
+        font-weight: 400;
+        font-size: clamp(3.3rem, 11vw, 6.8rem);
+        line-height: 1;
+        color: #ffd9e0;
+        text-shadow:
+          0 0 6px rgba(255, 95, 122, 0.9),
+          0 0 18px rgba(255, 95, 122, 0.75),
+          0 0 42px rgba(255, 95, 122, 0.6);
+      }
+      .hero__script {
+        font-family: var(--font-gothic);
+        font-size: clamp(1.1rem, 3.8vw, 1.5rem);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        line-height: 1.1;
+        color: #eef8ff;
+        text-shadow:
+          0 0 3px rgba(124, 200, 255, 0.95),
+          0 0 10px rgba(124, 200, 255, 0.75),
+          0 0 24px rgba(124, 200, 255, 0.5);
+      }
+      .board,
+      .grow,
+      .ticket,
+      .card,
+      .finding,
+      .chart,
+      .diagram,
+      .worked,
+      .takeaway,
+      .picker,
+      .claim,
+      .rule-c,
+      .notice-card,
+      .tile,
+      .tablewrap {
+        border-radius: var(--radius-paper);
+      }
+      .at {
+        border-radius: 2px;
+      }
+      /* Torn off the pad, top and bottom, with the game's own mask. */
+      .receipt,
+      .check {
+        --tooth: 6px;
+        border-radius: 0;
+        -webkit-mask:
+          conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--tooth)) 51% repeat-x,
+          conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--tooth)) 51% repeat-x;
+        mask:
+          conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--tooth)) 51% repeat-x,
+          conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--tooth)) 51% repeat-x;
+        padding-top: calc(18px + var(--tooth));
+        padding-bottom: calc(18px + var(--tooth));
+      }
+      /* Inline code in prose never breaks mid-token. */
+      p code,
+      li code {
+        white-space: nowrap;
+      }
+
+      /* ==========================================================
+         AFTER DARK: the pinned story
+         ========================================================== */
+      .story {
+        display: grid;
+        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+        gap: clamp(24px, 4vw, 56px);
+        margin-top: 30px;
+        margin-bottom: 26px;
+      }
+      .story__steps {
+        grid-column: 1;
+        grid-row: 1;
+      }
+      .story__stage {
+        grid-column: 2;
+        grid-row: 1;
+        position: sticky;
+        top: 84px;
+        align-self: start;
+      }
+      .step {
+        min-height: 74vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        opacity: 0.35;
+        transition: opacity 0.35s ease;
+      }
+      .step:first-child {
+        min-height: 56vh;
+        justify-content: flex-start;
+        padding-top: 8vh;
+      }
+      .step:last-child {
+        min-height: 64vh;
+      }
+      .step.is-active {
+        opacity: 1;
+      }
+      .step__n {
+        color: var(--accent-ink);
+        font-size: 0.95rem;
+      }
+      .step h3 {
+        margin-top: 4px;
+      }
+      .story__cap {
+        margin: 10px 0 0;
+        text-align: center;
+        font-size: 0.9rem;
+        color: var(--ink-mute);
+        max-width: none;
+      }
+
+      /* The mock window carries its own palette, the game's day and night
+         tokens from base.css, so it looks like the game whatever theme this
+         page is in. Night is every state after the check. */
+      .win {
+        --w-bg: #fbf4e0;
+        --w-ink: #2b2320;
+        --w-soft: #5b4f45;
+        --w-edge: #e6d9b8;
+        --w-frame: #8f1f2e;
+        --w-cherry: #c9354a;
+        --w-on-cherry: #fdf8ee;
+        --w-row: rgba(255, 253, 246, 0.75);
+        --w-bright: #fffdf6;
+        --w-hit: #2e7d4f;
+        --w-hit-soft: #dcefe2;
+        --w-near: #e8a53a;
+        --w-miss: #a99e8f;
+        --w-miss-soft: #eee7d8;
+        --w-chrome: #e9ddbf;
+        border: 1px solid var(--rule);
+        border-radius: var(--radius);
+        overflow: hidden;
+        background: var(--w-bg);
+        color: var(--w-ink);
+        box-shadow: var(--shadow-lift);
+        font-family: var(--font-body);
+        transition: background-color 0.5s ease, color 0.5s ease;
+      }
+      .win:not([data-s="1"]) {
+        --w-bg: #1d1714;
+        --w-ink: #f0e6d4;
+        --w-soft: #b3a591;
+        --w-edge: #544537;
+        --w-frame: #c9354a;
+        --w-cherry: #ff5f7a;
+        --w-on-cherry: #2b1016;
+        --w-row: rgba(255, 240, 214, 0.07);
+        --w-bright: #262019;
+        --w-hit-soft: #16301f;
+        --w-miss: #6b6055;
+        --w-miss-soft: #2a231d;
+        --w-chrome: #14100e;
+      }
+      .win__bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 34px;
+        padding: 0 12px;
+        background: var(--w-chrome);
+        border-bottom: 1px solid var(--w-edge);
+      }
+      .win__dots {
+        display: inline-flex;
+        gap: 5px;
+      }
+      .win__dots i {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--w-edge);
+      }
+      .win__url {
+        flex: 1;
+        min-width: 0;
+        font-family: var(--font-mono);
+        font-size: 0.74rem;
+        color: var(--w-soft);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .win[data-s="1"] .win__q,
+      .win[data-s="2"] .win__q {
+        display: none;
+      }
+      .win__body {
+        position: relative;
+        height: min(520px, calc(100vh - 200px));
+        min-height: 380px;
+      }
+      .pane {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        padding: 16px 18px 22px;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.45s ease, visibility 0s linear 0.45s;
+      }
+      .win[data-s="1"] .pane--check,
+      .win[data-s="2"] .pane--lights,
+      .win[data-s="3"] .pane--bar,
+      .win[data-s="4"] .pane--bar,
+      .win[data-s="5"] .pane--bar,
+      .win[data-s="6"] .pane--tab {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.45s ease;
+      }
+      .pane p {
+        max-width: none;
+      }
+
+      /* 1 · the check */
+      .wcheck,
+      .wtab {
+        --tooth: 5px;
+        background: var(--w-bright);
+        border: 1px solid var(--w-edge);
+        padding: calc(14px + var(--tooth)) 16px calc(16px + var(--tooth));
+        text-align: center;
+        -webkit-mask:
+          conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--tooth)) 51% repeat-x,
+          conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--tooth)) 51% repeat-x;
+        mask:
+          conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--tooth)) 51% repeat-x,
+          conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--tooth)) 51% repeat-x;
+      }
+      .wcheck__top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        border-bottom: 2px solid var(--w-cherry);
+        padding-bottom: 6px;
+        font-family: var(--font-gothic);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--w-cherry);
+      }
+      .wcheck__house {
+        font-size: 1.15rem;
+      }
+      .wcheck__no {
+        font-size: 1.3rem;
+      }
+      .wcheck__no small {
+        font-size: 0.8rem;
+        margin-right: 3px;
+      }
+      .wcheck__boxes {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border: 1px solid var(--w-edge);
+        border-top: 0;
+        margin-bottom: 12px;
+      }
+      .wcheck__boxes span {
+        padding: 4px 6px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .wcheck__boxes span + span {
+        border-left: 1px solid var(--w-edge);
+      }
+      .wcheck__boxes b {
+        display: block;
+        font-family: var(--font-gothic);
+        font-weight: 400;
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--w-soft);
+      }
+      .wcheck__verdict,
+      .wtab__verdict {
+        margin: 0;
+        font-family: var(--font-script);
+        font-size: 1.5rem;
+        color: var(--w-cherry);
+      }
+      .wcheck__dish {
+        margin: 0 0 4px;
+        font-family: var(--font-display);
+        font-size: 1.55rem;
+        line-height: 1.1;
+      }
+      .wcheck__def {
+        margin: 0 auto 12px;
+        font-size: 0.86rem;
+        line-height: 1.45;
+        color: var(--w-soft);
+        font-style: italic;
+      }
+      .wbtn {
+        display: block;
+        margin: 6px auto 0;
+        max-width: 260px;
+        padding: 8px 12px;
+        border-radius: var(--radius);
+        font-family: var(--font-gothic);
+        font-size: 1.05rem;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+      .wbtn--cherry {
+        background: var(--w-cherry);
+        color: var(--w-on-cherry);
+      }
+      .wbtn--ghost {
+        border: 1.5px solid var(--w-edge);
+        color: var(--w-soft);
+      }
+      /* The door: its own band under the replay row, lit at the edges, and
+         arriving a beat after the check. */
+      .wband {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 12px;
+        padding: 10px 14px;
+        border-radius: var(--radius);
+        background: var(--w-cherry);
+        color: var(--w-on-cherry);
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25) inset, 0 0 18px rgba(255, 95, 122, 0.55);
+      }
+      .win[data-s="1"] .wband {
+        animation: bandin 0.6s ease 0.7s backwards;
+      }
+      @keyframes bandin {
+        from { opacity: 0; transform: translateY(8px); }
+      }
+      .wband__text {
+        flex: 1;
+        min-width: 0;
+      }
+      .wband__text b {
+        display: block;
+        font-family: var(--font-display);
+        font-weight: 400;
+        font-size: 1rem;
+      }
+      .wband__text small {
+        display: block;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .wband__arrow {
+        font-size: 1.2rem;
+      }
+
+      /* 2 · lights out: a scrim sweeps down and the sign comes up */
+      .pane--lights {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #0b0908;
+      }
+      .pane--lights::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(#fbf4e0, #fbf4e0);
+        clip-path: inset(100% 0 0 0);
+      }
+      .win[data-s="2"] .pane--lights::before {
+        animation: sweep 1.4s cubic-bezier(0.5, 0, 0.3, 1) backwards;
+      }
+      @keyframes sweep {
+        from { clip-path: inset(0 0 0 0); }
+        to { clip-path: inset(100% 0 0 0); }
+      }
+      .wsign {
+        position: relative;
+        margin: 0;
+        font-family: var(--font-script);
+        font-size: clamp(2.6rem, 6vw, 3.6rem);
+        color: #ffd9e0;
+        text-shadow:
+          0 0 6px rgba(255, 95, 122, 0.9),
+          0 0 18px rgba(255, 95, 122, 0.75),
+          0 0 42px rgba(255, 95, 122, 0.6);
+      }
+      .win[data-s="2"] .wsign {
+        animation: signup 0.8s ease 0.9s backwards;
+      }
+      @keyframes signup {
+        from { opacity: 0; }
+      }
+      .wlights__code {
+        position: relative;
+        margin: 10px 0 0;
+        font-family: var(--font-mono);
+        font-size: 0.76rem;
+        color: #7cc8ff;
+      }
+
+      /* 3 to 5 · the bar board */
+      .wbar__return {
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--font-gothic);
+        font-size: 0.95rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--w-soft);
+        margin-bottom: 10px;
+      }
+      .wbar__title {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: 1.5rem;
+        text-align: center;
+        color: var(--w-cherry);
+      }
+      .wbar__meta {
+        margin: 0 0 12px;
+        text-align: center;
+        font-size: 0.82rem;
+        color: var(--w-soft);
+      }
+      .wline {
+        border-top: 1px solid var(--w-edge);
+        border-bottom: 1px solid var(--w-edge);
+        padding: 8px 0;
+        margin-bottom: 10px;
+      }
+      .wline__label {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        margin: 0;
+        font-family: var(--font-gothic);
+        font-size: 1.1rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .wline__label i {
+        flex: 1;
+        border-bottom: 2px dotted var(--w-edge);
+      }
+      .wline__hint {
+        margin: 2px 0 0;
+        font-size: 0.86rem;
+        color: var(--w-soft);
+      }
+      .wlast {
+        display: none;
+        margin-bottom: 8px;
+        padding: 5px 10px;
+        border: 1px dashed var(--w-cherry);
+        border-radius: var(--radius-paper);
+        font-family: var(--font-gothic);
+        font-size: 1rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--w-cherry);
+        text-align: center;
+      }
+      .win[data-s="5"] .wlast {
+        display: block;
+      }
+      .winput {
+        padding: 9px 12px;
+        border: 1.5px solid var(--w-edge);
+        border-radius: var(--radius);
+        background: var(--w-bright);
+        color: var(--w-soft);
+        font-size: 0.88rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .wpunch {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin: 8px 0 12px;
+      }
+      .wpunch__holes {
+        display: inline-flex;
+        gap: 6px;
+      }
+      .wpunch__holes i {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 1.5px solid var(--w-soft);
+      }
+      .win[data-s="4"] .wpunch__holes i:nth-child(1),
+      .win[data-s="5"] .wpunch__holes i:nth-child(-n + 2),
+      .win[data-s="6"] .wpunch__holes i:nth-child(-n + 3) {
+        background: var(--w-ink);
+        border-color: transparent;
+      }
+      .wpunch__t {
+        font-family: var(--font-gothic);
+        font-size: 1rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--w-soft);
+      }
+      .wpunch__t::after {
+        content: "4 guesses left";
+      }
+      .win[data-s="4"] .wpunch__t::after {
+        content: "3 guesses left";
+      }
+      .win[data-s="5"] .wpunch__t::after {
+        content: "2 guesses left";
+      }
+      .wrow,
+      .wcoaster {
+        display: none;
+      }
+      .win[data-s="4"] .wrow--1,
+      .win[data-s="5"] .wrow--1,
+      .win[data-s="5"] .wrow--2 {
+        display: block;
+        animation: rowin 0.34s cubic-bezier(0.2, 0.8, 0.3, 1) backwards;
+      }
+      .win[data-s="4"] .wcoaster--1,
+      .win[data-s="5"] .wcoaster--1,
+      .win[data-s="5"] .wcoaster--2 {
+        display: block;
+        animation: print 0.44s steps(9, end) 0.5s backwards;
+      }
+      .wrow {
+        border: 1px solid var(--w-edge);
+        background: var(--w-row);
+        border-radius: var(--radius-paper);
+        padding: 9px 10px;
+        margin-bottom: 9px;
+      }
+      .wrow__name {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 0 0 7px;
+        font-family: var(--font-display);
+        font-size: 0.95rem;
+      }
+      .wrow__name span + span {
+        font-family: var(--font-body);
+        font-size: 0.78rem;
+        color: var(--w-soft);
+        white-space: nowrap;
+      }
+      .wtiles {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 5px;
+      }
+      .wt {
+        border-radius: 2px;
+        padding: 4px 3px 5px;
+        text-align: center;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: capitalize;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        border: 1.5px solid transparent;
+      }
+      .wt b {
+        display: block;
+        font-family: var(--font-gothic);
+        font-weight: 400;
+        font-size: 0.8rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .wt--hit {
+        background: var(--w-hit);
+        color: #fff;
+      }
+      .wt--near {
+        background: var(--w-near);
+        color: #2b2320;
+      }
+      .wt--miss {
+        background: var(--w-miss-soft);
+        border-color: var(--w-edge);
+        color: var(--w-soft);
+      }
+      .wcoaster {
+        margin: 0 0 9px;
+        padding: 9px 12px;
+        border: 1px solid var(--w-edge);
+        border-left: 4px solid #e8a53a;
+        border-radius: var(--radius-paper);
+        background: var(--w-bright);
+        font-size: 0.86rem;
+        line-height: 1.45;
+      }
+      .wcoaster p {
+        margin: 0;
+      }
+      .wcoaster__h {
+        font-family: var(--font-gothic);
+        font-size: 0.95rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #e8a53a;
+      }
+
+      /* 6 · the tab */
+      .wtab__title {
+        margin: 0;
+        font-family: var(--font-gothic);
+        font-size: 1.15rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--w-cherry);
+      }
+      .wshare {
+        margin: 12px 0 0;
+        padding: 10px 12px;
+        text-align: left;
+        font-family: var(--font-mono);
+        font-size: 0.76rem;
+        line-height: 1.4;
+        white-space: pre;
+        overflow: hidden;
+        border: 1px dashed var(--w-edge);
+        border-radius: var(--radius-paper);
+        color: var(--w-ink);
+      }
+
+      /* ==========================================================
+         HOW IT'S BUILT
+         ========================================================== */
+      .arch {
+        margin: 26px 0 34px;
+      }
+      .arch__layer {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: var(--radius-paper);
+        padding: 12px 14px 14px;
+      }
+      .arch__layer--edge {
+        border: 1.5px dashed var(--mustard);
+      }
+      .arch__layer--data {
+        background: var(--band);
+        border-color: var(--band);
+        color: var(--band-ink);
+      }
+      .arch__k {
+        margin: 0 0 8px;
+        color: var(--accent-ink);
+        max-width: none;
+      }
+      .arch__layer--data .arch__k {
+        color: var(--mustard);
+      }
+      .arch__k code {
+        font-family: var(--font-mono);
+        font-size: 0.78em;
+        letter-spacing: 0;
+        text-transform: none;
+      }
+      /* A condensed face shrinks the ch unit, so a gothic line would wrap
+         at a third of the column. */
+      .stats__foot,
+      .story__cap,
+      .arch__k {
+        max-width: none;
+      }
+      .arch__row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 10px;
+      }
+      .arch__box {
+        background: var(--surface-2);
+        border: 1px solid var(--rule-soft);
+        border-radius: var(--radius-paper);
+        padding: 9px 12px 11px;
+        font-size: 0.86rem;
+        line-height: 1.45;
+      }
+      .arch__box b {
+        display: block;
+        font-family: var(--font-slab);
+        font-size: 0.95rem;
+        margin-bottom: 2px;
+      }
+      .arch__box span {
+        color: var(--ink-soft);
+      }
+      .arch__layer--data .arch__box {
+        background: rgba(246, 237, 217, 0.07);
+        border-color: var(--band-rule);
+      }
+      .arch__layer--data .arch__box b {
+        color: var(--band-ink);
+      }
+      .arch__layer--data .arch__box span {
+        color: var(--band-mute);
+      }
+      .arch__box code {
+        font-size: 0.8em;
+        overflow-wrap: anywhere;
+      }
+      /* Connectors draw down once, when the diagram scrolls into view. */
+      .arch__link {
+        position: relative;
+        height: 46px;
+        display: flex;
+        align-items: center;
+        padding-left: calc(50% + 14px);
+      }
+      .arch__link::before {
+        content: "";
+        position: absolute;
+        left: calc(50% - 1px);
+        top: 0;
+        bottom: 6px;
+        width: 2px;
+        background: var(--accent);
+        transform: scaleY(0);
+        transform-origin: top;
+        transition: transform 0.45s ease;
+      }
+      .arch__link::after {
+        content: "";
+        position: absolute;
+        left: calc(50% - 5px);
+        bottom: 0;
+        border: 5px solid transparent;
+        border-top: 7px solid var(--accent);
+        border-bottom: 0;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .arch.is-in .arch__link::before {
+        transform: scaleY(1);
+      }
+      .arch.is-in .arch__link::after {
+        opacity: 1;
+      }
+      .arch__link:nth-of-type(2)::before { transition-delay: 0.15s; }
+      .arch__link:nth-of-type(2)::after { transition-delay: 0.55s; }
+      .arch__link:nth-of-type(4)::before { transition-delay: 0.55s; }
+      .arch__link:nth-of-type(4)::after { transition-delay: 0.95s; }
+      .arch__link:nth-of-type(6)::before { transition-delay: 0.95s; }
+      .arch__link:nth-of-type(6)::after { transition-delay: 1.35s; }
+      .arch__link span {
+        font-size: 0.9rem;
+        color: var(--ink-mute);
+        text-transform: none;
+        letter-spacing: 0.04em;
+      }
+      .arch__link span code {
+        font-size: 0.85em;
+      }
+      .arch__out {
+        margin: 14px 0 0;
+        font-size: 0.9rem;
+        color: var(--ink-soft);
+      }
+
+      .dcards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+        gap: 14px;
+        margin: 18px 0 30px;
+      }
+      .dcard {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-top: 3px solid var(--accent);
+        border-radius: var(--radius-paper);
+        padding: 14px 16px 16px;
+        font-size: 0.93rem;
+        line-height: 1.5;
+      }
+      .dcard p {
+        margin: 0 0 9px;
+      }
+      .dcard__t {
+        font-family: var(--font-slab);
+        font-weight: 700;
+        font-size: 1.04rem;
+        line-height: 1.3;
+      }
+      .dcard__x,
+      .dcard__m {
+        font-size: 0.88rem;
+        color: var(--ink-soft);
+      }
+      .dcard__x b,
+      .dcard__m b {
+        display: block;
+        font-family: var(--font-gothic);
+        font-weight: 400;
+        font-size: 0.95rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+      .dcard__m {
+        border-left: 3px solid var(--hit);
+        padding-left: 10px;
+        margin-bottom: 0 !important;
+      }
+      .dcard__m b {
+        color: var(--hit);
+      }
+
+      .checks {
+        list-style: none;
+        counter-reset: chk;
+        padding: 0;
+        margin: 16px 0 30px;
+        max-width: 820px;
+      }
+      .checks li {
+        counter-increment: chk;
+        display: grid;
+        grid-template-columns: 34px 170px 1fr;
+        gap: 12px;
+        align-items: baseline;
+        padding: 11px 0;
+        border-bottom: 1px dashed var(--rule);
+        font-size: 0.95rem;
+      }
+      .checks li::before {
+        content: counter(chk, decimal-leading-zero);
+        font-family: var(--font-display);
+        color: var(--accent-ink);
+      }
+      .checks li > code,
+      .checks li > b {
+        white-space: nowrap;
+        font-family: var(--font-mono);
+        font-size: 0.84rem;
+        font-weight: 700;
+      }
+      .checks li > span {
+        color: var(--ink-soft);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin: 8px 0 10px;
+      }
+      .stat {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: var(--radius-paper);
+        padding: 14px 16px;
+      }
+      .stat__n {
+        display: block;
+        font-family: var(--font-display);
+        font-size: clamp(1.6rem, 3.6vw, 2.2rem);
+        line-height: 1.1;
+        color: var(--accent-ink);
+        white-space: nowrap;
+      }
+      .stat__l {
+        display: block;
+        margin-top: 4px;
+        font-size: 0.88rem;
+        color: var(--ink-soft);
+        line-height: 1.4;
+      }
+      .stats__foot {
+        font-size: 0.9rem;
+        color: var(--ink-mute);
+        margin: 0 0 30px;
+      }
+
+      .byline {
+        background: var(--band);
+        color: var(--band-ink);
+        border-radius: var(--radius-paper);
+        padding: 22px 24px;
+      }
+      .byline__t {
+        font-family: var(--font-display);
+        font-size: clamp(1.1rem, 2.6vw, 1.4rem);
+        margin: 0 0 14px;
+        max-width: none;
+      }
+      .byline__links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 14px;
+      }
+      .byline__links a {
+        font-family: var(--font-gothic);
+        font-size: 1.05rem;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        text-decoration: none;
+        color: var(--band-ink);
+        border: 1.5px solid var(--band-rule);
+        border-radius: var(--radius);
+        padding: 6px 13px;
+      }
+      .byline__links a:hover {
+        border-color: var(--mustard);
+        color: var(--mustard);
+      }
+      .byline__more {
+        margin: 0;
+        font-size: 0.92rem;
+        color: var(--band-mute);
+      }
+      .byline__more a {
+        color: var(--band-ink);
+      }
+
+      @media (max-width: 860px) {
+        .story {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 0;
+        }
+        .story__stage,
+        .story__steps {
+          grid-column: 1;
+        }
+        .story__steps {
+          grid-row: 2;
+        }
+        /* Pinned under the nav on a solid ground, with a short fade below
+           so the step text scrolls out from under it. */
+        .story__stage {
+          top: 56px;
+          z-index: 5;
+          background: var(--bg);
+          padding: 10px 0 6px;
+          margin-inline: calc(-1 * var(--pad));
+          padding-inline: var(--pad);
+        }
+        .story__stage::after {
+          content: "";
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 100%;
+          height: 22px;
+          background: linear-gradient(var(--bg), transparent);
+          pointer-events: none;
+        }
+        .win__body {
+          height: 290px;
+          min-height: 0;
+        }
+        .story__cap {
+          margin-top: 6px;
+          font-size: 0.8rem;
+        }
+        .step,
+        .step:first-child,
+        .step:last-child {
+          min-height: 62vh;
+          justify-content: flex-start;
+          padding-top: 34vh;
+        }
+        .step:last-child {
+          min-height: 90vh;
+        }
+        .stats {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .checks li {
+          grid-template-columns: 30px 1fr;
+        }
+        .checks li > span {
+          grid-column: 2;
+        }
+      }
+
       @media (prefers-reduced-motion: reduce) {
         html {
           scroll-behavior: auto;
+        }
+        *,
+        *::before,
+        *::after {
+          transition-delay: 0s !important;
+        }
+        .arch__link::before {
+          transform: none;
+        }
+        .arch__link::after {
+          opacity: 1;
         }
         *,
         *::before,
@@ -2460,15 +3585,17 @@
          ========================================================== -->
     <div class="topbar" id="topbar">
       <div class="topbar__in">
-        <a class="topbar__mark" href="#top">🛎️ Lunch Special</a>
+        <a class="topbar__mark" href="#top"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 18.5h17" /><path d="M5 18.5a7 7 0 0 1 14 0" /><path d="M12 11.5v-2" /><path d="M10.2 9.2h3.6" /></svg> Lunch Special</a>
         <nav class="topbar__nav" aria-label="Sections">
           <a href="#goals">Goals</a>
           <a href="#design">Design</a>
+          <a href="#after-dark">After Dark</a>
           <a href="#stack">Stack</a>
           <a href="#engineering">Engineering</a>
           <a href="#numbers">Numbers</a>
           <a href="#experiment">Experiment</a>
-          <a href="#transfers">What transfers</a>
+          <a href="#built">How it&rsquo;s built</a>
+          <a href="#transfers">Transfers</a>
         </nav>
         <button class="theme-btn" type="button" data-theme-toggle>
           <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.5" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
@@ -2490,7 +3617,7 @@
         </button>
         <p class="hero__eyebrow">Project breakdown · 2026</p>
         <h1 class="neon">Lunch Spe<i>c</i>ial</h1>
-        <p class="hero__script">Guess the day&rsquo;s dish.</p>
+        <p class="hero__script">The daily dish guessing game</p>
 
         <p class="hero__role">
           <b>Jacob Poteet</b>
@@ -2499,10 +3626,10 @@
 
         <p class="hero__lede">
           Every guess is a real dish, and the kitchen tells you what that dish shares with the
-          Special. 
-          I designed and implemented the gameplay loop, the CMS for the menu of 
-          <b class="js-dishes">364</b> dishes, the telemetry
-          underneath, and the experiment log.
+          Special. Finish it after 8pm your time and the bar opens: one drink, four guesses, gone
+          by morning. I designed and built the gameplay, the CMS behind
+          <b class="js-dishes">407</b> dishes and <b>108</b> drinks, the telemetry underneath,
+          and the experiment log.
         </p>
 
         <p class="serving" id="serving" title="Computed from the game's epoch and its America/New_York rollover">
@@ -2512,34 +3639,34 @@
 
         <div class="hero__cta">
           <a class="btn btn--primary" href="https://lunchspecial.app">Play today&rsquo;s Special</a>
-          <a class="btn btn--mustard" href="#experiment">See the experiment result</a>
-          <a class="btn btn--ghost" href="https://github.com/JacobPoteet/LunchSpecial">Source</a>
+          <a class="btn btn--mustard" href="https://github.com/JacobPoteet/LunchSpecial">Read the source</a>
+          <a class="btn btn--ghost" href="#built">How it&rsquo;s built ↓</a>
         </div>
 
         <div class="tiles" id="tiles">
           <div class="tile" data-tile="rounds">
             <span class="tile__live" aria-hidden="true"></span>
-            <span class="tile__n" data-n="939">939</span>
+            <span class="tile__n" data-n="1550">1,550</span>
             <span class="tile__label">Games played</span>
-            <span class="tile__sub">across three modes, two surfaces</span>
+            <span class="tile__sub">across four modes, two surfaces</span>
           </div>
           <div class="tile" data-tile="dishes">
             <span class="tile__live" aria-hidden="true"></span>
-            <span class="tile__n" data-n="364">364</span>
+            <span class="tile__n" data-n="407">407</span>
             <span class="tile__label">Dishes written</span>
-            <span class="tile__sub"><span class="js-clues">1,820</span> clues, five to a dish</span>
+            <span class="tile__sub"><span class="js-clues">2,035</span> clues, five to a dish</span>
           </div>
           <div class="tile" data-tile="shared">
             <span class="tile__live" aria-hidden="true"></span>
-            <span class="tile__n" data-n="152">152</span>
+            <span class="tile__n" data-n="312">312</span>
             <span class="tile__label">Results shared</span>
             <span class="tile__sub">emoji grids posted out of the game</span>
           </div>
           <div class="tile" data-tile="returning">
             <span class="tile__live" aria-hidden="true"></span>
-            <span class="tile__n" data-n="19" data-suffix="%">19%</span>
+            <span class="tile__n" data-n="18" data-suffix="%">18%</span>
             <span class="tile__label">Came back another day</span>
-            <span class="tile__sub"><span class="js-ret">58 of 312</span> devices, no accounts</span>
+            <span class="tile__sub"><span class="js-ret">94 of 510</span> devices, no accounts</span>
           </div>
         </div>
         <p class="tiles__foot">
@@ -2567,7 +3694,7 @@
           <a class="claim" href="#design">
             <span class="claim__n">02</span>
             <p class="claim__t">
-              One beat sheet specifies every clue. The same five beats, <em><span class="js-clues">1,820</span> clues deep</em>, so
+              One beat sheet specifies every clue. The same five beats, <em><span class="js-clues">2,035</span> clues deep</em>, so
               a dish a day stays a defined job instead of a blank page.
             </p>
             <span class="claim__go">Design →</span>
@@ -2596,6 +3723,15 @@
               <em>81% to 91%</em>. Read over a shorter window, the same change reports nothing.
             </p>
             <span class="claim__go">Experiment →</span>
+          </a>
+          <a class="claim" href="#after-dark">
+            <span class="claim__n">06</span>
+            <p class="claim__t">
+              After Dark breaks the game&rsquo;s one global clock on purpose. The bar opens at 8pm
+              <em>on your clock</em>, one file decides what that means, and the Special still rolls
+              over at midnight Eastern for everyone.
+            </p>
+            <span class="claim__go">After Dark →</span>
           </a>
         </div>
       </div>
@@ -2708,6 +3844,12 @@
           triangulating across a map possible. Channel two is the clue ticket. Miss, and the kitchen
           slides the next one across the counter.
         </p>
+        <p>
+          An amber tile names the region it means, <code>~ Europe</code> in place of its label,
+          because the nine regions are the game&rsquo;s buckets and a player cannot guess them from
+          an atlas. Each tile also carries a glyph and a hidden verdict for a screen reader, so a
+          player who cannot tell the green from the amber still reads the row.
+        </p>
 
         <div class="demo reveal">
           <div class="board" id="demo-board">
@@ -2729,13 +3871,15 @@
         <p class="note">
           The ingredient line reports which of your guess&rsquo;s ingredients the Special also uses,
           and how many of the Special&rsquo;s total that covers. It never lists the ones you have not
-          found. Five of eight tells you three remain without telling you what they are.
+          found. Five of eight tells you three remain without telling you what they are. The real
+          order bar prints each dish&rsquo;s country beside its name and never searches it, and
+          ranks names that start with what you typed above names that only contain it.
         </p>
 
         <h3>One beat sheet specifies every clue</h3>
         <p>
           A daily game eats a piece of authored content every 24 hours and never stops. Treating
-          <span class="js-dishes">364</span> dishes as <span class="js-dishes">364</span> separate
+          <span class="js-dishes">407</span> dishes as <span class="js-dishes">407</span> separate
           creative problems collapses around week eight, so I specified the dramatic order once
           instead: five beats, the same sequence for every dish, running from a map to a
           near-giveaway. Each beat states what its clue has to accomplish and what it must not give
@@ -2747,7 +3891,7 @@
             <span class="beat__n">1</span>
             <div>
               <p class="beat__t">Broad geography</p>
-              <p class="beat__d">Narrows the map without naming a country.</p>
+              <p class="beat__d">Gives the region and never the country.</p>
             </div>
           </div>
           <div class="ticket" style="--i: 1">
@@ -2776,7 +3920,8 @@
             <div>
               <p class="beat__t">A key ingredient or technique</p>
               <p class="beat__d">
-                Turns knowing about the dish into being able to name it.
+                You, or the cook, doing the cooking. Turns knowing about the dish into being able
+                to name it.
               </p>
             </div>
           </div>
@@ -2785,7 +3930,8 @@
             <div>
               <p class="beat__t">Near-giveaway</p>
               <p class="beat__d">
-                Everything but the name. Missing here should feel unlucky, never unfair.
+                The country, and what the plate looks like. Missing here should feel unlucky,
+                never unfair.
               </p>
             </div>
           </div>
@@ -2828,15 +3974,15 @@
           <div class="worked__row">
             <span class="worked__n">4</span>
             <p class="worked__c">
-              Its three toppings, tomato, mozzarella and basil, mirror a national flag.
-              <span class="worked__why">Trades the story for the ingredients. Solvable from here.</span>
+              You stretch dough thin, dress it with tomato, mozzarella and basil, and blast it in a wood oven.
+              <span class="worked__why">Puts you at the oven. Solvable from here.</span>
             </p>
           </div>
           <div class="worked__row">
             <span class="worked__n">5</span>
             <p class="worked__c">
-              The world&rsquo;s most famous flatbread, best from a wood-fired oven.
-              <span class="worked__why">Everything but the name.</span>
+              Italy&rsquo;s blistered wood-fired round, red and white under torn green leaves.
+              <span class="worked__why">Names the country and describes the plate. Everything but the name.</span>
             </p>
           </div>
         </div>
@@ -2845,9 +3991,16 @@
           Beat 3 carries the heaviest load, so it is the beat the spec is strictest about. A player
           who loses the round should still come away with the queen and the flag, because that is the
           part they repeat to somebody at lunch. Beats 1 and 5 read as constraints more than as
-          prose: one must not narrow the map too far, the other must leave nothing but the name.
-          Judging whether a clue belongs on its beat takes about ten seconds, and that is the
-          property I was after.
+          prose: one must stop at the region, the other names the country and describes the plate,
+          and doubles as the definition line on the check. Judging whether a clue belongs on its
+          beat takes about ten seconds, and that is the property I was after.
+        </p>
+        <p>
+          The mechanical half of the sheet runs in CI. <code>worker/data-integrity.test.ts</code>
+          checks every clue in the catalogue against its beat&rsquo;s character budget, its sentence
+          cap, a banned-opener list, a praise list and a one-name-word rule, and fails the build on
+          a miss. I renamed beat 3 once already: as &ldquo;Fame&rdquo; it let 52 clues praise a dish
+          without stating a fact about it.
         </p>
 
         <h3>The fiction carries the interface</h3>
@@ -2868,17 +4021,20 @@
                 <tbody>
                   <tr><td><b>The Special</b></td><td>Today&rsquo;s puzzle. One dish, every player, worldwide.</td></tr>
                   <tr><td><b>A clue ticket</b></td><td>The beat the kitchen hands you after a miss.</td></tr>
-                  <tr><td><b>The check</b></td><td>End of round: result, streak, share.</td></tr>
+                  <tr><td><b>The check</b></td><td>End of round: result, streak, how the room did, share.</td></tr>
                   <tr><td><b>Leftovers</b></td><td>The archive of days you missed.</td></tr>
                   <tr><td><b>Chef&rsquo;s Choice</b></td><td>A random dish, no stakes, no streak.</td></tr>
                   <tr><td><b>A note from the kitchen</b></td><td>An announcement from me to players.</td></tr>
+                  <tr><td><b>The Nightcap</b></td><td>After Dark&rsquo;s puzzle. One drink a night, 8pm to 3am.</td></tr>
+                  <tr><td><b>A coaster</b></td><td>The bar&rsquo;s clue ticket.</td></tr>
+                  <tr><td><b>The tab</b></td><td>The bar&rsquo;s check.</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
           <div>
             <div class="receipt reveal">
-              <p class="receipt__h">🛎️ LUNCH SPECIAL</p>
+              <p class="receipt__h"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 18.5h17" /><path d="M5 18.5a7 7 0 0 1 14 0" /><path d="M12 11.5v-2" /><path d="M10.2 9.2h3.6" /></svg> LUNCH SPECIAL</p>
               <p class="receipt__sub" style="text-align: center; margin: 0; color: var(--ink-mute); font-size: 0.72rem">
                 No. 29 &middot; solved in 5
               </p>
@@ -2907,12 +4063,26 @@
           most people the card is the only part of this game they will see, which is a decent
           argument for designing it first.
         </p>
+        <p>
+          The check also answers two questions a regular asks. From the second day, your streak
+          sits beside the date on the board, and the check says what tomorrow does to it. Once 30
+          diners have finished, it prints how the room did, in a line shaped like &ldquo;68% of diners got today&rsquo;s
+          Special &middot; most in 3&rdquo;. Under 30 it prints nothing, the same floor the
+          dashboard uses before it quotes a rate.
+        </p>
+        <p>
+          In the printed-menu pass I carried the fiction down to the type. The game sets its sign in a
+          slab, its neon in a script and its small print in a condensed gothic, and stroke icons
+          replaced emoji in the chrome so a button draws the same on Windows and on a phone. This
+          page uses the same three faces. The share grid keeps its emoji, because that grid is
+          the message.
+        </p>
 
         <div class="takeaway reveal">
           <span class="takeaway__k">Takeaway</span>
           <p>
             Narrative design here is a production system. A fixed dramatic order keeps
-            <span class="js-clues">1,820</span> clues consistent with each other, and the fiction
+            <span class="js-clues">2,035</span> clues consistent with each other, and the fiction
             absorbs most of the tutorial.
           </p>
         </div>
@@ -2920,12 +4090,285 @@
     </section>
 
     <!-- ==========================================================
-         03 · STACK
+         03 · AFTER DARK: the pinned story
+         One mock window holds still while six steps scroll past it.
+         position: sticky plus one IntersectionObserver with a thin band
+         across the viewport. No scroll library, native scroll speed.
+         ========================================================== -->
+    <section id="after-dark">
+      <div class="wrap">
+        <div class="shead reveal">
+          <span class="shead__n">03</span>
+          <h2 class="shead__t">After Dark: a second puzzle on your own clock</h2>
+          <span class="shead__k">opened 4 Sep 2026 · v1.8.0</span>
+        </div>
+
+        <p>
+          Everything else in the game rolls over at midnight Eastern for everyone, because a grid
+          pasted into a group chat has to point at a puzzle the whole chat can see. After Dark
+          breaks that rule on purpose. Between 8pm and 3am on your own clock, a finished lunch
+          opens a bar with one drink a night, four guesses and three clues.
+        </p>
+        <p>
+          It is the largest thing I have added since launch: its own tables, its own clue sheet,
+          its own palette, a fourth kind of round on the dashboard, and 80 new tests in the pull
+          request that opened it. Scroll through one evening at the bar.
+        </p>
+      </div>
+
+      <div class="story wrap" id="story">
+        <div class="story__stage">
+          <div class="win" id="win" data-s="1" aria-hidden="true">
+            <div class="win__bar">
+              <span class="win__dots"><i></i><i></i><i></i></span>
+              <span class="win__url">lunchspecial.app<span class="win__q">/?bar=1</span></span>
+            </div>
+            <div class="win__body" id="win-body">
+              <!-- 1 · the check, with the door under it -->
+              <div class="pane pane--check">
+                <div class="wcheck">
+                  <div class="wcheck__top">
+                    <span class="wcheck__house">Lunch Special</span>
+                    <span class="wcheck__no"><small>No.</small>69</span>
+                  </div>
+                  <div class="wcheck__boxes">
+                    <span><b>Date</b>9/23/26</span>
+                    <span><b>Orders</b>4 of 6</span>
+                    <span><b>Menu</b>Daily Special</span>
+                  </div>
+                  <p class="wcheck__verdict">On the house!</p>
+                  <p class="wcheck__dish">Shakshuka</p>
+                  <p class="wcheck__def">Tunisia&rsquo;s skillet of eggs in red sauce, mopped up with torn bread.</p>
+                  <span class="wbtn wbtn--cherry">Share</span>
+                  <span class="wbtn wbtn--ghost">Play again</span>
+                </div>
+                <div class="wband" data-focus="1">
+                  <span class="wband__text">
+                    <b>The bar&rsquo;s open</b>
+                    <small>One drink, four guesses, gone by morning</small>
+                  </span>
+                  <span class="wband__arrow">&rarr;</span>
+                </div>
+              </div>
+
+              <!-- 2 · lights out -->
+              <div class="pane pane--lights">
+                <p class="wsign">After Dark</p>
+                <p class="wlights__code">&lt;html data-after-dark&gt;</p>
+              </div>
+
+              <!-- 3 to 5 · the bar board -->
+              <div class="pane pane--bar">
+                <div class="wbar__return">
+                  <span>After Dark</span><span>Back to the diner</span>
+                </div>
+                <p class="wbar__title">Libations</p>
+                <p class="wbar__meta">Night No. 20 &mdash; Wednesday, September 23</p>
+                <div class="wline">
+                  <p class="wline__label"><span>Tonight&rsquo;s Nightcap</span><i></i><span>on the house</span></p>
+                  <p class="wline__hint">A mystery pour with <b>5 ingredients</b>. What&rsquo;s it going to be?</p>
+                </div>
+                <div class="wlast" data-focus="5">Last call in 41:07</div>
+                <div class="winput">Order a drink&hellip; (type to search)</div>
+                <p class="wpunch"><span class="wpunch__holes"><i></i><i></i><i></i><i></i></span><span class="wpunch__t"></span></p>
+                <div class="wrow wrow--2" data-focus="5">
+                  <p class="wrow__name"><span>Gin and Tonic</span><span>2/5 ingredients</span></p>
+                  <div class="wtiles">
+                    <span class="wt wt--near"><b>~ Europe</b>United Kingdom</span>
+                    <span class="wt wt--hit"><b>&#10003; Spirit</b>gin</span>
+                    <span class="wt wt--hit"><b>&#10003; Served</b>cold</span>
+                    <span class="wt wt--hit"><b>&#10003; Profile</b>bitter</span>
+                  </div>
+                </div>
+                <div class="wrow wrow--1" data-focus="4">
+                  <p class="wrow__name"><span>Mojito</span><span>1/5 ingredients</span></p>
+                  <div class="wtiles">
+                    <span class="wt wt--miss"><b>&times; Country</b>Cuba</span>
+                    <span class="wt wt--miss"><b>&times; Spirit</b>rum</span>
+                    <span class="wt wt--hit"><b>&#10003; Served</b>cold</span>
+                    <span class="wt wt--miss"><b>&times; Profile</b>sour</span>
+                  </div>
+                </div>
+                <div class="wcoaster wcoaster--2">
+                  <p class="wcoaster__h">On the house &mdash; coaster #2</p>
+                  <p>A count in Florence asked for his aperitivo stiffened with gin in 1919, and got equal parts of three bottles poured over ice.</p>
+                </div>
+                <div class="wcoaster wcoaster--1">
+                  <p class="wcoaster__h">On the house &mdash; coaster #1</p>
+                  <p>A blood-red aperitivo from southern Europe, stirred and never shaken.</p>
+                </div>
+              </div>
+
+              <!-- 6 · the tab -->
+              <div class="pane pane--tab">
+                <div class="wtab">
+                  <p class="wtab__title">After Dark &mdash; your tab</p>
+                  <p class="wtab__verdict">That one&rsquo;s on us</p>
+                  <p class="wcheck__dish">Negroni</p>
+                  <p class="wcheck__def">Italy&rsquo;s bitter orange short glass, one fat cube and a wide strip of peel.</p>
+                  <span class="wbtn wbtn--cherry">Share the night</span>
+                  <pre class="wshare">Lunch Special #69 &mdash; 4/6
+⬜⬜🟩🟩 3/8🥄
+🟨🟩🟩🟩 5/8🥄
+🟨🟩🟩🟩 6/8🥄
+🟩🟩🟩🟩 🛎️
+
+After Dark · Night #20 &mdash; 3/4
+⬛⬛🟩⬛ 1/5🥃
+🟨🟩🟩🟩 2/5🥃
+🟩🟩🟩🟩 🥂
+
+https://lunchspecial.app</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="story__cap">A demo evening on a pinned pour, not tonight&rsquo;s answer</p>
+        </div>
+
+        <div class="story__steps">
+          <article class="step" data-step="1">
+            <span class="step__n">01 &middot; The door</span>
+            <h3>Finish lunch, and a band opens under the check</h3>
+            <p>
+              The bar is gated on finishing today&rsquo;s Special, the way Leftovers is. That gate
+              gives the mode a reason to exist after lunch and makes one metric exact: everyone
+              counted as able to walk in could have walked in.
+            </p>
+            <p>
+              The band fades in a beat after the check settles, so you finish reading your result
+              first. Before 8pm it is a sentence, &ldquo;After Dark opens at 8, your time,&rdquo;
+              because a button that works in two hours is worse than a line of copy. At 8 it turns
+              into a button with the check still open. Nothing navigates until you press it.
+            </p>
+          </article>
+
+          <article class="step" data-step="2">
+            <span class="step__n">02 &middot; Lights out</span>
+            <h3>One attribute re-themes every component</h3>
+            <p>
+              Pressing the band runs a 1.4 second sweep, then sets <code>data-after-dark</code> on
+              the root element. <code>base.css</code> redefines the palette under that attribute
+              and no component has a night copy, which is what stops two boards drifting apart.
+            </p>
+            <p>
+              Swapping the palette showed me every rule that hardcoded a colour. A card laid a 35% near-white sheen
+              over its paper, so a token reading <code>#1d1714</code> painted
+              <code>#6e6962</code> and the board came out washed grey. The sheen, the stipple and
+              the row fill became tokens, and <code>npm run a11y</code> now measures four bar
+              states on the painted page.
+            </p>
+          </article>
+
+          <article class="step" data-step="3">
+            <span class="step__n">03 &middot; The board</span>
+            <h3>Four guesses, and two tiles that mean something else</h3>
+            <p>
+              Course says nothing when every row is a drink, and no drink has a protein, so the bar
+              reads <b>country &middot; spirit &middot; served &middot; profile</b>. Country keeps
+              its amber state. A mocktail&rsquo;s spirit is the value <code>none</code>, so two
+              mocktails match each other.
+            </p>
+            <p>
+              Drinks live in their own three tables instead of a <code>kind</code> column on dishes.
+              About ten queries read the dish pool with no kind filter, and the eleventh someone
+              writes is how a Negroni goes out as Tuesday&rsquo;s lunch. A linter holds the pool
+              between 55% and 75% alcoholic. It sits at 68 of 108.
+            </p>
+          </article>
+
+          <article class="step" data-step="4">
+            <span class="step__n">04 &middot; A miss</span>
+            <h3>A miss slides a coaster across the bar</h3>
+            <p>
+              Four guesses means at most three misses, so the bar writes three clues. Its sheet is
+              <b>The room</b>, <b>The pour</b> and <b>Last call</b>, and it folds the kitchen&rsquo;s
+              origin and method beats into the middle one, because a bartender has the length of a
+              pour to tell you about it.
+            </p>
+            <p>
+              The clue linter reads both sheets through one function that takes the sheet as an
+              argument. A forked copy is how the drinks catalogue would stop enforcing the
+              banned-praise list six months from now.
+            </p>
+          </article>
+
+          <article class="step" data-step="5">
+            <span class="step__n">05 &middot; The clock</span>
+            <h3>A night belongs to the day the evening began</h3>
+            <p>
+              A round begun at 23:50 and finished at 00:10 is one sitting on one drink, so the night
+              key is the calendar day the evening started on, fixed when you walk in and never
+              recomputed. <code>shared/night.ts</code> is the only file that decides it, and every
+              function in it takes the clock as an argument.
+            </p>
+            <p>
+              Last call is a door. The countdown shows in the final hour and a round still running
+              at 3am finishes. The Worker never learns your timezone: it accepts a night within a
+              day of Eastern, which covers every real offset from UTC&minus;11 to UTC+14.
+            </p>
+          </article>
+
+          <article class="step" data-step="6">
+            <span class="step__n">06 &middot; The tab</span>
+            <h3>The tab shares both grids in one message</h3>
+            <p>
+              The door is finishing lunch, so by the time you can press share both rounds exist.
+              The message stacks them and appends the link once. The bar&rsquo;s miss square is
+              black, and its pantry glyph is a glass, so a channel with both pasted in stays
+              readable without a second legend.
+            </p>
+            <p>
+              The share counts against the Nightcap alone. Marking the lunch round shared too would
+              inflate a figure the dashboard already reads, from a press made hours later on a
+              different screen.
+            </p>
+          </article>
+        </div>
+      </div>
+
+      <div class="wrap">
+        <h3>The dashboard&rsquo;s bill for a fourth kind of round</h3>
+        <p>
+          A Nightcap is a fourth round kind, and two columns change meaning under it:
+          <code>play_date</code> holds a local night key and <code>guesses</code> counts out of
+          four. Adding the kind made the compiler point at every place that had to decide, and two
+          of them were pooling a &ldquo;won in 4&rdquo; out of four with a &ldquo;won in 4&rdquo;
+          out of six on one axis. The bar has its own four-wide distribution now.
+        </p>
+        <p>
+          The beacon carries the player&rsquo;s UTC offset, and SQL reads the local hour off the
+          start timestamp. An hour bucket in UTC splits in two across every half-hour zone, and
+          the first version put every player in India an hour early. The crossover rate from lunch
+          to the bar counts only nights after the bar opened and only nights that have ended, so
+          a device that finished lunch at noon is not a no-show at a bar that opens at eight.
+        </p>
+        <p>
+          Someone who has never played can see the bar at two in the afternoon through a showcase link: today&rsquo;s
+          real Special, already won, with the door lit. It writes nothing to the visitor&rsquo;s
+          storage and records no analytics. I cut every signed token to fit it in an email, from
+          106 characters to 60, by truncating the HMAC to 128 bits and writing the expiry in
+          base36.
+        </p>
+
+        <div class="takeaway reveal">
+          <span class="takeaway__k">Takeaway</span>
+          <p>
+            The bar reuses the board, the feedback fold and the share path, and keeps its own
+            tables, clock and clue sheet. Each boundary sits where sharing would have let one mode
+            break the other.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================
+         04 · STACK
          ========================================================== -->
     <section id="stack">
       <div class="wrap">
         <div class="shead reveal">
-          <span class="shead__n">03</span>
+          <span class="shead__n">04</span>
           <h2 class="shead__t">The stack, and what each choice bought</h2>
           <span class="shead__k">hono · react · react-dom · discord sdk</span>
         </div>
@@ -2988,45 +4431,6 @@
           </table>
         </div>
 
-        <div class="diagram reveal">
-          <p class="diagram__k">Request path</p>
-          <svg viewBox="0 0 920 240" role="img" aria-label="A browser or Discord iframe calls one Cloudflare Worker, which serves static assets, a Hono API and stateless HMAC auth, and queries a D1 database.">
-            <rect class="d-box" x="8" y="80" width="152" height="82" rx="9" />
-            <text class="d-t" x="84" y="112" text-anchor="middle">Browser</text>
-            <text class="d-s" x="84" y="130" text-anchor="middle">lunchspecial.app</text>
-            <text class="d-s" x="84" y="144" text-anchor="middle">or a Discord iframe</text>
-
-            <path class="d-line d-flow" d="M164 121 H 196" stroke-dasharray="7 5" />
-            <path class="d-arrow" d="M196 116 l 9 5 l -9 5 z" />
-
-            <rect x="206" y="44" width="470" height="154" rx="13" fill="none" stroke="var(--mustard)" stroke-width="1.5" stroke-dasharray="6 5" />
-            <text class="d-s" x="222" y="66" fill="var(--mustard)">ONE WORKER, AT THE EDGE</text>
-
-            <rect class="d-box" x="220" y="80" width="140" height="102" rx="9" />
-            <text class="d-t" x="290" y="118" text-anchor="middle">Static assets</text>
-            <text class="d-s" x="290" y="136" text-anchor="middle">SPA, fonts, art</text>
-            <text class="d-s" x="290" y="150" text-anchor="middle">no Worker wake</text>
-
-            <rect class="d-box" x="370" y="80" width="140" height="102" rx="9" />
-            <text class="d-t" x="440" y="118" text-anchor="middle">Hono API</text>
-            <text class="d-s" x="440" y="136" text-anchor="middle">/api/* only</text>
-            <text class="d-s" x="440" y="150" text-anchor="middle">guesses, beacons</text>
-
-            <rect class="d-box" x="520" y="80" width="140" height="102" rx="9" />
-            <text class="d-t" x="590" y="118" text-anchor="middle">HMAC auth</text>
-            <text class="d-s" x="590" y="136" text-anchor="middle">stateless cookie</text>
-            <text class="d-s" x="590" y="150" text-anchor="middle">admin + preview</text>
-
-            <path class="d-line d-flow" d="M682 121 H 714" stroke-dasharray="7 5" />
-            <path class="d-arrow" d="M714 116 l 9 5 l -9 5 z" />
-
-            <rect class="d-box d-box--band" x="728" y="80" width="184" height="82" rx="9" />
-            <text class="d-t d-t--inv" x="820" y="108" text-anchor="middle">D1 (SQLite)</text>
-            <text class="d-s d-s--inv" x="820" y="126" text-anchor="middle">dishes, clues, schedule,</text>
-            <text class="d-s d-s--inv" x="820" y="140" text-anchor="middle">telemetry, experiments</text>
-          </svg>
-        </div>
-
         <p class="note">
           Only <code>/api/*</code> wakes the Worker. The board itself is a static file, so loading
           the game costs nothing and only a guess spends compute.
@@ -3043,14 +4447,14 @@
     </section>
 
     <!-- ==========================================================
-         04 · ENGINEERING
+         05 · ENGINEERING
          ========================================================== -->
     <section id="engineering">
       <div class="wrap">
         <div class="shead reveal">
-          <span class="shead__n">04</span>
+          <span class="shead__n">05</span>
           <h2 class="shead__t">How it was engineered</h2>
-          <span class="shead__k">333 tests · 23 files</span>
+          <span class="shead__k">715 tests · 45 files</span>
         </div>
 
         <p>
@@ -3126,7 +4530,7 @@
             <div class="pipe__step" style="--i: 1">
               <span class="pipe__n">Gate 1</span>
               <span class="pipe__t">Tests</span>
-              <span class="pipe__d">333 across 23 files</span>
+              <span class="pipe__d">715 across 45 files</span>
             </div>
             <div class="pipe__step" style="--i: 2">
               <span class="pipe__n">Gate 2</span>
@@ -3146,11 +4550,11 @@
           </div>
           <div class="surfaces">
             <div class="surface">
-              <b>🌐 lunchspecial.app</b>
+              <b>lunchspecial.app</b>
               <span>the public game</span>
             </div>
             <div class="surface">
-              <b>🎮 The Discord Activity</b>
+              <b>The Discord Activity</b>
               <span>same build, framed through Discord&rsquo;s proxy</span>
             </div>
           </div>
@@ -3160,8 +4564,9 @@
           The Activity rides that same build. Discord does not host the code. It frames
           lunchspecial.app through its proxy under a URL mapping, so the tag that ships the website
           ships the Activity, and the only thing the browser fetches after it spots the iframe is
-          Discord&rsquo;s SDK. Two more workflows carry the routine load: tests and typecheck
-          on every pull request, and a weekly security scan across the repository.
+          Discord&rsquo;s SDK. Two more workflows carry the routine load. Every pull request runs
+          the tests, the typecheck and oxlint, and a second job starts the game and runs axe over
+          nine of its screens. CodeQL scans the repository on each push and once a week.
         </p>
 
         <h3>The tool I built for the writer, who happens to be me</h3>
@@ -3179,7 +4584,15 @@
           fewer than three ingredients or anything other than five clues, which turns the beat sheet
           from a rule I have to remember into a rule the tool enforces. It books the calendar 30
           days out, by hand or by an autofill that skips whatever has been served in the last 60
-          days.
+          days. The autofill then ranks what is left by how the dish sits beside its neighbours:
+          the same region two days running, or the same country inside a fortnight, costs a dish
+          its place. A line above the board prints the next seven days&rsquo; mix and blocks
+          nothing.
+        </p>
+        <p>
+          The dashboard half opens on devices per week and a last-7-days figure that never counts
+          today, because a part-day reads as a drop every morning. Web and Discord print side by
+          side there, since the two surfaces play like two games.
         </p>
         <p>
           None of that was necessary for one author. I built it as though somebody else would use
@@ -3250,7 +4663,8 @@
           Suggestions land in an inbox on the admin side where each one is either
           cleared or promoted, and promoting it opens the dish editor with the name and country
           already in the fields, at which point it has to clear the same bar as everything
-          else on the menu.
+          else on the menu. The bar&rsquo;s tab asks for a drink the same way, into the same inbox,
+          and promoting one opens the drink editor instead.
         </p>
 
         <div class="fanfig">
@@ -3266,7 +4680,7 @@
                   <p class="fan-seal__b">A regular asked for Zeppole. Yours could be next.</p>
                 </div>
               </div>
-              <span class="suggest-cta">&#127869;&#65039; Suggest a dish for the menu</span>
+              <span class="suggest-cta"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v5.5a2 2 0 0 0 4 0V3" /><path d="M8 3v5" /><path d="M8 10.5V21" /><path d="M17 21V3c-2 1.5-3 4-3 7.5 0 1.2.8 2 2 2h1" /></svg> Suggest a dish for the menu</span>
             </div>
           </div>
 
@@ -3306,7 +4720,7 @@
         <h3>The arithmetic is separated from the database</h3>
         <p>
           Queries need a database. Arithmetic does not. Every number on this page comes out of a
-          pure function that takes rows and returns a shape, which is why 333 tests sit behind them
+          pure function that takes rows and returns a shape, which is why 715 tests sit behind them
           and why I trust a chart I have never eyeballed. The public endpoint this page reads runs
           <strong>the same folds</strong> as my private dashboard, so the two cannot drift into
           quoting different numbers at each other.
@@ -3331,21 +4745,21 @@
     </section>
 
     <!-- ==========================================================
-         05 · THE NUMBERS
+         06 · THE NUMBERS
          ========================================================== -->
     <section id="numbers">
       <div class="wrap">
         <div class="shead reveal">
-          <span class="shead__n">05</span>
+          <span class="shead__n">06</span>
           <h2 class="shead__t">What the numbers say</h2>
           <span class="shead__k">read live</span>
         </div>
 
         <p>
           Everything below comes out of production the moment you load this page. The audience is
-          small and self-selected: <span class="js-rounds">939</span> rounds from
-          <span class="js-devices">312</span> devices, of whom
-          <span class="js-ret2">58</span> came back on a second day. Read it as a method and a first
+          small and self-selected: <span class="js-rounds">1,550</span> rounds from
+          <span class="js-devices">510</span> devices, of whom
+          <span class="js-ret2">94</span> came back on a second day. Read it as a method and a first
           result rather than a finding about daily games in general.
         </p>
         <p>
@@ -3565,7 +4979,7 @@
           <div class="chart__h">
             <p class="chart__t">Guesses needed to solve</p>
           </div>
-          <p class="chart__sub" id="dist-sub">684 solved rounds &middot; 140 more ran out of guesses</p>
+          <p class="chart__sub" id="dist-sub">1,153 solved rounds &middot; 227 more ran out of guesses</p>
           <div class="bars" id="chart-dist"></div>
           <div class="legend">
             <span><i style="background: var(--ev-start)"></i>Solved</span>
@@ -3635,27 +5049,29 @@
         <div class="cards reveal">
           <div class="finding">
             <span class="finding__k">Finding 01</span>
-            <p class="finding__t">The archive became a third of all play</p>
+            <p class="finding__t">The side doors became more than a quarter of all play</p>
             <p>
               I built Leftovers as a courtesy for anyone who found the game late. Together with
-              Chef&rsquo;s Choice it now accounts for <b class="js-optional">35%</b> of every round
-              played, and <b class="js-optfinish">93%</b> of those rounds run to the end, against
-              <b class="js-dailyfinish">85%</b> for the Special itself.
+              Chef&rsquo;s Choice it now accounts for <b class="js-optional">28%</b> of every round
+              played, and <b class="js-optfinish">92%</b> of those rounds run to the end, against
+              <b class="js-dailyfinish">87%</b> for the Special itself.
             </p>
             <p style="margin-top: 9px">
               <b>So:</b> I stopped treating the archive as an accessory. It now unlocks the moment
               today&rsquo;s check is settled rather than sitting behind a menu, and the dish report
               in my dashboard counts a Leftover as a genuine first attempt at that dish, which
-              tripled the sample behind every per-dish difficulty read.
+              tripled the sample behind every per-dish difficulty read. Since v1.11 a finished
+              Special also files itself into the Leftovers calendar, and a one-time recovery
+              brought back the days before that fix as outcomes, never as boards.
             </p>
           </div>
           <div class="finding">
             <span class="finding__k">Finding 02</span>
             <p class="finding__t">The Discord Activity out-recruits the website</p>
             <p>
-              Discord reaches <b class="js-dc-dev">174</b> devices against the web&rsquo;s
-              <b class="js-web-dev">139</b>, off <b class="js-dc-rounds">363</b> rounds against
-              <b class="js-web-rounds">576</b>. More people, each playing less. The embed recruits
+              Discord reaches <b class="js-dc-dev">300</b> devices against the web&rsquo;s
+              <b class="js-web-dev">211</b>, off <b class="js-dc-rounds">579</b> rounds against
+              <b class="js-web-rounds">971</b>. More people, each playing less. The embed recruits
               and the website is where the habit forms.
             </p>
             <p style="margin-top: 9px">
@@ -3674,7 +5090,7 @@
               went unread, which meant I had written content nobody reached. The pool skewed toward
               globally famous dishes, good for a launch and wrong by week four. I added 60 dishes
               chosen to close the gaps. Mean is now <b class="js-avg">3.2</b>, the budget gets spent,
-              and <b class="js-loss">17%</b> of finished rounds end unsolved.
+              and <b class="js-loss">16%</b> of finished rounds end unsolved.
             </p>
           </div>
         </div>
@@ -3682,20 +5098,20 @@
         <div class="takeaway reveal">
           <span class="takeaway__k">Takeaway</span>
           <p>
-            The instrument told me the game was too easy and that my courtesy feature was carrying a
-            third of the play. Neither was visible from inside the design.
+            The instrument told me the game was too easy and that my courtesy feature was carrying more
+            than a quarter of the play. Neither was visible from inside the design.
           </p>
         </div>
       </div>
     </section>
 
     <!-- ==========================================================
-         06 · THE EXPERIMENT
+         07 · THE EXPERIMENT
          ========================================================== -->
     <section id="experiment" class="exp">
       <div class="wrap">
         <div class="shead reveal">
-          <span class="shead__n">06</span>
+          <span class="shead__n">07</span>
           <h2 class="shead__t">One change, logged before I shipped it</h2>
           <span class="shead__k">verdict · 14-day window</span>
         </div>
@@ -3708,7 +5124,7 @@
         </p>
 
         <div class="check reveal" id="check">
-          <p class="check__h">🛎️ THE CHECK</p>
+          <p class="check__h"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 18.5h17" /><path d="M5 18.5a7 7 0 0 1 14 0" /><path d="M12 11.5v-2" /><path d="M10.2 9.2h3.6" /></svg> THE CHECK</p>
           <p class="check__sub">Experiment log &middot; shipped 26 Jul 2026</p>
 
           <div class="check__line">
@@ -3809,12 +5225,184 @@
     </section>
 
     <!-- ==========================================================
-         07 · WHAT TRANSFERS
+         08 · HOW IT'S BUILT
+         The architecture is HTML, not an image, so it reflows on a phone.
+         Every decision card comes from the project's decision log or a
+         merged pull request, and every count is dated.
+         ========================================================== -->
+    <section id="built">
+      <div class="wrap">
+        <div class="shead reveal">
+          <span class="shead__n">08</span>
+          <h2 class="shead__t">How it&rsquo;s built</h2>
+          <span class="shead__k">architecture · decisions · checks</span>
+        </div>
+
+        <p>
+          One Cloudflare Worker, one SQLite database and four runtime dependencies. The diagram
+          shows which process handles what. The cards under it are six of the 102 decisions in the
+          project&rsquo;s decision log, each with the option it ruled out and what came of it.
+        </p>
+
+        <div class="arch reveal" id="arch">
+          <div class="arch__layer">
+            <p class="arch__k">Client</p>
+            <div class="arch__row">
+              <div class="arch__box">
+                <b>Browser</b>
+                <span>React 19 single-page app. <code>localStorage</code> holds the round, the streak and an anonymous device id. No accounts.</span>
+              </div>
+              <div class="arch__box">
+                <b>Discord iframe</b>
+                <span>The same bundle, framed through Discord&rsquo;s proxy. The Embedded App SDK loads by dynamic import, only when <code>frame_id</code> is present.</span>
+              </div>
+            </div>
+          </div>
+          <div class="arch__link"><span>relative <code>/api/*</code> calls, same origin</span></div>
+          <div class="arch__layer arch__layer--edge">
+            <p class="arch__k">One Cloudflare Worker</p>
+            <div class="arch__row">
+              <div class="arch__box">
+                <b>Static assets</b>
+                <span>The app, fonts and art. Served without waking the Worker.</span>
+              </div>
+              <div class="arch__box">
+                <b>Hono API</b>
+                <span><code>run_worker_first: ["/api/*"]</code>. Routers for the Special, the bar, beacons, public stats, the admin and Discord.</span>
+              </div>
+              <div class="arch__box">
+                <b>HMAC tokens</b>
+                <span>Stateless. The admin session, preview links and the showcase link, all signed with one secret.</span>
+              </div>
+            </div>
+          </div>
+          <div class="arch__link"><span>rows in, shapes out</span></div>
+          <div class="arch__layer">
+            <p class="arch__k">Pure folds &middot; <code>worker/</code> and <code>shared/</code></p>
+            <div class="arch__row">
+              <div class="arch__box">
+                <b>Game rules</b>
+                <span>Feedback for dishes and drinks, the daily rollover, the night clock.</span>
+              </div>
+              <div class="arch__box">
+                <b>Measurement</b>
+                <span>Every dashboard figure, the Wilson intervals and the experiment verdicts.</span>
+              </div>
+              <div class="arch__box">
+                <b>Content</b>
+                <span>Both beat sheets, and the clue linter that reads them.</span>
+              </div>
+            </div>
+          </div>
+          <div class="arch__link"><span>SQL, in the route</span></div>
+          <div class="arch__layer arch__layer--data">
+            <p class="arch__k">D1 (SQLite) &middot; 45 additive migrations</p>
+            <div class="arch__row">
+              <div class="arch__box">
+                <b>Catalogue</b>
+                <span><code>dishes</code>, <code>clues</code>, <code>schedule</code>, and the bar&rsquo;s own <code>drinks</code>, <code>drink_clues</code>, <code>drink_schedule</code>.</span>
+              </div>
+              <div class="arch__box">
+                <b>Telemetry</b>
+                <span><code>analytics_rounds</code>, <code>analytics_visits</code>, <code>experiments</code>. Country stamped server-side, no IP stored.</span>
+              </div>
+              <div class="arch__box">
+                <b>Operations</b>
+                <span><code>announcements</code>, <code>dish_requests</code>, <code>discord_messages</code>.</span>
+              </div>
+            </div>
+          </div>
+          <p class="arch__out">
+            Outside the Worker: <b>Discord&rsquo;s API</b> for the OAuth exchange, score-card
+            uploads and signed interactions, and <b>GitHub&rsquo;s API</b> for the admin&rsquo;s
+            issue composer. Both secrets stay on the Worker.
+          </p>
+        </div>
+
+        <h3>Six decisions, and what each one ruled out</h3>
+        <div class="dcards reveal">
+          <div class="dcard">
+            <p class="dcard__t">One Worker serves the game, the API and the database</p>
+            <p>No second deploy target and no CORS. The Discord Activity frames the same origin, so one release ships both surfaces.</p>
+            <p class="dcard__x"><b>Ruled out</b> A static host with a separate API service.</p>
+            <p class="dcard__m"><b>Measured</b> The v1.12.0 release ran tests, typecheck, migrations and deploy in 55 seconds from the tag push.</p>
+          </div>
+          <div class="dcard">
+            <p class="dcard__t">Every derived number comes out of a pure fold</p>
+            <p>The arithmetic gets unit tests with no database, and the public endpoint this page reads runs the same folds as the private dashboard.</p>
+            <p class="dcard__x"><b>Ruled out</b> Rates computed in SQL or inside a React component.</p>
+            <p class="dcard__m"><b>Measured</b> 715 tests run in 2.1 seconds on my machine, no database attached.</p>
+          </div>
+          <div class="dcard">
+            <p class="dcard__t">The Nightcap is a fourth round kind</p>
+            <p>Every kind-split query already existed. The cost is that two columns change meaning under it, which is written down in three places.</p>
+            <p class="dcard__x"><b>Ruled out</b> A second analytics table for the bar.</p>
+            <p class="dcard__m"><b>Result</b> The compiler pointed at six sites. Two were pooling four-guess and six-guess rounds on one axis, and both split.</p>
+          </div>
+          <div class="dcard">
+            <p class="dcard__t">The bar runs on your clock, keyed to the evening</p>
+            <p>A mode called After Dark that opened at 1am in London would not be after dark. The key is fixed when you walk in.</p>
+            <p class="dcard__x"><b>Ruled out</b> The diner&rsquo;s midnight-Eastern rollover, and recomputing the key at midnight.</p>
+            <p class="dcard__m"><b>Result</b> The Worker learns no timezone. A one-day window around Eastern covers UTC&minus;11 to UTC+14.</p>
+          </div>
+          <div class="dcard">
+            <p class="dcard__t">Shorten every token instead of storing a short code</p>
+            <p>A showcase link goes into an email. At about one link a month, a table, a migration and a lookup cost more than they return.</p>
+            <p class="dcard__x"><b>Ruled out</b> An 8-character code in D1, which would reach 36 characters and buy revocation.</p>
+            <p class="dcard__m"><b>Measured</b> 106 characters down to 60: a 128-bit HMAC, base36 seconds, a two-letter payload and <code>?s=</code>.</p>
+          </div>
+          <div class="dcard">
+            <p class="dcard__t">A colour pair is a named token, never a one-off hex</p>
+            <p>A theme cannot swap what a rule hardcodes. Three contrast failures in this repo came from literal hexes in a component.</p>
+            <p class="dcard__x"><b>Ruled out</b> Literal colours inside component rules.</p>
+            <p class="dcard__m"><b>Measured</b> Under the night palette axe read the receipt title at 1.21:1. Named, the tile pairs read 5.05 and 7.24 in both themes.</p>
+          </div>
+        </div>
+
+        <h3>How a change gets checked</h3>
+        <ol class="checks">
+          <li><code>npm test</code><span>715 vitest tests over the pure folds, plus the clue linter over every dish and drink in the catalogue.</span></li>
+          <li><code>npm run check</code><span><code>tsc -b</code> across three projects. Worker code gets no DOM types.</span></li>
+          <li><code>npm run lint</code><span>oxlint, with the rules of hooks as an error.</span></li>
+          <li><code>npm run a11y</code><span>axe over the running game. It plays a round with reduced motion on, scans nine states and fails on anything serious or critical.</span></li>
+          <li><b>By hand</b><span>A full round, then <code>npm run lastcall</code> into a Nightcap, 375px with no sideways scroll, a keyboard-only pass and a reduced-motion pass.</span></li>
+          <li><b>CI and release</b><span>Every pull request reruns the first four. A <code>v*</code> tag reruns tests and typecheck, migrates D1 and deploys. The game prints its release in the footer of every page, so a screenshot names its build.</span></li>
+        </ol>
+
+        <div class="stats reveal">
+          <div class="stat"><span class="stat__n">162</span><span class="stat__l">merged pull requests since 18 July</span></div>
+          <div class="stat"><span class="stat__n">715</span><span class="stat__l">unit tests, all TypeScript, in 45 files</span></div>
+          <div class="stat"><span class="stat__n">9</span><span class="stat__l">screens axe scans on every pull request</span></div>
+          <div class="stat"><span class="stat__n">102</span><span class="stat__l">decisions logged, plus 16 approaches tried and dropped</span></div>
+          <div class="stat"><span class="stat__n">45</span><span class="stat__l">D1 migrations, every one additive</span></div>
+          <div class="stat"><span class="stat__n">152&rarr;56</span><span class="stat__l">KB of fonts after the switch to WOFF2, measured in #196</span></div>
+        </div>
+        <p class="stats__foot">Counted from the repository and the decision log on 23 September 2026, at v1.12.0.</p>
+
+        <div class="byline">
+          <p class="byline__t">Designed, built and documented by Jacob Poteet</p>
+          <p class="byline__links">
+            <a href="https://github.com/JacobPoteet">GitHub profile</a>
+            <a href="https://github.com/JacobPoteet/LunchSpecial">The source</a>
+            <a href="https://github.com/JacobPoteet/LunchSpecial/pulls?q=is%3Apr+is%3Amerged">Merged pull requests</a>
+          </p>
+          <p class="byline__more">
+            Three walkthroughs go deeper:
+            <a href="lessons/analytics-pipeline.html">the analytics pipeline</a>,
+            <a href="lessons/admin-dashboard.html">the admin dashboard</a> and
+            <a href="lessons/discord-activity.html">the Discord Activity</a>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================
+         09 · WHAT TRANSFERS
          ========================================================== -->
     <section id="transfers">
       <div class="wrap">
         <div class="shead reveal">
-          <span class="shead__n">07</span>
+          <span class="shead__n">09</span>
           <h2 class="shead__t">What of this transfers to a bigger game</h2>
           <span class="shead__k">the honest version</span>
         </div>
@@ -3882,7 +5470,7 @@
     <footer>
       <div class="wrap foot">
         <div>
-          <p class="foot__mark">🛎️ Lunch Special</p>
+          <p class="foot__mark"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 18.5h17" /><path d="M5 18.5a7 7 0 0 1 14 0" /><path d="M12 11.5v-2" /><path d="M10.2 9.2h3.6" /></svg> Lunch Special</p>
           <p>
             Designed, built, instrumented and run by Jacob Poteet. Art placeholders are
             AI-generated and marked as such in the repository; the fonts are OFL.
@@ -3912,50 +5500,19 @@
            states true numbers with the network off or blocked. The
            fetch replaces it and marks which tiles moved.
            ========================================================== */
+        /* Production snapshot, 23 Sep 2026 (v1.12.0). Refresh it when the gap would
+           embarrass you: nothing checks it, and a visitor with the API blocked sees it unmarked. */
         var FALLBACK = {
-          headline: { dishes: 364, rounds: 939, completed: 824, solved: 684, shared: 152, avgGuesses: 3.244 },
-          devices: 312,
-          guessDistribution: [25, 220, 177, 132, 85, 45],
-          fails: 140,
-          modes: {
-            daily: { started: 606, completed: 515 },
-            leftover: { started: 230, completed: 214 },
-            random: { started: 103, completed: 95 }
-          },
-          surfaces: { web: { rounds: 576, devices: 139 }, discord: { rounds: 363, devices: 174 } },
-          funnel: { visited: 265, played: 160, finished: 145, shared: 57, playedAgain: 17, days: 15, since: "2026-08-08" },
-          daysPlayed: [312, 58, 36, 24, 15, 9, 8, 8, 7, 6, 5, 5,
-                      3, 3, 3, 3, 3, 3, 3, 3, 1, 1],
-          growth: {
-            days: [20, 85, 152, 177, 229, 262, 296, 312, 355, 365, 387, 408, 417, 449, 463, 483, 510,
-                  566, 592, 666, 705, 716, 726, 746, 765, 802, 813, 836, 851, 873, 900, 914, 923, 930,
-                  938, 939].map(function (c, i) {
-              var d = new Date(Date.UTC(2026, 6, 18 + i));
-              return { date: d.toISOString().slice(0, 10), cumulative: c };
-            }),
-            trend: { slope: 26.02, first: 115.99, last: 1026.84, days: 36, recentPerDay: 12.57, recentDays: 7 }
-          },
-          /* A real snapshot now that the endpoint carries countries. Taken with
-             the rest of this block, so every figure here comes from the same
-             moment in production. */
-          countries: {
-            entries: [
-              { code: "US", players: 81, rounds: 183 },
-              { code: "IE", players: 7, rounds: 20 },
-              { code: "IN", players: 5, rounds: 6 },
-              { code: "GB", players: 3, rounds: 11 },
-              { code: "HU", players: 3, rounds: 3 },
-              { code: "PH", players: 2, rounds: 9 },
-              { code: "AU", players: 2, rounds: 3 },
-              { code: "CH", players: 1, rounds: 1 },
-              { code: "FR", players: 1, rounds: 1 },
-              { code: "ID", players: 1, rounds: 1 },
-              { code: "PL", players: 1, rounds: 1 },
-              { code: "RU", players: 1, rounds: 1 },
-              { code: "SG", players: 1, rounds: 1 }
-            ],
-            rounds: 241, players: 109, untracked: 698
-          }
+          headline: {"dishes":407,"rounds":1550,"completed":1380,"solved":1153,"shared":312,"avgGuesses":3.2121754700089524},
+          devices: 510,
+          guessDistribution: [41,371,289,214,130,72],
+          fails: 227,
+          modes: {"daily":{"started":1074,"completed":938},"leftover":{"started":297,"completed":276},"random":{"started":141,"completed":128},"nightcap":{"started":38,"completed":38}},
+          surfaces: {"web":{"rounds":971,"devices":211},"discord":{"rounds":579,"devices":300}},
+          funnel: {"visited":836,"played":622,"finished":562,"shared":213,"playedAgain":79,"days":47,"since":"2026-08-08"},
+          daysPlayed: [510,94,61,43,30,25,22,21,20,18,15,14,10,7,6,6,6,4,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1,1,1,1,1,1],
+          growth: {"days":[{"date":"2026-07-18","started":20,"cumulative":20},{"date":"2026-07-19","started":65,"cumulative":85},{"date":"2026-07-20","started":67,"cumulative":152},{"date":"2026-07-21","started":25,"cumulative":177},{"date":"2026-07-22","started":52,"cumulative":229},{"date":"2026-07-23","started":33,"cumulative":262},{"date":"2026-07-24","started":34,"cumulative":296},{"date":"2026-07-25","started":16,"cumulative":312},{"date":"2026-07-26","started":43,"cumulative":355},{"date":"2026-07-27","started":10,"cumulative":365},{"date":"2026-07-28","started":22,"cumulative":387},{"date":"2026-07-29","started":21,"cumulative":408},{"date":"2026-07-30","started":9,"cumulative":417},{"date":"2026-07-31","started":32,"cumulative":449},{"date":"2026-08-01","started":14,"cumulative":463},{"date":"2026-08-02","started":20,"cumulative":483},{"date":"2026-08-03","started":27,"cumulative":510},{"date":"2026-08-04","started":56,"cumulative":566},{"date":"2026-08-05","started":26,"cumulative":592},{"date":"2026-08-06","started":74,"cumulative":666},{"date":"2026-08-07","started":39,"cumulative":705},{"date":"2026-08-08","started":11,"cumulative":716},{"date":"2026-08-09","started":10,"cumulative":726},{"date":"2026-08-10","started":20,"cumulative":746},{"date":"2026-08-11","started":19,"cumulative":765},{"date":"2026-08-12","started":37,"cumulative":802},{"date":"2026-08-13","started":11,"cumulative":813},{"date":"2026-08-14","started":23,"cumulative":836},{"date":"2026-08-15","started":15,"cumulative":851},{"date":"2026-08-16","started":22,"cumulative":873},{"date":"2026-08-17","started":27,"cumulative":900},{"date":"2026-08-18","started":14,"cumulative":914},{"date":"2026-08-19","started":9,"cumulative":923},{"date":"2026-08-20","started":7,"cumulative":930},{"date":"2026-08-21","started":8,"cumulative":938},{"date":"2026-08-22","started":6,"cumulative":944},{"date":"2026-08-23","started":13,"cumulative":957},{"date":"2026-08-24","started":16,"cumulative":973},{"date":"2026-08-25","started":10,"cumulative":983},{"date":"2026-08-26","started":18,"cumulative":1001},{"date":"2026-08-27","started":31,"cumulative":1032},{"date":"2026-08-28","started":22,"cumulative":1054},{"date":"2026-08-29","started":24,"cumulative":1078},{"date":"2026-08-30","started":24,"cumulative":1102},{"date":"2026-08-31","started":21,"cumulative":1123},{"date":"2026-09-01","started":23,"cumulative":1146},{"date":"2026-09-02","started":31,"cumulative":1177},{"date":"2026-09-03","started":18,"cumulative":1195},{"date":"2026-09-04","started":43,"cumulative":1238},{"date":"2026-09-05","started":15,"cumulative":1253},{"date":"2026-09-06","started":19,"cumulative":1272},{"date":"2026-09-07","started":40,"cumulative":1312},{"date":"2026-09-08","started":12,"cumulative":1324},{"date":"2026-09-09","started":17,"cumulative":1341},{"date":"2026-09-10","started":14,"cumulative":1355},{"date":"2026-09-11","started":15,"cumulative":1370},{"date":"2026-09-12","started":12,"cumulative":1382},{"date":"2026-09-13","started":22,"cumulative":1404},{"date":"2026-09-14","started":12,"cumulative":1416},{"date":"2026-09-15","started":20,"cumulative":1436},{"date":"2026-09-16","started":11,"cumulative":1447},{"date":"2026-09-17","started":12,"cumulative":1459},{"date":"2026-09-18","started":15,"cumulative":1474},{"date":"2026-09-19","started":8,"cumulative":1482},{"date":"2026-09-20","started":15,"cumulative":1497},{"date":"2026-09-21","started":23,"cumulative":1520},{"date":"2026-09-22","started":16,"cumulative":1536},{"date":"2026-09-23","started":14,"cumulative":1550}],"trend":{"slope":21.450490514181013,"first":185.30562659846544,"last":1622.4884910485935,"days":68,"recentPerDay":14.714285714285714,"recentDays":7}},
+          countries: {"entries":[{"code":"US","players":257,"rounds":725,"homedElsewhere":0,"unattributed":10},{"code":"CA","players":12,"rounds":40,"homedElsewhere":0,"unattributed":0},{"code":"IE","players":8,"rounds":30,"homedElsewhere":0,"unattributed":0},{"code":"IN","players":5,"rounds":6,"homedElsewhere":0,"unattributed":0},{"code":"PH","players":4,"rounds":14,"homedElsewhere":0,"unattributed":1},{"code":"DE","players":4,"rounds":4,"homedElsewhere":0,"unattributed":0},{"code":"GB","players":3,"rounds":11,"homedElsewhere":0,"unattributed":0},{"code":"AU","players":3,"rounds":5,"homedElsewhere":0,"unattributed":0},{"code":"HU","players":3,"rounds":3,"homedElsewhere":0,"unattributed":0},{"code":"SA","players":2,"rounds":2,"homedElsewhere":0,"unattributed":0},{"code":"TR","players":2,"rounds":2,"homedElsewhere":0,"unattributed":0},{"code":"AR","players":1,"rounds":1,"homedElsewhere":0,"unattributed":0},{"code":"BR","players":1,"rounds":1,"homedElsewhere":0,"unattributed":0},{"code":"CH","players":1,"rounds":1,"homedElsewhere":0,"unattributed":0},{"code":"ES","players":1,"rounds":1,"homedElsewhere":0,"unattributed":0},{"code":"FR","players":1,"rounds":1,"homedElsewhere":0,"unattributed":0},{"code":"ID","players":1,"rounds":1,"homedElsewhere":0,"unattributed":0},{"code":"PL","players":1,"rounds":1,"homedElsewhere":0,"unattributed":0},{"code":"RS","players":1,"rounds":1,"homedElsewhere":0,"unattributed":0},{"code":"RU","players":1,"rounds":1,"homedElsewhere":0,"unattributed":0},{"code":"SG","players":0,"rounds":1,"homedElsewhere":1,"unattributed":0}],"rounds":852,"players":312,"untracked":698}
         };
 
         var DATA = FALLBACK;
@@ -4051,7 +5608,7 @@
           var m = DATA.modes;
           var optional = m.leftover.started + m.random.started;
           var optDone = m.leftover.completed + m.random.completed;
-          var all = m.daily.started + optional;
+          var all = m.daily.started + optional + (m.nightcap ? m.nightcap.started : 0);
           set(".js-optional", pct(optional, all) + "%");
           set(".js-optfinish", pct(optDone, optional) + "%");
           set(".js-dailyfinish", pct(m.daily.completed, m.daily.started) + "%");
@@ -4095,17 +5652,18 @@
           var rows = [
             ["Today's Special", m.daily, "var(--k-daily)"],
             ["Leftovers", m.leftover, "var(--k-leftover)"],
-            ["Chef's Choice", m.random, "var(--k-random)"]
+            ["Chef's Choice", m.random, "var(--k-random)"],
+            ["After Dark", m.nightcap || { started: 0, completed: 0 }, "var(--k-night)"]
           ];
           var max = Math.max.apply(null, rows.map(function (r) { return r[1].started; }));
           $("#chart-modes").innerHTML = rows.map(function (r, i) {
             return barRow(r[0], r[1].started, max, r[2], pct(r[1].completed, r[1].started) + "% done", i);
           }).join("");
           var optional = m.leftover.started + m.random.started;
-          var all = m.daily.started + optional;
+          var all = m.daily.started + optional + (m.nightcap ? m.nightcap.started : 0);
           $("#modes-note").textContent =
             "The two optional modes are " + pct(optional, all) +
-            "% of all rounds. I built the archive as a courtesy and it became a third of the game.";
+            "% of all rounds. The bar is " + pct(m.nightcap ? m.nightcap.started : 0, all) + "%, counted from the night it opened, 4 September.";
         }
 
         function drawFunnel() {
@@ -4345,7 +5903,7 @@
           'Its name means "all mixed up" in Maghrebi Arabic; Tunisia and Libya both claim it.',
           "It conquered the world's weekend brunch menus in the 2010s.",
           "Eggs poached directly in a spiced tomato-pepper sauce.",
-          "The skillet of eggs in red sauce, mopped up with bread."
+          "Tunisia’s skillet of eggs in red sauce, mopped up with torn bread."
         ];
         var MENU = [
           { name: "Ratatouille", country: "France", region: "europe", course: "entree", temperature: "hot", protein: "vegetarian",
@@ -4366,7 +5924,7 @@
           var country = g.country === ANSWER.country ? "hit" : (g.region === ANSWER.region ? "near" : "miss");
           var matched = g.ingredients.filter(function (i) { return ANSWER.ingredients.indexOf(i) > -1; });
           return {
-            country: { v: g.country, m: country },
+            country: { v: g.country, m: country, r: g.region },
             course: { v: g.course, m: g.course === ANSWER.course ? "hit" : "miss" },
             served: { v: g.temperature, m: g.temperature === ANSWER.temperature ? "hit" : "miss" },
             protein: { v: g.protein, m: g.protein === ANSWER.protein ? "hit" : "miss" },
@@ -4376,10 +5934,19 @@
           };
         }
 
+        /* Mirrors AttrTile in src/game/components.tsx: a glyph for the eye, a
+           hidden verdict for a screen reader, and a near country tile names its
+           region in place of the label (#195, #202). */
+        var MARKS = { hit: "✓", near: "~", miss: "×" };
+        var WORDS = { hit: "Match", near: "Close", miss: "No match" };
+        var REGION_LABELS = { "europe": "Europe", "middle-east": "Middle East", "southeast-asia": "Southeast Asia" };
+        var BELL_ICO = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 18.5h17" /><path d="M5 18.5a7 7 0 0 1 14 0" /><path d="M12 11.5v-2" /><path d="M10.2 9.2h3.6" /></svg>';
         function tile(label, o, i) {
+          var near = o.m === "near" && o.r ? REGION_LABELS[o.r] : null;
           return '<div class="at at--' + o.m + '" style="--i:' + i + '">' +
-            '<span class="at__l">' + label + "</span>" +
-            '<span class="at__v">' + o.v.replace(/-/g, " ") + "</span></div>";
+            '<span class="at__l"><span aria-hidden="true">' + MARKS[o.m] + "</span> " + (near || label) + "</span>" +
+            '<span class="at__v">' + o.v.replace(/-/g, " ") + "</span>" +
+            '<span class="sr-only">' + WORDS[o.m] + (near ? " (" + near + ")" : "") + "</span></div>";
         }
 
         function renderDemo() {
@@ -4396,7 +5963,7 @@
               .map(function (p) {
                 var f = p.f;
                 return '<div class="grow' + (f.correct ? " grow--win" : "") + '">' +
-                  '<p class="grow__name"><span>' + (f.correct ? "🛎️ " : "") + p.g.name + "</span>" +
+                  '<p class="grow__name"><span>' + (f.correct ? BELL_ICO + " " : "") + p.g.name + "</span>" +
                   '<span class="grow__ct">' + f.matched.length + "/" + ANSWER.ingredients.length + " ingredients</span></p>" +
                   '<div class="tiles4">' + tile("Country", f.country, 0) + tile("Course", f.course, 1) +
                   tile("Served", f.served, 2) + tile("Protein", f.protein, 3) + "</div>" +
@@ -4522,7 +6089,7 @@
            is not the only failure -- it can be present and still deliver
            nothing (a background tab that never composites, for one), and a
            feature-detect cannot catch that. Either path is enough on its own. */
-        var REVEAL_SEL = ".reveal, .chart, .diagram, .beats, .cards, .notice-fig, .fanfig, .reach";
+        var REVEAL_SEL = ".reveal, .chart, .diagram, .beats, .cards, .notice-fig, .fanfig, .reach, .arch";
         var pending = [];
 
         function markIn(el) {
@@ -4597,6 +6164,57 @@
           update();
         }
 
+        /* ==========================================================
+           10. THE PINNED STORY
+           One observer with a thin band across the viewport: whichever
+           step crosses it sets the window's state. Native scroll speed,
+           nothing pinned by script. On a phone the window sits at the
+           top, so the band moves to the lower third, where the step
+           text is visible.
+           ========================================================== */
+        function story() {
+          var win = $("#win"), steps = $$("#story .step");
+          if (!win || !steps.length) return;
+          var current = "";
+
+          function setState(n) {
+            if (n === current) return;
+            current = n;
+            win.setAttribute("data-s", n);
+            steps.forEach(function (s) {
+              s.classList.toggle("is-active", s.getAttribute("data-step") === n);
+            });
+            /* Bring the detail this step is about into the window's view.
+               This scrolls a pane inside the mock, never the page. */
+            var pane = $(".pane--" + (n === "1" ? "check" : n === "2" ? "lights" : n === "6" ? "tab" : "bar"), win);
+            var focus = $('[data-focus="' + n + '"]', win);
+            if (n === "6") focus = $(".wshare", win);
+            var top = focus ? Math.max(0, focus.offsetTop - 12) : 0;
+            if (pane) {
+              if (pane.scrollTo) pane.scrollTo({ top: top, behavior: REDUCED ? "auto" : "smooth" });
+              else pane.scrollTop = top;
+            }
+          }
+
+          setState("1");
+          if (!("IntersectionObserver" in window)) return;
+          var io = null;
+          function build() {
+            if (io) io.disconnect();
+            var phone = window.matchMedia("(max-width: 860px)").matches;
+            io = new IntersectionObserver(function (entries) {
+              entries.forEach(function (en) {
+                if (en.isIntersecting) setState(en.target.getAttribute("data-step"));
+              });
+            }, { rootMargin: phone ? "-62% 0px -30% 0px" : "-48% 0px -48% 0px", threshold: 0 });
+            steps.forEach(function (s) { io.observe(s); });
+          }
+          build();
+          var mq = window.matchMedia("(max-width: 860px)");
+          if (mq.addEventListener) mq.addEventListener("change", build);
+          else if (mq.addListener) mq.addListener(build);
+        }
+
         /* ========================================================== */
         paintTiles(false);
         drawAll();
@@ -4604,6 +6222,7 @@
         noticeFigure();
         themeToggle();
         observe();
+        story();
         scrollChrome();
         tickServing();
         setInterval(tickServing, 30000);
