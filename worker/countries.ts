@@ -57,12 +57,18 @@ function codeOf(country: string | null): string | null {
  * whose rounds all predate country tracking is in no country at all and simply
  * isn't counted; its rounds show up in `untracked`.
  *
+ * So a country can hold rounds and no players, in two ways, and each entry says
+ * which (#211): `homedElsewhere` counts devices that played here but live in another
+ * row, and `unattributed` counts rounds whose start beacon was lost, so no
+ * device was ever bound to them.
+ *
  * Sorted by players, then rounds, then code: the pie is about how the audience
  * splits, and a country with one very busy device shouldn't outrank one with ten
  * casual players.
  */
 export function foldCountries(rows: Iterable<CountryRow>): CountryMix {
   const roundsByCode = new Map<string, number>();
+  const unattributedByCode = new Map<string, number>();
   const roundsByPlayer = new Map<string, Map<string, number>>();
   let untracked = 0;
   let rounds = 0;
@@ -76,7 +82,10 @@ export function foldCountries(rows: Iterable<CountryRow>): CountryMix {
     }
     rounds += n;
     roundsByCode.set(code, (roundsByCode.get(code) ?? 0) + n);
-    if (!r.player_id) continue;
+    if (!r.player_id) {
+      unattributedByCode.set(code, (unattributedByCode.get(code) ?? 0) + n);
+      continue;
+    }
     let byCode = roundsByPlayer.get(r.player_id);
     if (!byCode) {
       byCode = new Map();
@@ -88,6 +97,7 @@ export function foldCountries(rows: Iterable<CountryRow>): CountryMix {
   // One country per device — see the header note on why this can't be a SQL
   // COUNT(DISTINCT player_id) GROUP BY country.
   const playersByCode = new Map<string, number>();
+  const homedElsewhereByCode = new Map<string, number>();
   for (const byCode of roundsByPlayer.values()) {
     let home = "";
     let best = -1;
@@ -98,10 +108,19 @@ export function foldCountries(rows: Iterable<CountryRow>): CountryMix {
       }
     }
     playersByCode.set(home, (playersByCode.get(home) ?? 0) + 1);
+    for (const code of byCode.keys()) {
+      if (code !== home) homedElsewhereByCode.set(code, (homedElsewhereByCode.get(code) ?? 0) + 1);
+    }
   }
 
   const entries: CountryUsage[] = [...roundsByCode.entries()]
-    .map(([code, n]) => ({ code, players: playersByCode.get(code) ?? 0, rounds: n }))
+    .map(([code, n]) => ({
+      code,
+      players: playersByCode.get(code) ?? 0,
+      rounds: n,
+      homedElsewhere: homedElsewhereByCode.get(code) ?? 0,
+      unattributed: unattributedByCode.get(code) ?? 0,
+    }))
     .sort((a, b) => b.players - a.players || b.rounds - a.rounds || a.code.localeCompare(b.code));
 
   return { entries, rounds, players: roundsByPlayer.size, untracked };

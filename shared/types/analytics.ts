@@ -193,6 +193,17 @@ export interface CountryUsage {
   players: number;
   /** Rounds started from here. Exact, unlike `players`: a round has one country. */
   rounds: number;
+  /**
+   * Devices that started a round here but are counted in another country, the
+   * one they played more from. Not part of the partition; it exists so a row
+   * reading "0 players · 1 round" can say where its player went (#211).
+   */
+  homedElsewhere: number;
+  /**
+   * Rounds from here that carry no device: the start beacon, the only one that
+   * binds `player_id`, never arrived. Included in `rounds`, attributed to no one.
+   */
+  unattributed: number;
 }
 
 /**
