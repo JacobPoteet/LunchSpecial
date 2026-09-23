@@ -12,6 +12,7 @@ import type {
   GuessFeedback,
   NightcapInfo,
   NightcapReveal,
+  PastRound,
   RevealInfo,
   RoundKind,
   Surface,
@@ -112,6 +113,19 @@ export function fetchNightcapReveal(
   pinned?: string,
 ): Promise<NightcapReveal> {
   return request(withParams("/api/night/reveal", { night, preview, nightcap: pinned }));
+}
+
+/**
+ * The days this device finished a daily Special on, as the server recorded
+ * them. Read once, to fill in the Leftovers calendar for the days played before
+ * a finished Special was kept on the device (#216).
+ */
+export function fetchPastRounds(playerId: string): Promise<PastRound[]> {
+  return request("/api/rounds/past", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ playerId }),
+  });
 }
 
 /** Submit a player's dish suggestion for the menu (lands in the admin inbox). */

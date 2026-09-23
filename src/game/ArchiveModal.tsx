@@ -1,10 +1,18 @@
 // The "Leftovers": a calendar of every past Special, plus a random-recipe
 // shortcut. Unlocked once today's Special is done — replay any day you missed.
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Modal } from "./components";
-import { archiveStatuses } from "./storage";
-import type { GameStatus } from "./storage";
+import {
+  archiveStatuses,
+  hasRecoveredPastRounds,
+  loadArchive,
+  loadRecovered,
+  peekPlayerId,
+  saveRecovered,
+} from "./storage";
+import type { GameStatus, RecoveredDay } from "./storage";
+import { fetchPastRounds } from "../api";
 import { isPuzzleDate, puzzleNumberFor } from "./archive";
 import { EPOCH_DATE } from "../../shared/types";
 import { playSfx } from "../audio";
@@ -106,6 +114,7 @@ function MonthGrid({
   today,
   rows,
   statusFor,
+  recoveredFor,
   onPick,
 }: {
   year: number;
@@ -114,6 +123,8 @@ function MonthGrid({
   /** Rows to reserve, shared by every month so the card can't change height. */
   rows: number;
   statusFor: (date: string) => DayStatus;
+  /** A day known only from the server's record, with no board on the device. */
+  recoveredFor: (date: string) => RecoveredDay | undefined;
   onPick: (date: string) => void;
 }) {
   const firstWeekday = new Date(Date.UTC(year, month, 1)).getUTCDay();
@@ -151,7 +162,9 @@ function MonthGrid({
           ]
             .filter(Boolean)
             .join(" ");
-          const label = `Special No. ${puzzleNumberFor(date)}${isToday ? " (today)" : ""}, ${status}`;
+          const recovered = isToday ? undefined : recoveredFor(date);
+          const played = recovered ? ` on the day in ${recovered.guesses} ${recovered.guesses === 1 ? "guess" : "guesses"}` : "";
+          const label = `Special No. ${puzzleNumberFor(date)}${isToday ? " (today)" : ""}, ${status}${played}`;
           // Stagger by calendar ROW, not by cell: seven cells landing together
           // reads as a sheet unrolling, where 30 individual pops read as noise.
           return (
@@ -188,9 +201,38 @@ export default function ArchiveModal({
   onRandom: () => void;
   onClose: () => void;
 }) {
-  const statuses = useMemo(() => archiveStatuses(), []);
+  const [statuses, setStatuses] = useState(() => archiveStatuses());
+  const [recovered, setRecovered] = useState(() => loadRecovered());
   const statusFor = (date: string): DayStatus =>
     date === today ? todayStatus : statuses[date] ?? "unplayed";
+  // A board on the device outranks the server's record, so only a day with no
+  // archive entry reads as recovered. The fetch below never touches the archive.
+  const boards = useMemo(() => loadArchive(), []);
+  const recoveredFor = (date: string): RecoveredDay | undefined => (boards[date] ? undefined : recovered[date]);
+
+  // Once per device: ask the server which days this device finished before
+  // #215 kept finished rounds on it (#216). A failure stores nothing, so the
+  // next open asks again; a device with no id has played nothing to recover.
+  useEffect(() => {
+    if (hasRecoveredPastRounds()) return;
+    const playerId = peekPlayerId();
+    if (!playerId) {
+      saveRecovered([]);
+      return;
+    }
+    let live = true;
+    fetchPastRounds(playerId)
+      .then((rounds) => {
+        saveRecovered(rounds);
+        if (!live) return;
+        setRecovered(loadRecovered());
+        setStatuses(archiveStatuses());
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
 
   // One month at a time, opening on the current one — the archive grows a page
   // every 30 days, and stacking them all made the modal a scroll tunnel.
@@ -254,6 +296,7 @@ export default function ArchiveModal({
         today={today}
         rows={rows}
         statusFor={statusFor}
+        recoveredFor={recoveredFor}
         onPick={onPick}
       />
     </Modal>

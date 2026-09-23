@@ -1,6 +1,6 @@
 // localStorage persistence: today's round + lifetime stats. No accounts.
 
-import type { DrinkGuessFeedback, GuessFeedback } from "../../shared/types";
+import type { DrinkGuessFeedback, GuessFeedback, PastRound } from "../../shared/types";
 import { DRINK_MAX_GUESSES, MAX_GUESSES } from "../../shared/types";
 
 export type GameStatus = "playing" | "won" | "lost";
@@ -42,6 +42,7 @@ const HOWTO_KEY = "lunch-special:howto-seen";
 const ARCHIVE_KEY = "lunch-special:archive";
 const PLAYER_KEY = "lunch-special:player";
 const ANNOUNCEMENTS_KEY = "lunch-special:announcements";
+const RECOVERED_KEY = "lunch-special:recovered";
 
 /**
  * Stable, anonymous per-device id (a random UUID) kept in localStorage. Sent with
@@ -252,11 +253,60 @@ export function saveArchiveRound(state: RoundState): void {
   localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive));
 }
 
-/** Finished-or-in-progress status per archive date, for the calendar. */
+/**
+ * Status per past date, for the calendar: an archive board where there is one,
+ * else the outcome the server recovered for that day.
+ */
 export function archiveStatuses(): Record<string, GameStatus> {
   const out: Record<string, GameStatus> = {};
+  for (const [date, round] of Object.entries(loadRecovered())) out[date] = round.solved ? "won" : "lost";
   for (const [date, round] of Object.entries(loadArchive())) out[date] = round.status;
   return out;
+}
+
+// ---- Recovered days (#216) ----
+//
+// Days this device finished a Special on before #215 kept finished rounds in
+// the archive, read back once from the server. Their own key and never the
+// archive's, because an archive entry is a board and these are only outcomes:
+// the beacons never carried a guess, so there is nothing to redraw. A recovered
+// day opens as an ordinary replay; the calendar only marks it.
+//
+// The key existing is what says the job is done, so an empty answer is stored
+// as `{}` rather than skipped.
+
+export type RecoveredDay = Omit<PastRound, "date">;
+
+export function loadRecovered(): Record<string, RecoveredDay> {
+  try {
+    const raw = localStorage.getItem(RECOVERED_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Record<string, RecoveredDay>;
+      if (parsed && typeof parsed === "object") return parsed;
+    }
+  } catch {
+    // corrupted — treat as nothing recovered
+  }
+  return {};
+}
+
+/** Whether this device has already asked the server for its past days. */
+export function hasRecoveredPastRounds(): boolean {
+  try {
+    return localStorage.getItem(RECOVERED_KEY) !== null;
+  } catch {
+    return true; // storage blocked: nowhere to keep an answer, so don't ask
+  }
+}
+
+export function saveRecovered(rounds: PastRound[]): void {
+  const out: Record<string, RecoveredDay> = {};
+  for (const { date, solved, guesses } of rounds) out[date] = { solved, guesses };
+  try {
+    localStorage.setItem(RECOVERED_KEY, JSON.stringify(out));
+  } catch {
+    // Storage full or blocked. The calendar stays as it was.
+  }
 }
 
 // Written when the first visit's walkthrough ends (the second guess, or the

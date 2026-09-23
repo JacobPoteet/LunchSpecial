@@ -8,6 +8,7 @@ import { ROUND_KINDS, SURFACES, maxGuessesFor, type RoundKind, type Surface } fr
 import { getSeededDish, getTargetDish, serverToday } from "../db";
 import { getTargetDrink } from "../drinkdb";
 import { isValidDateString } from "../game";
+import { foldPastRounds, type PastRoundRow } from "../pastrounds";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -301,6 +302,32 @@ app.post("/share", async (c) => {
     .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), dishId, drinkId)
     .run();
   return c.json({ ok: true });
+});
+
+/**
+ * This device's finished daily rounds before today, for the Leftovers calendar
+ * (#216). Until #215 a finished Special never reached the device's archive, so
+ * these rows are the only record of the days it played.
+ *
+ * The one route here that reads rather than writes, and the first to hand a
+ * device its own history. POST so the id rides in the body and stays out of
+ * URLs and logs. It answers with nothing that same browser didn't send in the
+ * first place: which days it finished and how. Never cached.
+ */
+app.post("/past", async (c) => {
+  const raw = (await c.req.json().catch(() => null)) as { playerId?: unknown } | null;
+  const playerId = raw?.playerId;
+  if (typeof playerId !== "string" || playerId.length < 8 || playerId.length > 64) {
+    return c.json({ error: "Invalid payload" }, 400);
+  }
+  const { results } = await c.env.DB.prepare(
+    `SELECT play_date, solved, guesses FROM analytics_rounds
+     WHERE player_id = ? AND kind = 'daily' AND completed = 1`,
+  )
+    .bind(playerId)
+    .all<PastRoundRow>();
+  c.header("Cache-Control", "no-store");
+  return c.json(foldPastRounds(results, serverToday()));
 });
 
 export default app;
