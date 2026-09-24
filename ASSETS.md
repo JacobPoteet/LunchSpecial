@@ -59,7 +59,7 @@ Generated from `public/favicon.svg` by `npm run assets -- icons`
 
 | File | Purpose | Notes |
 |---|---|---|
-| `public/icon-192.png` | manifest `any` | Mark edge to edge, transparent corners |
+| `public/icon-192.png` | manifest `any` + raster `rel="icon"` | Mark edge to edge, transparent corners. The first icon `index.html` declares, so repo tools that read only PNG (Orca's project sidebar) find the mark |
 | `public/icon-512.png` | manifest `any` | Install prompt / task switcher |
 | `public/icon-maskable-512.png` | manifest `maskable` | Mark inset to 60% on a teal field — Android crops up to 20% per edge |
 | `public/apple-touch-icon.png` | iOS home screen | 180×180, same padded artwork; must stay opaque (iOS renders transparency black) |
