@@ -10,6 +10,7 @@ import {
   DNF_NOTE,
   FinishRate,
   HourlyByKind,
+  KIND_META,
   KindLegend,
   RangeHint,
   ago,
@@ -225,8 +226,14 @@ function AtAGlance({
                         ]
                       : []),
                     { label: "Games started", value: String(startedAny), total: true },
-                    // A subset of the line above, so it prints indented under it.
-                    { label: "The Special", value: String(day.startedByKind.daily), sub: true },
+                    // Subsets of the line above, so they print indented under it.
+                    // Written off KIND_META so a new kind shows up here on its own;
+                    // a kind nobody played that day is left off rather than printed as 0.
+                    ...KIND_META.filter((k) => (day.startedByKind[k.key] ?? 0) > 0).map((k) => ({
+                      label: k.key === "daily" ? "The Special" : k.label,
+                      value: String(day.startedByKind[k.key]),
+                      sub: true,
+                    })),
                     // All kinds, unlike Win rate — a leftover played through still
                     // counts as a game finished. The players who *didn't* finish
                     // are the DNF figure under the Finishing bar.
