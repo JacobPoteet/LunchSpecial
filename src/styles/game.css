@@ -1762,8 +1762,14 @@ textarea.dish-request__input {
   color: var(--ink);
 }
 
+/* --cherry, not --cherry-dark: this callout never rendered under After Dark
+   until NightIntro (src/game/NightPage.tsx) started reusing it, and cherry-dark
+   on --paper-bright there is 3.14:1 (axe, a11y CI). --cherry clears both
+   themes on that background (5.04 day, 5.50 night) — the same "cherry-dark is
+   a frame colour, not a text colour, at night" rule as the tally's last-order
+   treatment below. */
 .coach__text strong {
-  color: var(--cherry-dark);
+  color: var(--cherry);
 }
 
 .coach__legend {
