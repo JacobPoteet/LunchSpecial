@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coachBeat, coachingDone } from "./coach";
+import { coachBeat, coachingDone, nightIntroDone, nightIntroDue } from "./coach";
 
 describe("coachBeat", () => {
   it("shows nothing to a device that has played before", () => {
@@ -43,5 +43,35 @@ describe("coachingDone", () => {
   it("is done on the second guess or at the end of the round", () => {
     expect(coachingDone({ status: "playing", guesses: 2 })).toBe(true);
     expect(coachingDone({ status: "won", guesses: 1 })).toBe(true);
+  });
+});
+
+describe("nightIntroDue", () => {
+  it("shows nothing to a device that has already seen it", () => {
+    expect(nightIntroDue({ seen: true, status: "playing", guesses: 1 })).toBe(false);
+  });
+
+  it("stays off before the first guess lands, when there are no tiles yet to explain", () => {
+    expect(nightIntroDue({ seen: false, status: "playing", guesses: 0 })).toBe(false);
+  });
+
+  it("shows right after the first guess, once tiles are on the board", () => {
+    expect(nightIntroDue({ seen: false, status: "playing", guesses: 1 })).toBe(true);
+  });
+
+  it("stops after the second guess or once the round ends", () => {
+    expect(nightIntroDue({ seen: false, status: "playing", guesses: 2 })).toBe(false);
+    expect(nightIntroDue({ seen: false, status: "won", guesses: 1 })).toBe(false);
+  });
+});
+
+describe("nightIntroDone", () => {
+  it("is not done while the first guess is still the only one", () => {
+    expect(nightIntroDone({ status: "playing", guesses: 1 })).toBe(false);
+  });
+
+  it("is done on the second guess or at the end of the round", () => {
+    expect(nightIntroDone({ status: "playing", guesses: 2 })).toBe(true);
+    expect(nightIntroDone({ status: "won", guesses: 1 })).toBe(true);
   });
 });

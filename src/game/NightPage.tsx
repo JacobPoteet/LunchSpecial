@@ -29,6 +29,7 @@ import { BuildTag } from "./BuildTag";
 import { SoundToggle } from "./SoundToggle";
 import { currentSurface } from "../discord/bootstrap";
 import { coasterAnnouncement, drinkGuessAnnouncement } from "../../shared/announce";
+import { nightIntroDone, nightIntroDue } from "../../shared/coach";
 import { TICKET_MS } from "../../shared/audio";
 import { buildNightScorecard } from "../../shared/scorecard";
 import { playGuessArc, playSfx, setupAudio } from "../audio";
@@ -36,9 +37,11 @@ import { buildNightShareText, buildShareText, joinShareBlocks, shareMessage } fr
 import {
   emptyNightRound,
   getPlayerId,
+  hasSeenAfterDarkIntro,
   loadNightStats,
   loadRound,
   loadNightRound,
+  markAfterDarkIntroSeen,
   recordNightResult,
   saveNightRound,
   type NightRoundState,
@@ -114,6 +117,29 @@ function DoorSign({ onLeave }: { onLeave: () => void }) {
       </p>
       <button className="replay-btn" onClick={() => { playSfx("ui-click"); onLeave(); }}>
         ← Take me to today's Special
+      </button>
+    </div>
+  );
+}
+
+/**
+ * The bar's one-beat first visit: which two tiles changed from lunch.
+ *
+ * A player reaches the bar already knowing how to guess, so this skips the
+ * daily's order/pick beats entirely and shows once, in the same slot the
+ * daily's `read` beat uses — right after the first guess, when there are
+ * tiles on screen to point at. Same `.coach` markup and CSS the daily's
+ * CoachMark draws, so the After Dark token swap themes it for free.
+ */
+function NightIntro({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div className="coach coach--night">
+      <p className="coach__text">
+        <strong>Two tiles change after dark.</strong> Spirit and Profile stand in for Course and
+        Protein. No spirit is its own match, not a miss.
+      </p>
+      <button className="coach__dismiss" onClick={onDismiss} aria-label="Close">
+        ×
       </button>
     </div>
   );
@@ -314,6 +340,18 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   const [liveCoaster, setLiveCoaster] = useState("");
   const coasterTimer = useRef(0);
   useEffect(() => () => window.clearTimeout(coasterTimer.current), []);
+
+  // The tile-swap legend: once per device, read off the round rather than a
+  // step counter, the same rule the daily's coach marks follow.
+  const [introSeen, setIntroSeen] = useState(() => hasSeenAfterDarkIntro());
+  const showNightIntro = nightIntroDue({ seen: introSeen, status: round.status, guesses: round.guesses.length });
+  const dismissNightIntro = useCallback(() => {
+    markAfterDarkIntroSeen();
+    setIntroSeen(true);
+  }, []);
+  useEffect(() => {
+    if (!introSeen && nightIntroDone({ status: round.status, guesses: round.guesses.length })) dismissNightIntro();
+  }, [introSeen, round.status, round.guesses.length, dismissNightIntro]);
 
   const submitGuess = useCallback(
     async (drink: DrinkPoolEntry) => {
@@ -518,9 +556,15 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
           </>
         )}
 
-        {error && <p className="error-note">{error}</p>}
+        {error && (
+          <p className="error-note">
+            The bar didn't catch that order. Check your connection and try again.
+            <span className="error-note__detail">{error}</span>
+          </p>
+        )}
 
         <div className="guesses">
+          {showNightIntro && !pending && <NightIntro onDismiss={dismissNightIntro} />}
           {[
             ...(pending
               ? [<DrinkGuessRow key={pending.id} drink={pending} ingredientCount={info?.ingredientCount ?? 0} />]

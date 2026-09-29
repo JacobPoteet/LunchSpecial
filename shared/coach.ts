@@ -36,3 +36,27 @@ export function coachBeat({ coaching, status, guesses, matches }: CoachInput): C
 export function coachingDone({ status, guesses }: Pick<CoachInput, "status" | "guesses">): boolean {
   return status !== "playing" || guesses >= 2;
 }
+
+/**
+ * After Dark's own first visit: one beat, not three, since a player only
+ * reaches the bar after already learning to guess at lunch. The only new
+ * thing is which two tiles changed, and the moment that fact matters is the
+ * moment tiles first appear — right after guess 1, same as the daily's `read`
+ * beat. See src/game/NightPage.tsx for the piece and src/game/storage.ts for
+ * the seen key.
+ */
+export interface NightIntroInput {
+  /** Whether this device has ever dismissed or outlived the legend before. */
+  seen: boolean;
+  status: string;
+  guesses: number;
+}
+
+export function nightIntroDue({ seen, status, guesses }: NightIntroInput): boolean {
+  return !seen && status === "playing" && guesses === 1;
+}
+
+/** True once the legend has done its job and the seen key should be written. */
+export function nightIntroDone({ status, guesses }: Pick<NightIntroInput, "status" | "guesses">): boolean {
+  return status !== "playing" || guesses >= 2;
+}
