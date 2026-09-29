@@ -504,11 +504,19 @@ function ResultModal({
       {asDaily && (
         <>
           <StatsPanel stats={stats} today={today} highlight={won ? round.guesses.length : undefined} />
-          {/* The one line on the check about tomorrow rather than today. The
+          {/* One line, not two: the streak (about tomorrow, not today — the
               stats were recorded before this rendered, so a win's streak
-              already counts this round (GitHub #185). */}
-          <p className="receipt__streak">{checkStreakLine({ ...stats, today, won })}</p>
-          {tally && <p className="receipt__tally">{tally}</p>}
+              already counts this round, GitHub #185) and the tally (about the
+              room) used to stack as separate paragraphs, which is two lines of
+              fine print doing the job of one on the game's tallest card. The
+              streak line's own full stop is dropped only here, at the join —
+              checkStreakLine's tested string is untouched — since a period
+              right before a middot reads as two sentences colliding. */}
+          <p className="receipt__streak">
+            {tally
+              ? `${checkStreakLine({ ...stats, today, won }).replace(/\.$/, "")} · ${tally}`
+              : checkStreakLine({ ...stats, today, won })}
+          </p>
         </>
       )}
       {reveal?.isFanSubmission && <FanStamp name={reveal.name} kind="dish" />}
@@ -1026,13 +1034,6 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
             )}
           </p>
           <div className="menu-card__toolbar">
-            <button
-              className="icon-btn icon-btn--solo"
-              aria-label="How to play"
-              onClick={() => { playSfx("ui-click"); setShowHowTo(true); }}
-            >
-              <Icon name="help" />
-            </button>
             <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowStats(true); }}>
               <Icon name="stats" /> My stats
             </button>
@@ -1057,7 +1058,6 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
                 <Icon name="glass" /> After Dark
               </button>
             )}
-            <SoundToggle />
           </div>
         </div>
 
@@ -1108,7 +1108,12 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           </>
         )}
 
-        {error && <p className="error-note">{error}</p>}
+        {error && (
+          <p className="error-note">
+            The kitchen didn't catch that order. Check your connection and try again.
+            <span className="error-note__detail">{error}</span>
+          </p>
+        )}
 
         <div className="guesses">
           {coachBeat === "read" && !pending && <CoachMark beat="read" onDismiss={endCoaching} />}
@@ -1136,6 +1141,21 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         <footer className="menu-card__thanks">
           <p className="menu-card__thanks-script">Best food in town!</p>
           <p className="menu-card__thanks-fine">No substitutions on the Special · Ask about our pie</p>
+          {/* How-to and Sound moved off the main toolbar: neither is
+              time-sensitive the way Leftovers, Your check or After Dark are,
+              and the toolbar was showing up to six controls on a 375px card
+              (well past a comfortable glance). This is the reference-and-prefs
+              corner, not navigation. */}
+          <div className="menu-card__utility">
+            <button
+              className="icon-btn icon-btn--solo"
+              aria-label="How to play"
+              onClick={() => { playSfx("ui-click"); setShowHowTo(true); }}
+            >
+              <Icon name="help" />
+            </button>
+            <SoundToggle />
+          </div>
         </footer>
       </main>
 

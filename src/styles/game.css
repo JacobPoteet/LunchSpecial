@@ -188,12 +188,24 @@
   justify-content: center;
   gap: 6px;
   margin-top: 10px;
-  /* A finished daily shows five controls (how-to, stats, archive, check, mute)
-     and at 375px they no longer fit on one line. Wrapping between the pills is
-     the graceful version of that; without it the row stays put and the labels
-     break *inside* their pills instead, so "Your check" becomes two lines in
-     a rounded box and reads as broken rather than as a second row. */
+  /* A finished daily shows four controls (stats, archive, check, after dark)
+     and at 375px that's already a tight fit. Wrapping between the pills is
+     the graceful version of running out of room: without it the row stays put
+     and the labels break *inside* their pills instead, so "Your check"
+     becomes two lines in a rounded box and reads as broken rather than as a
+     second row. How-to and Sound moved to .menu-card__utility, in the card's
+     own footer — neither is time-sensitive navigation. */
   flex-wrap: wrap;
+}
+
+/* The reference-and-prefs corner: How-to and Sound, neither wanted the moment
+   you open the board. Same pill as the toolbar's, so it reads as the same
+   family of control and not a second design. */
+.menu-card__utility {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
 }
 
 /* The toolbar's tabs. Ink, not cherry: they are the card's chrome, and cherry
@@ -509,6 +521,31 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
+}
+
+/* The last order: the one guess a whole round comes down to, staged the way
+   the win and loss ends already are. The remaining hole rings the same way
+   the coach marks' ring does, and the text goes cherry and bold — colour is
+   the fast channel, "Last order" is what actually carries the fact.
+   --cherry, not --cherry-dark: measured on --paper, cherry-dark clears day
+   (7.95) but not night (3.45, night's --cherry-dark being the old daytime
+   --cherry). --cherry itself clears both (4.67 day, 6.05 night) — the same
+   "cherry-dark is a frame colour, not a text colour, at night" rule the After
+   Dark hover fix already established. */
+.tally--final .tally__text {
+  color: var(--cherry);
+  font-weight: 700;
+}
+
+.tally--final .tally__hole:not(.tally__hole--punched) {
+  border-color: var(--cherry);
+  animation: tally-final-ring 1.8s ease-out infinite;
+}
+
+@keyframes tally-final-ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cherry) 55%, transparent); }
+  70% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--cherry) 0%, transparent); }
+  100% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--cherry) 0%, transparent); }
 }
 
 /* ---- guess rows ---- */
@@ -1597,20 +1634,16 @@ textarea.dish-request__input {
 }
 
 /* The reason to come back, under the stats: one quiet centred line in the
-   receipt's fine print, never louder than the verdict. */
-.receipt__streak,
-.receipt__tally {
+   receipt's fine print, never louder than the verdict. The streak (about you)
+   and the tally (about the room) used to be two stacked paragraphs; they're
+   one sentence joined by a middot now, wrapping like any other line of text
+   instead of always spending two fixed lines of the check's height. */
+.receipt__streak {
   text-align: center;
   color: var(--ink-soft);
   font-size: 0.85rem;
   line-height: 1.5;
   margin: 0 0 12px;
-}
-
-/* The two lines stack tight when both print: the streak is about you and the
-   tally about the room, and a 12px gap between them read as two sections. */
-.receipt__streak + .receipt__tally {
-  margin-top: -8px;
 }
 
 .dist__row {
@@ -1729,8 +1762,14 @@ textarea.dish-request__input {
   color: var(--ink);
 }
 
+/* --cherry, not --cherry-dark: this callout never rendered under After Dark
+   until NightIntro (src/game/NightPage.tsx) started reusing it, and cherry-dark
+   on --paper-bright there is 3.14:1 (axe, a11y CI). --cherry clears both
+   themes on that background (5.04 day, 5.50 night) — the same "cherry-dark is
+   a frame colour, not a text colour, at night" rule as the tally's last-order
+   treatment below. */
 .coach__text strong {
-  color: var(--cherry-dark);
+  color: var(--cherry);
 }
 
 .coach__legend {
@@ -1817,12 +1856,29 @@ textarea.dish-request__input {
   animation-delay: calc(var(--tile-flip-start) + 3 * var(--tile-flip-step) + var(--tile-flip-dur));
 }
 
+/* After Dark's one-beat legend waits on the same arithmetic — it's explaining
+   the same tiles, just Spirit and Profile instead of Course and Protein. */
+.coach--night {
+  animation-delay: calc(var(--tile-flip-start) + 3 * var(--tile-flip-step) + var(--tile-flip-dur));
+}
+
 .error-note {
   background: var(--cherry);
   color: var(--on-cherry);
   border-radius: var(--radius);
   padding: 10px 14px;
   text-align: center;
+}
+
+/* The raw failure text, same job as .closed__detail: the sentence above
+   already says what happened in the player's terms, this is only for the one
+   person in a hundred who'll paste it into a bug report. Inherits --on-cherry
+   rather than dimming it — a smaller size is enough separation, and tinting
+   text on a colour fill is a contrast cut most of the time it's tried. */
+.error-note__detail {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.82rem;
 }
 
 .preview-banner {
@@ -2462,7 +2518,6 @@ textarea.dish-request__input {
 .modal--receipt .story { animation: receipt-line-in 0.3s ease 0.42s both; }
 .modal--receipt .stats-grid { animation: receipt-line-in 0.3s ease 0.48s both; }
 .modal--receipt .receipt__streak { animation: receipt-line-in 0.3s ease 0.52s both; }
-.modal--receipt .receipt__tally { animation: receipt-line-in 0.3s ease 0.55s both; }
 /* The credit is stamped, not printed: it lands oversized and settles, arriving
    last so the eye is already at the bottom of the check when the ask appears.
    Its own keyframe rather than receipt-line-in — the press is a scale, not a
@@ -3201,7 +3256,6 @@ textarea.dish-request__input {
   .modal--receipt .story,
   .modal--receipt .stats-grid,
   .modal--receipt .receipt__streak,
-  .modal--receipt .receipt__tally,
   .modal--receipt .fan-stamp,
   .modal--receipt .modal__footer,
   .modal--receipt .dist__bar,
@@ -3236,7 +3290,9 @@ textarea.dish-request__input {
   .coach,
   .coach-spotlight,
   .guess-input--coach-order input:not(:focus),
-  .guess-input--coach-pick .guess-input__submit:not(:disabled) {
+  .guess-input--coach-pick .guess-input__submit:not(:disabled),
+  /* The last order keeps its colour and copy; only the ring stops pulsing. */
+  .tally--final .tally__hole:not(.tally__hole--punched) {
     animation: none !important;
   }
 
@@ -3245,6 +3301,10 @@ textarea.dish-request__input {
   .guess-input--coach-order input:not(:focus),
   .guess-input--coach-pick .guess-input__submit:not(:disabled) {
     box-shadow: 0 0 0 4px rgba(232, 165, 58, 0.85);
+  }
+
+  .tally--final .tally__hole:not(.tally__hole--punched) {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--cherry) 55%, transparent);
   }
 
   /* The band keeps its flare, it just stops breathing: the halo and the tube

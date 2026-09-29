@@ -382,6 +382,7 @@ export function isReturningPlayer(): boolean {
 
 const NIGHT_STATE_KEY = "lunch-special:nightcap";
 const NIGHT_STATS_KEY = "lunch-special:night-stats";
+const NIGHT_INTRO_KEY = "lunch-special:afterdark-seen";
 
 export interface NightRoundState {
   /** The local night key this round belongs to. */
@@ -489,4 +490,21 @@ export function recordNightResult(night: string, won: boolean, guessCount: numbe
 /** Has this device already settled its tab tonight? */
 export function nightRoundFinished(night: string): boolean {
   return loadNightRound(night).status !== "playing";
+}
+
+// Written when the tile-swap legend (shared/coach.ts's nightIntroDue) has done
+// its job — dismissed, or outlived by a second guess or the round ending. Its
+// own key, never HOWTO_KEY: a player can know the daily by heart and still
+// have never seen a Nightcap.
+export function hasSeenAfterDarkIntro(): boolean {
+  return localStorage.getItem(NIGHT_INTRO_KEY) === "1";
+}
+
+export function markAfterDarkIntroSeen(): void {
+  try {
+    localStorage.setItem(NIGHT_INTRO_KEY, "1");
+  } catch {
+    // Storage blocked — the legend may show again next Nightcap, which is a
+    // better failure than crashing the board over it.
+  }
 }

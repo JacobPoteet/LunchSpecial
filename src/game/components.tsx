@@ -378,19 +378,24 @@ export function StoryDetails({ clues, noun }: { clues: string[]; noun: "clues" |
  * The guess budget as a punch card: a hole per order, punched as each one goes
  * in. The holes are for the eye and hidden from a screen reader; the words
  * beside them say the same thing. Shared by the diner (six) and the bar (four).
+ *
+ * The last hole gets its own treatment: this genre's whole tension sits on the
+ * final guess, and "1 guess left" used to print in the same weight as "5 guesses
+ * left" — the one beat in the round's arc that wasn't staged at all. Text
+ * carries the fact on its own ("Last order"), so the colour is the fast channel
+ * and never the only one.
  */
 export function PunchCard({ used, total }: { used: number; total: number }) {
   const left = total - used;
+  const final = left === 1;
   return (
-    <p className="tally">
+    <p className={final ? "tally tally--final" : "tally"}>
       <span className="tally__holes" aria-hidden="true">
         {Array.from({ length: total }, (_, i) => (
           <span key={i} className={i < used ? "tally__hole tally__hole--punched" : "tally__hole"} />
         ))}
       </span>
-      <span className="tally__text">
-        {left} {left === 1 ? "guess" : "guesses"} left
-      </span>
+      <span className="tally__text">{final ? "Last order" : `${left} guesses left`}</span>
     </p>
   );
 }

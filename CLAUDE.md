@@ -610,6 +610,8 @@ Seven tabs, each holding one **question** rather than one data source. **Today**
 - **The coach marks are scanned.** `npm run a11y`'s first three states are the spotlight, the dismissed spotlight and the legend callout. `.chip--hit/near/miss` are the legend's chips, classes rather than inline hexes so the night palette reaches them.
 - Reduced motion: the dim and the callouts appear without fading, and the ring holds at its brightest instead of pulsing.
 
+**After Dark has its own one-beat version**, `nightIntroDue`/`nightIntroDone` beside the daily's fold in `shared/coach.ts`, piece in `NightPage.tsx`. A player reaches the bar already knowing how to guess, so there's no order/pick beat — just one legend, shown once (`lunch-special:afterdark-seen`) right after the first guess, in the same slot the daily's `read` beat uses: which two tiles changed (Spirit and Profile stand in for Course and Protein) and that a spiritless drink's tile is a real match, not missing data.
+
 ### Announcements
 
 Notices written in the admin, shown as a modal on **Today's Special only** — never on a Leftover, Chef's Choice, preview or playtest, which are side doors. Ordering: a first-timer finishes the coached round first, then eligible notices; the auto-opened check for an already-finished round also goes first. Multiple live notices queue, oldest `start_date` first, one card at a time.
