@@ -304,6 +304,30 @@
 
 .dash-note { color: var(--ink-soft); margin: 0; font-size: 0.9rem; }
 
+/* Spoiler veil (Veil.tsx). The text behind the blur is same-shaped filler, not the
+   answer. The eye is an ordinary ghost button, icon only. */
+.veil {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  max-width: 100%;
+}
+
+.veil__name { min-width: 0; overflow-wrap: anywhere; }
+
+.veil__text {
+  filter: blur(9px);
+  user-select: none;
+  pointer-events: none;
+}
+
+.veil__eye {
+  padding: 4px 9px;
+  line-height: 1;
+}
+.veil__eye .icon { font-size: 1.2rem; }
+
 /* Splits a panel into named blocks (Today / All time) without promoting either
    to its own card — they're two reads on the same thing. */
 .dash-subhead {
