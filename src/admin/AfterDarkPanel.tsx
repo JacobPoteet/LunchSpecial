@@ -12,6 +12,7 @@ import { DRINK_MAX_GUESSES, NIGHT_EPOCH_DATE } from "../../shared/types";
 import { BAR_CLOSE_HOUR, BAR_OPEN_HOUR } from "../../shared/night";
 import { rangeLabel, type Rate } from "../../shared/sample";
 import * as api from "./api";
+import { Veiled, useVeil } from "./Veil";
 import { hourLabel, RangeHint, SAMPLE_NOTE, shortDate, type SurfaceFilter } from "./analyticsUi";
 
 /**
@@ -208,6 +209,7 @@ function DrinkRow({ row }: { row: NightDrinkRow }) {
 export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) {
   const [data, setData] = useState<AfterDarkReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const tomorrowVeil = useVeil();
 
   useEffect(() => {
     let live = true;
@@ -245,7 +247,11 @@ export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) 
           <div>
             <p className="night-board__label">Tomorrow</p>
             <p className="night-board__drink">
-              {board.tomorrow.drinkName ?? <span className="dash-note">unbooked — runs on the fallback pour</span>}
+              {board.tomorrow.drinkName ? (
+                <Veiled veil={tomorrowVeil} text={board.tomorrow.drinkName} what="tomorrow's pour" />
+              ) : (
+                <span className="dash-note">unbooked — runs on the fallback pour</span>
+              )}
             </p>
           </div>
         </div>

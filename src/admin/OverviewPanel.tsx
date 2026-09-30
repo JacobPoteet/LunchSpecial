@@ -27,6 +27,7 @@ import {
 } from "./analyticsUi";
 
 import { Icon } from "../game/Icon";
+import { Veiled, useVeil } from "./Veil";
 /** Live countdown to the next midnight-ET rollover, when today's Special switches. */
 function SwitchCountdown() {
   const [ms, setMs] = useState(() => msUntilGameMidnight());
@@ -501,6 +502,11 @@ function TonightsNightcap({ tonight }: { tonight: NightEntry }) {
   );
 }
 
+function WarningName({ name }: { name: string }) {
+  const veil = useVeil();
+  return <Veiled veil={veil} text={name} what="this dish's name" />;
+}
+
 function TomorrowsSpecial({
   tomorrow,
   onNavigate,
@@ -515,6 +521,7 @@ function TomorrowsSpecial({
   const [rolling, setRolling] = useState(false);
   const [shuffleError, setShuffleError] = useState<string | null>(null);
   const [remaining, setRemaining] = useState<number | null>(null);
+  const veil = useVeil();
 
   async function shuffle() {
     setRolling(true);
@@ -522,6 +529,8 @@ function TomorrowsSpecial({
     try {
       const picked = await api.shuffleSchedule(tomorrow.date);
       setRemaining(picked.remaining);
+      // You asked to see what came up, so a roll lifts the veil.
+      veil.show();
       onShuffled({ date: picked.date, dishId: picked.dishId, dishName: picked.dishName });
     } catch (e) {
       setShuffleError((e as Error).message);
@@ -553,7 +562,9 @@ function TomorrowsSpecial({
       <h2>Tomorrow's Special</h2>
       {tomorrow.dishName ? (
         <>
-          <p className="dash-big">{tomorrow.dishName}</p>
+          <p className="dash-big">
+            <Veiled veil={veil} text={tomorrow.dishName} what="tomorrow's Special" />
+          </p>
           <p className="dash-note">Serving on {tomorrow.date}</p>
           {roll}
           <div className="btn-row">
@@ -721,7 +732,16 @@ export default function OverviewPanel({
             {data.warnings.map((w) => (
               <li key={`${w.kind}-${w.dishId}`}>
                 <span>
-                  <strong>{w.dishName}</strong> —{" "}
+                  {/* Only tomorrow's dish is a spoiler we can place; the rest of the
+                      catalogue's names are not news. */}
+                  <strong>
+                    {w.dishId === data.tomorrow.dishId ? (
+                      <WarningName name={w.dishName} />
+                    ) : (
+                      w.dishName
+                    )}
+                  </strong>{" "}
+                  —{" "}
                   {w.kind === "missing-clues" ? "clues incomplete" : "too few ingredients"} ({w.detail})
                 </span>
                 <button className="btn btn--ghost" onClick={() => onOpenDish(w.dishId)}>
