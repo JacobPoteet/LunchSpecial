@@ -119,13 +119,29 @@ export interface AttributeFeedback {
   protein: { value: Protein; match: MatchLevel };
 }
 
+/**
+ * One guess ingredient that is close to the Special's: a different ingredient
+ * of the same family (see shared/families.ts). Names the family and never the
+ * Special's own ingredient, so a yellow chip is a hint and not a leak.
+ */
+export interface NearIngredient {
+  ingredient: string;
+  family: string;
+}
+
 export interface GuessFeedback {
   correct: boolean;
   dish: DishSummary;
   /** Guess ingredients also found in the Special. */
   matchedIngredients: string[];
-  /** Guess ingredients not in the Special. */
+  /** Guess ingredients not in the Special. A close one is still listed here: this is the exact complement of matched. */
   unmatchedIngredients: string[];
+  /**
+   * The unmatched ones that are a cousin of something in the Special. Optional
+   * only because a round saved before families shipped has none, and reads as
+   * "no cousins", the same posture as `region` on the country tile.
+   */
+  nearIngredients?: NearIngredient[];
   attributes: AttributeFeedback;
   /** Revealed after an incorrect guess (guesses 1–5). */
   clue?: { index: number; text: string };

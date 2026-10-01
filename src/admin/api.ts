@@ -24,6 +24,7 @@ import type {
   IssueBoard,
   IssueInput,
   MenuMix,
+  Pantry,
   NightEntry,
   ScheduleEntry,
   Surface,
@@ -120,6 +121,7 @@ export const deleteDeviceData = (playerId: string) =>
   request<DeviceDataDeleted>(`/device-data?player=${encodeURIComponent(playerId)}`, { method: "DELETE" });
 /** Menu composition (region/course/protein/temperature ratios). No filters — catalogue data. */
 export const getMenuMix = () => request<MenuMix>("/menu-mix");
+export const getPantry = () => request<Pantry>("/pantry");
 /**
  * How each dish actually played — the other half of the Menu tab. Player data,
  * so unlike the mix it takes the surface filter.

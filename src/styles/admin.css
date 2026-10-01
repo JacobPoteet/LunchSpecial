@@ -2149,6 +2149,7 @@
 .field textarea { resize: vertical; min-height: 52px; line-height: 1.4; }
 
 .field-hint { font-size: 0.78rem; color: var(--ink-soft); margin: 3px 0 0; font-style: italic; }
+.field-hint--warn { color: var(--mustard-ink, #8a5a12); font-style: normal; }
 
 /* The clue budget, live under each beat's textarea. Tabular figures so the
    number doesn't jiggle as you type, and the colour only appears once the
@@ -3603,3 +3604,36 @@
 .arrivals__pct { font-weight: 700; }
 .arrivals__na { color: var(--ink-soft); font-size: 0.8rem; }
 .arrivals .rate-range { display: inline; margin-left: 4px; }
+
+/* ---- ingredient families (Menu tab) ----
+   One hue for every dot: the dashboard's four colour meanings are taken, and a
+   family's identity is its ring and its label. Selection is ink, a ring nobody
+   has placed yet is dashed. No transitions, like the rest of this file. */
+.iw-map { border: 1px solid var(--paper-edge); border-radius: 6px; background: var(--paper); padding: 6px; }
+.iw-map svg { display: block; width: 100%; height: auto; max-height: 760px; }
+.iw-ring { fill: var(--paper); fill-opacity: 0.55; stroke: var(--ink-soft); stroke-width: 1.2; cursor: pointer; }
+.iw-ring--odd { stroke-dasharray: 5 4; fill-opacity: 0.2; }
+.iw-ring--unplaced { stroke: var(--cherry); stroke-width: 2; }
+.iw-ring--on { stroke: var(--ink); stroke-width: 2.5; }
+.iw-dot { fill: var(--teal); fill-opacity: 0.85; cursor: pointer; }
+.iw-dot--odd { fill: var(--miss); }
+.iw--dim { opacity: 0.2; }
+.iw-label { fill: var(--ink); pointer-events: none; font-family: var(--font-gothic, inherit); letter-spacing: 0.05em; text-transform: uppercase; paint-order: stroke; stroke: var(--paper); stroke-width: 3.5px; stroke-linejoin: round; }
+.iw-detail { margin: 12px 0 8px; max-width: 74ch; min-height: 3.2em; }
+.iw-detail p { margin: 0 0 6px; }
+.iw-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.iw-chip { font: inherit; font-size: 0.8rem; font-weight: 600; padding: 3px 10px; border: 1.5px solid var(--ink-soft); background: var(--paper); color: var(--ink); border-radius: 999px; cursor: pointer; }
+.iw-chip--on { background: var(--ink); color: var(--paper); }
+.iw-chip--warn { border-color: var(--cherry); color: var(--cherry); }
+.iw-chip--warn.iw-chip--on { background: var(--cherry); color: var(--on-cherry); }
+.iw-warn { color: var(--ink); }
+.iw-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.iw-pair label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--ink-soft); min-width: 0; }
+.iw-pair input { font: inherit; font-size: 0.95rem; padding: 7px 9px; border: 1.5px solid var(--ink-soft); border-radius: 6px; background: #fff; color: var(--ink); min-width: 0; width: 100%; }
+.iw-result p { margin: 0 0 8px; }
+.iw-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.iw-tag { font-size: 0.82rem; border-radius: 999px; padding: 3px 11px; border: 1px solid var(--miss); color: var(--ink-soft); background: transparent; }
+.iw-tag small { font-size: 0.72rem; margin-left: 4px; opacity: 0.85; }
+.iw-tag--hit { background: var(--hit-soft); border-color: var(--hit); color: var(--hit-ink); font-weight: 700; }
+.iw-tag--near { background: var(--near-soft); border: 1px dashed var(--near); color: var(--ink); font-weight: 600; }
+@media (max-width: 560px) { .iw-pair { grid-template-columns: 1fr; } }

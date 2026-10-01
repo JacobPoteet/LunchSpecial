@@ -18,6 +18,7 @@ import { COASTER_BEATS } from "../../shared/clues";
 import { addDays, gameToday } from "../../shared/time";
 import type { RequestDraft } from "./AdminApp";
 import * as api from "./api";
+import UnplacedHint from "./UnplacedHint";
 import { shortDate } from "./analyticsUi";
 
 import { Icon } from "../game/Icon";
@@ -508,6 +509,7 @@ function DrinkEditor({
                 </ul>
               )}
             </div>
+            <UnplacedHint ingredients={form.ingredients} />
             <p className="field-hint">
               The list is pooled with the kitchen's, because a bar and a kitchen share a pantry. Two
               spellings of one ingredient means the feedback under-reports for everything holding

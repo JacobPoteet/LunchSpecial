@@ -2,7 +2,15 @@
 // autocomplete input, modal shell, countdown.
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import type { DishSummary, DrinkGuessFeedback, DrinkSummary, GuessFeedback, MatchLevel, Region } from "../../shared/types";
+import type {
+  DishSummary,
+  DrinkGuessFeedback,
+  DrinkSummary,
+  GuessFeedback,
+  MatchLevel,
+  NearIngredient,
+  Region,
+} from "../../shared/types";
 import { REGION_LABELS } from "../../shared/types";
 import { MATCH_MARKS, MATCH_WORDS } from "../../shared/announce";
 import { gameToday, hms, msUntilGameMidnight } from "../../shared/time";
@@ -256,6 +264,57 @@ function AttrTile({
 
 const ATTR_LABELS = ["Country", "Course", "Served", "Protein"];
 
+/** What both boards' ingredient lines read off a guess. */
+type IngredientSides = {
+  matchedIngredients: string[];
+  unmatchedIngredients: string[];
+  nearIngredients?: NearIngredient[];
+};
+
+/** " · 2 close" beside the count, and nothing when no ingredient is a cousin. */
+function CloseCount({ guess }: { guess: IngredientSides }) {
+  const n = guess.nearIngredients?.length ?? 0;
+  return n > 0 ? <> · {n} close</> : null;
+}
+
+/**
+ * One guess's ingredient chips, in three runs: the matches, then the ones close
+ * to something in the Special (a different ingredient of the same family, see
+ * shared/families.ts), then the misses. Close chips lead with a dashed border and
+ * a `≈`, so they never rest on yellow alone, and the family rides in a hidden
+ * sentence because `title` does not reach touch or most screen readers.
+ *
+ * Matched chips pop first and the rest follow: `--i` counts through all three
+ * runs, so the stagger stays one continuous sweep.
+ */
+function IngredientChips({ guess }: { guess: IngredientSides }) {
+  const families = new Map((guess.nearIngredients ?? []).map((n) => [n.ingredient, n.family]));
+  const close = guess.unmatchedIngredients.filter((i) => families.has(i));
+  const rest = guess.unmatchedIngredients.filter((i) => !families.has(i));
+  const at = (i: number) => ({ "--i": i }) as React.CSSProperties;
+  return (
+    <div className="chips">
+      {guess.matchedIngredients.map((ing, i) => (
+        <span key={ing} className="chip chip--match" style={at(i)}>
+          ✓ {ing}
+        </span>
+      ))}
+      {close.map((ing, i) => (
+        <span key={ing} className="chip chip--close" style={at(guess.matchedIngredients.length + i)}>
+          <span aria-hidden="true">≈ </span>
+          {ing}
+          <span className="sr-only">, close: something in the Special is in the {families.get(ing)} family</span>
+        </span>
+      ))}
+      {rest.map((ing, i) => (
+        <span key={ing} className="chip chip--matchless" style={at(guess.matchedIngredients.length + close.length + i)}>
+          {ing}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function GuessRow({
   guess,
   dish,
@@ -300,6 +359,7 @@ export function GuessRow({
         <span className="leader" aria-hidden="true" />
         <span className="guess-row__count">
           {guess.matchedIngredients.length}/{ingredientCount} ingredients
+          <CloseCount guess={guess} />
         </span>
       </p>
       <div className="attr-tiles">
@@ -308,24 +368,7 @@ export function GuessRow({
         <AttrTile label="Served" value={a.temperature.value} match={a.temperature.match} index={2} />
         <AttrTile label="Protein" value={a.protein.value} match={a.protein.match} index={3} />
       </div>
-      {/* Matched chips pop first, then the misses — one continuous stagger
-          across both lists, so `--i` counts through matched and keeps going. */}
-      <div className="chips">
-        {guess.matchedIngredients.map((ing, i) => (
-          <span key={ing} className="chip chip--match" style={{ "--i": i } as React.CSSProperties}>
-            ✓ {ing}
-          </span>
-        ))}
-        {guess.unmatchedIngredients.map((ing, i) => (
-          <span
-            key={ing}
-            className="chip chip--matchless"
-            style={{ "--i": guess.matchedIngredients.length + i } as React.CSSProperties}
-          >
-            {ing}
-          </span>
-        ))}
-      </div>
+      <IngredientChips guess={guess} />
     </div>
   );
 }
@@ -738,6 +781,7 @@ export function DrinkGuessRow({
         <span className="leader" aria-hidden="true" />
         <span className="guess-row__count">
           {guess.matchedIngredients.length}/{ingredientCount} ingredients
+          <CloseCount guess={guess} />
         </span>
       </p>
       <div className="attr-tiles">
@@ -754,22 +798,7 @@ export function DrinkGuessRow({
         <AttrTile label="Served" value={a.temperature.value} match={a.temperature.match} index={2} />
         <AttrTile label="Profile" value={a.profile.value} match={a.profile.match} index={3} />
       </div>
-      <div className="chips">
-        {guess.matchedIngredients.map((ing, i) => (
-          <span key={ing} className="chip chip--match" style={{ "--i": i } as React.CSSProperties}>
-            ✓ {ing}
-          </span>
-        ))}
-        {guess.unmatchedIngredients.map((ing, i) => (
-          <span
-            key={ing}
-            className="chip chip--matchless"
-            style={{ "--i": guess.matchedIngredients.length + i } as React.CSSProperties}
-          >
-            {ing}
-          </span>
-        ))}
-      </div>
+      <IngredientChips guess={guess} />
     </div>
   );
 }

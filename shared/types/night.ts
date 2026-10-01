@@ -2,7 +2,7 @@
 // its feedback, and the admin's After Dark tab. Deliberately parallel to the
 // dish shapes rather than shared with them; see the comment on DrinkSummary.
 
-import type { Temperature, Region, MatchLevel, RoundKind } from "./game";
+import type { Temperature, Region, MatchLevel, RoundKind, NearIngredient } from "./game";
 import { MAX_GUESSES } from "./game";
 import type { Rate } from "../sample";
 
@@ -144,6 +144,8 @@ export interface DrinkGuessFeedback {
   drink: DrinkSummary;
   matchedIngredients: string[];
   unmatchedIngredients: string[];
+  /** As on a dish: the unmatched ones with a cousin in the pour. Optional for rounds saved before families. */
+  nearIngredients?: NearIngredient[];
   attributes: DrinkAttributeFeedback;
   /** Revealed after an incorrect guess (guesses 1–3). */
   coaster?: { index: number; text: string };

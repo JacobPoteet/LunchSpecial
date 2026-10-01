@@ -4,6 +4,7 @@ import { COURSES, PROTEINS, REGIONS, TEMPERATURES } from "../../shared/types";
 import { ClueTicket, GuessRow, Modal } from "../game/components";
 import { CLUE_BEATS } from "../../shared/clues";
 import * as api from "./api";
+import UnplacedHint from "./UnplacedHint";
 
 // The beat headlines and budgets are the only guidance anyone writing a clue
 // in /admin ever sees. They come from shared/clues.ts, which is the same table
@@ -314,6 +315,7 @@ export default function DishEditor({
           <div className="field">
             <label>Ingredients ({form.ingredients.length} — need at least 3)</label>
             <TagInput value={form.ingredients} vocabulary={vocabulary} onChange={(v) => set("ingredients", v)} />
+            <UnplacedHint ingredients={form.ingredients} />
             <p className="field-hint">
               Stick to the pantry's canonical names ("tomato", not "tomatoes") so matches line up across dishes.
             </p>

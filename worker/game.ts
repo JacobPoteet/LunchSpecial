@@ -3,6 +3,7 @@
 import type { AttributeFeedback, Course, GuessFeedback, Protein, Region, Temperature } from "../shared/types";
 import { EPOCH_DATE } from "../shared/types";
 import { gameToday } from "../shared/time";
+import { nearIngredients } from "../shared/families";
 
 export interface DishRecord {
   id: number;
@@ -41,6 +42,7 @@ export function computeFeedback(guess: DishRecord, target: DishRecord): Omit<Gue
     dish: { id: guess.id, name: guess.name },
     matchedIngredients,
     unmatchedIngredients,
+    nearIngredients: nearIngredients(guess.ingredients, target.ingredients),
     attributes: compareAttributes(guess, target),
   };
 }

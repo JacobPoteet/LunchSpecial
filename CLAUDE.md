@@ -33,6 +33,8 @@ npm run db:export:remote    # dump PROD D1 → backups/prod-full-<stamp>.sql (gi
 npm run db:export:catalog   # same, but dishes+clues+schedule only — no player data, safe to diff against seed.sql
 npm run db:export           # local DB, all tables
 npm run cf-typegen   # regenerate worker-configuration.d.ts after wrangler.jsonc changes
+npm run docs:web      # rebuild docs/ingredient-web.js (the project page's ingredient web) from the repo's own
+                     # catalogue. Maintainer one-off, output committed, CI never runs it. See "Ingredient families"
 npm run assets       # rebuild every generated image: icons / press+Discord art / ad key art.
                      # Maintainer one-off — outputs are committed, CI never runs it.
                      # One target: `npm run assets -- press`. See ASSETS.md
@@ -282,7 +284,7 @@ The clock and the door are both awkward to reach on purpose, so there are four w
 
 ```
 wrangler.jsonc        assets SPA fallback + run_worker_first:["/api/*"] + D1 binding "DB"
-migrations/           0001_init.sql = dishes/clues/schedule. Additive only. 0045 is the latest
+migrations/           0001_init.sql = dishes/clues/schedule. Additive only. 0047 is the latest
 seed/seed.sql         canonical dish AND drink catalogues + a 30-day schedule from 2026-07-17 and a
                       30-night block from NIGHT_EPOCH_DATE. Idempotent (DELETEs first)
 shared/types.ts       re-exports shared/types/*, one file per concern; import "../shared/types" as before
@@ -344,6 +346,9 @@ shared/sample.ts      Wilson intervals, SMALL_SAMPLE_MIN, weighted median/percen
 shared/attribution.ts utm_source normaliser + SOURCE_DIRECT
 shared/experiment.ts  before/after comparison — windowing, pooled rates, verdicts, "how many more days"
 shared/dishfilter.ts  admin dish-list query — facet matching, facet counts, rest days, sorts, normalize
+shared/families.ts    ingredient families: FAMILIES / STAPLES / STANDALONE, `nearIngredients` (the amber chip) and
+                      `nearRate`. Imports only types, so plain node can run it. See "Ingredient families"
+shared/pack.ts        circle packing for the ingredient web (dashboard + project page). Pure, imports nothing
 shared/search.ts      name search — accent folding and prefix-before-contains ranking, one copy for
                       the order bar and the schedule picker
 shared/schedule.ts    the admin specials board — schedule window × catalogue → rows with dish meta,
@@ -385,7 +390,7 @@ worker/routes/admin/      /api/admin/*, one sub-app per concern, mounted by inde
                           shuffle, preview), requests.ts, announcements.ts, analytics.ts (dashboard,
                           menu-mix, analytics, audience, dish-report), experiments.ts, activity.ts (recent-rounds,
                           device-data), issues.ts, bar.ts (drinks, nights, drink-preview, showcase,
-                          night-report). shared.ts holds slugify + surfaceClause, the two helpers more
+                          night-report), pantry.ts (every active item's ingredients, future names withheld). shared.ts holds slugify + surfaceClause, the two helpers more
                           than one file reads
 
 src/audio/            engine.ts = the Web Audio graph (two buses, buffer cache, gesture unlock, audio-clock
@@ -414,7 +419,7 @@ src/admin/            BarView (drink list + editor + nightly board), AfterDarkPa
 src/admin/            AdminApp (session+nav), api.ts, IssueComposer, Dashboard (7 tabs), OverviewPanel, DishReportPanel,
                       SpecialDayPanel (Menu's day slice + difficulty, the day picker's home),
                       AudiencePanels (weekly KPI, weekly chart, cohort grid, first-visit funnel),
-                      MenuMixPanel, PlayersPanel, TrendsPanel, ExperimentsPanel, ActivityPanel
+                      MenuMixPanel, IngredientWebPanel (the Menu tab's family map), UnplacedHint (the editors' warning), PlayersPanel, TrendsPanel, ExperimentsPanel, ActivityPanel
                       (+ MyDataPanel), RequestsView, AnnouncementsPanel, analyticsUi.tsx, DayPicker,
                       DishList, DishEditor, ScheduleView
 src/styles/           base.css (tokens/fonts), game.css, admin.css — hand-written CSS, BEM-ish, no framework
@@ -430,12 +435,28 @@ scripts/build-assets.mjs  one build for every generated image (icons / press+Dis
 ## Game rules
 
 - **6 guesses.** Clue N is returned by `POST /guess` after miss N (N=1..5, from `clues.order_index`).
-- **Feedback:** ingredient set intersection + 4 attribute tiles. Country: hit = same country, near = same `region`, miss. Course / temperature / protein: hit|miss.
+- **Feedback:** ingredient set intersection (exact, plus **close** for a different ingredient of the same family, see "Ingredient families") + 4 attribute tiles. Country: hit = same country, near = same `region`, miss. Course / temperature / protein: hit|miss.
 - **A near country tile names its region** (`attributes.country.region`, the *guess's* bucket, labelled through `REGION_LABELS`), **in place of the tile's label** (`~ Europe` where the other rows read `~ Country`) and in the sr-only verdict, because the nine buckets are the game's and not the atlas's. `region` is optional on the wire only so rows saved before it shipped still render. **Never on a line of its own**: one tile a line taller stretches the three beside it and every tile in every row has to stand the same height.
 - **The order bar shows the country beside each name and never searches it.** `DishPoolEntry` / `DrinkPoolEntry` carry `country`; `GuessInput` matches on `name` alone and takes the handle as a `hint` render prop. Searching it is the `<datalist>` mistake the schedule picker already made.
 - **Names that start with the query come before names that contain it**, in the order bar and the schedule picker alike, through the one fold `rankByName` in `shared/search.ts` (case and accents folded). A contains filter over a name-sorted catalogue put "Shepherd's Pie" above "Pho" for "p" (#204). Don't re-implement the search in a component.
 - **Reveal is client-initiated after game over** (Wordle trust model — don't "fix" this).
 - **Unscheduled date** → deterministic FNV-hash pick from active dishes, so the game never 404s.
+
+### Ingredient families (the amber ingredient chip)
+
+An ingredient is exact, **close**, or a miss. Close means the Special holds a *different* ingredient of the same **family** (pasta for noodles, lemon for lime). It is the country tile's near-match applied to the plate. The reasoning, the measurements and what the alternatives cost are in the wiki; these are the rules a change has to keep.
+
+- **A family is a partition, never a graph.** One home per ingredient, so "same family" can't depend on which way round you ask, and a new ingredient costs one decision rather than one per neighbour. A web of "one step away" edges was costed and declined. All of it is `shared/families.ts`: `FAMILIES`, `STAPLES`, `STANDALONE`, and the one fold `nearIngredients`.
+- **Staples are cousins of nobody.** Onion, garlic, sugar, flour, butter, milk, egg, salt, water and ice are in so many dishes that, inside a family, the kitchen turned yellow on 26% of guesses instead of 14%. They still match exactly. Don't put one back in a family.
+- **The spirits are `STANDALONE` on purpose.** The Spirit tile already says whether two drinks share a base; a second yellow for it double-counts.
+- **Only unmatched ingredients take part, each of the Special's is claimed once** (Wordle's duplicate rule), and the result names the *guess's* ingredient and the *family*, never the Special's own. The family name is the hint; the partner would be a leak.
+- **`unmatchedIngredients` stays the exact complement of `matchedIngredients`.** A close one is listed in both it and `nearIngredients`, which is why the count, the share grid, the scorecard and every old saved round are unchanged. `nearIngredients` is optional on the wire for rounds saved before it shipped, and absent reads as "no cousins". The check's count is still exact matches only; the row adds ` · N close` beside it and `announce.ts` says it aloud.
+- **Close is never colour alone**: a dashed border and a leading `≈` (`.chip--close`, `IngredientChips` in `src/game/components.tsx`, used by both boards) carry what the amber does, and the family rides in a hidden sentence. `.chip--near` is the *legend's* solid chip, a different thing.
+- **Placing an ingredient is the whole maintenance cost, and CI enforces it.** `worker/data-integrity.test.ts` ("the pantry") fails on a catalogue ingredient that is in no family, not a staple and not in `STANDALONE`, on a plural twin beside its singular (`clove`/`cloves`: a twin would turn yellow where it should be green), and on a kitchen or bar yellow rate at 30% or over (14% now). An ingredient typed into /admin never reaches that test, so both editors show `UnplacedHint` and the Menu tab's panel lists them.
+- **Keep a family tight.** "A cook would swap one for the other" is the test. The yellow rate is the smoke alarm for a family that has grown broad, and the Menu tab's panel prints it live (`nearRate`).
+- **`shared/families.ts` and `shared/pack.ts` import nothing but types**, because `scripts/build-ingredient-web.mjs` runs them under plain node, which strips types but resolves no extensionless import. Add a value import to either and `npm run docs:web` stops running.
+- **The Menu tab's panel is one hue** (`IngredientWebPanel`, `shared/pack.ts` for the layout). The four colour meanings are taken and a family's identity is its ring and label, so a per-group hue would spend a fifth meaning on what the ring already says. It reads `/api/admin/pantry`, which sends a dish or drink **booked for a later day without its name**, so the pair picker can't surface a Special nobody has played; the fold still counts its ingredients.
+- **The project page is public, so it ships a snapshot and a hand-picked set of classics, not the catalogue.** `docs/ingredient-web.js` is generated (`npm run docs:web`, committed, CI never runs it) and carries ingredient names with how many dishes use them, plus a hand-picked `PLATES` list. Per-dish ingredient lists are not in it except those: any dish could be a Special nobody has played, and the generator throws if a named classic has gone missing rather than quietly shrinking.
 
 ### Dates and the daily rollover
 

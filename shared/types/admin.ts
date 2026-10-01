@@ -113,3 +113,19 @@ export interface DishRequest {
 
 /** Field length caps for a dish request, shared by the client form + server. */
 export const DISH_REQUEST_LIMITS = { name: 80, country: 60, note: 280 } as const;
+
+/**
+ * One dish or drink as the ingredient-family panel reads it. `name` is null for
+ * an item booked for a day after today: the panel folds its ingredients into the
+ * picture like any other, but the name never leaves the Worker, the same rule the
+ * veil enforces everywhere a later Special could surface.
+ */
+export interface PantryRow {
+  name: string | null;
+  ingredients: string[];
+}
+
+export interface Pantry {
+  kitchen: PantryRow[];
+  bar: PantryRow[];
+}

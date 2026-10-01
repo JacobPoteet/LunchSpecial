@@ -5,6 +5,7 @@
 // identical, which is the part that makes a drink round feel like the same game
 // played faster rather than a different game entirely.
 
+import { nearIngredients } from "../shared/families";
 import type { DrinkAttributeFeedback, DrinkGuessFeedback, Profile, Region, Spirit, Temperature } from "../shared/types";
 
 export interface DrinkRecord {
@@ -50,6 +51,7 @@ export function computeDrinkFeedback(
     drink: { id: guess.id, name: guess.name },
     matchedIngredients: guess.ingredients.filter((i) => targetSet.has(i)),
     unmatchedIngredients: guess.ingredients.filter((i) => !targetSet.has(i)),
+    nearIngredients: nearIngredients(guess.ingredients, target.ingredients),
     attributes: compareDrinkAttributes(guess, target),
   };
 }

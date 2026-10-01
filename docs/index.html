@@ -2961,6 +2961,182 @@
           stroke-dashoffset: 0;
         }
       }
+
+      /* ==========================================================
+         INGREDIENT FAMILIES: the two-plate explorer and the pantry web
+         ========================================================== */
+      .pl,
+      .web {
+        background: var(--surface);
+        border: 1px solid var(--rule);
+        border-radius: 13px;
+        box-shadow: var(--shadow);
+        padding: 18px;
+        margin: 22px 0 14px;
+      }
+      .pl__pick {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .pl__f {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        min-width: 0;
+        font-family: var(--font-mono);
+        font-size: 0.67rem;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+        color: var(--ink-mute);
+      }
+      .pl__f select {
+        font-family: var(--font-slab);
+        font-weight: 600;
+        font-size: 0.92rem;
+        letter-spacing: 0;
+        text-transform: none;
+        color: var(--ink);
+        background: var(--surface-2);
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        padding: 9px 10px;
+        width: 100%;
+        min-width: 0;
+      }
+      .pl__rows {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .pl__row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(64px, 140px) minmax(0, 1fr);
+        align-items: center;
+      }
+      .pl__c {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 36px;
+        padding: 6px 12px;
+        min-width: 0;
+        font-family: var(--font-slab);
+        font-size: 0.84rem;
+        font-weight: 600;
+        color: var(--ink-soft);
+        background: var(--surface);
+        border: 1.5px solid var(--rule);
+        border-radius: 999px;
+        overflow-wrap: anywhere;
+      }
+      .pl__c--l { justify-content: flex-end; text-align: right; }
+      .pl__c--l .pl__g { order: 2; }
+      .pl__c--hit { background: var(--hit); border-color: var(--hit); color: #fff; }
+      .pl__c--near { background: color-mix(in srgb, var(--near) 18%, var(--surface)); border: 1.5px dashed var(--near); color: var(--ink); }
+      .pl__c--gap { visibility: hidden; }
+      .pl__g { flex: none; font-weight: 700; }
+      .pl__c--near .pl__g { color: var(--near); }
+      .pl__k {
+        position: relative;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .pl__k--hit::before,
+      .pl__k--near::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        border-top: 3px solid var(--hit);
+      }
+      .pl__k--near::before { border-top: 3px dashed var(--near); }
+      .pl__k span {
+        position: relative;
+        background: var(--surface);
+        padding: 1px 6px;
+        font-family: var(--font-mono);
+        font-size: 0.6rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+        text-align: center;
+        line-height: 1.15;
+      }
+      .pl__sum {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 18px;
+        margin: 16px 0 0;
+        max-width: none;
+        font-family: var(--font-mono);
+        font-size: 0.74rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+      }
+      .pl__sum b { font-weight: 700; }
+      .pl__sum .is-hit { color: var(--hit); }
+      .pl__sum .is-near { color: var(--near); }
+
+      .web__head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 14px;
+        margin-bottom: 10px;
+      }
+      .web__t {
+        font-family: var(--font-display);
+        font-size: 1rem;
+        margin: 0;
+        max-width: none;
+      }
+      .web__tog {
+        margin-left: auto;
+        display: inline-flex;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .web__tog button {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 7px 14px;
+        color: var(--ink-soft);
+        background: var(--surface);
+        border: 0;
+        cursor: pointer;
+      }
+      .web__tog button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+      .web__map { border: 1px solid var(--rule-soft); border-radius: 9px; background: color-mix(in srgb, var(--surface-2) 50%, transparent); padding: 4px; }
+      .web__map svg { display: block; width: 100%; height: auto; max-height: 78vh; }
+      .w-ring { fill: var(--surface); fill-opacity: 0.5; stroke: var(--ink-mute); stroke-width: 1.2; cursor: pointer; outline: none; }
+      .w-ring--odd { stroke-dasharray: 5 4; fill-opacity: 0.15; }
+      .w-g:hover .w-ring,
+      .w-g:focus-visible .w-ring,
+      .w-g.is-on .w-ring { stroke: var(--ink); stroke-width: 2.6; }
+      .w-dot { fill-opacity: 0.88; cursor: pointer; }
+      .w-lab { fill: var(--ink); pointer-events: none; font-family: var(--font-gothic); letter-spacing: 0.05em; text-transform: uppercase; paint-order: stroke; stroke: var(--surface); stroke-width: 3.5px; stroke-linejoin: round; }
+      .web--pick .w-g:not(.is-on) { opacity: 0.2; }
+      .web__legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 0.8rem; color: var(--ink-soft); }
+      .web__legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--c); margin-right: 6px; vertical-align: -1px; }
+      .web__detail { min-height: 3.1em; margin: 12px 0 0; font-size: 0.92rem; max-width: none; }
+      .web__detail b { font-family: var(--font-slab); }
+      .web__stat { margin: 8px 0 0; font-size: 0.82rem; color: var(--ink-mute); max-width: none; }
+      @media (max-width: 560px) {
+        .pl__pick { grid-template-columns: 1fr; }
+        .pl__row { grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr); }
+        .pl__k span { display: none; }
+        .pl__c { padding: 6px 8px; font-size: 0.8rem; }
+        .web__tog { margin-left: 0; }
+      }
     </style>
     <!-- Runs before the body paints, so a reader who chose dark never sees a
          frame of cream first. Wrapped because Safari throws on localStorage in
@@ -3096,6 +3272,51 @@
             <button class="picker__reset" id="demo-reset" type="button">Clear the board</button>
           </div>
         </div>
+
+        <h3>Pasta is not noodles, but it&rsquo;s a cousin</h3>
+        <p>
+          Ingredients were all or nothing, and that cost the game a complaint it deserved. A player
+          ordered Pad Thai, saw <b>noodles</b> miss, and the Special turned out to be shrimp scampi,
+          built on pasta. So the pantry is sorted into <b>families</b>, and an ingredient turns
+          amber when the Special holds a <i>different</i> one from the same family. It is the
+          country tile&rsquo;s near-match applied to the plate, and it is a partition, not a graph:
+          there is no &ldquo;how far apart&rdquo; to argue about, and a new ingredient needs one
+          decision. Try two plates:
+        </p>
+
+        <div class="pl reveal" id="pl">
+          <div class="pl__pick">
+            <label class="pl__f"><span>Your guess</span><select id="pl-a"></select></label>
+            <label class="pl__f"><span>The Special</span><select id="pl-b"></select></label>
+          </div>
+          <div class="pl__rows" id="pl-rows" aria-live="polite"></div>
+          <p class="pl__sum" id="pl-sum"></p>
+        </div>
+        <p class="note">
+          The yellow never names the Special&rsquo;s own ingredient, only the family, so it is a
+          hint and not a leak. Onion, garlic, sugar, flour, butter, milk, egg, salt, water and ice
+          sit outside the game: they are in so many dishes that, as cousins, they would light up on
+          one guess in ten.
+        </p>
+
+        <div class="web reveal" id="web">
+          <div class="web__head">
+            <p class="web__t">The pantry, grouped into families</p>
+            <div class="web__tog" role="group" aria-label="Which menu">
+              <button type="button" id="web-k" aria-pressed="true">Kitchen</button>
+              <button type="button" id="web-b" aria-pressed="false">The bar</button>
+            </div>
+          </div>
+          <div class="web__map"><svg id="web-svg" role="img" aria-label="Ingredients packed into family rings"></svg></div>
+          <div class="web__legend" id="web-legend"></div>
+          <p class="web__detail" id="web-detail" aria-live="polite">Select a ring to see its members.</p>
+          <p class="web__stat" id="web-stat"></p>
+        </div>
+        <p class="note">
+          Each dot is an ingredient, sized by how many dishes use it. A check in CI fails when an
+          ingredient is in no family, so the cost of keeping the map true is one line per new
+          ingredient, and the admin dashboard draws this same picture live.
+        </p>
 
         <h3>Five beats, one brief for every clue</h3>
         <p>
@@ -3815,6 +4036,7 @@ https://lunchspecial.app</pre>
         </div>
       </div>
     </footer>
+    <script src="ingredient-web.js"></script>
     <script>
       (function () {
         "use strict";
@@ -4546,10 +4768,160 @@ https://lunchspecial.app</pre>
           else if (mq.addListener) mq.addListener(build);
         }
 
+        /* ==========================================================
+           6b. INGREDIENT FAMILIES
+           Two figures off one generated snapshot (docs/ingredient-web.js,
+           from `npm run docs:web`): a two-plate explorer that grades one dish
+           against another the way the Worker does, and the pantry packed into
+           family rings. The layout is precomputed, so nothing here measures
+           or lays out anything, and the plates are a hand-picked set of
+           classics rather than the catalogue, which would spoil the Specials.
+           ========================================================== */
+        function ingredientWeb() {
+          var W = window.INGREDIENT_WEB;
+          if (!W || !$("#pl")) return;
+          var STAPLE = {};
+          W.staples.forEach(function (s) { STAPLE[s] = 1; });
+          var FAM = {};
+          Object.keys(W.families).forEach(function (f) { W.families[f].forEach(function (i) { FAM[i] = f; }); });
+          var famOf = function (i) { return STAPLE[i] ? null : FAM[i] || null; };
+
+          /* The same fold as shared/families.ts: only unmatched ingredients take
+             part, each of the Special's is claimed once, and the Special's own
+             ingredient is shown here only because this is a teaching figure. */
+          function grade(a, b) {
+            var exact = a.ingredients.filter(function (i) { return b.ingredients.indexOf(i) > -1; });
+            var au = a.ingredients.filter(function (i) { return exact.indexOf(i) < 0; });
+            var bu = b.ingredients.filter(function (i) { return exact.indexOf(i) < 0; });
+            var used = {}, near = [];
+            au.forEach(function (x) {
+              var f = famOf(x);
+              if (!f) return;
+              var y = bu.filter(function (z) { return !used[z] && famOf(z) === f; })[0];
+              if (y) { used[y] = 1; near.push({ a: x, b: y, f: f }); }
+            });
+            var nearA = near.map(function (n) { return n.a; });
+            return {
+              exact: exact, near: near,
+              la: au.filter(function (i) { return nearA.indexOf(i) < 0; }),
+              lb: bu.filter(function (i) { return !used[i]; })
+            };
+          }
+
+          var plates = W.plates.kitchen;
+          var selA = $("#pl-a"), selB = $("#pl-b");
+          var opts = plates.map(function (p, i) { return '<option value="' + i + '">' + p.name + "</option>"; }).join("");
+          selA.innerHTML = opts;
+          selB.innerHTML = opts;
+          function idx(name) { for (var i = 0; i < plates.length; i++) if (plates[i].name === name) return i; return 0; }
+          selA.value = String(idx("Pad Thai"));
+          selB.value = String(idx("Shrimp Scampi"));
+
+          function cell(text, cls, glyph, side) {
+            return '<div class="pl__c ' + cls + " pl__c--" + side + '"><span>' + text + '</span><span class="pl__g" aria-hidden="true">' + glyph + "</span></div>";
+          }
+          function renderPlates() {
+            var g = grade(plates[+selA.value], plates[+selB.value]);
+            var gap = '<div class="pl__c pl__c--gap" aria-hidden="true">.</div>';
+            var h = "";
+            g.exact.forEach(function (x) {
+              h += '<div class="pl__row">' + cell(x, "pl__c--hit", "✓", "l") + '<div class="pl__k pl__k--hit"></div>' + cell(x, "pl__c--hit", "✓", "r") + "</div>";
+            });
+            g.near.forEach(function (n) {
+              h += '<div class="pl__row">' + cell(n.a, "pl__c--near", "≈", "l") + '<div class="pl__k pl__k--near"><span>' + n.f + "</span></div>" + cell(n.b, "pl__c--near", "≈", "r") + "</div>";
+            });
+            var rows = Math.max(g.la.length, g.lb.length);
+            for (var k = 0; k < rows; k++) {
+              h += '<div class="pl__row">' + (g.la[k] ? cell(g.la[k], "", "", "l") : gap) + '<div class="pl__k"></div>' + (g.lb[k] ? cell(g.lb[k], "", "", "r") : gap) + "</div>";
+            }
+            $("#pl-rows").innerHTML = h;
+            $("#pl-sum").innerHTML =
+              '<span class="is-hit"><b>' + g.exact.length + "</b> exact</span>" +
+              '<span class="is-near"><b>' + g.near.length + "</b> " + (g.near.length === 1 ? "cousin" : "cousins") + "</span>" +
+              "<span><b>" + g.lb.length + "</b> in the Special still unmatched</span>";
+          }
+          selA.addEventListener("change", renderPlates);
+          selB.addEventListener("change", renderPlates);
+          renderPlates();
+
+          /* ---- the pantry web ---- */
+          var HUE = { "Starch": "#d69a2e", "Dairy & egg": "#e3c050", "Produce": "#5aa05a", "Fruit & nut": "#d9485c",
+            "Spice & sauce": "#b07a2a", "Meat & sea": "#3a9a90", "Sweet": "#a8508a", "Bar": "#5f8fd0" };
+          var NS = "http://www.w3.org/2000/svg";
+          var menu = "kitchen", sel = null;
+          var svg = $("#web-svg"), box = $("#web");
+
+          function el(tag, attrs, parent) {
+            var n = document.createElementNS(NS, tag);
+            Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); });
+            if (parent) parent.appendChild(n);
+            return n;
+          }
+          function pick(key) {
+            sel = sel === key ? null : key;
+            apply();
+          }
+          function apply() {
+            box.classList.toggle("web--pick", !!sel);
+            $$(".w-g", svg).forEach(function (g) { g.classList.toggle("is-on", g.getAttribute("data-k") === sel); });
+            var m = W.menus[menu], ring = null;
+            m.rings.forEach(function (r) { if (r.k === sel) ring = r; });
+            var d = $("#web-detail");
+            if (!ring) { d.textContent = "Select a ring to see its members."; return; }
+            var list = ring.dots.map(function (x) { return x.k + " (" + x.n + ")"; }).join(", ");
+            var tail = ring.odd
+              ? (ring.k === "staple"
+                  ? " Each is in so many dishes that a cousin signal would light up on most guesses. They still match exactly."
+                  : " No cousin in the pantry yet: an exact match or a miss, nothing between.")
+              : " Guess one against a Special holding a different one and the chip turns amber.";
+            d.innerHTML = "<b>" + ring.label + ".</b> " + list + "." + tail;
+          }
+          function drawWeb() {
+            var m = W.menus[menu], b = m.bounds;
+            svg.setAttribute("viewBox", b.x + " " + b.y + " " + b.width + " " + b.height);
+            svg.innerHTML = "";
+            m.rings.forEach(function (r) {
+              var g = el("g", { "class": "w-g", "data-k": r.k, tabindex: "0", role: "button", "aria-label": r.label + ", " + r.dots.length + " ingredients" }, svg);
+              el("circle", { "class": "w-ring" + (r.odd ? " w-ring--odd" : ""), cx: r.x, cy: r.y, r: r.r }, g);
+              var fill = r.odd ? (r.k === "staple" ? "var(--ink)" : "var(--ink-mute)") : HUE[r.g] || "var(--ink-mute)";
+              r.dots.forEach(function (d) {
+                var c = el("circle", { "class": "w-dot", cx: d.x, cy: d.y, r: d.r, fill: fill }, g);
+                var t = el("title", {}, c);
+                t.textContent = d.k + ": " + d.n + (d.n === 1 ? " dish" : " dishes");
+              });
+              if (r.r >= 26) {
+                var lab = el("text", { "class": "w-lab", x: r.x, y: r.y, "text-anchor": "middle", "dominant-baseline": "central", "font-size": Math.max(9, Math.min(17, r.r / 3.6)) }, g);
+                lab.textContent = r.label;
+              }
+              g.addEventListener("click", function () { pick(r.k); });
+              g.addEventListener("keydown", function (e) {
+                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(r.k); }
+              });
+            });
+            var rate = m.rate;
+            $("#web-stat").textContent = m.total + (menu === "kitchen" ? " dishes" : " drinks") + ", " + m.ingredients +
+              " ingredients. Guess every one against every other and about " + Math.round((rate.withNear / rate.pairs) * 100) +
+              "% of guesses turn at least one ingredient amber.";
+            sel = null;
+            apply();
+          }
+          $("#web-legend").innerHTML = Object.keys(HUE).map(function (g) { return '<span style="--c:' + HUE[g] + '">' + g + "</span>"; }).join("");
+          function setMenu(k) {
+            menu = k;
+            $("#web-k").setAttribute("aria-pressed", k === "kitchen");
+            $("#web-b").setAttribute("aria-pressed", k === "bar");
+            drawWeb();
+          }
+          $("#web-k").addEventListener("click", function () { setMenu("kitchen"); });
+          $("#web-b").addEventListener("click", function () { setMenu("bar"); });
+          drawWeb();
+        }
+
         /* ========================================================== */
         paintTiles(false);
         drawAll();
         buildPicker();
+        ingredientWeb();
         noticeFigure();
         themeToggle();
         observe();
