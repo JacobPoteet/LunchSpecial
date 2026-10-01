@@ -317,7 +317,7 @@ export default function DishEditor({
             <TagInput value={form.ingredients} vocabulary={vocabulary} onChange={(v) => set("ingredients", v)} />
             <UnplacedHint ingredients={form.ingredients} />
             <p className="field-hint">
-              Stick to the pantry's canonical names ("tomato", not "tomatoes") so matches line up across dishes.
+              Canonical names: &quot;tomato&quot;, not &quot;tomatoes&quot;.
             </p>
           </div>
 
@@ -370,8 +370,7 @@ export default function DishEditor({
               Fan submission (a player asked for this one)
             </label>
             <p className="field-hint">
-              Stamps the check with a credit whenever this dish is the Special, and promotes the "Suggest a dish"
-              button underneath it. Changes nothing about scheduling or the game itself.
+              Stamps the check with a credit when this dish is the Special. Changes nothing else.
             </p>
           </div>
 

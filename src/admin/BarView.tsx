@@ -120,8 +120,7 @@ function ShowcaseLink() {
             anyone it's forwarded to gets in until then.{" "}
           </>
         ) : null}
-        Opens on a finished Special with the bar's door lit, whatever the hour. Nothing it does is
-        recorded — no round, no visit, no figure on the dashboard.
+        Opens on a finished Special with the bar's door lit, whatever the hour. Nothing it does is recorded.
       </p>
     </div>
   );
@@ -467,8 +466,7 @@ function DrinkEditor({
               Contains alcohol
             </label>
             <p className="field-hint">
-              Stored, never guessed from the base spirit — a beer has no base spirit and arak has
-              "other". It is not a feedback tile; it is how the Bar tab keeps the pool's mix honest.
+              Stored, not derived from the base spirit.
             </p>
           </div>
 
@@ -511,9 +509,7 @@ function DrinkEditor({
             </div>
             <UnplacedHint ingredients={form.ingredients} />
             <p className="field-hint">
-              The list is pooled with the kitchen's, because a bar and a kitchen share a pantry. Two
-              spellings of one ingredient means the feedback under-reports for everything holding
-              either.
+              Pooled with the kitchen&apos;s pantry.
             </p>
           </div>
 
@@ -767,8 +763,7 @@ function NightlyBoard({ onDone }: { onDone: () => void }) {
         </table>
       </div>
       <p className="dash-note">
-        An unbooked night runs on the deterministic fallback pour and never 404s — clearing a night is
-        a booking decision, not a hole. Shuffle rolls a drink that has never been on, past or future.
+        An unbooked night runs on a fallback pour. Shuffle rolls a drink that has never been on.
       </p>
     </section>
   );

@@ -371,8 +371,7 @@ function ExperimentForm({
         {/* Naming the metric before you look is the whole discipline: pick it
             afterwards and you'll pick whichever one happened to wiggle. */}
         <p className="dash-note">
-          Pick the metric <em>before</em> you look at it. Choosing afterwards means choosing whichever number
-          happened to move, and there are six of them — one of them always will have.
+          Pick the metric <em>before</em> you look at it. 
         </p>
         {error && <p className="form-error">{error}</p>}
         <div className="btn-row">
@@ -471,10 +470,7 @@ export default function ExperimentsPanel({
           )}
         </div>
         <p className="dash-note">
-          Every other tab says what's happening. This one says whether something you did caused it — which
-          needs a record of when you did it, and the patience to wait for enough data to tell. At this
-          traffic that's usually a couple of weeks, so “too early to tell” is the normal answer and not a
-          failure. Each change is measured against the metric you named when you logged it.
+          Did something you changed cause it? Each change is measured against the metric you named when you logged it. “Too early to tell” is the normal answer for a couple of weeks.
         </p>
       </section>
 
@@ -495,9 +491,7 @@ export default function ExperimentsPanel({
       {experiments.length === 0 && !showForm && (
         <section className="panel">
           <p className="dash-note">
-            Nothing logged yet. Next time you change something — a clue rewrite, a new mode, an
-            announcement, a schedule shake-up — log it here with the metric you expect it to move, and the
-            before/after will be waiting.
+            Nothing logged yet. Log a change with the metric you expect it to move.
           </p>
         </section>
       )}

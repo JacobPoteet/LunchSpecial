@@ -274,14 +274,13 @@ export default function MenuMixPanel({
         · {mix.upcoming.servings} day
         {mix.upcoming.servings === 1 ? "" : "s"} booked ahead
         {mix.unscheduledDays > 0 &&
-          ` · ${mix.unscheduledDays} past day${mix.unscheduledDays === 1 ? "" : "s"} ran on the fallback pick (no schedule row, so not counted above)`}
+          ` · ${mix.unscheduledDays} past day${mix.unscheduledDays === 1 ? "" : "s"} ran on the fallback pick`}
       </p>
       {/* The tab's Web/Discord toggle governs the dish report above, which is
           player data. This half is the schedule × dishes catalogue — the same
           menu was served to everyone, so a surface filter would be a lie here. */}
       <p className="dash-note">
-        Catalogue data — what the kitchen put out, not what players did with it. The Web/Discord filter
-        doesn't apply to this half; it's the same menu either way.
+        Catalogue data. The Web/Discord filter doesn't apply here.
       </p>
 
       <hr className="analytics-rule" />
@@ -330,10 +329,8 @@ export default function MenuMixPanel({
             ))}
           </div>
           <p className="dash-note" style={{ marginTop: 10 }}>
-            Click a bar to open the dish list filtered to it, longest-rested first. Bars are counts,
-            ranked; the % is that category's share of the {SLICE_META[slice].noun}.
-            {baseline &&
-              " The grey tick marks the pool's share, so a bar past it is over-served — the ± figure is the gap in percentage points."}
+            Click a bar to open the dish list filtered to it.
+            {baseline && " The grey tick is the pool's share; ± is the gap in points."}
           </p>
         </>
       )}
@@ -345,8 +342,7 @@ export default function MenuMixPanel({
           </h3>
           <CadenceStrip timeline={timeline} />
           <p className="dash-note" style={{ marginTop: 8 }}>
-            One column per Special, oldest on the left. A run of marks in one row means that region came
-            up repeatedly; an empty row is a region the menu hasn't visited.
+            One column per Special, oldest on the left. 
           </p>
         </div>
       )}
@@ -405,7 +401,7 @@ export default function MenuMixPanel({
             <>
               <RankedBars rows={ingredients} />
               <p className="dash-note" style={{ marginTop: 8 }}>
-                Counted once per serving — a dish served twice puts its ingredients on the menu twice.
+                Counted once per serving.
               </p>
             </>
           )}
@@ -439,7 +435,7 @@ export default function MenuMixPanel({
       )}
 
       <p className="dash-note" style={{ marginTop: 10 }}>
-        Menu composition only — schedule and catalogue, no player data. Served covers puzzle #1 through
+        Served covers puzzle #1 through
         today ({mix.today}).
       </p>
     </section>

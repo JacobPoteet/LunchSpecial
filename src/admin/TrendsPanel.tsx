@@ -369,9 +369,7 @@ function Heatmap({ rhythm }: { rhythm: PlayRhythm }) {
         <span className="heat__corner" />
       </div>
       <p className="dash-note heat__caption">
-        Rounds started, by ET weekday and hour, all time. Bars on the right and along the bottom are the
-        same grid summed each way — the row totals are the weekday counts (not the averages above, which
-        divide by how often each day has come around).
+        Rounds started, by ET weekday and hour, all time. The side and bottom bars are the grid's totals.
       </p>
     </div>
   );
@@ -488,8 +486,7 @@ export default function TrendsPanel({
             </div>
             {shippedOn.size > 0 && (
               <p className="dash-note" style={{ marginTop: 8 }}>
-                Columns with a marked base are days something shipped — hover for what. The before/after read
-                is on the Experiments tab.
+                Marked columns are days something shipped.
               </p>
             )}
           </>
@@ -514,14 +511,10 @@ export default function TrendsPanel({
             <details className="dash-details">
               <summary>How to read it</summary>
               <p className="dash-note">
-                A running total of every game started, all three kinds together, by the ET day it was
-                started on — so it can only go up, and the reading is the <em>shape</em>: steepening means
-                the game is gaining, flattening means it's stalling.{" "}
-                {growth.trend
-                  ? "The dashed line is the same run at one constant pace (a least-squares fit through the curve), there to make that bend visible. It's a reference, not a forecast."
-                  : `The steady-pace line needs a longer run than ${growth.days.length} day${
-                      growth.days.length === 1 ? "" : "s"
-                    } — it'll appear once there's enough history to mean something.`}
+                A running total of every game started, by ET day. It only goes up, so read the shape.{" "}
+            {growth.trend
+              ? "The dashed line is one constant pace, for reference."
+              : "The steady-pace line appears with more history."}
               </p>
             </details>
           </>
@@ -535,9 +528,7 @@ export default function TrendsPanel({
         {weekday && <p className="dish-report__headline">{weekday}</p>}
         <WeekdayProfile byWeekday={rhythm.byWeekday} />
         <p className="dash-note">
-          Games started per <em>occurrence</em> of each weekday, not per weekday in total — the run started
-          on a {WEEKDAY_LABELS[new Date(`${rhythm.since ?? "2026-07-17"}T00:00:00Z`).getUTCDay()]}, so some
-          days have come around more often than others and raw totals would hand those a head start.
+          Games started per <em>occurrence</em> of each weekday, not in total.
         </p>
       </section>
 

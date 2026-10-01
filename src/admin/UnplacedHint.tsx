@@ -14,8 +14,7 @@ export default function UnplacedHint({ ingredients }: { ingredients: string[] })
   if (unplaced.length === 0) return null;
   return (
     <p className="field-hint field-hint--warn">
-      ⚠ No family yet for {unplaced.join(", ")}. It still matches exactly, but it can't be a cousin of anything
-      until it is added to a family, or to STANDALONE, in shared/families.ts.
+      ⚠ Not placed: {unplaced.join(", ")}. Add to a family, or STANDALONE, in shared/families.ts.
     </p>
   );
 }

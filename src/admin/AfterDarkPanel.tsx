@@ -111,21 +111,18 @@ function HourProfile({
         })}
       </div>
       <p className="dash-note">
-        Local hour, from the device's own clock — the window is local, so an ET axis would scatter
-        every player's nine o'clock into a different bucket. The axis opens at{" "}
-        {hourLabel(BAR_OPEN_HOUR)} and the shaded columns are hours the door is shut.
+        Local hour, from each device's own clock. The axis opens at{" "}
+        {hourLabel(BAR_OPEN_HOUR)}; shaded columns are hours the door is shut.
         {untracked > 0 && (
           <>
             {" "}
-            <b>{untracked}</b> {untracked === 1 ? "round carries" : "rounds carry"} no offset and{" "}
-            {untracked === 1 ? "is" : "are"} not placed above.
+            <b>{untracked}</b> {untracked === 1 ? "round carries" : "rounds carry"} no offset and{" "} {untracked === 1 ? "is" : "are"} not placed.
           </>
         )}
         {outside > 0 && (
           <>
             {" "}
-            <b>{outside}</b> started with the doors shut, which is a wound-forward clock rather than
-            a late drinker — drawn where they landed, not tidied away.
+            <b>{outside}</b> started with the doors shut (a wound-forward clock), drawn where they landed.
           </>
         )}
       </p>
@@ -274,14 +271,12 @@ export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) 
           <RateStat label="Shared" rate={report.totals.shareRate} />
         </div>
         <p className="dash-note">
-          Rates are pooled over the whole period, never averaged across nights — one quiet Tuesday
-          must not outvote a busy Saturday.
+          
         </p>
         <h3>Guesses used</h3>
         <NightGuessBars dist={report.guessDistribution} fails={fails} />
         <p className="dash-note">
-          Out of {DRINK_MAX_GUESSES}. Deliberately its own chart: a win in four here and a win in four
-          on the Menu tab are different achievements, and one x-axis cannot hold both.
+          Out of {DRINK_MAX_GUESSES}.
         </p>
       </section>
 
@@ -293,33 +288,25 @@ export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) 
           <CountStat label="Did" value={crossover.cameToBar} hint="devices" />
         </div>
         <p className="dash-note">
-          The denominator is devices that <b>finished that day&apos;s Special</b>, on a night the bar
-          was open and is now over — finishing lunch is the door, so everyone counted here could have
-          walked through it. Devices, not rounds: someone who poured twice came back once.
+          The denominator is devices that <b>finished that day&apos;s Special</b>, on a night the bar was open and is now over. Devices, not rounds.
         </p>
         <p className="dash-note">
-          Two things it leaves out on purpose. Every Special finished before the bar&apos;s first
-          night ({shortDate(NIGHT_EPOCH_DATE)}) — nobody could have walked into a bar that did not
-          exist, and counting them read eligibility as refusal.{" "}
+          Left out: Specials finished before the bar&apos;s first night ({shortDate(NIGHT_EPOCH_DATE)}), and nights still being played.{" "}
           {crossover.pending ? (
             <>
-              And {crossover.pending.nights === 1 ? "tonight" : `${crossover.pending.nights} nights`}{" "}
-              still being played: <b>{crossover.pending.finishedLunch}</b>{" "}
+              <b>{crossover.pending.finishedLunch}</b>{" "}
               {crossover.pending.finishedLunch === 1 ? "device has" : "devices have"} finished lunch so
               far and <b>{crossover.pending.cameToBar}</b>{" "}
-              {crossover.pending.cameToBar === 1 ? "has" : "have"} come down — a denominator still
-              filling, which is not a rate.
+              {crossover.pending.cameToBar === 1 ? "has" : "have"} come down.
             </>
           ) : (
-            <>And any night still being played, of which there is none right now.</>
+            null
           )}
         </p>
         {crossover.barOnly > 0 && (
           <p className="dash-note">
             <b>{crossover.barOnly}</b> {crossover.barOnly === 1 ? "device" : "devices"} reached the bar
-            without finishing a Special on the same key — impossible through the front door, ordinary
-            across two devices (lunch on a phone, a drink on a laptop). Counted here and in neither
-            half of the rate above, which is what keeps that rate under 100%.
+            without finishing a Special on the same key (lunch on a phone, a drink on a laptop). Counted in neither half of the rate.
           </p>
         )}
         {crossover.rate?.small && <p className="dash-note">{SAMPLE_NOTE}</p>}
@@ -357,13 +344,11 @@ export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) 
           </div>
         )}
         <p className="dash-note">
-          Hardest first. A drink nobody has finished sorts last rather than showing a 0% it never
-          earned.
+          Hardest first.
           {report.untrackedDrink > 0 && (
             <>
               {" "}
-              <b>{report.untrackedDrink}</b> rounds could not be tied to a drink. They are in the
-              service totals above, because they were played, and in no row of this table.
+              <b>{report.untrackedDrink}</b> rounds couldn&apos;t be tied to a drink.
             </>
           )}
         </p>
@@ -381,9 +366,7 @@ export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) 
           />
         </div>
         <p className="dash-note">
-          Split on the drink&apos;s stored flag, never inferred from its base spirit — a beer has no
-          base spirit. Two win rates differ only when their intervals stop overlapping, and at these
-          denominators they will overlap for a long time.
+          Split on the stored flag. Two rates differ only when their intervals stop overlapping.
         </p>
       </section>
 
@@ -440,9 +423,7 @@ export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) 
             </table>
           </div>
           <p className="dash-note">
-            Newest first. Nights with nothing recorded at all are absent rather than zero-filled —
-            before the bar opened there was nothing to report, and a flat zero would claim a quiet
-            night that never happened. A night still being played quotes counts but no rate.
+            Newest first. Nights with no rounds are omitted; a night still being played shows counts, no rate.
           </p>
         </section>
       )}

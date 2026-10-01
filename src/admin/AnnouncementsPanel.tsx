@@ -184,7 +184,7 @@ function Editor({
               onChange={(e) => set("body", e.target.value)}
             />
             <p className="field-hint">
-              <code>**bold**</code>, <code>*italic*</code>, <code>[label](/link)</code>. Nothing else, and no HTML.
+              <code>**bold**</code>, <code>*italic*</code>, <code>[label](/link)</code>
             </p>
           </div>
 
@@ -199,7 +199,7 @@ function Editor({
             </div>
           </div>
           <p className="field-hint">
-            Both days included, and both are game days — a notice ending today runs until midnight ET.
+            Both days included (ET).
           </p>
 
           <div className="field">
@@ -209,8 +209,7 @@ function Editor({
               <option value="returning">Returning players only</option>
             </select>
             <p className="field-hint">
-              A returning player is one who has finished at least one game. A new player finishes their first,
-              coached round before seeing anything marked for everyone.
+              Returning means the device has finished at least one game.
             </p>
           </div>
 
@@ -334,12 +333,11 @@ export default function AnnouncementsPanel() {
       {error && <p className="form-error">{error}</p>}
 
       <p className="dash-note" style={{ marginTop: 0 }}>
-        Notices appear on Today's Special, once per player, and never during a first visit's walkthrough. Reach counts anonymous devices, the same
-        way the engagement panel does — one per player, however many times they see it.
+        Shown on Today's Special, once per device. Reach counts devices.
       </p>
 
       {rows.length === 0 && (
-        <p className="dash-note">Nothing posted yet. A notice is how the diner tells players what's changed.</p>
+        <p className="dash-note">Nothing posted yet.</p>
       )}
 
       {STATUS_META.map((meta) => {
