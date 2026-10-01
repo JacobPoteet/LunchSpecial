@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { classify, familyOf, FAMILIES, nearIngredients, nearRate } from "../../shared/families";
+import { classify, familyOf, nearIngredients, nearRate } from "../../shared/families";
 import { packWeb, type PackGroup } from "../../shared/pack";
 import type { Pantry, PantryRow } from "../../shared/types";
 import * as api from "./api";
@@ -133,12 +133,6 @@ export default function IngredientWebPanel() {
           ))}
         </div>
       </div>
-      <p className="dash-note">
-        The pantry as the game sees it. A guess ingredient turns yellow when the Special holds a{" "}
-        <em>different</em> ingredient of the same family, so a ring is a set of cousins. Catalogue data,
-        so the tab's Web/Discord filter doesn't apply.
-      </p>
-
       <div className="metric-row">
         <div className="metric metric--primary">
           <span className="metric__num">{pct(rate.withNear, rate.pairs)}</span>
@@ -157,19 +151,13 @@ export default function IngredientWebPanel() {
           <span className="metric__label">In a family</span>
         </div>
       </div>
-      <p className="dash-note">
-        Every {noun.slice(0, -1)} guessed against every other ({rate.pairs.toLocaleString()} pairs). Players
-        guess popular {noun}, not uniformly, so read this as the pantry's shape and not a forecast. If it
-        climbs past about 30% a family has grown too broad.
-      </p>
+      <p className="dash-note">Every {noun.slice(0, -1)} guessed against every other. Past about 30%, a family is too broad.</p>
 
       {unplaced.length > 0 && (
         <p className="dash-note iw-warn">
-          ⚠ {unplaced.length} ingredient{unplaced.length === 1 ? "" : "s"} in use {unplaced.length === 1 ? "has" : "have"} no
-          family and {unplaced.length === 1 ? "isn't" : "aren't"} marked as standing alone: {unplaced.join(", ")}. They match
-          exactly but are cousins of nothing until they're added in shared/families.ts.{" "}
+          ⚠ Not placed: {unplaced.join(", ")}.{" "}
           <button className="link-btn" onClick={() => setSelected(UNPLACED_KEY)}>
-            Show on the map
+            Show
           </button>
         </p>
       )}
@@ -214,33 +202,10 @@ export default function IngredientWebPanel() {
       </div>
 
       <div className="iw-detail" aria-live="polite">
-        {!active && <p className="dash-note">Click a ring, or a name below, to see its members.</p>}
-        {active && active.key === STAPLE_KEY && (
+        {active && (
           <p>
-            <strong>Everywhere, no cousins.</strong> {active.members.map((m) => `${m} (${counts.get(m)})`).join(", ")}. Each is
-            in so many {noun} that a cousin signal would light up on most guesses. They still match exactly.
-          </p>
-        )}
-        {active && active.key === ALONE_KEY && (
-          <p>
-            <strong>Stands alone.</strong> {active.members.map((m) => `${m} (${counts.get(m)})`).join(", ")}. No cousin in the
-            pantry yet: an exact match or a miss, nothing between. The spirits sit here because the Spirit tile already
-            says whether two drinks share a base.
-          </p>
-        )}
-        {active && active.key === UNPLACED_KEY && (
-          <p>
-            <strong>Not placed yet.</strong> {active.members.map((m) => `${m} (${counts.get(m)})`).join(", ")}. Add each to a
-            family, or to STANDALONE, in <code>shared/families.ts</code>. CI fails on any of these that reach the repo's
-            catalogue; these came in through the editor.
-          </p>
-        )}
-        {active && !SPECIAL_LABEL[active.key] && (
-          <p>
-            <strong>{active.key}.</strong> {active.members.map((m) => `${m} (${counts.get(m)})`).join(", ")}
-            {(FAMILIES[active.key]?.length ?? 0) > active.members.length &&
-              `. ${FAMILIES[active.key].length - active.members.length} more member${FAMILIES[active.key].length - active.members.length === 1 ? " isn't" : "s aren't"} used by any active ${noun.slice(0, -1)}`}
-            . Guess any of these against a Special holding a different one and the chip turns yellow.
+            <strong>{SPECIAL_LABEL[active.key] ?? active.key}.</strong>{" "}
+            {active.members.map((m) => `${m} (${counts.get(m)})`).join(", ")}
           </p>
         )}
       </div>
@@ -336,13 +301,9 @@ function PairExplorer({ rows, noun }: { rows: PantryRow[]; noun: string }) {
               </span>
             ))}
           </div>
-          <p className="dash-note">
-            What the player would see after guessing the first against the second. Names booked for a later day
-            aren't offered here.
-          </p>
         </div>
       ) : (
-        <p className="dash-note">Pick two names to see which ingredients would match and which would be cousins.</p>
+        <p className="dash-note">Pick two names.</p>
       )}
     </div>
   );
