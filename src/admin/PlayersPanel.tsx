@@ -140,11 +140,9 @@ function RetentionCurve({ retention }: { retention: PlayerRetention }) {
         );
       })}
       <p className="dash-note">
-        A “visit” is an ET day this device played on — any game kind, so four leftovers in one sitting is
-        one visit, the way a diner counts covers and not courses. Each rung counts only players whose{" "}
-        {windowDays} days are already up, so today's arrivals sit out rather than counting as no-shows
+        A “visit” is an ET day this device played on, any game kind. Each rung counts only players whose{" "} {windowDays} days are already up
         {lateTotal > 0 &&
-          `, and the ${lateTotal} who came back after their window closed are listed beside the rung they lapsed on`}
+          `; ${lateTotal} came back late (listed beside the rung they lapsed on)`}
         .
       </p>
     </div>
@@ -434,33 +432,24 @@ function FunnelSection({
             {scope === "allTime" ? (
               <>
                 Pooled over {funnel.allTime.days} day{funnel.allTime.days === 1 ? "" : "s"}
-                {funnel.allTime.since && ` since ${shortDate(funnel.allTime.since)}`} — counted per device per
-                day, so somebody who played on three of them is three arrivals.
+                {funnel.allTime.since && ` since ${shortDate(funnel.allTime.since)}`}, one arrival per device per day.
               </>
             ) : (
               <>
-                {isToday ? "Today" : dayDate} only. One day is tens of people at this volume; “All time” pools
-                every measured day for a steadier read.
+                {isToday ? "Today" : dayDate} only. “All time” pools every measured day.
               </>
             )}
           </p>
           {counts.visited === null && (
             <p className="dash-note">
               Arrivals weren't counted{visitsSince ? ` before ${shortDate(visitsSince)}` : " yet"}, so this
-              funnel starts at the first guess — a top rung of 0 would claim a 100% bounce rate rather than
-              admit the instrument was off.
+              funnel starts at the first guess 
             </p>
           )}
           <details className="dash-details">
             <summary>What this counts</summary>
             <p className="dash-note">
-              Every stage counts <strong>devices, not games</strong>. A visit is one device per ET day while a
-              “start” is a round, so a player who does the Special and three Leftovers is one arrival and four
-              starts — stacked as a funnel those would grow as they descend and report a 400% play rate.
-              Counted in devices each stage is a real subset of the one above it. The Today tab's finishing
-              bars count games instead, which is the right unit for a service and the wrong one for a funnel.
-              The bar is share of arrivals; the percentage beside it is share of the step above, and it's the
-              second one that says whether a step is working.
+              Every stage counts <strong>devices, not games</strong>: a player who does the Special and three Leftovers is one arrival and four starts. The bar is share of arrivals; the percentage beside it is share of the step above.
             </p>
           </details>
         </>
@@ -908,14 +897,11 @@ export default function PlayersPanel({
         <RatesRow totals={totals} />
         <PlayersRow players={players} trackingStart={playerTrackingStart} />
         <p className="dash-note" style={{ marginTop: 10 }}>
-          Anonymous counts only. A “player” is an anonymous device (localStorage), counted once regardless of
-          game kind.
+          Anonymous counts only. A “player” is an anonymous device.
           {playerTrackingStart && (
             <>
               {" "}
-              Player counts start {playerTrackingStart}, when tracking shipped — earlier games are in the
-              totals above but their devices aren't, so “new” is really “first seen since {playerTrackingStart}
-              ”.
+              Player counts start {playerTrackingStart}; “new” means first seen since then.
             </>
           )}
         </p>
@@ -964,13 +950,7 @@ export default function PlayersPanel({
             <details className="dash-details">
               <summary>What this counts</summary>
               <p className="dash-note">
-                The source is the <code>utm_source</code> on the URL a device first arrived at — so tag your
-                links (<code>?utm_source=reddit</code>) and anything untagged lands in Direct. Counts are
-                anonymous devices, attributed once, on the day they first showed up: a device that arrives
-                from an ad and comes back for a fortnight is one arrival and a return, never fourteen.
-                "Came back" only counts devices that have had a full {sources.windowDays} days to do it —
-                everyone newer sits in Still early, because a campaign running right now would otherwise
-                lower its own score with every visitor it brings.
+                The source is the <code>utm_source</code> on the URL a device first arrived at (untagged lands in Direct). Counts are devices, attributed once, on the day they first showed up. “Came back” only counts devices that have had a full {sources.windowDays} days to do it; newer ones sit in Still early.
                 {sources.untracked > 0 && ` ${sourceUntrackedNote(sources)}`}
               </p>
             </details>
@@ -989,12 +969,7 @@ export default function PlayersPanel({
             <details className="dash-details">
               <summary>What this counts</summary>
               <p className="dash-note">
-                The country comes from Cloudflare's edge when a game <em>starts</em> — so this counts people
-                who actually loaded and played, not requests. A country that's busy in Cloudflare's own
-                analytics but missing here never ran the game: that's scrapers and bots, and the gap between
-                the two is the read. Slices are anonymous devices (each counted in the one country it plays
-                from most); rounds are exact, and a country with far more rounds than players is one device
-                replaying, not a crowd.
+                The country is stamped by Cloudflare when a game <em>starts</em>, so this counts people who actually played. Slices are devices, each counted in the one country it plays from most.
                 {countries.untracked > 0 && ` ${countryUntrackedNote(countries)}`}
               </p>
             </details>

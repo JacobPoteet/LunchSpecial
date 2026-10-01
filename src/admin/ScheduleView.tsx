@@ -293,10 +293,7 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
       {flash && flash.date === null && <p className={flash.ok ? "form-ok" : "form-error"}>{flash.text}</p>}
 
       <p className="dash-note" style={{ marginBottom: 10 }}>
-        Past days are locked. Only dishes marked <span className="badge">ready</span> can be booked. Shuffle rolls a dish
-        that has never been the Special; Clear hands the day back to the automatic fallback pick. Auto-fill keeps a
-        region off consecutive days, a country apart by two weeks and two desserts apart; the line above says what
-        the next week holds either way. Dates roll over at midnight Eastern Time (America/New_York).
+        Past days are locked. Only dishes marked <span className="badge">ready</span> can be booked. Auto-fill keeps regions, countries and desserts apart. Dates roll over at midnight ET.
       </p>
 
       <ul className="sched-list">

@@ -162,8 +162,7 @@ export default function RequestsView({
             {error && <p className="form-error">{error}</p>}
 
             <p className="dash-note" style={{ marginTop: 0 }}>
-              Player-submitted from {words.where}. "Copy all for Claude" gives you a <code>{words.command}</code>{" "}
-              line you can paste into a chat to generate them in one go.
+              Player-submitted from {words.where}. 
             </p>
 
             {list.length === 0 ? (

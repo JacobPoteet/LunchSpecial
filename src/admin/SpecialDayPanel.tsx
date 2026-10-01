@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { AnalyticsSummary } from "../../shared/types";
-import { MAX_GUESSES } from "../../shared/types";
 import DayPicker from "./DayPicker";
 import {
   GuessBars,
@@ -112,7 +111,7 @@ export default function SpecialDayPanel({
         {dayStartedAny === 0 ? (
           <p className="dash-note">
             {isToday
-              ? "No plays recorded for today yet — check back once the diner fills up."
+              ? "No plays recorded yet today."
               : `Nobody played on ${day.date}.`}
             {date !== null && (
               <>
@@ -128,8 +127,7 @@ export default function SpecialDayPanel({
             <StartedByKindRow startedByKind={day.startedByKind} />
             {day.totals.started === 0 ? (
               <p className="dash-note">
-                Only leftovers and chef's specials {isToday ? "so far today" : "that day"} — the Special
-                itself went unplayed.
+                The Special itself went unplayed {isToday ? "so far today" : "that day"}.
               </p>
             ) : (
               <RatesRow totals={day.totals} />
@@ -178,14 +176,12 @@ export default function SpecialDayPanel({
             <h3 className="analytics-sub">Time to solve</h3>
             <SolveTimeRead times={solveTimes} />
             <p className="dash-note" style={{ marginTop: 8 }}>
-              Measured from the first guess to game over, so a round left open in a tab counts the whole
-              time it was open — which is why this is a median and a p90, never an average.
+              First guess to game over. Median and p90, not an average.
             </p>
           </div>
         </div>
         <p className="dash-note" style={{ marginTop: 10 }}>
-          Every diner mode, {MAX_GUESSES} guesses max. Nightcaps are left out: four guesses is a different
-          scale.
+          Every diner mode. Nightcaps are left out.
         </p>
       </section>
     </>

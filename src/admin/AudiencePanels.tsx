@@ -88,10 +88,7 @@ export function WeeklyKpi({ data, error }: { data: AudienceReport | null; error:
         ))}
       </div>
       <p className="dash-note">
-        Against {shortDate(priorWeek.from)} to {shortDate(priorWeek.to)}. Today is left out until it's over.
-        "New" means the device's first round fell in the window. The noise call treats each week as a
-        count and asks whether the gap clears two standard deviations. Consecutive weeks share their
-        regulars, so it errs toward "noise".
+        Against {shortDate(priorWeek.from)} to {shortDate(priorWeek.to)}. Today is left out. “New” means the device's first round fell in the window.
       </p>
     </section>
   );
@@ -169,11 +166,9 @@ export function WeeklyActiveChart({
       <details className="dash-details">
         <summary>What this counts</summary>
         <p className="dash-note">
-          {ACTIVE_NOTE} Weeks open on Monday, ET. A device is "new" in the week of its first round and
-          "returning" in every week after, so each device is counted once per week however often it played.
-          The last column is the week still running, its bar faded, with its days so far in the hover.
+          {ACTIVE_NOTE} Weeks open on Monday, ET. The faded column is the week still running.
           {data.trackingStart &&
-            ` Player tracking started ${data.trackingStart}, so the first week's "new" includes devices that had played before tracking began.`}
+            ` Tracking started ${data.trackingStart}; the first week's "new" includes earlier players.`}
         </p>
       </details>
     </section>
@@ -261,11 +256,7 @@ export function CohortGrid({
           <details className="dash-details">
             <summary>How to read it</summary>
             <p className="dash-note">
-              Each row is the devices whose first round fell in that week (Monday start, ET). Each cell is
-              the share of them that played again in the week that many weeks later, whether or not they
-              also played in the weeks between. Read down a column to see whether newer players stick
-              better than older ones. A blank cell is a week that hasn't finished yet, not a zero. Rows under{" "}
-              {SMALL_SAMPLE_MIN} devices are set in grey: one person moves them by several points.
+              Each row is the devices first seen that week; each cell is the share that played again that many weeks later. Blank means the week isn&apos;t finished. Grey rows have under{" "} {SMALL_SAMPLE_MIN} devices.
             </p>
           </details>
         </>
@@ -402,11 +393,7 @@ export function ArrivalSplit({ data, error }: { data: AudienceReport | null; err
       <details className="dash-details">
         <summary>What this counts</summary>
         <p className="dash-note">
-          Device-days since {shortDate(data.visitsSince)}, when arrivals started being counted. A first visit is
-          the first day a device ever showed up, whether it opened the board or played. Each percentage is of
-          that column's arrivals, and thin ones carry their range. "Back within 7 days" only counts arrivals
-          whose 7 days are up. Arrival counts are one per device per day, so a regular who came on ten days
-          is ten returning arrivals.
+          Device-days since {shortDate(data.visitsSince)}, when arrivals started being counted. A first visit is a device&apos;s first day, whether it opened the board or played. “Back within 7 days” counts only arrivals whose 7 days are up.
         </p>
       </details>
     </section>

@@ -256,22 +256,19 @@ function MyDataPanel({
         <h2>This device's data</h2>
       </div>
       <p className="dash-note">
-        Your own play-testing is in every number on this dashboard — including the arrivals the funnel counts,
-        which a page you opened and never guessed on still writes. Review what this browser has recorded, then
-        clear it out.
+        Your own play-testing is in every number here, including arrivals. Review what this browser recorded, then clear it.
       </p>
 
       {!playerId && (
         <p className="dash-note" style={{ marginTop: 12 }}>
-          Nothing has been played in this browser, so there's no device id to look up. Play a round here first.
+          Nothing played in this browser yet.
         </p>
       )}
 
       {playerId && (
         <>
           <p className="dash-note" style={{ marginTop: 12 }}>
-            Device <code className="ev-player">{playerId.slice(0, 8)}</code> — this browser only. Rounds played on
-            your phone or inside the Discord Activity carry a different id and aren't included.
+            Device <code className="ev-player">{playerId.slice(0, 8)}</code> · this browser only.
           </p>
 
           {error && <p className="dash-note dash-note--warn">{error}</p>}
@@ -280,8 +277,7 @@ function MyDataPanel({
             <p className="dash-note dash-note--warn">
               Removed {deleted.rounds} round{deleted.rounds === 1 ? "" : "s"}, {deleted.visits} arrival
               {deleted.visits === 1 ? "" : "s"} and {deleted.noticeViews} notice view
-              {deleted.noticeViews === 1 ? "" : "s"}. This device keeps the same id, so anything you play here
-              from now on will be recorded again — and can be cleared the same way.
+              {deleted.noticeViews === 1 ? "" : "s"}. 
             </p>
           )}
 
@@ -330,7 +326,7 @@ function MyDataPanel({
                 )}
               </ul>
               <p className="dash-note">
-                Dish suggestions sent from this device aren't analytics — clear those in the Requests tab.
+                Suggestions live in the Requests tab.
               </p>
             </>
           )}
@@ -1064,7 +1060,7 @@ export default function ActivityPanel({
           {mine === "only" && " · this device only"}
           {mine === "hide" && " · this device hidden"}
           {view.unattributed > 0 &&
-            ` · ${view.unattributed} with no device id (only the start beacon carries one)`}
+            ` · ${view.unattributed} with no device id`}
           {feed?.hasMore && limit < ACTIVITY_MAX && (
             <>
               {" · "}
@@ -1079,16 +1075,12 @@ export default function ActivityPanel({
         </p>
         {group === "visit" && (
           <p className="dash-note">
-            A visit is one device on one ET day — the same unit the player funnel's first rung and the
-            repeat-visit curve count, so "session" here means what it means everywhere else on this dashboard.
-            One can legitimately span the whole day, which is why each header prints its span. A header showing
-            "3 of 9" is telling you the device played nine rounds that day and three of them are on this page.
+            A visit is one device on one ET day. A header showing “3 of 9” means the device played nine rounds that day and three are on this page.
           </p>
         )}
         {feed?.since && (
           <p className="dash-note">
-            Back to {etStamp(feed.since)}. Arrivals are shown from the start of that ET day, so the oldest day
-            on the page carries its bounces too — devices that opened a board and never guessed.
+            Back to {etStamp(feed.since)}. 
           </p>
         )}
       </section>

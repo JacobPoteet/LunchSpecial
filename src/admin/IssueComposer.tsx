@@ -161,7 +161,7 @@ export default function IssueComposer({
               placeholder="What you expected, what happened, how to get back to it. Markdown works."
               onChange={(e) => setBody(e.target.value)}
             />
-            <p className="field-hint">Optional — a title plus the context below is already a real issue.</p>
+            <p className="field-hint">Optional.</p>
           </div>
 
           {board.labels.length > 0 && (

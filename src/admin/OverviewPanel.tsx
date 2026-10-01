@@ -203,7 +203,7 @@ function AtAGlance({
                     isToday ? "today" : `on ${day.date}`
                   } and nobody made a guess.`
                 : isToday
-                  ? "No plays recorded for today yet — check back once the diner fills up."
+                  ? "No plays recorded yet today."
                   : `Nobody played on ${day.date}.`}
             </p>
           ) : (
@@ -297,7 +297,7 @@ function AtAGlance({
                 <HourlyByKind hours={day.hourly} nowHour={isToday ? nowHour : null} />
                 {isToday && (
                   <p className="dash-note hourly__caption">
-                    Faded hours are still ahead of us — not hours nobody played.
+                    Faded hours are still ahead.
                   </p>
                 )}
               </div>
@@ -335,11 +335,10 @@ function AtAGlance({
               <button className="link-btn" onClick={() => onOpenTab("players")}>
                 Players
               </button>{" "}
-              has the breakdown;{" "}
-              <button className="link-btn" onClick={() => onOpenTab("trends")}>
-                Trends
-              </button>{" "}
-              has where it's heading.
+              ·{" "}
+            <button className="link-btn" onClick={() => onOpenTab("trends")}>
+              Trends
+            </button>
             </p>
           </div>
         </>
@@ -414,8 +413,7 @@ function TodaysSpecial({
         <>
           <p className="dash-big">Nothing scheduled!</p>
           <p className="dash-note">
-            Players will get an automatic fallback dish today. Assign one in the schedule — or test play to
-            see which one they're getting.
+            Nothing booked: players get the fallback dish.
           </p>
           <SwitchCountdown />
           <div className="btn-row">{testPlayBtn}</div>
@@ -487,8 +485,7 @@ function TonightsNightcap({ tonight }: { tonight: NightEntry }) {
         <>
           <p className="dash-big">Nothing booked</p>
           <p className="dash-note">
-            Players get the fallback pour tonight, which is a real drink and not an error — book one
-            on the nightly board, or test pour to see which one they're getting.
+            Nothing booked: players get the fallback pour.
           </p>
         </>
       )}
@@ -578,7 +575,7 @@ function TomorrowsSpecial({
         <>
           <p className="dash-big">Nothing booked</p>
           <p className="dash-note">
-            {tomorrow.date} would run on the automatic fallback pick. Book it before it becomes today.
+            {tomorrow.date} has nothing booked: it would run on the fallback pick.
           </p>
           {roll}
           <div className="btn-row">
@@ -626,7 +623,7 @@ function OnTheBoard({
       </div>
       {live.length === 0 ? (
         <p className="dash-note">
-          {booked ?? "No live notices — nothing is showing on Today's Special right now."}
+          {booked ?? "No live notices."}
         </p>
       ) : (
         <>
@@ -700,7 +697,7 @@ export default function OverviewPanel({
           </p>
           <p className="dash-note">
             {data.firstGap ? `First empty day: ${data.firstGap}` : "Next 60 days fully booked"}
-            {lowSchedule && " — time to fill the board!"}
+            
           </p>
           <div className="btn-row">
             <button className="btn" onClick={() => onNavigate("schedule")}>
@@ -726,7 +723,7 @@ export default function OverviewPanel({
       <section className={data.warnings.length > 0 ? "panel panel--warn" : "panel"}>
         <h2>Content warnings</h2>
         {data.warnings.length === 0 ? (
-          <p className="dash-note">All dishes are complete. Sparkling clean kitchen.</p>
+          <p className="dash-note">All dishes are complete.</p>
         ) : (
           <ul className="warning-list">
             {data.warnings.map((w) => (

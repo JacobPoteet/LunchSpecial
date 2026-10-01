@@ -252,12 +252,9 @@ export default function DishReportPanel({
       </div>
 
       <p className="dash-note" style={{ marginTop: 8 }}>
-        Every mode counts here, not just the Special: a Leftover or a Chef's Choice is still a real first
-        attempt at that dish, and at this volume including them is the difference between a dish having
-        thirty attempts and having nine. Rows in grey have under {DISH_MIN_COMPLETED} finishes — read those
-        as anecdotes.
+        Every mode counts, not just the Special. Grey rows have under {DISH_MIN_COMPLETED} finishes: read them as anecdotes.
         {report.untracked > 0 &&
-          ` ${report.untracked} round${report.untracked === 1 ? "" : "s"} predate dish tracking and carry no dish; they're left out rather than assigned to one.`}
+          ` ${report.untracked} round${report.untracked === 1 ? "" : "s"} predate dish tracking and are left out.`}
       </p>
     </section>
   );
