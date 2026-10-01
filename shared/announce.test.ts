@@ -26,6 +26,15 @@ describe("guessAnnouncement", () => {
     );
   });
 
+  // A close ingredient is a cousin of something in the Special. Said as a count after the
+  // exact one, and left out when there are none or on a round saved before families shipped.
+  it("counts the close ingredients after the matching ones", () => {
+    const close = { ...miss, nearIngredients: [{ ingredient: "lime", family: "citrus" }, { ingredient: "noodles", family: "noodle & pasta" }] };
+    expect(say(close)).toContain("2 of 6 ingredients match, 2 close. country close");
+    expect(say({ ...miss, nearIngredients: [] })).toContain("2 of 6 ingredients match. country");
+    expect(say(miss)).toContain("2 of 6 ingredients match. country");
+  });
+
   // The region is the whole reason a near tile is worth a second line: the
   // buckets are the game's, not the atlas's. Said only on a near, and only
   // for the country tile, and left out on a row saved before it shipped.

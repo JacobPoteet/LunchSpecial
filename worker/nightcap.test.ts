@@ -65,6 +65,14 @@ describe("computeDrinkFeedback", () => {
     expect(fb.unmatchedIngredients).toEqual(["olive"]);
   });
 
+  it("marks a cousin of the pour: lemon is close to lime", () => {
+    const target = drink({ ingredients: ["rum", "lime", "mint", "sugar"] });
+    const guess = drink({ id: 2, name: "Tom Collins", ingredients: ["gin", "lemon", "sugar", "soda water"] });
+    const fb = computeDrinkFeedback(guess, target);
+    expect(fb.nearIngredients).toEqual([{ ingredient: "lemon", family: "citrus" }]);
+    expect(fb.matchedIngredients).toEqual(["sugar"]);
+  });
+
   it("is correct only on the same drink id", () => {
     // Two drinks could share every attribute; the id is the answer.
     const target = drink();

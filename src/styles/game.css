@@ -749,6 +749,17 @@
   text-decoration: line-through;
 }
 
+/* An ingredient that is a cousin of something in the Special: a different
+   ingredient of the same family (shared/families.ts). It reads as yellow, and
+   never as yellow alone: a dashed border and a leading ≈ carry the same fact,
+   like the country tile's ~. The fill is --near-soft, not --near, so the text
+   stays --ink (on the solid mustard it would have to be --on-near). */
+.chip--close {
+  background: var(--near-soft);
+  border: 1px dashed var(--near);
+  color: var(--ink);
+}
+
 /* ---- clue tickets ---- */
 
 .tickets {

@@ -15,6 +15,7 @@ import bar from "./bar";
 import dishes from "./dishes";
 import experiments from "./experiments";
 import issues from "./issues";
+import pantry from "./pantry";
 import requests from "./requests";
 import schedule from "./schedule";
 
@@ -39,5 +40,6 @@ app.route("/", experiments);
 app.route("/", activity);
 app.route("/", issues);
 app.route("/", bar);
+app.route("/", pantry);
 
 export default app;

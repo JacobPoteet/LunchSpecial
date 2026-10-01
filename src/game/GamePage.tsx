@@ -136,6 +136,10 @@ function HowToModal({ onClose }: { onClose: () => void }) {
           <span className="chip chip--miss">× miss (gray)</span>
         </div>
         <p>
+          An ingredient chip turns <strong>yellow</strong> and takes a ≈ when the Special holds a cousin of it, a
+          different ingredient from the same family, like lemon for lime or pasta for noodles.
+        </p>
+        <p>
           Every miss earns a <strong>clue ticket</strong>, five in all. Settle today's check and the{" "}
           <strong>Leftovers</strong> open: every Special you missed, or a random one off the cook.
         </p>

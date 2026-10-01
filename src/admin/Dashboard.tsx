@@ -7,6 +7,7 @@ import ActivityPanel from "./ActivityPanel";
 import AfterDarkPanel from "./AfterDarkPanel";
 import DishReportPanel from "./DishReportPanel";
 import ExperimentsPanel from "./ExperimentsPanel";
+import IngredientWebPanel from "./IngredientWebPanel";
 import MenuMixPanel from "./MenuMixPanel";
 import OverviewPanel from "./OverviewPanel";
 import PlayersPanel from "./PlayersPanel";
@@ -247,6 +248,7 @@ export default function Dashboard({
           />
           <DishReportPanel surface={surface} focusDish={focusDish} onFocused={() => setFocusDish(null)} />
           <MenuMixPanel onOpenDishes={onOpenDishes} />
+          <IngredientWebPanel />
         </>
       )}
       {tab === "players" && (

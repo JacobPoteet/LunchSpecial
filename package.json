@@ -21,6 +21,7 @@
     "lint": "oxlint",
     "cf-typegen": "wrangler types",
     "assets": "node scripts/build-assets.mjs",
+    "docs:web": "node scripts/build-ingredient-web.mjs",
     "discord:register": "node scripts/discord-register-command.mjs",
     "db:migrate": "wrangler d1 migrations apply lunch-special-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply lunch-special-db --remote",

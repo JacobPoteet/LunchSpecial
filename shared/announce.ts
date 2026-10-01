@@ -63,6 +63,16 @@ export function regionAside(key: string, cell: { match: MatchLevel; region?: Reg
   return ` (${REGION_LABELS[cell.region]})`;
 }
 
+/**
+ * ", 2 close" after the ingredient count, or nothing. A close ingredient is a
+ * different one of the same family as something in the Special, and a listener
+ * needs the number for the same reason a sighted player gets the chips.
+ */
+function closeAside(guess: { nearIngredients?: unknown[] }): string {
+  const n = guess.nearIngredients?.length ?? 0;
+  return n > 0 ? `, ${n} close` : "";
+}
+
 /** "1 guess" / "3 guesses" — the word is irregular, so both forms are named. */
 function count(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
@@ -102,7 +112,7 @@ export function guessAnnouncement(input: {
 
   return (
     `Guess ${guessNumber} of ${maxGuesses}: ${name}. ` +
-    `${guess.matchedIngredients.length} of ${ingredientCount} ingredients match. ` +
+    `${guess.matchedIngredients.length} of ${ingredientCount} ingredients match${closeAside(guess)}. ` +
     `${tiles}. ${tail}`
   );
 }
@@ -163,7 +173,7 @@ export function drinkGuessAnnouncement(input: {
 
   return (
     `Guess ${guessNumber} of ${maxGuesses}: ${name}. ` +
-    `${guess.matchedIngredients.length} of ${ingredientCount} ingredients match. ` +
+    `${guess.matchedIngredients.length} of ${ingredientCount} ingredients match${closeAside(guess)}. ` +
     `${tiles}. ${tail}`
   );
 }

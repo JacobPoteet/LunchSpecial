@@ -44,6 +44,28 @@ const croque: DishRecord = {
   ingredients: ["bread", "ham", "gruyere", "butter", "milk", "flour", "mustard"],
 };
 
+describe("computeFeedback cousins", () => {
+  it("marks noodles and pork as close to carbonara's pasta and guanciale", () => {
+    const fb = computeFeedback(ramen, carbonara);
+    expect(fb.nearIngredients).toEqual([
+      { ingredient: "noodles", family: "noodle & pasta" },
+      { ingredient: "pork", family: "pork" },
+    ]);
+    // A cousin is still not a match: the count and the complement are unchanged.
+    expect(fb.matchedIngredients).toEqual(["egg"]);
+    expect(fb.unmatchedIngredients).toContain("noodles");
+  });
+
+  it("never names the Special's own ingredient", () => {
+    const fb = computeFeedback(ramen, carbonara);
+    expect(JSON.stringify(fb.nearIngredients)).not.toContain("guanciale");
+  });
+
+  it("has no cousins on a win", () => {
+    expect(computeFeedback(carbonara, carbonara).nearIngredients).toEqual([]);
+  });
+});
+
 describe("computeFeedback", () => {
   it("marks the exact dish correct with all ingredients matched", () => {
     const fb = computeFeedback(carbonara, carbonara);

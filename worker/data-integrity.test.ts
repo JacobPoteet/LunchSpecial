@@ -3,6 +3,7 @@ import { join } from "node:path";
 import Database from "better-sqlite3";
 import { describe, expect, it } from "vitest";
 import { clueBeat, coasterBeat, type ClueBeat } from "../shared/clues";
+import { classify, nearRate, type PantryItem } from "../shared/families";
 
 // Applies every migration + the seed catalog to a real (in-memory) SQLite
 // database so the schema's own CHECK/UNIQUE constraints do the enforcing —
@@ -851,5 +852,48 @@ describe("the coaster sheet", () => {
       .filter(([, slugs]) => slugs.size > 1)
       .map(([phrase, slugs]) => `"${phrase}" on ${[...slugs].join(", ")}`);
     expect(shared, `\n${shared.join("\n")}\n`).toEqual([]);
+  });
+});
+
+// ---- the pantry ----
+//
+// One vocabulary serves the kitchen and the bar, and ingredient families
+// (shared/families.ts) sort it. Both tests below are the maintenance cost of
+// that feature: a new ingredient has to be placed once, at the moment it
+// first appears, and fails CI here until it is. The admin can add an
+// ingredient this suite never sees, which is why the editors flag an
+// unclassified one as well.
+
+describe("the pantry", () => {
+  const db = buildDb();
+  const pantry = (table: "dishes" | "drinks"): PantryItem[] =>
+    (db.prepare(`SELECT name, ingredients FROM ${table}`).all() as { name: string; ingredients: string }[]).map((r) => ({
+      name: r.name,
+      ingredients: JSON.parse(r.ingredients) as string[],
+    }));
+  const kitchen = pantry("dishes");
+  const bar = pantry("drinks");
+  const vocabulary = [...new Set([...kitchen, ...bar].flatMap((i) => i.ingredients))].sort();
+
+  it("has one spelling per ingredient: no plural twin beside its singular", () => {
+    const twins = vocabulary.filter((i) => vocabulary.includes(`${i}s`)).map((i) => `${i} / ${i}s`);
+    expect(twins, `merge each pair in a migration (see 0047) and in seed.sql: ${twins.join(", ")}`).toEqual([]);
+  });
+
+  it("places every ingredient: a family, a staple, or STANDALONE", () => {
+    const unplaced = vocabulary.filter((i) => classify(i) === "unclassified");
+    expect(
+      unplaced,
+      `add each to a family in shared/families.ts, or to STANDALONE if it has no cousin: ${unplaced.join(", ")}`,
+    ).toEqual([]);
+  });
+
+  it("keeps a guess from turning yellow too often", () => {
+    // Not a forecast, a smoke alarm: a family that grows too broad shows up here as a rate that
+    // climbs. Measured at about 14% on both menus when the families shipped.
+    const k = nearRate(kitchen);
+    const b = nearRate(bar);
+    expect(k.withNear / k.pairs).toBeLessThan(0.3);
+    expect(b.withNear / b.pairs).toBeLessThan(0.3);
   });
 });
