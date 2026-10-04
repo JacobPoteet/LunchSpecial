@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { barIsOpen, localClock, msUntilLastCall, msUntilOpen, nightKey } from "../../shared/night";
 import { devIgnoresBarHours } from "./devHarness";
+import { nightRoundFinished } from "./storage";
 
 export { BAR_CLOSE_HOUR, BAR_OPEN_HOUR, nightNumber } from "../../shared/night";
 
@@ -89,19 +90,33 @@ export function barInvite(playedTonight: boolean): BarInvite {
 }
 
 /**
- * The same answer, re-asked once a second.
+ * The same answer, re-asked once a second, along with which night it is.
  *
  * The tick is what makes the invitation appear *live*: a player who finished
  * lunch at 19:58 and left the check open should see the bar open at 20:00
  * without touching anything. Same reason useNewDayAvailable polls for the
  * midnight-ET rollover, and the same cost -- one comparison a second.
+ *
+ * The night and whether it is settled are re-read on every tick too, never
+ * captured at mount. A diner tab left open from last night's Nightcap used to
+ * carry "settled" into the next evening and hide the door on a fresh drink.
+ * Both are strings, so an unchanged tick sets the same value and React skips
+ * the render.
  */
-export function useBarInvite(playedTonight: boolean): BarInvite {
-  const [state, setState] = useState<BarInvite>(() => barInvite(playedTonight));
+export function useBarInvite(): { invite: BarInvite; night: string } {
+  const read = () => {
+    const night = currentNight();
+    return { night, invite: barInvite(nightRoundFinished(night)) };
+  };
+  const [night, setNight] = useState(() => currentNight());
+  const [invite, setInvite] = useState<BarInvite>(() => read().invite);
   useEffect(() => {
-    setState(barInvite(playedTonight));
-    const t = setInterval(() => setState(barInvite(playedTonight)), 1000);
+    const t = setInterval(() => {
+      const next = read();
+      setNight(next.night);
+      setInvite(next.invite);
+    }, 1000);
     return () => clearInterval(t);
-  }, [playedTonight]);
-  return state;
+  }, []);
+  return { invite, night };
 }

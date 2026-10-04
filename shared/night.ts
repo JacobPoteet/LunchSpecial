@@ -147,3 +147,20 @@ export function isPlayableNight(night: string, etToday: string): boolean {
   if (night < NIGHT_EPOCH_DATE) return false;
   return Math.abs(daysBetween(night, etToday)) <= 1;
 }
+
+/**
+ * Does the lunch this player finished admit them to `night`?
+ *
+ * The door is "finish today's Special", and two days can be today's. The ET day
+ * is the obvious one. The other is the Special dated on the night's own key,
+ * because ET midnight lands in the middle of a night for anyone at or west of
+ * it: 00:00-03:00 in New York, from 21:00 in Los Angeles, and the whole night in
+ * Honolulu. Reading the ET day alone put those players behind "Kitchen first"
+ * on a night they had already earned, and a round already in progress with them.
+ *
+ * `finished` is the caller's reading of localStorage. A night round that has
+ * already started is admitted by the caller and never reaches this.
+ */
+export function lunchAdmits(night: string, etToday: string, finished: (day: string) => boolean): boolean {
+  return finished(etToday) || finished(night);
+}

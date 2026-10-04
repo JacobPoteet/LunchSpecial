@@ -76,12 +76,16 @@ function decodeExpiryMs(encoded: string): number | null {
 }
 
 export async function createToken(payload: string, ttlMs: number, secret: string): Promise<string> {
+  // An unset Worker secret arrives as undefined, which TextEncoder would sign
+  // with as the string "undefined" — a key anyone can guess.
+  if (!secret) throw new Error("SESSION_SECRET is not set");
   const data = `${payload}.${encodeExpiry(Date.now() + ttlMs)}`;
   return `${data}.${await sign(data, secret)}`;
 }
 
 /** Returns the payload if the token is authentic and unexpired, else null. */
 export async function verifyToken(token: string, secret: string): Promise<string | null> {
+  if (!secret) return null; // see createToken
   const lastDot = token.lastIndexOf(".");
   if (lastDot < 0) return null;
   const data = token.slice(0, lastDot);
@@ -96,6 +100,9 @@ export async function verifyToken(token: string, secret: string): Promise<string
 
 /** Constant-time-ish password check (compares SHA-256 digests). */
 export async function passwordMatches(supplied: string, expected: string): Promise<boolean> {
+  // An unset ADMIN_PASSWORD is undefined, which would hash as "undefined" and
+  // let that word in. No password configured means nobody logs in.
+  if (!expected || typeof supplied !== "string") return false;
   const a = new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(supplied)));
   const b = new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(expected)));
   let diff = 0;

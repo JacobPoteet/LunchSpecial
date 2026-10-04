@@ -161,6 +161,18 @@ describe("midnight-ET rollover (GitHub #33)", () => {
     expect(msUntilGameMidnight(new Date("2026-07-19T05:30:00Z"))).toBe(22.5 * 3_600_000);
   });
 
+  it("counts the real length of a DST day", () => {
+    const H = 3_600_000;
+    // 2026-11-01 00:30 EDT (04:30 UTC): clocks fall back at 02:00, so the day
+    // runs 25 hours and midnight is 24h30m away, not 23h30m.
+    expect(msUntilGameMidnight(new Date("2026-11-01T04:30:00Z"))).toBe(24.5 * H);
+    // 2027-03-14 00:30 EST (05:30 UTC): clocks spring forward, a 23-hour day.
+    expect(msUntilGameMidnight(new Date("2027-03-14T05:30:00Z"))).toBe(22.5 * H);
+    // Later on the same days nothing changes between now and midnight.
+    expect(msUntilGameMidnight(new Date("2026-11-02T04:00:00Z"))).toBe(1 * H); // 23:00 EST
+    expect(msUntilGameMidnight(new Date("2027-03-15T03:00:00Z"))).toBe(1 * H); // 23:00 EDT
+  });
+
   it("buckets an instant into its ET hour of day", () => {
     // 18:30 UTC in July (EDT, UTC-4) is 14:30 ET.
     expect(gameHour(new Date("2026-07-19T18:30:00Z"))).toBe(14);

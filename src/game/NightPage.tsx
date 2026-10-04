@@ -38,8 +38,9 @@ import {
   emptyNightRound,
   getPlayerId,
   hasSeenAfterDarkIntro,
+  dailyFinishedOn,
+  finishedDaily,
   loadNightStats,
-  loadRound,
   loadNightRound,
   markAfterDarkIntroSeen,
   recordNightResult,
@@ -48,10 +49,12 @@ import {
   type NightStats,
 } from "./storage";
 import { currentNight, isBarOpen, nightDateLabel, tzOffsetMinutes, untilLastCall, untilOpen } from "./night";
+import { lunchAdmits } from "../../shared/night";
 import { puzzleNumberFor } from "./archive";
 import { devIgnoresBarHours } from "./devHarness";
 import { localToday } from "../api";
 import { hms } from "../../shared/time";
+import { liveStreak } from "../../shared/streak";
 
 const SURFACE: Surface = currentSurface();
 
@@ -146,7 +149,11 @@ function NightIntro({ onDismiss }: { onDismiss: () => void }) {
 }
 
 /** The bar's stats panel. Four rungs, never six. */
-function NightStatsPanel({ stats, highlight }: { stats: NightStats; highlight?: number }) {
+function NightStatsPanel({ stats, night, highlight }: { stats: NightStats; night: string; highlight?: number }) {
+  // Stored streaks only move when a round is recorded, so a dead one still
+  // reads as alive in storage. Same fold the daily's panel goes through,
+  // with the night key standing in for the ET day.
+  const streak = liveStreak({ currentStreak: stats.currentStreak, lastCompletedDate: stats.lastCompletedNight, today: night });
   const winPct = stats.played === 0 ? 0 : Math.round((stats.wins / stats.played) * 100);
   const maxDist = Math.max(1, ...stats.dist);
   useEffect(() => {
@@ -158,7 +165,7 @@ function NightStatsPanel({ stats, highlight }: { stats: NightStats; highlight?: 
       <div className="stats-grid">
         <div><span className="stat__num">{stats.played}</span><span className="stat__label">Nights</span></div>
         <div><span className="stat__num">{winPct}%</span><span className="stat__label">Win rate</span></div>
-        <div><span className="stat__num">{stats.currentStreak}</span><span className="stat__label">Streak</span></div>
+        <div><span className="stat__num">{streak}</span><span className="stat__label">Streak</span></div>
         <div><span className="stat__num">{stats.maxStreak}</span><span className="stat__label">Best</span></div>
       </div>
       <div className="dist">
@@ -268,10 +275,14 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   // Deliberately NOT bypassed by `?barhours=off`, which is about the clock. It
   // used to be, and the cost was that the "Kitchen first" door could not be
   // reached in dev at all — a state nobody can look at is a state nobody
-  // checks. `npm run lastcall` and `npm run afterdark` both seed a won Special,
+  // checks. `npm run lastcall` and `npm run negroni` both seed a won Special,
   // so the common case still lands on the board; clearing the lunch round is
   // how you go and look at the door.
-  const [lunchDone] = useState(() => isPreview || loadRound(localToday()).status !== "playing");
+  // A round already under way is never turned back at the door: the night was
+  // earned when it started, whatever the ET clock has done since.
+  const [lunchDone] = useState(
+    () => isPreview || round.guesses.length > 0 || lunchAdmits(night, localToday(), dailyFinishedOn),
+  );
 
   const lastCall = useCountdown(untilLastCall);
 
@@ -673,9 +684,11 @@ function TabModal({
     surface: SURFACE,
     idle: "Share the night",
     message: () => {
-      const lunch = loadRound(localToday());
+      // The lunch that let them in: the ET day's, or past ET midnight the one
+      // dated on this night (see lunchAdmits).
+      const lunch = finishedDaily(localToday()) ?? finishedDaily(round.night);
       const lunchBlock =
-        lunch.status !== "playing" && lunch.guesses.length > 0
+        lunch && lunch.guesses.length > 0
           ? buildShareText(
               puzzleNumberFor(lunch.date),
               lunch.guesses,
@@ -750,7 +763,7 @@ function TabModal({
           <StoryDetails clues={reveal.coasters} noun="coasters" />
         </>
       )}
-      <NightStatsPanel stats={stats} highlight={won ? round.guesses.length : undefined} />
+      <NightStatsPanel stats={stats} night={round.night} highlight={won ? round.guesses.length : undefined} />
       {/* The same suggestion box the check carries, asking for a drink. The
           credit above it was on the reveal from the day the bar opened and
           never drawn; a fan's pour deserves the stamp as much as a fan's dish. */}

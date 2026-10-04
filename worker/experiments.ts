@@ -12,7 +12,7 @@
 // named timezones, so rows arrive as UTC hour buckets and are folded into ET days
 // against the midnight-ET boundary the game rolls over on.
 
-import { gameToday } from "../shared/time";
+import { addDays, gameToday } from "../shared/time";
 import type { ExperimentDay } from "../shared/types";
 import type { PlayerActivity } from "./players";
 
@@ -23,11 +23,6 @@ export interface ExperimentHourRow {
   completed: number;
   solved: number;
   shared: number;
-}
-
-/** "2026-07-24" → "2026-07-25". Plain calendar arithmetic on an ET day. */
-function nextDate(date: string): string {
-  return new Date(new Date(`${date}T00:00:00Z`).getTime() + 86_400_000).toISOString().slice(0, 10);
 }
 
 /**
@@ -84,7 +79,7 @@ export function foldExperimentSeries(
   if (dates.length === 0) return [];
 
   const series: ExperimentDay[] = [];
-  for (let d = dates[0]; d <= today; d = nextDate(d)) {
+  for (let d = dates[0]; d <= today; d = addDays(d, 1)) {
     const totals = byDay.get(d) ?? { started: 0, completed: 0, solved: 0, shared: 0 };
     // A tracked day with nobody on it is a real zero; a day before the instrument
     // existed is not a measurement at all.

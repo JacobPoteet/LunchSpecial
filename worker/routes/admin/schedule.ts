@@ -53,12 +53,15 @@ app.put("/schedule", async (c) => {
   }
   const dish = await c.env.DB
     .prepare(
-      `SELECT d.id, d.ingredients, (SELECT COUNT(*) FROM clues c WHERE c.dish_id = d.id) AS clue_count
+      `SELECT d.id, d.ingredients, d.is_active, (SELECT COUNT(*) FROM clues c WHERE c.dish_id = d.id) AS clue_count
        FROM dishes d WHERE d.id = ?`,
     )
     .bind(body.dishId)
-    .first<{ id: number; ingredients: string; clue_count: number }>();
+    .first<{ id: number; ingredients: string; is_active: number; clue_count: number }>();
   if (!dish) return c.json({ error: "Dish not found" }, 404);
+  // An inactive dish is missing from the order bar, so booking one serves a
+  // Special nobody can guess.
+  if (dish.is_active !== 1) return c.json({ error: "Dish is inactive — switch it on before booking it" }, 400);
   if ((JSON.parse(dish.ingredients) as string[]).length < 3 || dish.clue_count !== 5) {
     return c.json({ error: "Dish needs at least 3 ingredients and exactly 5 clues before scheduling" }, 400);
   }

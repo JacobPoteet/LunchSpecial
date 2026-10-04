@@ -9,6 +9,7 @@ import {
   nightKey,
   nightNumber,
   isPlayableNight,
+  lunchAdmits,
   type LocalClock,
 } from "./night";
 import { NIGHT_EPOCH_DATE } from "./types";
@@ -188,5 +189,23 @@ describe("isPlayableNight", () => {
     expect(isPlayableNight("", "2026-09-20")).toBe(false);
     expect(isPlayableNight("2026-9-20", "2026-09-20")).toBe(false);
     expect(isPlayableNight("tonight", "2026-09-20")).toBe(false);
+  });
+});
+
+describe("lunchAdmits", () => {
+  const finishedOn = (...days: string[]) => (day: string) => days.includes(day);
+
+  it("admits on the ET day's Special", () => {
+    expect(lunchAdmits("2026-10-03", "2026-10-03", finishedOn("2026-10-03"))).toBe(true);
+  });
+
+  it("admits on the night's own Special once ET has rolled over", () => {
+    // 21:30 in Los Angeles on the 3rd is 00:30 ET on the 4th. Lunch on the 3rd
+    // is the one that goes with tonight; the 4th's has not been played.
+    expect(lunchAdmits("2026-10-03", "2026-10-04", finishedOn("2026-10-03"))).toBe(true);
+  });
+
+  it("still turns away a player who has finished neither", () => {
+    expect(lunchAdmits("2026-10-03", "2026-10-04", finishedOn("2026-10-02"))).toBe(false);
   });
 });
