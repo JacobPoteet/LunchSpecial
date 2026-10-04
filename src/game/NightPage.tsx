@@ -48,7 +48,7 @@ import {
   type NightRoundState,
   type NightStats,
 } from "./storage";
-import { currentNight, isBarOpen, nightDateLabel, tzOffsetMinutes, untilLastCall, untilOpen } from "./night";
+import { currentNight, isBarOpen, lastCallGraceNight, nightDateLabel, tzOffsetMinutes, untilLastCall, untilOpen } from "./night";
 import { lunchAdmits } from "../../shared/night";
 import { puzzleNumberFor } from "./archive";
 import { devIgnoresBarHours } from "./devHarness";
@@ -225,12 +225,16 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   const [rolled, setRolled] = useState<string | undefined>(undefined);
   const effectivePin = wantsRoll ? rolled : pinned;
 
+  const ephemeral = isPreview || !!pinned;
+
+  // A round left unfinished at last call, reopened inside the grace hour. Read
+  // once, like the night itself: it decides which night this sitting is.
+  const [grace] = useState(() => (ephemeral ? null : lastCallGraceNight()));
+
   // Fixed at entry and never recomputed. A player who starts at 02:55 and
   // finishes at 03:10 played THIS night: recomputing would hand them tomorrow's
   // board mid-round, and recomputing at midnight would do it to everybody.
-  const [night] = useState(() => currentNight());
-
-  const ephemeral = isPreview || !!pinned;
+  const [night] = useState(() => grace ?? currentNight());
   const tracked = !isPreview && !pinned;
 
   const [drinks, setDrinks] = useState<DrinkPoolEntry[]>([]);
@@ -254,7 +258,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   // The two gates, read once at mount. `barOpen` is deliberately not live: a
   // player admitted at 02:59 keeps their round, because last call is a door and
   // not a timer. The countdown on the closed sign is the live half.
-  const [barOpen, setBarOpen] = useState(() => ignoreHours || isPreview || isBarOpen());
+  const [barOpen, setBarOpen] = useState(() => ignoreHours || isPreview || grace !== null || isBarOpen());
 
   /**
    * The doors opening while someone waits at them.

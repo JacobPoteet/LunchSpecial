@@ -465,6 +465,21 @@ export function loadNightRound(night: string): NightRoundState {
   return emptyNightRound(night);
 }
 
+/**
+ * Whatever round is stored, whichever night it belongs to. The last-call grace
+ * period reads it to find a round the night key has already moved past.
+ */
+export function storedNightRound(): NightRoundState | null {
+  try {
+    const raw = localStorage.getItem(NIGHT_STATE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as NightRoundState;
+    return typeof parsed?.night === "string" && Array.isArray(parsed.guesses) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export function saveNightRound(state: NightRoundState): void {
   try {
     localStorage.setItem(NIGHT_STATE_KEY, JSON.stringify(state));

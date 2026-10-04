@@ -164,3 +164,36 @@ export function isPlayableNight(night: string, etToday: string): boolean {
 export function lunchAdmits(night: string, etToday: string, finished: (day: string) => boolean): boolean {
   return finished(etToday) || finished(night);
 }
+
+/**
+ * How long after last call a round left unfinished can still be picked up.
+ *
+ * Last call is a door, so a board already on screen at 03:00 plays to the end.
+ * A reload is a new entrance, though, and past 03:00 the night key has moved
+ * on: without this, the half-played round sat in storage under last night's
+ * key and the player met the closed sign instead. An hour covers a reload, a
+ * dropped connection or a phone that slept, and still lets the drink be gone
+ * by morning.
+ */
+export const LAST_CALL_GRACE_MS = HOUR_MS;
+
+/** The parts of a stored round the grace period reads. */
+export interface UnfinishedRound {
+  night: string;
+  status: "playing" | "won" | "lost";
+  guesses: number;
+}
+
+/**
+ * The night a stored round can still be finished on, or null.
+ *
+ * Only inside the grace hour, only for the night that just closed, and only
+ * for a round that has a guess on it. An untouched board is not a round in
+ * progress, so last call means what it says for anyone who never started.
+ */
+export function graceNight(c: LocalClock, stored: UnfinishedRound | null): string | null {
+  if (!stored || stored.status !== "playing" || stored.guesses === 0) return null;
+  const ms = sinceMidnight(c);
+  if (ms < CLOSE_MS || ms >= CLOSE_MS + LAST_CALL_GRACE_MS) return null;
+  return stored.night === addDays(calendarDay(c), -1) ? stored.night : null;
+}
