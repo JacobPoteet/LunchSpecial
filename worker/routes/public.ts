@@ -30,8 +30,11 @@ async function resolveTarget(
 ) {
   if (preview) {
     const payload = await verifyToken(preview, env.SESSION_SECRET);
-    if (!payload || !payload.startsWith("preview:")) return { error: "Invalid or expired preview link" as const };
-    const dish = await getDishById(env.DB, Number(payload.slice("preview:".length)));
+    // Digits only after the prefix: a drink preview (`preview:drink:5`) shares
+    // the prefix and must be refused here, not looked up as dish NaN.
+    const id = /^preview:(\d+)$/.exec(payload ?? "")?.[1];
+    if (!id) return { error: "Invalid or expired preview link" as const };
+    const dish = await getDishById(env.DB, Number(id));
     return dish ? { dish } : { error: "Preview dish not found" as const };
   }
   if (special) {

@@ -96,6 +96,15 @@ function validateDishInput(body: unknown): { dish: AdminDishInput } | { error: s
   };
 }
 
+/** The first day on or after `from` this dish is booked for, if any. */
+async function bookedFrom(db: D1Database, dishId: number, from: string): Promise<string | null> {
+  const row = await db
+    .prepare("SELECT date FROM schedule WHERE dish_id = ? AND date >= ? ORDER BY date LIMIT 1")
+    .bind(dishId, from)
+    .first<{ date: string }>();
+  return row?.date ?? null;
+}
+
 async function replaceClues(db: D1Database, dishId: number, clues: string[]) {
   const statements = [db.prepare("DELETE FROM clues WHERE dish_id = ?").bind(dishId)];
   clues.forEach((text, i) => {
@@ -143,6 +152,13 @@ app.put("/dishes/:id", async (c) => {
   const parsed = validateDishInput(await c.req.json().catch(() => null));
   if ("error" in parsed) return c.json({ error: parsed.error }, 400);
   const d = parsed.dish;
+  // The order bar lists active dishes only, so a booked Special switched off
+  // here would be served on its day with no way to guess it. Same rule DELETE
+  // keeps, for the same reason.
+  if (!d.isActive) {
+    const future = await bookedFrom(c.env.DB, id, serverToday());
+    if (future) return c.json({ error: `Dish is scheduled for ${future} — unschedule it before retiring it` }, 409);
+  }
   try {
     const res = await c.env.DB
       .prepare(
@@ -175,12 +191,9 @@ app.put("/dishes/:id", async (c) => {
 
 app.delete("/dishes/:id", async (c) => {
   const id = Number(c.req.param("id"));
-  const future = await c.env.DB
-    .prepare("SELECT date FROM schedule WHERE dish_id = ? AND date >= ? LIMIT 1")
-    .bind(id, serverToday())
-    .first<{ date: string }>();
+  const future = await bookedFrom(c.env.DB, id, serverToday());
   if (future) {
-    return c.json({ error: `Dish is scheduled for ${future.date} — unschedule it first` }, 409);
+    return c.json({ error: `Dish is scheduled for ${future} — unschedule it first` }, 409);
   }
   const [, dishRes] = await c.env.DB.batch([
     c.env.DB.prepare("DELETE FROM clues WHERE dish_id = ?").bind(id),

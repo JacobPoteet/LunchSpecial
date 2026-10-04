@@ -147,3 +147,53 @@ export function isPlayableNight(night: string, etToday: string): boolean {
   if (night < NIGHT_EPOCH_DATE) return false;
   return Math.abs(daysBetween(night, etToday)) <= 1;
 }
+
+/**
+ * Does the lunch this player finished admit them to `night`?
+ *
+ * The door is "finish today's Special", and two days can be today's. The ET day
+ * is the obvious one. The other is the Special dated on the night's own key,
+ * because ET midnight lands in the middle of a night for anyone at or west of
+ * it: 00:00-03:00 in New York, from 21:00 in Los Angeles, and the whole night in
+ * Honolulu. Reading the ET day alone put those players behind "Kitchen first"
+ * on a night they had already earned, and a round already in progress with them.
+ *
+ * `finished` is the caller's reading of localStorage. A night round that has
+ * already started is admitted by the caller and never reaches this.
+ */
+export function lunchAdmits(night: string, etToday: string, finished: (day: string) => boolean): boolean {
+  return finished(etToday) || finished(night);
+}
+
+/**
+ * How long after last call a round left unfinished can still be picked up.
+ *
+ * Last call is a door, so a board already on screen at 03:00 plays to the end.
+ * A reload is a new entrance, though, and past 03:00 the night key has moved
+ * on: without this, the half-played round sat in storage under last night's
+ * key and the player met the closed sign instead. An hour covers a reload, a
+ * dropped connection or a phone that slept, and still lets the drink be gone
+ * by morning.
+ */
+export const LAST_CALL_GRACE_MS = HOUR_MS;
+
+/** The parts of a stored round the grace period reads. */
+export interface UnfinishedRound {
+  night: string;
+  status: "playing" | "won" | "lost";
+  guesses: number;
+}
+
+/**
+ * The night a stored round can still be finished on, or null.
+ *
+ * Only inside the grace hour, only for the night that just closed, and only
+ * for a round that has a guess on it. An untouched board is not a round in
+ * progress, so last call means what it says for anyone who never started.
+ */
+export function graceNight(c: LocalClock, stored: UnfinishedRound | null): string | null {
+  if (!stored || stored.status !== "playing" || stored.guesses === 0) return null;
+  const ms = sinceMidnight(c);
+  if (ms < CLOSE_MS || ms >= CLOSE_MS + LAST_CALL_GRACE_MS) return null;
+  return stored.night === addDays(calendarDay(c), -1) ? stored.night : null;
+}

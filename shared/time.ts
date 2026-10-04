@@ -33,10 +33,21 @@ const wallClock = new Intl.DateTimeFormat("en-GB", {
  * stays correct across the browser's own timezone and DST shifts.
  */
 export function msUntilGameMidnight(now: Date = new Date()): number {
-  const parts = wallClock.formatToParts(now);
+  const elapsed = msSinceZoneMidnight(now);
+  // Assume a 24-hour day, then correct by where that guess actually lands on
+  // the wall. Twice a year the day is 23 or 25 hours long, and from 00:00 to
+  // 02:00 on those days the naive answer is an hour out in either direction.
+  const guess = now.getTime() + 86_400_000 - elapsed;
+  const landed = msSinceZoneMidnight(new Date(guess));
+  const correction = landed > 43_200_000 ? 86_400_000 - landed : -landed;
+  return 86_400_000 - elapsed + correction;
+}
+
+/** Milliseconds since the last midnight in GAME_TIMEZONE, read off the wall clock. */
+function msSinceZoneMidnight(instant: Date): number {
+  const parts = wallClock.formatToParts(instant);
   const at = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? "0");
-  const elapsed = ((at("hour") * 60 + at("minute")) * 60 + at("second")) * 1000 + now.getMilliseconds();
-  return 86_400_000 - elapsed;
+  return ((at("hour") * 60 + at("minute")) * 60 + at("second")) * 1000 + instant.getMilliseconds();
 }
 
 const zoneHour = new Intl.DateTimeFormat("en-US", {

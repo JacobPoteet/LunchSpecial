@@ -9,7 +9,7 @@
 // UTC hour buckets ("YYYY-MM-DD HH") and are folded into ET days here — the same
 // midnight-ET boundary the game rolls over on.
 
-import { gameToday } from "../shared/time";
+import { addDays, gameToday } from "../shared/time";
 import type { GameGrowth, GrowthDay, GrowthTrend } from "../shared/types";
 
 /**
@@ -35,11 +35,6 @@ export interface GrowthRow {
   /** UTC hour bucket from strftime('%Y-%m-%d %H', started_at). */
   bucket: string;
   n: number;
-}
-
-/** "2026-07-24" → "2026-07-25". Plain calendar arithmetic — these are already ET days. */
-function nextDate(date: string): string {
-  return new Date(new Date(`${date}T00:00:00Z`).getTime() + 86_400_000).toISOString().slice(0, 10);
 }
 
 /**
@@ -121,7 +116,7 @@ export function foldGrowth(rows: Iterable<GrowthRow>, today: string): GameGrowth
 
   const days: GrowthDay[] = [];
   let running = 0;
-  for (let d = dates[0]; d <= today; d = nextDate(d)) {
+  for (let d = dates[0]; d <= today; d = addDays(d, 1)) {
     const started = byDay.get(d) ?? 0;
     running += started;
     days.push({ date: d, started, cumulative: running });

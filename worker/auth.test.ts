@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createToken, verifyToken } from "./auth";
+import { createToken, passwordMatches, verifyToken } from "./auth";
 
 const SECRET = "test-secret-not-a-real-one";
 const HOUR = 3_600_000;
@@ -86,5 +86,21 @@ describe("rejects a token in the previous format", () => {
     // pins it rather than leaving it to be discovered.
     const legacy = "sc.1789495442515.GgpwRhKgCT8O4KxoSYCTTSy7FtnJQH4DhohJAATM4Ts";
     expect(await verifyToken(legacy, SECRET)).toBeNull();
+  });
+});
+
+describe("an unset secret fails closed", () => {
+  // Worker secrets that were never `wrangler secret put` arrive as undefined.
+  const unset = undefined as unknown as string;
+
+  it("lets nobody in when ADMIN_PASSWORD is missing", async () => {
+    expect(await passwordMatches("undefined", unset)).toBe(false);
+    expect(await passwordMatches("", "")).toBe(false);
+  });
+
+  it("refuses to sign or verify without SESSION_SECRET", async () => {
+    await expect(createToken("session", HOUR, unset)).rejects.toThrow();
+    const signedWithTheWordUndefined = await createToken("session", HOUR, "undefined");
+    expect(await verifyToken(signedWithTheWordUndefined, unset)).toBeNull();
   });
 });

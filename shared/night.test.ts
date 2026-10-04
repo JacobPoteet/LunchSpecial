@@ -9,6 +9,9 @@ import {
   nightKey,
   nightNumber,
   isPlayableNight,
+  lunchAdmits,
+  graceNight,
+  LAST_CALL_GRACE_MS,
   type LocalClock,
 } from "./night";
 import { NIGHT_EPOCH_DATE } from "./types";
@@ -188,5 +191,52 @@ describe("isPlayableNight", () => {
     expect(isPlayableNight("", "2026-09-20")).toBe(false);
     expect(isPlayableNight("2026-9-20", "2026-09-20")).toBe(false);
     expect(isPlayableNight("tonight", "2026-09-20")).toBe(false);
+  });
+});
+
+describe("lunchAdmits", () => {
+  const finishedOn = (...days: string[]) => (day: string) => days.includes(day);
+
+  it("admits on the ET day's Special", () => {
+    expect(lunchAdmits("2026-10-03", "2026-10-03", finishedOn("2026-10-03"))).toBe(true);
+  });
+
+  it("admits on the night's own Special once ET has rolled over", () => {
+    // 21:30 in Los Angeles on the 3rd is 00:30 ET on the 4th. Lunch on the 3rd
+    // is the one that goes with tonight; the 4th's has not been played.
+    expect(lunchAdmits("2026-10-03", "2026-10-04", finishedOn("2026-10-03"))).toBe(true);
+  });
+
+  it("still turns away a player who has finished neither", () => {
+    expect(lunchAdmits("2026-10-03", "2026-10-04", finishedOn("2026-10-02"))).toBe(false);
+  });
+});
+
+describe("graceNight", () => {
+  // 03:30 on the 5th: the bar shut half an hour ago and the 4th's night is over.
+  const at = (hour: number, minute = 0): LocalClock => ({
+    year: 2026, month: 10, day: 5, hour, minute, second: 0, ms: 0,
+  });
+  const started = { night: "2026-10-04", status: "playing" as const, guesses: 2 };
+
+  it("hands back last night's round inside the grace hour", () => {
+    expect(graceNight(at(3, 0), started)).toBe("2026-10-04");
+    expect(graceNight(at(3, 59), started)).toBe("2026-10-04");
+  });
+
+  it("ends when the hour does", () => {
+    expect(3 * 3_600_000 + LAST_CALL_GRACE_MS).toBe(4 * 3_600_000);
+    expect(graceNight(at(4, 0), started)).toBeNull();
+  });
+
+  it("is not needed before last call, when the night key has not moved", () => {
+    expect(graceNight(at(2, 30), started)).toBeNull();
+  });
+
+  it("never revives a finished, untouched or older round", () => {
+    expect(graceNight(at(3, 30), { ...started, status: "won" })).toBeNull();
+    expect(graceNight(at(3, 30), { ...started, guesses: 0 })).toBeNull();
+    expect(graceNight(at(3, 30), { ...started, night: "2026-10-03" })).toBeNull();
+    expect(graceNight(at(3, 30), null)).toBeNull();
   });
 });

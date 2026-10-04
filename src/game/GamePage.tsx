@@ -29,7 +29,8 @@ import { dateLabel } from "./archive";
 import { resolveMode } from "../../shared/mode";
 import { useRoundTelemetry } from "./useRoundTelemetry";
 import { useShare } from "./useShare";
-import { currentNight, useBarInvite, type BarInvite } from "./night";
+import { useBarInvite, type BarInvite } from "./night";
+import { lunchAdmits } from "../../shared/night";
 import { useCheckOpening } from "./roundLifecycle";
 import { currentSurface, surfaceUrl } from "../discord/bootstrap";
 import { devUrl } from "./devHarness";
@@ -41,6 +42,7 @@ import { playGuessArc, playSfx, setupAudio } from "../audio";
 import { SoundToggle } from "./SoundToggle";
 import { buildShareText, shareMessage } from "./share";
 import {
+  dailyFinishedOn,
   emptyRound,
   getPlayerId,
   hasSeenHowTo,
@@ -49,7 +51,6 @@ import {
   loadRound,
   loadStats,
   markHowToSeen,
-  nightRoundFinished,
   recordResult,
   rememberAnnouncementSeen,
   saveArchiveRound,
@@ -673,10 +674,9 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   }, [showSpotlight]);
   const coachId = "coach-order";
 
-  // After Dark. Read once at mount — whether tonight's Nightcap is settled can
-  // only change by going to the bar, which unmounts this page.
-  const playedTonight = useMemo(() => nightRoundFinished(currentNight()), []);
-  const clockInvite = useBarInvite(playedTonight);
+  // After Dark. Which night it is, and whether its Nightcap is settled, are
+  // re-read every tick: a diner left open overnight must see tomorrow's door.
+  const { invite: clockInvite, night: tonight } = useBarInvite();
   // A showcase link holds the door open regardless of the hour. This is the one
   // place the client's reading of the bar's clock is overridden, and it is
   // cosmetic: it decides whether the invitation is drawn, never whether the
@@ -692,7 +692,15 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // off a preview and a playtest, which are rehearsals and not rounds; a
   // showcase is the exception, because closing the check would otherwise strand
   // a visitor one dismissed modal away from the thing they were sent to see.
-  const barPill: BarInvite = (tracked || isShowcase) && dailyDone ? invite : "none";
+  //
+  // Past ET midnight "today" is a Special the player may not have touched while
+  // they are still out on last night, so the pill asks the bar's own question
+  // (shared/night.ts lunchAdmits) rather than reading `dailyDone` alone.
+  const barEarned = useMemo(
+    () => lunchAdmits(tonight, today, (d) => (d === today ? dailyDone : dailyFinishedOn(d))),
+    [tonight, today, dailyDone],
+  );
+  const barPill: BarInvite = (tracked || isShowcase) && barEarned ? invite : "none";
 
   // ---- Notices from the kitchen ----
   //

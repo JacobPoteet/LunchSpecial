@@ -2,6 +2,7 @@
 
 import type { DrinkGuessFeedback, GuessFeedback, PastRound } from "../../shared/types";
 import { DRINK_MAX_GUESSES, MAX_GUESSES } from "../../shared/types";
+import { addDays } from "../../shared/time";
 
 export type GameStatus = "playing" | "won" | "lost";
 
@@ -124,7 +125,13 @@ export function loadRound(date: string): RoundState {
 
 export function saveRound(state: RoundState): void {
   keepFinishedDaily(state);
-  localStorage.setItem(STATE_KEY, JSON.stringify(state));
+  try {
+    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+  } catch {
+    // Storage full or blocked. The round still plays; it just won't survive a
+    // reload. Throwing here would land in the guess handler's catch, after the
+    // row is drawn, and skip the start and complete beacons with it.
+  }
 }
 
 /**
@@ -172,10 +179,6 @@ export function loadStats(): Stats {
   return emptyStats();
 }
 
-function previousDate(date: string): string {
-  return new Date(Date.parse(`${date}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
-}
-
 /** Record a finished round exactly once per date. */
 export function recordResult(date: string, won: boolean, guessCount: number): Stats {
   const stats = loadStats();
@@ -183,14 +186,18 @@ export function recordResult(date: string, won: boolean, guessCount: number): St
   stats.played += 1;
   if (won) {
     stats.wins += 1;
-    stats.currentStreak = stats.lastCompletedDate === previousDate(date) ? stats.currentStreak + 1 : 1;
+    stats.currentStreak = stats.lastCompletedDate === addDays(date, -1) ? stats.currentStreak + 1 : 1;
     stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
     if (guessCount >= 1 && guessCount <= stats.dist.length) stats.dist[guessCount - 1] += 1;
   } else {
     stats.currentStreak = 0;
   }
   stats.lastCompletedDate = date;
-  localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+  try {
+    localStorage.setItem(STATS_KEY, JSON.stringify(stats));
+  } catch {
+    // A blocked write costs the record, not the round.
+  }
   return stats;
 }
 
@@ -242,6 +249,22 @@ function withDailySlot(archive: Record<string, RoundState>): Record<string, Roun
   }
 }
 
+/**
+ * This device's finished daily Special dated `date`, or null: the daily slot if
+ * it still holds that day, else the archive, which keeps every finished one
+ * (#214). The bar asks this of two days; see lunchAdmits.
+ */
+export function finishedDaily(date: string): RoundState | null {
+  const slot = loadRound(date);
+  if (slot.status !== "playing") return slot;
+  const kept = loadArchive()[date];
+  return kept && kept.status !== "playing" ? kept : null;
+}
+
+export function dailyFinishedOn(date: string): boolean {
+  return finishedDaily(date) !== null;
+}
+
 export function loadArchiveRound(date: string): RoundState {
   const stored = loadArchive()[date];
   return stored && Array.isArray(stored.guesses) ? stored : emptyRound(date);
@@ -250,7 +273,11 @@ export function loadArchiveRound(date: string): RoundState {
 export function saveArchiveRound(state: RoundState): void {
   const archive = loadArchive();
   archive[state.date] = state;
-  localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive));
+  try {
+    localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive));
+  } catch {
+    // Storage full or blocked. The replay plays; the calendar misses it.
+  }
 }
 
 /**
@@ -313,12 +340,23 @@ export function saveRecovered(rounds: PastRound[]): void {
 // round ending). The key predates the walkthrough: the how-to modal used to
 // write it on close, which is what keeps every player from before off the
 // coach marks now.
+//
+// Both guarded: hasSeenHowTo runs in GamePage's useState initialiser, so a
+// throw from blocked storage there is a blank page rather than a coach mark.
 export function hasSeenHowTo(): boolean {
-  return localStorage.getItem(HOWTO_KEY) === "1";
+  try {
+    return localStorage.getItem(HOWTO_KEY) === "1";
+  } catch {
+    return false;
+  }
 }
 
 export function markHowToSeen(): void {
-  localStorage.setItem(HOWTO_KEY, "1");
+  try {
+    localStorage.setItem(HOWTO_KEY, "1");
+  } catch {
+    // Storage blocked — the coach marks may show again next visit.
+  }
 }
 
 // ---- Announcements ----
@@ -427,6 +465,21 @@ export function loadNightRound(night: string): NightRoundState {
   return emptyNightRound(night);
 }
 
+/**
+ * Whatever round is stored, whichever night it belongs to. The last-call grace
+ * period reads it to find a round the night key has already moved past.
+ */
+export function storedNightRound(): NightRoundState | null {
+  try {
+    const raw = localStorage.getItem(NIGHT_STATE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as NightRoundState;
+    return typeof parsed?.night === "string" && Array.isArray(parsed.guesses) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export function saveNightRound(state: NightRoundState): void {
   try {
     localStorage.setItem(NIGHT_STATE_KEY, JSON.stringify(state));
@@ -472,7 +525,7 @@ export function recordNightResult(night: string, won: boolean, guessCount: numbe
   stats.played += 1;
   if (won) {
     stats.wins += 1;
-    stats.currentStreak = stats.lastCompletedNight === previousDate(night) ? stats.currentStreak + 1 : 1;
+    stats.currentStreak = stats.lastCompletedNight === addDays(night, -1) ? stats.currentStreak + 1 : 1;
     stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
     if (guessCount >= 1 && guessCount <= stats.dist.length) stats.dist[guessCount - 1] += 1;
   } else {
@@ -497,7 +550,11 @@ export function nightRoundFinished(night: string): boolean {
 // own key, never HOWTO_KEY: a player can know the daily by heart and still
 // have never seen a Nightcap.
 export function hasSeenAfterDarkIntro(): boolean {
-  return localStorage.getItem(NIGHT_INTRO_KEY) === "1";
+  try {
+    return localStorage.getItem(NIGHT_INTRO_KEY) === "1";
+  } catch {
+    return false;
+  }
 }
 
 export function markAfterDarkIntroSeen(): void {

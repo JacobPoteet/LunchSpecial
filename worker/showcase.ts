@@ -62,7 +62,7 @@ export function showcaseTtlMs(days: unknown): number | null {
  *
  * One fold rather than a chain of `startsWith` in the resolver, because the
  * failure this prevents is a token minted for one catalogue being honoured by
- * the other. A showcase is matched *exactly*: `preview:bar` and nothing else,
+ * the other. A showcase is matched *exactly*: `sc` and nothing else,
  * so no future prefix sharing those characters can fall through to it.
  */
 export type PreviewKind =

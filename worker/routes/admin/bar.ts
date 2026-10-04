@@ -111,8 +111,16 @@ function validateDrinkInput(raw: unknown): { drink: AdminDrinkInput } | { error:
   if (!SPIRITS.includes(b.spirit as never)) return { error: "Invalid base spirit" };
   if (!TEMPERATURES.includes(b.temperature as never)) return { error: "Invalid temperature" };
   if (!PROFILES.includes(b.profile as never)) return { error: "Invalid profile" };
+  // Deduplicated like the dish editor's: a doubled ingredient would be counted
+  // twice in the matched total and the share grid's pantry column.
   const ingredients = Array.isArray(b.ingredients)
-    ? b.ingredients.filter((i): i is string => typeof i === "string" && i.trim().length > 0).map((i) => i.trim().toLowerCase())
+    ? [
+        ...new Set(
+          b.ingredients
+            .filter((i): i is string => typeof i === "string" && i.trim().length > 0)
+            .map((i) => i.trim().toLowerCase()),
+        ),
+      ]
     : [];
   // Coasters are stored as given, blanks and all: a half-written drink is a
   // legitimate saved state, and `pourable` is what decides whether it can be
@@ -135,6 +143,24 @@ function validateDrinkInput(raw: unknown): { drink: AdminDrinkInput } | { error:
       coasters,
     },
   };
+}
+
+/**
+ * The earliest night anyone can still be pouring: ET yesterday, because a
+ * night is a local day and players west of ET are still on it. The same
+ * day-looser lock PUT /nights applies.
+ */
+function firstOpenNight(): string {
+  return addDays(serverToday(), -1);
+}
+
+/** The first night on or after `from` this drink is booked for, if any. */
+async function bookedFrom(db: D1Database, drinkId: number, from: string): Promise<string | null> {
+  const row = await db
+    .prepare("SELECT night FROM drink_schedule WHERE drink_id = ? AND night >= ? ORDER BY night LIMIT 1")
+    .bind(drinkId, from)
+    .first<{ night: string }>();
+  return row?.night ?? null;
 }
 
 /** Replace a drink's coasters wholesale. Blank rows are dropped, not stored. */
@@ -197,6 +223,12 @@ app.put("/drinks/:id", async (c) => {
   const parsed = validateDrinkInput(await c.req.json().catch(() => null));
   if ("error" in parsed) return c.json({ error: parsed.error }, 400);
   const d = parsed.drink;
+  // The bar's order bar lists active drinks only, so a booked pour switched off
+  // here would be served with no way to guess it. Same rule DELETE keeps.
+  if (!d.isActive) {
+    const night = await bookedFrom(c.env.DB, id, firstOpenNight());
+    if (night) return c.json({ error: `Drink is booked for ${night} — clear that night before retiring it` }, 409);
+  }
   try {
     const res = await c.env.DB
       .prepare(`UPDATE drinks SET ${DRINK_COLUMNS}, updated_at = datetime('now') WHERE id = ?`)
@@ -214,12 +246,9 @@ app.put("/drinks/:id", async (c) => {
 
 app.delete("/drinks/:id", async (c) => {
   const id = Number(c.req.param("id"));
-  const booked = await c.env.DB
-    .prepare("SELECT night FROM drink_schedule WHERE drink_id = ? AND night >= ? LIMIT 1")
-    .bind(id, serverToday())
-    .first<{ night: string }>();
+  const booked = await bookedFrom(c.env.DB, id, firstOpenNight());
   if (booked) {
-    return c.json({ error: `Drink is booked for ${booked.night} — clear that night first` }, 409);
+    return c.json({ error: `Drink is booked for ${booked} — clear that night first` }, 409);
   }
   const [, drinkRes] = await c.env.DB.batch([
     c.env.DB.prepare("DELETE FROM drink_clues WHERE drink_id = ?").bind(id),
@@ -287,20 +316,21 @@ app.put("/nights", async (c) => {
   // A night is a local day and `serverToday` is an ET one, so the lock is a day
   // looser than the dish board's on purpose: locking "today" in ET would lock a
   // night that has not started yet for players west of it.
-  if (body.night < addDays(serverToday(), -1)) return c.json({ error: "Past nights are locked" }, 400);
+  if (body.night < firstOpenNight()) return c.json({ error: "Past nights are locked" }, 400);
   if (body.drinkId == null) {
     await c.env.DB.prepare("DELETE FROM drink_schedule WHERE night = ?").bind(body.night).run();
     return c.json({ ok: true });
   }
   const drink = await c.env.DB
     .prepare(
-      `SELECT d.id, d.ingredients,
+      `SELECT d.id, d.ingredients, d.is_active,
          (SELECT COUNT(*) FROM drink_clues c WHERE c.drink_id = d.id) AS coaster_count
        FROM drinks d WHERE d.id = ?`,
     )
     .bind(body.drinkId)
-    .first<{ id: number; ingredients: string; coaster_count: number }>();
+    .first<{ id: number; ingredients: string; is_active: number; coaster_count: number }>();
   if (!drink) return c.json({ error: "Drink not found" }, 404);
+  if (drink.is_active !== 1) return c.json({ error: "Drink is inactive — switch it on before booking it" }, 400);
   if ((JSON.parse(drink.ingredients) as string[]).length < 3 || drink.coaster_count !== DRINK_CLUE_COUNT) {
     return c.json(
       { error: `Drink needs at least 3 ingredients and exactly ${DRINK_CLUE_COUNT} coasters before booking` },
@@ -375,7 +405,7 @@ app.post("/nights/shuffle", async (c) => {
     return c.json({ error: "Invalid JSON body" }, 400);
   }
   if (!body.night || !isValidDateString(body.night)) return c.json({ error: "Invalid night" }, 400);
-  if (body.night < addDays(serverToday(), -1)) return c.json({ error: "Past nights are locked" }, 400);
+  if (body.night < firstOpenNight()) return c.json({ error: "Past nights are locked" }, 400);
 
   const res = await c.env.DB
     .prepare(
@@ -412,8 +442,8 @@ app.post("/nights/shuffle", async (c) => {
  * untracked round as the dish preview.
  *
  * The payload is prefixed `preview:drink:`, which the daily's resolveTarget
- * rejects — it parses the remainder as a dish id and gets NaN — so a bar token
- * cannot be pointed at the kitchen or the reverse.
+ * rejects — it takes only digits after `preview:` — so a bar token cannot be
+ * pointed at the kitchen or the reverse.
  */
 app.post("/drink-preview", async (c) => {
   let body: { drinkId?: number; night?: string };

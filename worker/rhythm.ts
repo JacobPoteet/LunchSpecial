@@ -17,7 +17,7 @@
 // the week you're looking at") is an argument for measuring it, not for looking
 // away.
 
-import { gameHour, gameToday } from "../shared/time";
+import { addDays, gameHour, gameToday } from "../shared/time";
 import type { PlayRhythm, WeekdayPlay } from "../shared/types";
 
 const HOURS = 24;
@@ -39,11 +39,6 @@ export interface RhythmRow {
  */
 function weekdayOf(date: string): number {
   return new Date(`${date}T00:00:00Z`).getUTCDay();
-}
-
-/** "2026-07-24" → "2026-07-25". Plain calendar arithmetic on an ET day. */
-function nextDate(date: string): string {
-  return new Date(new Date(`${date}T00:00:00Z`).getTime() + 86_400_000).toISOString().slice(0, 10);
 }
 
 /**
@@ -91,7 +86,7 @@ export function foldRhythm(rows: Iterable<RhythmRow>, today: string): PlayRhythm
   const occurrences = Array.from({ length: DAYS_IN_WEEK }, () => 0);
   let span = 0;
   if (first !== null) {
-    for (let d = first; d <= today; d = nextDate(d)) {
+    for (let d = first; d <= today; d = addDays(d, 1)) {
       occurrences[weekdayOf(d)] += 1;
       span += 1;
     }

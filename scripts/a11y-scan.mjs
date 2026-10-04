@@ -159,7 +159,14 @@ const SCANS = [
       // would persist across every later navigation and the archive state
       // below needs its finished round.
       await page.goto(`${BASE}/privacy`, { waitUntil: "domcontentloaded" });
-      await page.evaluate(() => localStorage.removeItem("lunch-special:round"));
+      // The archive and the night round too: the door also admits on a
+      // finished Special kept in the archive under the night's key, and on a
+      // Nightcap already started (shared/night.ts lunchAdmits, NightPage).
+      await page.evaluate(() => {
+        for (const key of ["lunch-special:round", "lunch-special:archive", "lunch-special:nightcap"]) {
+          localStorage.removeItem(key);
+        }
+      });
       await page.goto(`${BASE}/?bar=1`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector(".closed--bar");
     },
