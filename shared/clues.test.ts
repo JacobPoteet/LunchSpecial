@@ -7,7 +7,7 @@ describe("clue beats", () => {
   });
 
   it("indexes by order_index and returns nothing outside the range", () => {
-    expect(clueBeat(1)?.name).toBe("Broad geography");
+    expect(clueBeat(1)?.name).toBe("First impression");
     expect(clueBeat(5)?.name).toBe("Near-giveaway");
     expect(clueBeat(0)).toBeUndefined();
     expect(clueBeat(6)).toBeUndefined();

@@ -533,6 +533,100 @@ describe("the beat sheet", () => {
     expect(shared, `\n${shared.join("\n")}\n`).toEqual([]);
   });
 
+  // Beat 1 used to be "region and form", and 201 of 451 dishes opened with
+  // "A [form] from [region]". Every clue was legal and the catalogue read as
+  // one clue, which a daily player learns to skim in a fortnight. These caps
+  // are ratchets: loose enough that a good batch never trips them, tight
+  // enough that the template cannot grow back. See the beat 1 section of the
+  // create-dishes skill for the lenses a writer should rotate through.
+  describe("beat 1 variety", () => {
+    const beat1 = rows.filter((r) => r.order_index === 1);
+    const REGION_WORD =
+      /\b(europe\w*|asia\w*|africa\w*|middle east\w*|america\w*|latin|caribbean|oceania|scandinav\w*|mediterranean|balkans?|levant\w*|andes|andean|pacific|lowcountry|gulf coast|new england|midwest\w*|southwest\w*|northeast\w*|bayou)\b/i;
+    // "A noodle soup from Southeast Asia." A form, "from", a region, and
+    // nothing else in the sentence.
+    const BARE_FORM_FROM_REGION =
+      /^an?\s[^,.]*\s(?:from|out of|of)\s(?:the\s)?[^,.]*\b(?:europe\w*|asia\w*|africa\w*|middle east\w*|america\w*|caribbean|oceania|scandinav\w*|mediterranean)\b[^,.]*\.?$/i;
+
+    it("keeps region words to a minority of beat 1s", () => {
+      const hits = beat1.filter((r) => REGION_WORD.test(r.text));
+      expect(hits.length / beat1.length, hits.map((r) => `${r.slug}: ${r.text}`).join("\n")).toBeLessThanOrEqual(0.2);
+    });
+
+    it("keeps the bare 'a form from a region' skeleton under 5%", () => {
+      const hits = beat1.filter((r) => BARE_FORM_FROM_REGION.test(r.text));
+      expect(hits.length / beat1.length, hits.map((r) => `${r.slug}: ${r.text}`).join("\n")).toBeLessThanOrEqual(0.05);
+    });
+
+    it("does not let 'A' or 'An' open more than four beat 1s in five", () => {
+      const hits = beat1.filter((r) => /^an?\s/i.test(r.text));
+      expect(hits.length / beat1.length).toBeLessThanOrEqual(0.8);
+    });
+  });
+
+  // Beat 5 has to name the country, and 409 of 451 did it by opening with it
+  // ("Mexico's ...", "The French ..."). The country can sit anywhere in the
+  // sentence; the clue is also the caption under the answer on the check, and
+  // a caption that starts the same way every day reads as a form letter.
+  describe("beat 5 and beat 2 variety", () => {
+    const byBeat = (n: number) => rows.filter((r) => r.order_index === n);
+
+    it("lets the country open no more than 60% of beat 5s", () => {
+      const beat5 = byBeat(5);
+      const hits = beat5.filter((r) => {
+        const opening = fold(r.text).split(/\s+/).slice(0, 3).join(" ");
+        return countryTerms(r.country).some((t) => opening.includes(t));
+      });
+      expect(
+        hits.length / beat5.length,
+        `${hits.length} of ${beat5.length} open with the country`,
+      ).toBeLessThanOrEqual(0.6);
+    });
+
+    // A year in beat 2 is a fact nothing checks. Dates are fine where they are
+    // the clue, but a catalogue that cites one in every third origin story is
+    // a fact-check liability, and reads like a textbook. 35% when this was
+    // written: a ratchet, so tighten it as dated origins are rewritten.
+    it("keeps beat 2s that cite a year or a numbered century to 36%", () => {
+      const beat2 = byBeat(2);
+      const dated = beat2.filter((r) =>
+        /\b(1\d{3}|20\d{2})s?\b|\b\d{1,2}(st|nd|rd|th)[- ]century|\bmillenni/i.test(r.text),
+      );
+      expect(dated.length / beat2.length, `${dated.length} of ${beat2.length}`).toBeLessThanOrEqual(0.36);
+    });
+
+    it("does not open more than 6% of beat 3s with 'Its name'", () => {
+      const beat3 = byBeat(3);
+      const hits = beat3.filter((r) => /^its name\b/i.test(r.text));
+      expect(hits.length / beat3.length).toBeLessThanOrEqual(0.06);
+    });
+  });
+
+  // Beats can repeat each other. 105 dishes had two beats sharing half their
+  // content words, and the player pays a guess for every one. Beats 4 and 5
+  // have their own, tighter check above; this covers every other pair.
+  it("never lets two beats of one dish say the same thing", () => {
+    const failures: string[] = [];
+    for (const [slug, clues] of bySlug) {
+      for (let i = 0; i < clues.length; i++) {
+        for (let j = i + 1; j < clues.length; j++) {
+          const a = contentWords(clues[i].text);
+          const b = contentWords(clues[j].text);
+          const small = Math.min(a.size, b.size);
+          if (small < 3) continue;
+          let shared = 0;
+          for (const w of b) if (a.has(w)) shared++;
+          if (shared / small > 0.6) {
+            failures.push(
+              `${slug}: beats ${clues[i].order_index} and ${clues[j].order_index} share ${Math.round((shared / small) * 100)}% of their words`,
+            );
+          }
+        }
+      }
+    }
+    expect(failures, `\n${failures.join("\n")}\n`).toEqual([]);
+  });
+
 });
 
 // ---------------------------------------------------------------------------

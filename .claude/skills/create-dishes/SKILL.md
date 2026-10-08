@@ -54,7 +54,7 @@ dish holding either. `tomato`, not `tomatoes`.
 ## 3. The beat sheet
 
 Five clues per dish, printed one at a time on a clue ticket after each wrong guess. Five beats,
-the same sequence for every dish, running from a map to a near-giveaway. Each beat states what its
+the same sequence for every dish, running from a first impression to a near-giveaway. Each beat states what its
 clue has to accomplish and what it must not give away, which is the difference between a brief and
 a blank page.
 
@@ -100,7 +100,7 @@ restates something already given is a wasted guess, and the player paid for it.
 
 | # | Beat | The handle it hands over |
 |---|---|---|
-| 1 | **Broad geography** | Which of the nine regions, and what kind of thing is on the plate |
+| 1 | **First impression** | One angle on the dish, a picture or a situation. A region only with more to it. Never the country |
 | 2 | **Origin and history** | Who made it, when, and why |
 | 3 | **What makes it unmistakable** | The one thing true of this dish and almost nothing else |
 | 4 | **A key ingredient or technique** | What goes in it and how it's cooked |
@@ -111,30 +111,79 @@ when a dish has no cultural moment, "fame" leaves the writer nothing to do but p
 now one route to an unmistakable fact rather than the requirement. The other four names are
 unchanged from the beat sheet in `docs/index.html`.
 
-#### Beat 1 — Broad geography
+#### Beat 1 — First impression
 
-Region and form. Nothing else.
+**One angle on the dish, not its address.** Beat 1 is the widest net in the set. It is true of
+several dishes, it gives the player something to picture, and it hands over no tile.
 
-**Never name the country, and never riddle your way to it.** The country tile is the middle game's
-work. Beat 1 used to give the country outright for 90 dishes, and did it from a template: six
-clues contained "a very large south asian country", six more "an east asian island nation", four
-"a country south of the United States". A player who does this daily learns the decoder ring in a
-fortnight.
+It used to read "Region and form. Nothing else", and that line produced the template. The sheet's
+own three examples were all "a [form] from [region]", so a writer who followed the instruction
+wrote one. 201 dishes ended up with that shape. A player who reads one a day learns the decoder
+ring in a fortnight, and the region is the near-match tile's job, so the clue spent the same fact
+twice.
 
-Say the region the way a person would, then say what sort of dish it is.
+Pick **one lens** and say it the way a person at the next table would:
 
-> A noodle soup from Southeast Asia, eaten for breakfast. *(Pho)*
+| Lens | What it shows | Example |
+|---|---|---|
+| **Venue** | Where it is sold or eaten | Sold from steaming street stalls before the sun is up. *(Pho)* |
+| **Occasion** | When and why it turns up | A party rice whose rightful recipe starts arguments between countries. *(Jollof Rice)* |
+| **Texture or sound** | What it does in your hands or mouth | Ridged, fried, and built for dunking in something thick. *(Churros)* |
+| **Look** | One visual hook | A pale, smooth spread finished with a pool of oil and a dusting of red. *(Hummus)* |
+| **Vessel or tool** | What it comes in, what you eat it with | Served in a bowl hot enough to keep cooking after it reaches you. *(Bibimbap)* |
+| **Etiquette** | The manners around it | A bowl slurped fast at a counter, where the noise is a compliment. *(Ramen)* |
+| **Misconception** | What people assume wrongly | A creamy-looking pasta sauce with no cream anywhere in it. *(Carbonara)* |
+| **Eater** | Who it wins over | A curry gentle enough to win over people who say they dislike curry. *(Butter Chicken)* |
+| **Scale or ritual** | How big, how many hands | Dough half-moons pinched shut by whole families before an Eastern European holiday. *(Pierogi)* |
+| **Region, with more** | A region plus a second fact | A Gulf Coast pot that starts with flour stirred in oil until it darkens. *(Gumbo)* |
+
+**Region is allowed when there is more to the clue.** "A noodle soup from Southeast Asia" is a
+label with a coordinate on it. "A Gulf Coast pot that starts with flour stirred in oil until it
+darkens" is a clue that happens to place itself. If you can delete the region and the sentence
+dies, it is the first kind. The linter caps both the share of beat 1s that carry a region word and
+the bare "a [form] from [region]" skeleton.
+
+**Before you write, list three lenses for the dish and take the one the catalogue uses least.**
+Then read the beat 1s of the five nearest dishes (same country, same course). Two dishes in a
+batch may not share a lens, and may not share an opening word and a sentence shape.
+
+What beat 1 must not do:
+
+- **Never name the country, and never riddle your way to it.** "A country shaped like a boot" and
+  "an archipelago of 17,000 islands" are the country spelled out slowly. Beat 1 used to give the
+  country outright for 90 dishes from a template ("a very large south asian country"), and the
+  riddles are the same template in a costume.
+- **Don't spend another beat's handle.** No ingredient list (beat 4), no person or date (beat 2),
+  no signature fact (beat 3), no translation of the name.
+- **The United States is the one exemption** from the country rule: the region-level answer is a
+  part, "the American South", "the Gulf Coast", "New England". Say the part, never the state or
+  the city. The part is still a region word and counts toward the cap.
+
+What makes a beat 1 weak. The first two came out of the first practice round:
+
+> Rice is the main event, and the fish is the supporting cast. *(Sushi)*
 >
-> A cold summer soup from southern Europe. *(Gazpacho)*
+> A pie that wears a queen's name and nothing extra on top. *(Margherita Pizza)*
 >
-> A fried snack sold on East Asian street corners. *(Takoyaki)*
+> A pasta from southern Europe, built on egg and cured pork. *(Carbonara, the old clue)*
 
-Don't add the temperature, the technique, or a second identifying hook. Beat 1 is the smallest
-clue in the set and should read that way.
+- **An opinion in place of an image.** "The supporting cast" is a metaphor about importance, and
+  there is nothing to picture. If you cannot see it, hear it, taste it or stand in the place, it
+  is a verdict.
+- **A claim that needs a legend.** The queen story is contested lore, and a first clue that leans
+  on a contested fact is a beat 2 clue in a costume. Every beat 1 has to be true, plainly, on its
+  face.
+- **A metaphor the player has to decode.** One figure of speech is fine ("slurped fast, where the
+  noise is a compliment"). A clue that is nothing but figure is a riddle.
+- **The template.** A form, "from", a region, and a second clause that is really beat 4.
 
-**The one exception** is the United States, where the region-level answer is a part of the country:
-"the American South", "the Gulf Coast", "New England". Say the part, never the state or the city.
-Those belong to beat 2.
+**The picture test.** Say what a player can now picture, in five words. If you cannot, rewrite it.
+
+**The narrowing test.** Name one kind of dish the player can now rule out. "Sold from steaming
+street stalls" rules out a plated dessert. If nothing falls away, the clue fits any dish and is
+filler, which is what the swap test in 3.5 catches on the other beats.
+
+Beat 1 is exempt from the actor rule (rule 9): it is a label, and the good ones read as one.
 
 #### Beat 2 — Origin and history
 
@@ -150,6 +199,21 @@ voice, where the dish becomes a place rather than a puzzle token.
 Contested origins are good material. State the fight plainly rather than hedging it: "Two towns
 still claim it" beats "it is said to have been invented by". If you can't source a date, leave the
 date out.
+
+**A year is one lens, not the default.** 35% of beat 2s cite a year or a numbered century, and
+nothing checks any of them. Rotate the angle the way beat 1 does:
+
+| Lens | What it hands over | Example |
+|---|---|---|
+| **A named person** | One cook, inventor or customer | A Chengdu grandmother with a pockmarked face fed porters in the 1860s. |
+| **A fight** | Who disputes it, stated plainly | Two Taichung shops both claim it and fought a ten-year court case. |
+| **A shortage or accident** | What went wrong or ran out | A dropped dessert at a sports day was scooped up and served anyway. |
+| **A migration** | Who carried it, and where from | Chinese immigrants brought the wok to Peru and the dish took root there. |
+| **A job or a class** | The people it was made for | Dockworkers snacked on it between shifts. |
+| **A law or a ritual** | The rule that governs it | German law protects the name, so a version without the brandy cannot use it. |
+| **A date** | Only when the date is the clue | A 2007 animated rat made it fine-dining famous. |
+
+The linter caps the year-bearing share. It is a ratchet: tighten it as dated origins get rewritten.
 
 #### Beat 3 — What makes it unmistakable
 
@@ -205,9 +269,23 @@ thing a player reads before their final guess. As a caption it's the one-line de
 under the answer on the check, because `GamePage.tsx` takes `reveal.clues.at(-1)` and prints it
 there.
 
-Both jobs want the same sentence: **name the country, then say what the thing looks and feels like
-in front of you.** Neither wants a shorter version of beat 4, which is what 186 dishes had before
-the backfill.
+Both jobs want the same sentence: **say what the thing looks and feels like in front of you, and
+name the country somewhere in it.** Neither wants a shorter version of beat 4, which is what 186
+dishes had before the backfill.
+
+**The country does not have to open the sentence.** 98% of beat 5s began "Mexico's ..." or "The
+French ...", because the sheet's examples did, and a caption that starts the same way every day
+reads as a form letter. Put the picture first and place the country where it reads naturally:
+
+> Charred kernels slicked with cream and chili, sold on a stick on Mexican street corners. *(Elote)*
+>
+> A pale, rich terrine sliced cold onto toast, a French holiday-table tradition. *(Foie Gras)*
+>
+> One wide pan of rice goes down in the middle of a Spanish party, and spoons come out. *(Paella)*
+>
+> In Mexico, the cook flicks a sliver of pineapple off the spit and onto your tortilla. *(Tacos al Pastor)*
+
+The linter caps the share of beat 5s that name the country in their first three words at 60%.
 
 Working:
 
@@ -225,6 +303,23 @@ Not working, because beat 4 already said it:
 Test it by covering beat 4. If beat 5 still tells you something, it's a beat. If it doesn't, it's
 a summary.
 
+#### What makes a clue weak, on any beat
+
+Beat 1's checklist generalises. Before you keep a clue, none of these may be true:
+
+- **It is an opinion where a picture should be.** "The supporting cast", "a favorite", "a classic".
+  If you cannot see it, hear it, taste it or stand in the place, it is a verdict.
+- **It leans on a legend and states it as fact.** Say that it is contested, in beat 2, or leave it
+  out.
+- **It is a figure the player has to decode.** One metaphor is a voice. A clue that is only
+  metaphor is a riddle.
+- **It repeats another beat of the same dish.** Every pair of beats is held to this, not just 4 and
+  5: more than 60% of the smaller clue's content words appearing in the other fails the build. Two
+  beats saying the same thing costs the player a guess for nothing. The commonest cause is a beat 1
+  that quotes beat 4's ingredients, or a beat 5 that is beat 4 with a country in front.
+- **It opens the way its neighbours do.** Read the beat across the five nearest dishes. If you can
+  predict its first three words, change them.
+
 ### 3.3 Budgets
 
 The ceiling is the useful half. It forces you to pick which fact belongs on this beat, which is
@@ -232,7 +327,7 @@ the choice a long clue avoids.
 
 | Beat | Target | Hard max | Sentences |
 |---|---|---|---|
-| 1 Broad geography | 35–70 | 85 | 1 |
+| 1 First impression | 35–70 | 85 | 1 |
 | 2 Origin and history | 60–110 | 130 | 1–2 |
 | 3 What makes it unmistakable | 55–105 | 120 | 1–2 |
 | 4 Key ingredient or technique | 60–120 | 130 | 1 |
@@ -282,17 +377,25 @@ Breaking one of these is a bug, not a style disagreement. Everything here is che
 4. **A translation of the name is allowed at beat 5 and nowhere else.** "Rancher's eggs" is not
    the dish's name, but it lands like one for anyone who speaks the language, so it belongs on the
    beat that gives the country away anyway.
-5. **Beat 1 never names the country. Beat 5 always does.** The United States is the one exemption,
-   because a US regional dish's region-level answer *is* "the American South" or "the Gulf Coast",
-   and the alternative is the decoder-ring template this rule exists to kill. Name the part, never
-   the state or the city.
+5. **Beat 1 never names the country, and never riddles toward it. Beat 5 always does.** The
+   United States is the one exemption, because a US regional dish's region-level answer *is* "the
+   American South" or "the Gulf Coast", and the alternative is the decoder-ring template this rule
+   exists to kill. Name the part, never the state or the city.
+   - **Beat 1 stays varied across the catalogue.** Three caps, all checked: the share of beat 1s
+     carrying a region word, the bare "a [form] from [region]" skeleton, and the share opening
+     with "A" or "An".
+   - **So do beats 2, 3 and 5.** The share of beat 5s that name the country in their first three
+     words (60%), of beat 2s that cite a year or numbered century (36%), and of beat 3s that open
+     "Its name" (6%). The numbers are in `worker/data-integrity.test.ts`, and they are ratchets
+     that were set just above where the catalogue stood.
 6. **No em dashes.** They're how two clues get welded into one. A comma or a full stop keeps the
    beat to a single idea.
-7. **Beat 5 must add vocabulary beat 4 didn't have.** Ceiling is 70% shared.
+7. **Beat 5 must add vocabulary beat 4 didn't have.** Ceiling is 70% shared. **No two beats of one
+   dish may share more than 60%** of the smaller clue's content words.
 8. **No phrase of five or more words appears on two different dishes.**
 9. **Every clue has a subject that acts**, on beats 2 through 5. A person, a group, or you.
-   Beat 1 is exempt: it is a label, and the good ones already read as one ("A cold summer soup
-   from southern Europe").
+   Beat 1 is exempt: it is a label, and the good ones already read as one ("Sold from steaming
+   street stalls before the sun is up").
 10. **Banned openers:** *It is the, It's the, It is now, It's now, It remains, It has become,
     This dish, Known as, Considered.*
 11. **Banned praise:** *beloved, iconic, legendary, quintessential, must-try, delicious,
@@ -332,7 +435,40 @@ who grew up eating them.
   Québec diner are all disputed, and saying they're disputed is more interesting than pretending
   they aren't.
 
-51 clues assert a specific year and nothing checks any of them.
+The linter checks form and nothing checks truth. A fact-check of the whole catalogue (451 dishes)
+changed roughly a third of all clues, and nearly every error was a confident, specific, plausible
+detail written from memory. The more specific the clue, the riskier it is.
+
+#### Source a claim before you write it
+
+- **Vivid and unconfirmed loses to plain and true.** If the only support for a detail is that it
+  sounds right, cut it and keep the general statement. Never invent a replacement detail to keep a
+  clue lively.
+- **What counts as a source:** two independent sources, or one authoritative one (an encyclopedia
+  entry, a national heritage body, a museum, a food-history book, a UNESCO listing). A food blog or
+  a restaurant's own "our history" page is not a source for a contested claim.
+- **Sort the claim first.** Sensory or situational ("served in a hot bowl") needs a check that it
+  is true of the dish as normally served. Historical or numerical (a year, a person, a count) needs
+  a source. Origin or authorship needs a source and is usually contested.
+- **Contested means the fight is the clue** ("two cities claim it") or it is credited to a legend
+  ("legend credits..."). Never state one side as fact.
+
+Where facts went wrong, in order of how often:
+
+1. **A legend stated as credit.** Founder stories, a chef's name, a royal commission, a war story.
+2. **A date or century that is off,** or a "first" nobody can prove.
+3. **A universal that has exceptions.** "Always fried twice", "never browned", "served with rice".
+   Dishes vary by region and household; write "traditionally" only when a source says so.
+4. **A plausible sensory detail nobody confirmed.** A flambé flare, a flick of the wrist, a colour
+   from a particular dye.
+5. **Ingredient provenance.** Chilies, tomatoes, citrus and potatoes came from the Americas; a clue
+   that puts one in an Old World dish before contact is wrong.
+6. **A celebrity quote or a statistic** (a sales figure, a record). Cut unless you can open the
+   source.
+7. **An ambiguous subject** ("a cookie baked early because it ages": the dough ages, not the
+   cookie) and **tense or arithmetic** ("century-old" for something from 1862).
+8. **A national label for a shared dish.** Check who else claims it before the clue names a
+   country.
 
 ### 3.7 Reference sets
 
@@ -371,8 +507,9 @@ npx vitest run worker/data-integrity.test.ts
 
 It checks every dish in the catalogue against the mechanizable half of section 3: length
 ceilings, sentence counts, em dashes, banned openers and praise and hedges, the dish's own
-name-words, beat 1 naming the country, beat 5 failing to, beat 5 overlapping beat 4 past 70%, and
-five-word phrases shared across dishes. Fix what it reports and run it again.
+name-words, beat 1 naming the country, beat 5 failing to, beat 5 overlapping beat 4 past 70%,
+five-word phrases shared across dishes, any two beats of one dish saying the same thing, and the
+variety caps on beats 1, 2, 3 and 5. Fix what it reports and run it again.
 
 Only the ceilings fail. Being outside a target band prints a count and passes, because a test that
 reddens over a well-written 55-character clue gets muted inside a week. Watch that count: a slow
@@ -401,7 +538,7 @@ Confirm each new dish has five clues and three or more ingredients before commit
 Use `scripts/patch-clues.mjs`. Write a JSON patch and let it edit both places at once:
 
 ```json
-{ "pho": { "1": "A noodle soup from Southeast Asia.", "5": "…" } }
+{ "pho": { "1": "Sold from steaming street stalls before the sun is up.", "5": "…" } }
 ```
 
 ```bash

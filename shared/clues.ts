@@ -37,8 +37,8 @@ export interface ClueBeat {
 export const CLUE_BEATS: readonly ClueBeat[] = [
   {
     beat: 1,
-    name: "Broad geography",
-    job: "The region. Never the country.",
+    name: "First impression",
+    job: "One angle, a picture. Region only with more to it. Never the country.",
     lo: 35,
     hi: 70,
     max: 85,
