@@ -21,6 +21,7 @@ import { isPlayableNight, nightNumber } from "../../shared/night";
 import { verifyToken } from "../auth";
 import { serverToday } from "../db";
 import { getCoasters, getDrinkById, getDrinkBySlug, getTargetDrink } from "../drinkdb";
+import { guessRecord, recordGuess } from "../guesslog";
 import { computeDrinkFeedback } from "../nightcap";
 import { classifyDrinkPreview } from "../showcase";
 import { CATALOGUE_CACHE_CONTROL } from "./public";
@@ -46,7 +47,7 @@ async function resolveDrink(
     if (kind.kind === "invalid") return { error: "Invalid or expired preview link" as const };
     if (kind.kind === "drink") {
       const drink = await getDrinkById(env.DB, kind.id);
-      return drink ? { drink } : { error: "Preview drink not found" as const };
+      return drink ? { drink, rehearsal: true } : { error: "Preview drink not found" as const };
     }
     // A showcase link names no drink, so it falls through to the night's real
     // pour — which is the whole difference between it and a drink preview. What
@@ -60,14 +61,15 @@ async function resolveDrink(
     // for the same reason the dish equivalent is: it never reads the schedule,
     // so it says nothing about which night pours what.
     const drink = await getDrinkBySlug(env.DB, pinned);
-    return drink ? { drink } : { error: `No drink with slug "${pinned}"` as const };
+    return drink ? { drink, rehearsal: true } : { error: `No drink with slug "${pinned}"` as const };
   }
   // The Worker cannot know the player's local time and does not try. It checks
   // the claimed night is within a day of ET's, which covers every real UTC
   // offset. See isPlayableNight.
   if (!night || !isPlayableNight(night, serverToday())) return { error: "The bar is closed" as const };
   const drink = await getTargetDrink(env.DB, night);
-  return drink ? { drink } : { error: "Nothing on tap" as const };
+  // A showcase reaches here with the night's real pour, and is still a rehearsal.
+  return drink ? { drink, rehearsal: preview !== undefined } : { error: "Nothing on tap" as const };
 }
 
 /**
@@ -107,6 +109,9 @@ app.post("/guess", async (c) => {
     guessNumber?: number;
     preview?: string;
     nightcap?: string;
+    /** Sent only by a tracked round; see worker/guesslog.ts. */
+    roundId?: string;
+    playerId?: string;
   };
   try {
     body = await c.req.json();
@@ -138,6 +143,17 @@ app.post("/guess", async (c) => {
       .first<{ text: string }>();
     if (coaster) feedback.coaster = { index: guessNumber, text: coaster.text };
   }
+  // Off the response path, like the daily's (migrations/0053).
+  const rec = guessRecord({
+    roundId: body.roundId,
+    playerId: body.playerId,
+    guessNumber,
+    catalogue: "drink",
+    guessedId: guess.id,
+    targetId: target.drink.id,
+    rehearsal: target.rehearsal,
+  });
+  if (rec) c.executionCtx.waitUntil(recordGuess(c.env.DB, rec));
   return c.json(feedback);
 });
 

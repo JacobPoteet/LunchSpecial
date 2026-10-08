@@ -62,6 +62,13 @@ export function postGuess(body: {
   random?: string;
   /** Playtest only: the slug of the dish this round was pinned to. */
   special?: string;
+  /**
+   * The round's analytics id, on tracked rounds only. The Worker records the
+   * guess against it (migrations/0053); absent, nothing is recorded.
+   */
+  roundId?: string;
+  /** The anonymous device id, sent beside `roundId` so a device wipe reaches the guess. */
+  playerId?: string;
 }): Promise<GuessFeedback> {
   return request("/api/guess", {
     method: "POST",
@@ -99,6 +106,9 @@ export function postDrinkGuess(body: {
   preview?: string;
   /** Playtest only: the slug this round was pinned to. */
   nightcap?: string;
+  /** As on postGuess: tracked rounds only. */
+  roundId?: string;
+  playerId?: string;
 }): Promise<DrinkGuessFeedback> {
   return request("/api/night/guess", {
     method: "POST",

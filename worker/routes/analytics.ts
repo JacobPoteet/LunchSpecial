@@ -1,6 +1,7 @@
 // Anonymous engagement beacons. Fire-and-forget from the client; no auth
 // (same client-trust model as the rest of the game). One row per round, keyed
-// by a client-generated round_id. Never records guess content.
+// by a client-generated round_id. What was guessed is not here: the guess routes
+// write it themselves (worker/guesslog.ts), so no beacon carries it.
 
 import { Hono, type Context } from "hono";
 import { normalizeSource, SOURCE_DIRECT } from "../../shared/attribution";
@@ -8,6 +9,7 @@ import { ROUND_KINDS, SURFACES, maxGuessesFor, type RoundKind, type Surface } fr
 import { getSeededDish, getTargetDish, serverToday } from "../db";
 import { getTargetDrink } from "../drinkdb";
 import { isValidDateString } from "../game";
+import { isAnalyticsId } from "../guesslog";
 import { RECOVER_THROUGH, foldPastRounds, type PastRoundRow } from "../pastrounds";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -106,7 +108,7 @@ function seedOf(body: unknown): string | null {
 /** Validate the fields every beacon carries. */
 function base(body: unknown): Base | null {
   const b = body as (Partial<Base> & { kind?: string; surface?: string }) | null;
-  if (!b || typeof b.roundId !== "string" || b.roundId.length < 8 || b.roundId.length > 64) return null;
+  if (!b || !isAnalyticsId(b.roundId)) return null;
   const puzzleNumber = Number(b.puzzleNumber);
   if (!Number.isInteger(puzzleNumber) || puzzleNumber < 0) return null;
   if (typeof b.date !== "string" || !isValidDateString(b.date)) return null;
@@ -148,7 +150,7 @@ app.post("/seated", async (c) => {
   const playerId = raw?.playerId;
   // No usable device id means nothing to dedupe on, and a row per page load
   // would overcount visitors rather than undercount them. Drop it.
-  if (typeof playerId !== "string" || playerId.length < 8 || playerId.length > 64) {
+  if (!isAnalyticsId(playerId)) {
     return c.json({ error: "Invalid payload" }, 400);
   }
   const surface = SURFACES.includes(raw?.surface as never) ? (raw!.surface as Surface) : "web";
@@ -196,7 +198,7 @@ app.post("/sound", async (c) => {
     toggles?: unknown;
   } | null;
   const playerId = raw?.playerId;
-  if (typeof playerId !== "string" || playerId.length < 8 || playerId.length > 64) {
+  if (!isAnalyticsId(playerId)) {
     return c.json({ error: "Invalid payload" }, 400);
   }
   if (typeof raw?.muted !== "boolean") return c.json({ error: "Invalid payload" }, 400);
@@ -226,10 +228,7 @@ app.post("/start", async (c) => {
   // Anonymous per-device id (random UUID from localStorage). Optional — older
   // clients omit it — so a bad/absent value just stores NULL. Powers the
   // new-vs-returning player split in the admin dashboard.
-  const playerId =
-    typeof raw!.playerId === "string" && raw!.playerId.length >= 8 && raw!.playerId.length <= 64
-      ? raw!.playerId
-      : null;
+  const playerId = isAnalyticsId(raw!.playerId) ? raw!.playerId : null;
   const [dishId, drinkId] = await Promise.all([
     resolveDishId(c.env, b.kind, b.date, seedOf(raw)),
     resolveDrinkId(c.env, b.kind, b.date),
@@ -317,7 +316,7 @@ app.post("/share", async (c) => {
 app.post("/past", async (c) => {
   const raw = (await c.req.json().catch(() => null)) as { playerId?: unknown } | null;
   const playerId = raw?.playerId;
-  if (typeof playerId !== "string" || playerId.length < 8 || playerId.length > 64) {
+  if (!isAnalyticsId(playerId)) {
     return c.json({ error: "Invalid payload" }, 400);
   }
   const { results } = await c.env.DB.prepare(

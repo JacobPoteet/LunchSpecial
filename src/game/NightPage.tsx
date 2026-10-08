@@ -377,15 +377,20 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
       playSfx("guess-submit");
       try {
         const guessNumber = round.guesses.length + 1;
+        // As on the daily: one id for the guess ledger and the beacons below.
+        const roundId = tracked ? (round.analyticsId ?? newAnalyticsId()) : undefined;
         const feedback = await postDrinkGuess({
           night,
           drinkId: drink.id,
           guessNumber,
           preview,
           nightcap: effectivePin,
+          roundId,
+          playerId: roundId ? getPlayerId() : undefined,
         });
         const next: NightRoundState = {
           ...round,
+          analyticsId: roundId ?? round.analyticsId,
           guesses: [...round.guesses, feedback],
           coasters: feedback.coaster ? [...round.coasters, feedback.coaster] : round.coasters,
           status: feedback.correct ? "won" : guessNumber >= DRINK_MAX_GUESSES ? "lost" : "playing",
@@ -415,8 +420,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
           );
         }
         persist(next);
-        if (tracked) {
-          const roundId = next.analyticsId ?? newAnalyticsId();
+        if (roundId) {
           // `date` carries the LOCAL night key on a nightcap beacon, and
           // tzOffset is what makes the hour profile readable. See 0041.
           const base = {

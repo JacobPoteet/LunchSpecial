@@ -866,6 +866,11 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
       playSfx("guess-submit");
       try {
         const guessNumber = round.guesses.length + 1;
+        // Tracked rounds only: the Worker records the guess against this id, and
+        // the start/complete beacons below carry the same one. Minted here if
+        // the telemetry hook hasn't stamped the round yet, so the two can never
+        // diverge. The test modes never send one.
+        const roundId = tracked ? (round.analyticsId ?? newAnalyticsId()) : undefined;
         const feedback = await postGuess({
           date,
           dishId: dish.id,
@@ -873,9 +878,12 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           preview,
           random,
           special: playtest,
+          roundId,
+          playerId: roundId ? getPlayerId() : undefined,
         });
         const next: RoundState = {
           ...round,
+          analyticsId: roundId ?? round.analyticsId,
           guesses: [...round.guesses, feedback],
           clues: feedback.clue ? [...round.clues, feedback.clue] : round.clues,
           status: feedback.correct ? "won" : guessNumber >= MAX_GUESSES ? "lost" : "playing",
@@ -919,8 +927,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         if (!ephemeral) persist(next);
         // Real play counts toward analytics (daily, leftover, chef) — the test
         // modes don't.
-        if (tracked) {
-          const roundId = next.analyticsId ?? newAnalyticsId();
+        if (roundId) {
           // A game counts as "started" on the first submitted guess — not on
           // page open. (GitHub #27.)
           if (guessNumber === 1) {
