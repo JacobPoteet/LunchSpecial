@@ -120,7 +120,7 @@ A second daily puzzle behind the first. Finish today's Special and, between **20
 
 ## Engagement stats
 
-The game fires anonymous, fire-and-forget beacons to `/api/rounds/*`, **never carrying any guess content** (`worker/routes/analytics.ts`). Four events:
+The game fires anonymous, fire-and-forget beacons to `/api/rounds/*`, **never carrying any guess content** (`worker/routes/analytics.ts`); what was guessed is written separately by the guess routes themselves (`worker/guesslog.ts`). Four events:
 
 | Beacon | Written to | Means |
 |---|---|---|

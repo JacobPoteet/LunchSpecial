@@ -873,6 +873,9 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           preview,
           random,
           special: playtest,
+          // Tracked rounds only, and only once the id exists: the Worker records
+          // the guess against it. The test modes never send one.
+          roundId: tracked ? round.analyticsId : undefined,
         });
         const next: RoundState = {
           ...round,

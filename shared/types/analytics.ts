@@ -992,6 +992,8 @@ export interface DeviceDataSummary {
   visits: { total: number; firstDay: string | null; lastDay: string | null };
   /** Notice-reach rows this device counts toward (announcement_views). */
   noticeViews: number;
+  /** Guesses recorded against this device's rounds (analytics_guesses, migrations/0053). */
+  guesses: number;
 }
 
 /** What a device wipe actually removed, per table — reported back, never assumed. */
@@ -999,9 +1001,10 @@ export interface DeviceDataDeleted {
   rounds: number;
   visits: number;
   noticeViews: number;
+  guesses: number;
 }
 
-/** Anonymous engagement aggregates for the admin dashboard. No guess content. */
+/** Anonymous engagement aggregates for the admin dashboard. */
 export interface AnalyticsSummary extends AnalyticsPeriod {
   /**
    * One ET day's slice — today unless `?date=` asked for an earlier one.

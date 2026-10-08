@@ -147,6 +147,8 @@ A second daily puzzle: one **drink** a night, **4 guesses**, **3 coasters**, bet
 - **Keep client-called URLs boring** (ad blockers match `analytics`, `event`, `track`, `visit`, `view` and similar; `shared/conventions.test.ts` enforces it). Beacons are `/api/rounds/seated|start|complete|share`; the admin feed is `/api/admin/recent-rounds`.
 - `player_id` is an anonymous per-device UUID, bound only by `/start`. `kind` and `surface` are set on insert only; Discord iframe params are captured into sessionStorage and re-attached by `surfaceUrl()`. `country` is stamped server-side. `dish_id` is resolved by `resolveDishId` (random dishes send `seed`). `source` is re-normalised by the Worker always, captured into sessionStorage, never localStorage. Visits: `markSeated()` decides to send, `PRIMARY KEY (visit_day, player_id)` decides to count; first touch wins.
 
+- **Guesses are written by the guess routes, not a beacon** (`analytics_guesses`, `worker/guesslog.ts`). The client sends `roundId` on `/guess` and `/night/guess` for tracked rounds only; previews, playtests and pins record nothing, and the Worker re-checks. No FK to `analytics_rounds` (a blocked `/start` must not drop a guess); the target is stored on the row, never joined from `schedule`. Dish and drink ids sit in separate column pairs. Rows older than 0053 are unmeasured. Wiping a device deletes its guesses first. Aggregate only on any public route; no per-device guess trail.
+
 ### Rules the dashboard obeys
 
 - **Never report "unmeasured" as zero.** NULL `visited`, `country`, `dish_id`, `source` mean pre-feature rows: `untracked`, never a slice or a dish.

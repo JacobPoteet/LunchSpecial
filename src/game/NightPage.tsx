@@ -383,6 +383,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
           guessNumber,
           preview,
           nightcap: effectivePin,
+          roundId: tracked ? round.analyticsId : undefined,
         });
         const next: NightRoundState = {
           ...round,

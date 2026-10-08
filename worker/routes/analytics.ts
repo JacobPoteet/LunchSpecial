@@ -1,6 +1,7 @@
 // Anonymous engagement beacons. Fire-and-forget from the client; no auth
 // (same client-trust model as the rest of the game). One row per round, keyed
-// by a client-generated round_id. Never records guess content.
+// by a client-generated round_id. What was guessed is not here: the guess routes
+// write it themselves (worker/guesslog.ts), so no beacon carries it.
 
 import { Hono, type Context } from "hono";
 import { normalizeSource, SOURCE_DIRECT } from "../../shared/attribution";

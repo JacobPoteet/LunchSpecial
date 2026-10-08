@@ -279,7 +279,7 @@ app.get("/device-data", async (c) => {
 
   // Grouped by (kind, surface) rather than aggregated flat: the fold needs the
   // split to zero-fill, and one query is cheaper than four COUNT(*)s.
-  const [rounds, visits, views] = await c.env.DB.batch([
+  const [rounds, visits, views, guesses] = await c.env.DB.batch([
     c.env.DB.prepare(
       `SELECT kind, surface, COUNT(*) AS rounds,
               SUM(completed) AS completed, SUM(shared) AS shared,
@@ -293,6 +293,10 @@ app.get("/device-data", async (c) => {
          FROM analytics_visits WHERE player_id = ?`,
     ).bind(player),
     c.env.DB.prepare(`SELECT COUNT(*) AS total FROM announcement_views WHERE player_id = ?`).bind(player),
+    c.env.DB.prepare(
+      `SELECT COUNT(*) AS total FROM analytics_guesses
+        WHERE round_id IN (SELECT round_id FROM analytics_rounds WHERE player_id = ?)`,
+    ).bind(player),
   ]);
 
   const visitRow = (visits.results[0] as DeviceVisitRow | undefined) ?? {
@@ -301,7 +305,10 @@ app.get("/device-data", async (c) => {
     last_day: null,
   };
   const viewCount = (views.results[0] as { total: number } | undefined)?.total ?? 0;
-  return c.json(foldDeviceData(player, rounds.results as unknown as DeviceRoundRow[], visitRow, viewCount));
+  const guessCount = (guesses.results[0] as { total: number } | undefined)?.total ?? 0;
+  return c.json(
+    foldDeviceData(player, rounds.results as unknown as DeviceRoundRow[], visitRow, viewCount, guessCount),
+  );
 });
 
 // Irreversible, and prod D1 has no automatic backup — which is why the client
@@ -312,7 +319,12 @@ app.delete("/device-data", async (c) => {
   const player = playerParam(c);
   if (!player) return c.json({ error: "No device id given" }, 400);
 
-  const [rounds, visits, views] = await c.env.DB.batch([
+  // Guesses first: they are found through this device's round ids, which the
+  // next statement deletes. The batch runs in order.
+  const [guesses, rounds, visits, views] = await c.env.DB.batch([
+    c.env.DB.prepare(
+      "DELETE FROM analytics_guesses WHERE round_id IN (SELECT round_id FROM analytics_rounds WHERE player_id = ?)",
+    ).bind(player),
     c.env.DB.prepare("DELETE FROM analytics_rounds WHERE player_id = ?").bind(player),
     c.env.DB.prepare("DELETE FROM analytics_visits WHERE player_id = ?").bind(player),
     c.env.DB.prepare("DELETE FROM announcement_views WHERE player_id = ?").bind(player),
@@ -322,6 +334,7 @@ app.delete("/device-data", async (c) => {
     rounds: rounds.meta.changes ?? 0,
     visits: visits.meta.changes ?? 0,
     noticeViews: views.meta.changes ?? 0,
+    guesses: guesses.meta.changes ?? 0,
   };
   return c.json(deleted);
 });

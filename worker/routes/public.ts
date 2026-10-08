@@ -12,6 +12,7 @@ import { isEligible } from "../announcements";
 import { verifyToken } from "../auth";
 import { getClues, getDishById, getDishBySlug, getSeededDish, getTargetDish, serverToday } from "../db";
 import { computeFeedback, isPlayableDate, puzzleNumber } from "../game";
+import { guessRecord, recordGuess } from "../guesslog";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -107,6 +108,8 @@ app.post("/guess", async (c) => {
     preview?: string;
     random?: string;
     special?: string;
+    /** Sent only by a tracked round; see worker/guesslog.ts. */
+    roundId?: string;
   };
   try {
     body = await c.req.json();
@@ -135,6 +138,18 @@ app.post("/guess", async (c) => {
       .first<{ text: string }>();
     if (clue) feedback.clue = { index: guessNumber, text: clue.text };
   }
+  // After the feedback is built, off the response path: the player never waits
+  // on the ledger (migrations/0053).
+  const rec = guessRecord({
+    roundId: body.roundId,
+    guessNumber,
+    catalogue: "dish",
+    guessedId: guess.id,
+    targetId: target.dish.id,
+    correct: feedback.correct,
+    rehearsal: [body.preview, body.special],
+  });
+  if (rec) c.executionCtx.waitUntil(recordGuess(c.env.DB, rec));
   return c.json(feedback);
 });
 

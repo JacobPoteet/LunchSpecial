@@ -21,6 +21,7 @@ import { isPlayableNight, nightNumber } from "../../shared/night";
 import { verifyToken } from "../auth";
 import { serverToday } from "../db";
 import { getCoasters, getDrinkById, getDrinkBySlug, getTargetDrink } from "../drinkdb";
+import { guessRecord, recordGuess } from "../guesslog";
 import { computeDrinkFeedback } from "../nightcap";
 import { classifyDrinkPreview } from "../showcase";
 import { CATALOGUE_CACHE_CONTROL } from "./public";
@@ -107,6 +108,8 @@ app.post("/guess", async (c) => {
     guessNumber?: number;
     preview?: string;
     nightcap?: string;
+    /** Sent only by a tracked round; see worker/guesslog.ts. */
+    roundId?: string;
   };
   try {
     body = await c.req.json();
@@ -138,6 +141,17 @@ app.post("/guess", async (c) => {
       .first<{ text: string }>();
     if (coaster) feedback.coaster = { index: guessNumber, text: coaster.text };
   }
+  // Off the response path, like the daily's (migrations/0053).
+  const rec = guessRecord({
+    roundId: body.roundId,
+    guessNumber,
+    catalogue: "drink",
+    guessedId: guess.id,
+    targetId: target.drink.id,
+    correct: feedback.correct,
+    rehearsal: [body.preview, body.nightcap],
+  });
+  if (rec) c.executionCtx.waitUntil(recordGuess(c.env.DB, rec));
   return c.json(feedback);
 });
 
