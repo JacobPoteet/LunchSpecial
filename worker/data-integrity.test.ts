@@ -533,6 +533,37 @@ describe("the beat sheet", () => {
     expect(shared, `\n${shared.join("\n")}\n`).toEqual([]);
   });
 
+  // Beat 1 used to be "region and form", and 201 of 451 dishes opened with
+  // "A [form] from [region]". Every clue was legal and the catalogue read as
+  // one clue, which a daily player learns to skim in a fortnight. These caps
+  // are ratchets: loose enough that a good batch never trips them, tight
+  // enough that the template cannot grow back. See the beat 1 section of the
+  // create-dishes skill for the lenses a writer should rotate through.
+  describe("beat 1 variety", () => {
+    const beat1 = rows.filter((r) => r.order_index === 1);
+    const REGION_WORD =
+      /\b(europe\w*|asia\w*|africa\w*|middle east\w*|america\w*|latin|caribbean|oceania|scandinav\w*|mediterranean|balkans?|levant\w*|andes|andean|pacific|lowcountry|gulf coast|new england|midwest\w*|southwest\w*|northeast\w*|bayou)\b/i;
+    // "A noodle soup from Southeast Asia." A form, "from", a region, and
+    // nothing else in the sentence.
+    const BARE_FORM_FROM_REGION =
+      /^an?\s[^,.]*\s(?:from|out of|of)\s(?:the\s)?[^,.]*\b(?:europe\w*|asia\w*|africa\w*|middle east\w*|america\w*|caribbean|oceania|scandinav\w*|mediterranean)\b[^,.]*\.?$/i;
+
+    it("keeps region words to a minority of beat 1s", () => {
+      const hits = beat1.filter((r) => REGION_WORD.test(r.text));
+      expect(hits.length / beat1.length, hits.map((r) => `${r.slug}: ${r.text}`).join("\n")).toBeLessThanOrEqual(0.2);
+    });
+
+    it("keeps the bare 'a form from a region' skeleton under 5%", () => {
+      const hits = beat1.filter((r) => BARE_FORM_FROM_REGION.test(r.text));
+      expect(hits.length / beat1.length, hits.map((r) => `${r.slug}: ${r.text}`).join("\n")).toBeLessThanOrEqual(0.05);
+    });
+
+    it("does not let 'A' or 'An' open more than four beat 1s in five", () => {
+      const hits = beat1.filter((r) => /^an?\s/i.test(r.text));
+      expect(hits.length / beat1.length).toBeLessThanOrEqual(0.8);
+    });
+  });
+
 });
 
 // ---------------------------------------------------------------------------
