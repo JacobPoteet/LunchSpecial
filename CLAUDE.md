@@ -121,7 +121,7 @@ A second daily puzzle: one **drink** a night, **4 guesses**, **3 coasters**, bet
 - `unmatchedIngredients` stays the exact complement of `matchedIngredients`; a close one is in both it and `nearIngredients`, so counts, grids and old rounds are unchanged. The check's count is exact matches only.
 - Close is never colour alone: dashed border + leading `≈` (`.chip--close`).
 - CI enforces placement (`data-integrity.test.ts`, "the pantry"): every ingredient in a family, staple or `STANDALONE`; no plural twin; yellow rate under 30%. Ingredients typed in /admin bypass that test; the editors show `UnplacedHint`.
-- `shared/families.ts` and `shared/pack.ts` import **only types** (`npm run docs:web` runs them under plain node). The public project page ships a snapshot and a hand-picked `PLATES` list, never the catalogue (an unplayed Special could leak).
+- `shared/families.ts` and `shared/pack.ts` import **only types** (`npm run docs:web` runs them under plain node; a test enforces it). The public project page ships a snapshot and a hand-picked `PLATES` list, never the catalogue (an unplayed Special could leak).
 
 ### Round modes
 
@@ -144,7 +144,7 @@ A second daily puzzle: one **drink** a night, **4 guesses**, **3 coasters**, bet
 
 ### Beacons and analytics
 
-- **Keep client-called URLs boring.** Never put `analytics`, `event`, `track`, `collect`, `beacon`, `telemetry`, `pixel`, `visit`, `view` or `pageview` in them (ad blockers). Beacons are `/api/rounds/seated|start|complete|share`; the admin feed is `/api/admin/recent-rounds`.
+- **Keep client-called URLs boring** (ad blockers match `analytics`, `event`, `track`, `visit`, `view` and similar; `shared/conventions.test.ts` enforces it). Beacons are `/api/rounds/seated|start|complete|share`; the admin feed is `/api/admin/recent-rounds`.
 - `player_id` is an anonymous per-device UUID, bound only by `/start`. `kind` and `surface` are set on insert only; Discord iframe params are captured into sessionStorage and re-attached by `surfaceUrl()`. `country` is stamped server-side. `dish_id` is resolved by `resolveDishId` (random dishes send `seed`). `source` is re-normalised by the Worker always, captured into sessionStorage, never localStorage. Visits: `markSeated()` decides to send, `PRIMARY KEY (visit_day, player_id)` decides to count; first touch wins.
 
 ### Rules the dashboard obeys
@@ -191,7 +191,7 @@ A second daily puzzle: one **drink** a night, **4 guesses**, **3 coasters**, bet
 - Schedule: past dates locked; deleting or deactivating a dish scheduled today/future is blocked; `PUT /schedule` and `PUT /nights` refuse inactive items. Autofill: rest tier → variety penalty → exact rest (`worker/variety.ts`), skipping the last 60 days. The shuffle (🎲) rolls a never-scheduled, schedulable dish and writes on every click. Clearing a day deletes its row; the fallback pick covers it.
 - Regions: north-america, latin-america, europe, middle-east, africa, south-asia, east-asia, southeast-asia, oceania. Courses: breakfast, appetizer, entree, dessert, drink. Proteins: beef, pork, poultry, seafood, lamb, vegetarian.
 - Seed SQL: escape apostrophes as `''`. Windows repo; CRLF warnings are noise.
-- **Build marker:** the footer's last line shows the version (`v1.7.0`, `*` if dirty; never sha or branch, which ride on `title` and the admin line). Always on, in page flow (never a fixed badge), not a setting, nothing reaches the server. `__BUILD__` is a vite `define`; **don't reference it from `worker/` and don't let a `shared/build.ts` fold read it** (they take a `BuildInfo`). "No git" reads as `dev`.
+- **Build marker:** the footer's last line shows the version (`v1.7.0`, `*` if dirty; never sha or branch, which ride on `title` and the admin line). Always on, in page flow (never a fixed badge), not a setting, nothing reaches the server. `__BUILD__` is a vite `define`; folds take a `BuildInfo` and never read it (`shared/conventions.test.ts` enforces this for `worker/` and `shared/`). "No git" reads as `dev`.
 - `vitest.config.ts` is separate from `vite.config.ts` on purpose (tests must not load the cloudflare plugin); it covers `worker/` and `shared/`.
 - `tsc -b` is incremental and can report success on a stale graph; use `npx tsc -b --force` after changing a `shared/` type. Three composite projects: worker code uses no DOM libs. `worker-configuration.d.ts` is generated, never hand-edited.
 - Cookies: HttpOnly+Secure+SameSite=Strict, 7-day HMAC token. Routes under `worker/routes/admin/` are mounted in a load-bearing order: `auth.ts` above the session guard, everything else below.
@@ -224,7 +224,7 @@ WCAG 2.1 AA for the game; `/admin` is exempt.
 - `docs/lessons/` is the one non-wiki doc surface (self-contained HTML walkthroughs; see its README).
 - **Check `docs/index.html` before coining a term.** It holds the vocabulary (beats, beat sheet, the Special, clue ticket, the check, Leftovers, Chef's Choice, note from the kitchen).
 
-**Before opening a PR:** (1) does this file still tell the truth? Edit it in the same PR. (2) Update the wiki note that covers the change, before the PR. (3) `git grep` the diff for the wiki path, and confirm labels (`gh label list` → `gh pr create --label`).
+**Before opening a PR:** (1) does this file still tell the truth? Edit it in the same PR. (2) Update the wiki note that covers the change, before the PR. (3) confirm labels; the wiki-path leak is caught by `npm test` on your machine (`gh label list` → `gh pr create --label`).
 
 ## Verify a change
 
