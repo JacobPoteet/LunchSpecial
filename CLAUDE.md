@@ -706,6 +706,8 @@ The user says **"/create-dishes Pho (Vietnam), Bibimbap (South Korea)"** (the ad
 
 **The `create-dishes` skill is the workflow, and its section 3 is the beat sheet** — the voice, the five beats, the character budgets, the fourteen hard rules and the two tests. Read it before writing a clue. `worker/data-integrity.test.ts` enforces the mechanizable half for every dish in the catalogue and fails in CI.
 
+**Source every historical or numerical claim before you write it.** The linter checks form, not truth; the fact-check pass (#238) changed about a third of the catalogue's clues. The skill's section 3.6 says what counts as a source and why vivid-but-unconfirmed loses to plain-and-true.
+
 **Asking for one clue is a different job.** `suggest-clue` reads the dish's five clues and hands back options to paste into `/admin`, writing nothing. An admin edit lives in prod D1 only, so the linter never sees it — that skill does the mechanizable checks by hand instead.
 
 Four things that hold regardless:

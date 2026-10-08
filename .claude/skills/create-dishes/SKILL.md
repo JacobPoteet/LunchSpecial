@@ -435,7 +435,40 @@ who grew up eating them.
   Québec diner are all disputed, and saying they're disputed is more interesting than pretending
   they aren't.
 
-51 clues assert a specific year and nothing checks any of them.
+The linter checks form and nothing checks truth. A fact-check of the whole catalogue (451 dishes)
+changed roughly a third of all clues, and nearly every error was a confident, specific, plausible
+detail written from memory. The more specific the clue, the riskier it is.
+
+#### Source a claim before you write it
+
+- **Vivid and unconfirmed loses to plain and true.** If the only support for a detail is that it
+  sounds right, cut it and keep the general statement. Never invent a replacement detail to keep a
+  clue lively.
+- **What counts as a source:** two independent sources, or one authoritative one (an encyclopedia
+  entry, a national heritage body, a museum, a food-history book, a UNESCO listing). A food blog or
+  a restaurant's own "our history" page is not a source for a contested claim.
+- **Sort the claim first.** Sensory or situational ("served in a hot bowl") needs a check that it
+  is true of the dish as normally served. Historical or numerical (a year, a person, a count) needs
+  a source. Origin or authorship needs a source and is usually contested.
+- **Contested means the fight is the clue** ("two cities claim it") or it is credited to a legend
+  ("legend credits..."). Never state one side as fact.
+
+Where facts went wrong, in order of how often:
+
+1. **A legend stated as credit.** Founder stories, a chef's name, a royal commission, a war story.
+2. **A date or century that is off,** or a "first" nobody can prove.
+3. **A universal that has exceptions.** "Always fried twice", "never browned", "served with rice".
+   Dishes vary by region and household; write "traditionally" only when a source says so.
+4. **A plausible sensory detail nobody confirmed.** A flambé flare, a flick of the wrist, a colour
+   from a particular dye.
+5. **Ingredient provenance.** Chilies, tomatoes, citrus and potatoes came from the Americas; a clue
+   that puts one in an Old World dish before contact is wrong.
+6. **A celebrity quote or a statistic** (a sales figure, a record). Cut unless you can open the
+   source.
+7. **An ambiguous subject** ("a cookie baked early because it ages": the dough ages, not the
+   cookie) and **tense or arithmetic** ("century-old" for something from 1862).
+8. **A national label for a shared dish.** Check who else claims it before the clue names a
+   country.
 
 ### 3.7 Reference sets
 
