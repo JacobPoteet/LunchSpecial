@@ -67,6 +67,8 @@ export function postGuess(body: {
    * guess against it (migrations/0053); absent, nothing is recorded.
    */
   roundId?: string;
+  /** The anonymous device id, sent beside `roundId` so a device wipe reaches the guess. */
+  playerId?: string;
 }): Promise<GuessFeedback> {
   return request("/api/guess", {
     method: "POST",
@@ -106,6 +108,7 @@ export function postDrinkGuess(body: {
   nightcap?: string;
   /** As on postGuess: tracked rounds only. */
   roundId?: string;
+  playerId?: string;
 }): Promise<DrinkGuessFeedback> {
   return request("/api/night/guess", {
     method: "POST",

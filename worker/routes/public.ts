@@ -12,7 +12,7 @@ import { isEligible } from "../announcements";
 import { verifyToken } from "../auth";
 import { getClues, getDishById, getDishBySlug, getSeededDish, getTargetDish, serverToday } from "../db";
 import { computeFeedback, isPlayableDate, puzzleNumber } from "../game";
-import { guessRecord, recordGuess } from "../guesslog";
+import { guessRecord, isAnalyticsId, recordGuess } from "../guesslog";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -36,7 +36,7 @@ async function resolveTarget(
     const id = /^preview:(\d+)$/.exec(payload ?? "")?.[1];
     if (!id) return { error: "Invalid or expired preview link" as const };
     const dish = await getDishById(env.DB, Number(id));
-    return dish ? { dish } : { error: "Preview dish not found" as const };
+    return dish ? { dish, rehearsal: true } : { error: "Preview dish not found" as const };
   }
   if (special) {
     // A dish named outright (`?special=<slug>` — `npm run ramen` and friends).
@@ -44,19 +44,19 @@ async function resolveTarget(
     // schedule, so it says nothing about which day serves what. The slugs it
     // takes are already public in /api/dishes.
     const dish = await getDishBySlug(env.DB, special);
-    return dish ? { dish } : { error: `No dish with slug "${special}"` as const };
+    return dish ? { dish, rehearsal: true } : { error: `No dish with slug "${special}"` as const };
   }
   if (random) {
     // A random dish (deterministic per seed). Spoiler-free — it never touches
     // the schedule — so, unlike a dated request, it needs no gating.
     const dish = await getSeededDish(env.DB, random);
-    return dish ? { dish } : { error: "No dish available" as const };
+    return dish ? { dish, rehearsal: false } : { error: "No dish available" as const };
   }
   // A dated request: today's daily, or a past puzzle replayed from the archive.
   // Future dates are rejected so upcoming Specials aren't spoiled.
   if (!date || !isPlayableDate(date)) return { error: "Invalid date" as const };
   const dish = await getTargetDish(env.DB, date);
-  return dish ? { dish } : { error: "No dish available" as const };
+  return dish ? { dish, rehearsal: false } : { error: "No dish available" as const };
 }
 
 /**
@@ -110,6 +110,7 @@ app.post("/guess", async (c) => {
     special?: string;
     /** Sent only by a tracked round; see worker/guesslog.ts. */
     roundId?: string;
+    playerId?: string;
   };
   try {
     body = await c.req.json();
@@ -142,12 +143,12 @@ app.post("/guess", async (c) => {
   // on the ledger (migrations/0053).
   const rec = guessRecord({
     roundId: body.roundId,
+    playerId: body.playerId,
     guessNumber,
     catalogue: "dish",
     guessedId: guess.id,
     targetId: target.dish.id,
-    correct: feedback.correct,
-    rehearsal: [body.preview, body.special],
+    rehearsal: target.rehearsal,
   });
   if (rec) c.executionCtx.waitUntil(recordGuess(c.env.DB, rec));
   return c.json(feedback);
@@ -176,10 +177,7 @@ app.post("/requests", async (c) => {
   const country = cleanField(body?.country, DISH_REQUEST_LIMITS.country);
   const note = cleanField(body?.note, DISH_REQUEST_LIMITS.note);
   const surface = SURFACES.includes(body?.surface as never) ? (body!.surface as string) : "web";
-  const playerId =
-    typeof body?.playerId === "string" && body.playerId.length >= 8 && body.playerId.length <= 64
-      ? body.playerId
-      : null;
+  const playerId = isAnalyticsId(body?.playerId) ? body.playerId : null;
 
   // Ignore an exact duplicate from the same device so a double-tap (or the same
   // player resubmitting the same idea) doesn't clutter the inbox. Per kind: a
@@ -267,7 +265,7 @@ app.post("/announcements/seen", async (c) => {
   const id = Number(body?.id);
   if (!Number.isInteger(id) || id <= 0) return c.json({ error: "Unknown announcement" }, 400);
   const playerId = body?.playerId;
-  if (typeof playerId !== "string" || playerId.length < 8 || playerId.length > 64) {
+  if (!isAnalyticsId(playerId)) {
     return c.json({ error: "Invalid player id" }, 400);
   }
   const surface = SURFACES.includes(body?.surface as never) ? (body!.surface as string) : "web";

@@ -295,8 +295,8 @@ app.get("/device-data", async (c) => {
     c.env.DB.prepare(`SELECT COUNT(*) AS total FROM announcement_views WHERE player_id = ?`).bind(player),
     c.env.DB.prepare(
       `SELECT COUNT(*) AS total FROM analytics_guesses
-        WHERE round_id IN (SELECT round_id FROM analytics_rounds WHERE player_id = ?)`,
-    ).bind(player),
+        WHERE player_id = ? OR round_id IN (SELECT round_id FROM analytics_rounds WHERE player_id = ?)`,
+    ).bind(player, player),
   ]);
 
   const visitRow = (visits.results[0] as DeviceVisitRow | undefined) ?? {
@@ -319,12 +319,14 @@ app.delete("/device-data", async (c) => {
   const player = playerParam(c);
   if (!player) return c.json({ error: "No device id given" }, 400);
 
-  // Guesses first: they are found through this device's round ids, which the
-  // next statement deletes. The batch runs in order.
+  // Guesses first: besides their own player_id (which a guess whose round row
+  // never landed is reachable by alone), they are found through this device's
+  // round ids, which the next statement deletes. The batch runs in order.
   const [guesses, rounds, visits, views] = await c.env.DB.batch([
     c.env.DB.prepare(
-      "DELETE FROM analytics_guesses WHERE round_id IN (SELECT round_id FROM analytics_rounds WHERE player_id = ?)",
-    ).bind(player),
+      `DELETE FROM analytics_guesses
+        WHERE player_id = ? OR round_id IN (SELECT round_id FROM analytics_rounds WHERE player_id = ?)`,
+    ).bind(player, player),
     c.env.DB.prepare("DELETE FROM analytics_rounds WHERE player_id = ?").bind(player),
     c.env.DB.prepare("DELETE FROM analytics_visits WHERE player_id = ?").bind(player),
     c.env.DB.prepare("DELETE FROM announcement_views WHERE player_id = ?").bind(player),

@@ -12,8 +12,9 @@
 -- tracked; a preview or a playtest sends none and is never recorded.
 --
 -- A guess is a pick from the catalogue, never free text, so there is nothing
--- personal in a row. It is tied to a device only through round_id ->
--- analytics_rounds.player_id, the same anonymous UUID the round beacons carry.
+-- personal in a row. player_id is the same anonymous device UUID the round
+-- beacons carry, stored on the row so a device wipe reaches guesses whose round
+-- row never landed (a blocked /start). NULL when the client sent none.
 --
 -- Two catalogues, so two pairs of columns, the same split analytics_rounds makes
 -- with dish_id / drink_id (migrations/0041). One shared id column would need a
@@ -26,8 +27,11 @@
 -- on the first guess, and a blocked beacon must not take the guess down with it.
 -- A guess with no round row is reported as untracked, never assigned a kind.
 --
--- The primary key makes a retried request a no-op, and DO NOTHING in the insert
--- means the first write wins, so a replay cannot rewrite what was guessed.
+-- The primary key keeps one row per guess number. The insert's DO UPDATE means
+-- the last write wins: a client retries a number only when it never saw the
+-- response, and the dish it sends then is the one on its board.
+--
+-- Whether a guess was right is not stored: it is guessed_* = target_*.
 --
 -- Additive only. Days before this ships have NO rows, which is unmeasured, not
 -- "nobody guessed".
@@ -35,11 +39,11 @@
 CREATE TABLE IF NOT EXISTS analytics_guesses (
   round_id         TEXT NOT NULL,
   guess_number     INTEGER NOT NULL,
+  player_id        TEXT,
   guessed_dish_id  INTEGER,
   target_dish_id   INTEGER,
   guessed_drink_id INTEGER,
   target_drink_id  INTEGER,
-  correct          INTEGER NOT NULL DEFAULT 0,
   created_at       TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY (round_id, guess_number),
   CHECK (
@@ -56,3 +60,6 @@ CREATE INDEX IF NOT EXISTS idx_analytics_guesses_target_dish
   ON analytics_guesses(target_dish_id, guessed_dish_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_guesses_target_drink
   ON analytics_guesses(target_drink_id, guessed_drink_id);
+-- The device review and wipe.
+CREATE INDEX IF NOT EXISTS idx_analytics_guesses_player
+  ON analytics_guesses(player_id);
