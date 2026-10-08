@@ -200,6 +200,21 @@ Contested origins are good material. State the fight plainly rather than hedging
 still claim it" beats "it is said to have been invented by". If you can't source a date, leave the
 date out.
 
+**A year is one lens, not the default.** 35% of beat 2s cite a year or a numbered century, and
+nothing checks any of them. Rotate the angle the way beat 1 does:
+
+| Lens | What it hands over | Example |
+|---|---|---|
+| **A named person** | One cook, inventor or customer | A Chengdu grandmother with a pockmarked face fed porters in the 1860s. |
+| **A fight** | Who disputes it, stated plainly | Two Taichung shops both claim it and fought a ten-year court case. |
+| **A shortage or accident** | What went wrong or ran out | A dropped dessert at a sports day was scooped up and served anyway. |
+| **A migration** | Who carried it, and where from | Chinese immigrants brought the wok to Peru and the dish took root there. |
+| **A job or a class** | The people it was made for | Dockworkers snacked on it between shifts. |
+| **A law or a ritual** | The rule that governs it | German law protects the name, so a version without the brandy cannot use it. |
+| **A date** | Only when the date is the clue | A 2007 animated rat made it fine-dining famous. |
+
+The linter caps the year-bearing share. It is a ratchet: tighten it as dated origins get rewritten.
+
 #### Beat 3 — What makes it unmistakable
 
 The beat that carries the round, and the one the spec is strictest about. It lands on the third
@@ -254,9 +269,23 @@ thing a player reads before their final guess. As a caption it's the one-line de
 under the answer on the check, because `GamePage.tsx` takes `reveal.clues.at(-1)` and prints it
 there.
 
-Both jobs want the same sentence: **name the country, then say what the thing looks and feels like
-in front of you.** Neither wants a shorter version of beat 4, which is what 186 dishes had before
-the backfill.
+Both jobs want the same sentence: **say what the thing looks and feels like in front of you, and
+name the country somewhere in it.** Neither wants a shorter version of beat 4, which is what 186
+dishes had before the backfill.
+
+**The country does not have to open the sentence.** 98% of beat 5s began "Mexico's ..." or "The
+French ...", because the sheet's examples did, and a caption that starts the same way every day
+reads as a form letter. Put the picture first and place the country where it reads naturally:
+
+> Charred kernels slicked with cream and chili, sold on a stick on Mexican street corners. *(Elote)*
+>
+> A pale, rich terrine sliced cold onto toast, a French holiday-table tradition. *(Foie Gras)*
+>
+> One wide pan of rice goes down in the middle of a Spanish party, and spoons come out. *(Paella)*
+>
+> In Mexico, the cook flicks a sliver of pineapple off the spit and onto your tortilla. *(Tacos al Pastor)*
+
+The linter caps the share of beat 5s that name the country in their first three words at 60%.
 
 Working:
 
@@ -273,6 +302,23 @@ Not working, because beat 4 already said it:
 
 Test it by covering beat 4. If beat 5 still tells you something, it's a beat. If it doesn't, it's
 a summary.
+
+#### What makes a clue weak, on any beat
+
+Beat 1's checklist generalises. Before you keep a clue, none of these may be true:
+
+- **It is an opinion where a picture should be.** "The supporting cast", "a favorite", "a classic".
+  If you cannot see it, hear it, taste it or stand in the place, it is a verdict.
+- **It leans on a legend and states it as fact.** Say that it is contested, in beat 2, or leave it
+  out.
+- **It is a figure the player has to decode.** One metaphor is a voice. A clue that is only
+  metaphor is a riddle.
+- **It repeats another beat of the same dish.** Every pair of beats is held to this, not just 4 and
+  5: more than 60% of the smaller clue's content words appearing in the other fails the build. Two
+  beats saying the same thing costs the player a guess for nothing. The commonest cause is a beat 1
+  that quotes beat 4's ingredients, or a beat 5 that is beat 4 with a country in front.
+- **It opens the way its neighbours do.** Read the beat across the five nearest dishes. If you can
+  predict its first three words, change them.
 
 ### 3.3 Budgets
 
@@ -337,10 +383,15 @@ Breaking one of these is a bug, not a style disagreement. Everything here is che
    exists to kill. Name the part, never the state or the city.
    - **Beat 1 stays varied across the catalogue.** Three caps, all checked: the share of beat 1s
      carrying a region word, the bare "a [form] from [region]" skeleton, and the share opening
-     with "A" or "An". The numbers are in `worker/data-integrity.test.ts`.
+     with "A" or "An".
+   - **So do beats 2, 3 and 5.** The share of beat 5s that name the country in their first three
+     words (60%), of beat 2s that cite a year or numbered century (36%), and of beat 3s that open
+     "Its name" (6%). The numbers are in `worker/data-integrity.test.ts`, and they are ratchets
+     that were set just above where the catalogue stood.
 6. **No em dashes.** They're how two clues get welded into one. A comma or a full stop keeps the
    beat to a single idea.
-7. **Beat 5 must add vocabulary beat 4 didn't have.** Ceiling is 70% shared.
+7. **Beat 5 must add vocabulary beat 4 didn't have.** Ceiling is 70% shared. **No two beats of one
+   dish may share more than 60%** of the smaller clue's content words.
 8. **No phrase of five or more words appears on two different dishes.**
 9. **Every clue has a subject that acts**, on beats 2 through 5. A person, a group, or you.
    Beat 1 is exempt: it is a label, and the good ones already read as one ("Sold from steaming
@@ -424,7 +475,8 @@ npx vitest run worker/data-integrity.test.ts
 It checks every dish in the catalogue against the mechanizable half of section 3: length
 ceilings, sentence counts, em dashes, banned openers and praise and hedges, the dish's own
 name-words, beat 1 naming the country, beat 5 failing to, beat 5 overlapping beat 4 past 70%,
-five-word phrases shared across dishes, and the three variety caps on beat 1. Fix what it reports and run it again.
+five-word phrases shared across dishes, any two beats of one dish saying the same thing, and the
+variety caps on beats 1, 2, 3 and 5. Fix what it reports and run it again.
 
 Only the ceilings fail. Being outside a target band prints a count and passes, because a test that
 reddens over a well-written 55-character clue gets muted inside a week. Watch that count: a slow
