@@ -3669,3 +3669,6 @@
 .iw-tag--hit { background: var(--hit-soft); border-color: var(--hit); color: var(--hit-ink); font-weight: 700; }
 .iw-tag--near { background: var(--near-soft); border: 1px dashed var(--near); color: var(--ink); font-weight: 600; }
 @media (max-width: 560px) { .iw-pair { grid-template-columns: 1fr; } }
+
+/* Today's housekeeping when there is nothing to fix: one line, not two cards. */
+.panel--calm { padding-top: 12px; padding-bottom: 12px; }

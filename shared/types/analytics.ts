@@ -341,16 +341,16 @@ export interface DishReport {
   rounds: number;
 }
 
-/** A dish players ordered, and how many times. */
+/** A dish (or, on the bar, a drink) players ordered, and how many times. */
 export interface GuessPick {
-  dishId: number;
+  id: number;
   name: string;
   count: number;
 }
 
 /** What players ordered against one Special: the wrong dishes it draws. */
 export interface GuessReportRow {
-  dishId: number;
+  id: number;
   name: string;
   country: string;
   /** Guesses recorded against this dish as the answer, right and wrong. */
@@ -362,8 +362,8 @@ export interface GuessReportRow {
 }
 
 /**
- * What players actually guess (analytics_guesses, migrations/0053), dishes only.
- * Drinks belong to the After Dark tab. Counts throughout: a rate off a handful of
+ * What players actually guess (analytics_guesses, migrations/0053), for one menu:
+ * the kitchen's on Menu, the bar's on After Dark. Counts throughout: a rate off a handful of
  * guesses is the thing the dashboard refuses to print.
  */
 export interface GuessReport {

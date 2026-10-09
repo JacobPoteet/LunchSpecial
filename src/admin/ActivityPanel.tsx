@@ -23,6 +23,7 @@ import * as api from "./api";
 import { Modal } from "../game/components";
 import { peekPlayerId } from "../game/storage";
 import DayPicker from "./DayPicker";
+import Fold from "./Fold";
 import { ago, countryName, kindCls, kindLabel, type SurfaceFilter } from "./analyticsUi";
 
 import { Icon } from "../game/Icon";
@@ -838,12 +839,18 @@ export default function ActivityPanel({
   // The device panel below is independent of the feed's state — it renders even
   // when the feed is empty or errored, since "how much of this is me" is exactly
   // the question you'd ask of an empty-looking feed.
+  // Folded: a wipe is a rare, destructive act, and the feed is what you came for.
   const mineSection = (
-    <MyDataPanel
-      playerId={myId}
-      onShowMine={() => setMine("only")}
-      onChanged={() => setReloads((n) => n + 1)}
-    />
+    <Fold
+      title="This device's data"
+      hint="Your own play-testing is in every number here. Review it, then clear it."
+    >
+      <MyDataPanel
+        playerId={myId}
+        onShowMine={() => setMine("only")}
+        onChanged={() => setReloads((n) => n + 1)}
+      />
+    </Fold>
   );
 
   const dayPicker = pickingDay && feed && (
