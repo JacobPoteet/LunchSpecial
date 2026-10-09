@@ -1545,46 +1545,81 @@
   background: rgba(230, 217, 184, 0.25);
   white-space: normal;
 }
-/* An expanded round as a timeline: clock time, a marker on a rule, then what
-   happened. The rule is ink; the beacon badges keep their event colours and
-   nothing else takes one. A faint step (not on file, not finished) is a hollow
-   line, never a fifth colour. The answer is a word and a check. */
-.act-timeline { position: relative; margin: 8px 0; padding: 0; list-style: none; }
-.act-timeline::before {
-  content: "";
-  position: absolute;
-  top: 10px;
-  bottom: 10px;
-  left: calc(5.5em + 12px + 3em);
-  border-left: 1px solid var(--ink-soft);
-}
-.act-timeline__step {
-  position: relative;
-  display: grid;
-  grid-template-columns: 5.5em 6em 1fr;
-  column-gap: 12px;
-  align-items: baseline;
-  padding: 3px 0;
+/* An expanded round as a git-log graph: a rail down the left with one node per
+   step. Each row draws its own stretch of rail, so the line can never drift off
+   the nodes; the first row's rail starts at its node and the last row's ends
+   there. Beacons are solid ink dots (their badge carries the event colour),
+   guesses hollow rings, the answer a filled ring, and a gap in the record a
+   dashed ring on a dashed stretch. Ink only: no fifth colour. */
+.act-tl {
+  --tl-rail: 22px;
+  --tl-node: 11px;
+  --tl-mid: 0.85em;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
   font-size: var(--fs-xs);
 }
-.act-timeline__at { text-align: right; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.act-timeline__mark { position: relative; display: flex; justify-content: center; }
-.act-timeline__mark .ev-badge { font-size: var(--fs-xs); padding: 1px 6px; white-space: nowrap; }
-.act-timeline__n {
-  display: inline-grid;
-  place-items: center;
-  min-width: 1.6em;
-  height: 1.6em;
-  border: 1px solid var(--ink);
-  border-radius: 999px;
-  background: var(--cream);
-  font-family: var(--font-gothic);
+.act-tl__step {
+  display: grid;
+  grid-template-columns: var(--tl-rail) minmax(0, 1fr) auto 5.2em;
+  column-gap: 10px;
+  align-items: start;
+  min-height: 1.7em;
 }
-.act-timeline__step--faint .act-timeline__n { border-style: dashed; color: var(--ink-soft); }
-.act-timeline__step--faint .act-timeline__body { color: var(--ink-soft); }
-.act-timeline__body .ev-sub { display: inline; }
-.act-timeline__after { margin-left: 8px; }
-.act-timeline__hit { margin-left: 6px; font-family: var(--font-gothic); letter-spacing: 0.04em; text-transform: uppercase; }
+.act-tl__rail { position: relative; align-self: stretch; }
+.act-tl__rail::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left: 2px solid var(--ink-soft);
+  transform: translateX(-1px);
+}
+.act-tl__step:first-child .act-tl__rail::before { top: var(--tl-mid); }
+.act-tl__step:last-child .act-tl__rail::before { bottom: calc(100% - var(--tl-mid)); }
+.act-tl__step--missing .act-tl__rail::before,
+.act-tl__step--open .act-tl__rail::before { border-left-style: dashed; }
+.act-tl__node {
+  position: absolute;
+  top: var(--tl-mid);
+  left: 50%;
+  width: var(--tl-node);
+  height: var(--tl-node);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: var(--cream);
+  box-sizing: border-box;
+}
+.act-tl__step--event .act-tl__node { background: var(--ink); width: 13px; height: 13px; }
+.act-tl__step--hit .act-tl__node { box-shadow: inset 0 0 0 2px var(--cream); background: var(--ink); }
+.act-tl__step--missing .act-tl__node,
+.act-tl__step--open .act-tl__node { border-style: dashed; border-color: var(--ink-soft); }
+.act-tl__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 3px 0;
+  min-width: 0;
+}
+.act-tl__body .ev-badge { font-size: var(--fs-xs); padding: 1px 7px; }
+.act-tl__body .ev-sub { display: inline; }
+.act-tl__step--missing .act-tl__body,
+.act-tl__step--open .act-tl__body { color: var(--ink-soft); }
+.act-tl__n { font-family: var(--font-gothic); color: var(--ink-soft); min-width: 1ch; }
+.act-tl__name { font-weight: bold; }
+.act-tl__hit { font-family: var(--font-gothic); letter-spacing: 0.04em; text-transform: uppercase; }
+.act-tl__after,
+.act-tl__at {
+  padding: 3px 0;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+}
 
 /* ---- visit headers ---- */
 

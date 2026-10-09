@@ -643,17 +643,17 @@ function GroupHeader({
 
 const surfaceLabel = (s: string) => (s === "discord" ? "Discord" : "Web");
 
+/** How a step's node is drawn on the rail. */
+type Node = "event" | "guess" | "hit" | "missing" | "open";
+
 /** One line of a round's timeline. */
 interface Step {
   key: string;
   at: string | null;
-  /** The marker: a beacon badge, or a guess number. */
-  mark: ReactNode;
+  node: Node;
   body: ReactNode;
   /** The gap that matters for this step, already worded ("+38s"). */
   after?: string | null;
-  /** Hollow marker: a step that didn't happen (yet), or one the ledger lacks. */
-  faint?: boolean;
 }
 
 /** Milliseconds from a to b, or null when either end is missing or the order is broken. */
@@ -663,23 +663,25 @@ const gapMs = (a: string | null, b: string | null): number | null => {
   return ms >= 0 ? ms : null;
 };
 
+const badge = (type: AnalyticsEventType) => (
+  <span className={`ev-badge ev-badge--${EVENT_META[type].cls}`}>{EVENT_META[type].label}</span>
+);
+
 /**
- * An expanded round as one timeline: started, each guess in order, then how it
- * ended and whether it was shared.
+ * An expanded round as one timeline, drawn like `git log --graph`: a rail down
+ * the left with a node per step, the step beside it, its wait and clock time at
+ * the right edge.
+ *
+ * Beacons are solid nodes, guesses hollow rings, the answer a filled ring (and
+ * the word, never a colour). A guess number the ledger lacks (a retry the Worker
+ * never saw) and a round that hasn't finished get dashed rings, so the gap stays
+ * on the rail instead of closing up.
  *
  * The beacons render at once; the guesses are fetched when the row opens, not
- * with the feed (fifty rounds of guesses would be a long payload for a read most
- * rows never get), and are refetched when a live round gains one.
- *
- * Each guess carries the wait since the step before it, which is the read the
- * timeline exists for: where a player stalled. Guess one has no wait; the start
- * beacon fires on it. A wait that comes out negative (two clocks, one beacon)
- * is dropped, never clamped.
- *
- * The ledger starts with the release that added it, so an empty answer is
- * **unmeasured** and says so in the guesses' place. A number the ledger lacks
- * (a retry the Worker never saw) gets its own faint line rather than closing up
- * the gap. The answer carries a check and the word, never a colour.
+ * with the feed, and refetched when a live round gains one. Guess one has no
+ * wait (the start beacon fires on it); a negative wait is dropped, never
+ * clamped. An empty ledger is unmeasured, and a note sits on the rail in the
+ * guesses' place.
  */
 function RoundTimeline({ round }: { round: ActivityRoundView }) {
   const [data, setData] = useState<RoundGuesses | null>(null);
@@ -696,29 +698,21 @@ function RoundTimeline({ round }: { round: ActivityRoundView }) {
     };
   }, [round.roundId, round.guesses]);
 
-  const steps: Step[] = [
-    {
-      key: "start",
-      at: round.startedAt,
-      mark: <span className={`ev-badge ev-badge--${EVENT_META.start.cls}`}>{EVENT_META.start.label}</span>,
-      body: null,
-    },
-  ];
+  const steps: Step[] = [{ key: "start", at: round.startedAt, node: "event", body: badge("start") }];
 
   let note: string | null = null;
   if (error) note = `Couldn't load the guesses: ${error}`;
   else if (!data) note = "Reading the order tickets…";
-  else if (data.guesses.length === 0) {
-    note = "No guesses on file.";
-  } else {
+  else if (data.guesses.length === 0) note = "No guesses on file.";
+  else {
     const byNumber = new Map(data.guesses.map((g) => [g.number, g]));
     const last = Math.max(round.guesses ?? 0, ...data.guesses.map((g) => g.number));
     let prev: string | null = round.startedAt;
     for (let n = 1; n <= last; n++) {
       const g = byNumber.get(n);
-      const mark = <span className="act-timeline__n">{n}</span>;
+      const num = <span className="act-tl__n">{n}</span>;
       if (!g) {
-        steps.push({ key: `g${n}`, at: null, mark, body: <span className="ev-sub">Not on file</span>, faint: true });
+        steps.push({ key: `g${n}`, at: null, node: "missing", body: <>{num} Not on file</> });
         prev = null;
         continue;
       }
@@ -726,12 +720,13 @@ function RoundTimeline({ round }: { round: ActivityRoundView }) {
       steps.push({
         key: `g${n}`,
         at: g.at,
-        mark,
+        node: g.correct ? "hit" : "guess",
         body: (
           <>
-            <strong>{g.name ?? "Left the menu"}</strong>
-            {g.country && <span className="ev-sub"> · {g.country}</span>}
-            {g.correct && <span className="act-timeline__hit"> ✓ answer</span>}
+            {num}
+            <span className="act-tl__name">{g.name ?? "Left the menu"}</span>
+            {g.country && <span className="ev-sub">{g.country}</span>}
+            {g.correct && <span className="act-tl__hit">✓ answer</span>}
           </>
         ),
         after: wait === null ? null : `+${spanLabel(wait)}`,
@@ -750,49 +745,47 @@ function RoundTimeline({ round }: { round: ActivityRoundView }) {
     steps.push({
       key: "complete",
       at: round.completedAt,
-      mark: <span className={`ev-badge ev-badge--${EVENT_META.complete.cls}`}>{EVENT_META.complete.label}</span>,
+      node: "event",
       body: (
         <>
-          {ending}
-          {!round.completedAt && <span className="ev-sub"> · time not recorded</span>}
+          {badge("complete")}
+          <span>{ending}</span>
         </>
       ),
-      after: round.solveMs === null ? null : `${spanLabel(round.solveMs)} at the counter`,
+      after: round.solveMs === null ? null : `${spanLabel(round.solveMs)} total`,
     });
   } else {
-    steps.push({ key: "open", at: null, mark: <span className="act-timeline__n">·</span>, body: STATE_LABEL[round.state], faint: true });
+    steps.push({ key: "open", at: null, node: "open", body: STATE_LABEL[round.state] });
   }
 
   if (round.shared) {
     steps.push({
       key: "share",
       at: round.sharedAt,
-      mark: <span className={`ev-badge ev-badge--${EVENT_META.share.cls}`}>{EVENT_META.share.label}</span>,
-      body: round.sharedAt ? null : <span className="ev-sub">time not recorded</span>,
-      after: round.shareMs === null ? null : `+${spanLabel(round.shareMs)} after finishing`,
+      node: "event",
+      body: badge("share"),
+      after: round.shareMs === null ? null : `+${spanLabel(round.shareMs)}`,
     });
   }
 
+  const row = (key: string, node: Node | null, body: ReactNode, after?: string | null, at?: string | null) => (
+    <li key={key} className={`act-tl__step${node ? ` act-tl__step--${node}` : " act-tl__step--note"}`}>
+      <span className="act-tl__rail" aria-hidden="true">
+        {node && <span className="act-tl__node" />}
+      </span>
+      <span className="act-tl__body">{body}</span>
+      <span className="act-tl__after">{after}</span>
+      <span className="act-tl__at">{at ? clock(at) : at === null && node !== "open" ? "—" : ""}</span>
+    </li>
+  );
+
   return (
-    <ol className="act-timeline">
+    <ol className="act-tl">
       {steps.map((s, i) => (
         <Fragment key={s.key}>
-          <li className={`act-timeline__step${s.faint ? " act-timeline__step--faint" : ""}`}>
-            <span className="act-timeline__at">{s.at ? clock(s.at) : ""}</span>
-            <span className="act-timeline__mark">{s.mark}</span>
-            <span className="act-timeline__body">
-              {s.body}
-              {s.after && <span className="ev-sub act-timeline__after">{s.after}</span>}
-            </span>
-          </li>
+          {row(s.key, s.node, s.body, s.after, s.at)}
           {/* The guesses sit between the start and the ending; a note stands in their place. */}
-          {i === 0 && note && (
-            <li className="act-timeline__step act-timeline__step--faint">
-              <span className="act-timeline__at" />
-              <span className="act-timeline__mark" />
-              <span className="act-timeline__body dash-note">{note}</span>
-            </li>
-          )}
+          {i === 0 && note && row("note", null, <span className="dash-note">{note}</span>)}
         </Fragment>
       ))}
     </ol>
