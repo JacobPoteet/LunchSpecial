@@ -14,6 +14,7 @@ import type {
 import { ACTIVITY_MAX, ACTIVITY_PAGE } from "../../../shared/types";
 
 import { foldDeviceData, type DeviceRoundRow, type DeviceVisitRow } from "../../device";
+import { foldRoundGuesses, type RoundGuessRow } from "../../guessstats";
 
 import { serverToday } from "../../db";
 
@@ -245,6 +246,30 @@ app.get("/recent-rounds", async (c) => {
 
   const feed: ActivityFeed = { rounds, visits, dayTotals, since, hasMore, activeDays, today };
   return c.json(feed);
+});
+
+// What one round guessed, for the expanded row. Keyed by round id alone: the
+// ledger's player_id stays out of the query, because the round id is already what
+// the feed has in hand and nothing here needs to know whose it was. Names come
+// off the catalogue the round's own target belongs to (the row sets exactly one
+// pair of columns), never off `schedule`.
+app.get("/round-guesses", async (c) => {
+  const round = c.req.query("round")?.trim();
+  if (!round) return c.json({ error: "No round given" }, 400);
+  const res = await c.env.DB.prepare(
+    `SELECT g.guess_number,
+            COALESCE(dd.name, dk.name) AS name,
+            COALESCE(dd.country, dk.country) AS country,
+            COALESCE(g.guessed_dish_id = g.target_dish_id, g.guessed_drink_id = g.target_drink_id, 0) AS correct
+       FROM analytics_guesses g
+       LEFT JOIN dishes dd ON dd.id = g.guessed_dish_id
+       LEFT JOIN drinks dk ON dk.id = g.guessed_drink_id
+      WHERE g.round_id = ?
+      ORDER BY g.guess_number`,
+  )
+    .bind(round)
+    .all();
+  return c.json(foldRoundGuesses(round, res.results as unknown as RoundGuessRow[]));
 });
 
 // ---- This device's own data (review, then delete) ---------------------------

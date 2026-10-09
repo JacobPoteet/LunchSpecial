@@ -28,6 +28,8 @@ import type {
   IssueInput,
   MenuMix,
   Pantry,
+  RegularsReport,
+  RoundGuesses,
   NightEntry,
   ScheduleEntry,
   Surface,
@@ -131,6 +133,12 @@ export const getPantry = () => request<Pantry>("/pantry");
  * Path is "/dish-report", not "/dish-stats" or anything with "analytics" in it —
  * see the route comment in worker/routes/admin.ts: ad blockers match those shapes.
  */
+/** The most engaged tenth of devices against the rest. Surface-filtered, like the rest of the Players tab. */
+export const getRegulars = (surface?: Surface) =>
+  request<RegularsReport>(`/regulars${surface ? `?surface=${surface}` : ""}`);
+/** What one round guessed, in order. Fetched when a row in the Activity feed is opened. */
+export const getRoundGuesses = (roundId: string) =>
+  request<RoundGuesses>(`/round-guesses?round=${encodeURIComponent(roundId)}`);
 /** Weekly active, cohorts and the first-visit funnel — every surface's slice in one call. */
 export const getAudience = () => request<AudienceReport>("/audience");
 /** What players order, per answer: the kitchen's or the bar's. No surface filter (the ledger has none). */

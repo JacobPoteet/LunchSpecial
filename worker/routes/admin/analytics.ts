@@ -40,6 +40,7 @@ import {
   type GuessTotalsRow,
 } from "../../guessstats";
 
+import { foldRegulars, type RegularsRoundRow, type RegularsVisitRow } from "../../regulars";
 import { foldFunnel, type FunnelBucketRow } from "../../funnel";
 import { foldRhythm, type RhythmRow } from "../../rhythm";
 
@@ -677,6 +678,37 @@ app.get("/audience", async (c) => {
       visitsRes.results as unknown as AudienceVisitRow[],
       serverToday(),
       firstTracked ? etDayOfUtcStamp(firstTracked) : null,
+    ),
+  );
+});
+
+// The most engaged tenth of devices against the other nine: how often they come
+// back, how they play, what they did on day one. Surface-filtered like the rest of
+// the Players tab. Devices are identified by the anonymous player_id; rounds with
+// none can't be attributed to anyone and are left out. Grouped by UTC hour and
+// folded to ET days in worker/regulars.ts, the way every all-time series is.
+app.get("/regulars", async (c) => {
+  const { and: surfAnd } = surfaceClause(c);
+  const [roundsRes, visitsRes] = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `SELECT player_id, surface, strftime('%Y-%m-%d %H', started_at) AS bucket,
+         kind, completed, solved, shared, guesses, COUNT(*) AS n
+         FROM analytics_rounds
+        WHERE player_id IS NOT NULL AND started_at IS NOT NULL${surfAnd}
+        GROUP BY player_id, surface, bucket, kind, completed, solved, shared, guesses`,
+    ),
+    // First touch wins, as everywhere the source is read: the bare `source`
+    // column comes from the row holding MIN(visit_day).
+    c.env.DB.prepare(
+      `SELECT player_id, source, MIN(visit_day) AS first_day
+         FROM analytics_visits WHERE 1 = 1${surfAnd} GROUP BY player_id`,
+    ),
+  ]);
+  return c.json(
+    foldRegulars(
+      roundsRes.results as unknown as RegularsRoundRow[],
+      visitsRes.results as unknown as RegularsVisitRow[],
+      serverToday(),
     ),
   );
 });

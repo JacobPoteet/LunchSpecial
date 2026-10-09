@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { foldGuessStats, TOP_WRONG } from "./guessstats";
+import { foldGuessStats, foldRoundGuesses, TOP_WRONG } from "./guessstats";
 
 const dishes = [1, 2, 3, 4, 5, 6].map((id) => ({ id, name: `Dish ${id}`, country: "Italy" }));
 const pair = (t: number, g: number, n: number, opener = 0) => ({
@@ -55,5 +55,33 @@ describe("foldGuessStats", () => {
     const r = foldGuessStats([pair(1, 99, 5), pair(98, 2, 5)], [], dishes, undefined);
     expect(r.rows).toEqual([]);
     expect(r.decoys).toEqual([]);
+  });
+});
+
+describe("foldRoundGuesses", () => {
+  const row = (guess_number: number, name: string | null, correct = 0) => ({
+    guess_number,
+    name,
+    country: name ? "Italy" : null,
+    correct,
+  });
+
+  it("returns the guesses in the order they were made, whatever order they arrive in", () => {
+    const r = foldRoundGuesses("round-1", [row(3, "Lasagna", 1), row(1, "Pizza"), row(2, "Risotto")]);
+    expect(r.roundId).toBe("round-1");
+    expect(r.guesses.map((g) => [g.number, g.name, g.correct])).toEqual([
+      [1, "Pizza", false],
+      [2, "Risotto", false],
+      [3, "Lasagna", true],
+    ]);
+  });
+
+  it("keeps a guess whose dish has left the catalogue, nameless, rather than dropping it", () => {
+    const r = foldRoundGuesses("round-1", [row(1, null)]);
+    expect(r.guesses).toEqual([{ number: 1, name: null, country: null, correct: false }]);
+  });
+
+  it("is empty for a round the ledger never saw: unmeasured, not zero guesses", () => {
+    expect(foldRoundGuesses("round-1", []).guesses).toEqual([]);
   });
 });
