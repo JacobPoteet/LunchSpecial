@@ -131,8 +131,9 @@ export const getPantry = () => request<Pantry>("/pantry");
  */
 /** Weekly active, cohorts and the first-visit funnel — every surface's slice in one call. */
 export const getAudience = () => request<AudienceReport>("/audience");
-/** What players order, per Special. Dishes only; no surface filter (the ledger has none). */
-export const getGuessReport = () => request<GuessReport>("/picks");
+/** What players order, per answer: the kitchen's or the bar's. No surface filter (the ledger has none). */
+export const getGuessReport = (catalogue: "dish" | "drink" = "dish") =>
+  request<GuessReport>(catalogue === "dish" ? "/picks" : "/picks/drinks");
 export const getDishReport =(surface?: Surface) =>
   request<DishReport>(`/dish-report${surface ? `?surface=${surface}` : ""}`);
 /**

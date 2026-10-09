@@ -9,6 +9,7 @@ import type {
   WeekdayPlay,
 } from "../../shared/types";
 import { WeeklyActiveChart } from "./AudiencePanels";
+import Fold from "./Fold";
 import { KIND_META, KindLegend, hourLabel, noRoundsNote, pct, shortDate, type SurfaceFilter } from "./analyticsUi";
 
 /**
@@ -496,6 +497,14 @@ export default function TrendsPanel({
       {/* Under the weekly chart, not above it: a running total can only climb,
           so it reads as growth even in a week fewer people played. The bend is
           the read, and the weekly chart shows the bend more plainly. */}
+      <Fold
+        title="Total games played · all time"
+        hint={
+          growth.days.length === 0
+            ? "No dated activity yet."
+            : `${growth.days.at(-1)!.cumulative.toLocaleString()} games played since ${shortDate(growth.days[0].date)}.`
+        }
+      >
       <section className="panel">
         <h2>Total games played · all time</h2>
         {growth.days.length === 0 ? (
@@ -520,6 +529,7 @@ export default function TrendsPanel({
           </>
         )}
       </section>
+      </Fold>
 
       {/* The weekly cycle the growth curve deliberately averages out. Above the
           heatmap because it's the summary the grid is the detail of. */}

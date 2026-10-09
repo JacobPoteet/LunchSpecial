@@ -7,6 +7,7 @@
 // wide, and the bar's is four.
 
 import { useEffect, useState } from "react";
+import GuessPanel from "./GuessPanel";
 import type { AfterDarkReport, CrossoverDay, NightDrinkRow, NightServiceDay } from "../../shared/types";
 import { DRINK_MAX_GUESSES, NIGHT_EPOCH_DATE } from "../../shared/types";
 import { BAR_CLOSE_HOUR, BAR_OPEN_HOUR } from "../../shared/night";
@@ -370,9 +371,17 @@ export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) 
         </p>
       </section>
 
+      {/* Drinks only. The kitchen's version of this panel is on Menu. */}
+      <GuessPanel catalogue="drink" />
+
+      {/* A data dump to check a number in, not a read: folded, like Trends' daily
+          breakdown. */}
       {nights.length > 0 && (
         <section className="panel">
-          <h2>Night by night</h2>
+          <details className="dash-details dash-details--table" style={{ marginTop: 0 }}>
+          <summary>
+            <h2>Night by night</h2>
+          </summary>
           <div className="table-wrap">
             <table className="admin-table">
               <thead>
@@ -425,6 +434,7 @@ export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) 
           <p className="dash-note">
             Newest first. Nights with no rounds are omitted; a night still being played shows counts, no rate.
           </p>
+          </details>
         </section>
       )}
     </>
