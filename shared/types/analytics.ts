@@ -853,7 +853,8 @@ export type AnalyticsEventType = (typeof ANALYTICS_EVENT_TYPES)[number];
  * A round is the unit every question about this feed is actually asked in, so
  * it's the unit that ships; the beacons are still there, one expand away.
  *
- * Still anonymous: no guess content, and `playerId` is a random per-device id.
+ * Still anonymous: `playerId` is a random per-device id. What the round guessed
+ * is not in the feed; opening a round fetches it ({@link RoundGuesses}).
  */
 export interface ActivityRound {
   /** The client-generated round id — unique per puzzle per device. */
@@ -991,6 +992,111 @@ export interface ActivityFeed {
  */
 export const ACTIVITY_PAGE = 50;
 export const ACTIVITY_MAX = 200;
+
+/** One guess in one round, in the order it was made. */
+export interface RoundGuess {
+  /** 1-based, as the player saw it. */
+  number: number;
+  /** Null when the dish or drink has left the catalogue since. */
+  name: string | null;
+  country: string | null;
+  /** The guess was the answer (guessed id = target id; never stored). */
+  correct: boolean;
+}
+
+/**
+ * What one round guessed (analytics_guesses, migrations/0053), for the Activity
+ * feed's expanded row.
+ *
+ * An empty list means the ledger holds nothing for this round, which is
+ * **unmeasured, not "no guesses"**: rounds before the ledger shipped, and rounds
+ * whose guesses were never tagged with a round id, have no rows. The UI compares
+ * the list against the round's own `guesses` count to say so.
+ */
+export interface RoundGuesses {
+  roundId: string;
+  guesses: RoundGuess[];
+}
+
+/** A count and the count it is out of. Rates are computed at the edge with `rate()`. */
+export interface Tally {
+  n: number;
+  of: number;
+}
+
+/**
+ * The share of devices called regulars: the top tenth by days played. Ties at the
+ * line are kept in, so the group can run a little over a tenth, and the report
+ * says so.
+ */
+export const REGULARS_SHARE = 0.1;
+/** A device must have played on at least this many days to be a regular at all. */
+export const REGULARS_MIN_DAYS = 2;
+/** Fewer regulars than this and the comparison is stated but never headlined. */
+export const REGULARS_MIN_GROUP = 10;
+/** A device not seen for this many days has lapsed. */
+export const LAPSED_DAYS = 7;
+
+/** What one group of devices (the regulars, or everyone else) did. Raw counts throughout. */
+export interface RegularsGroup {
+  devices: number;
+  rounds: number;
+  /** Median distinct ET days played, per device. */
+  medianDays: number | null;
+  /** Median of days played / days since the first visit (inclusive), as 0..100. */
+  medianAttendance: number | null;
+  /** Median of each device's median wait between play days. Null when nobody came twice. */
+  medianGap: number | null;
+  /** Median of each device's longest run of consecutive days. */
+  medianStreak: number | null;
+  /** Rounds per day played, pooled across the group. */
+  roundsPerDay: number | null;
+  /** Devices that played in the last {@link LAPSED_DAYS} days. */
+  active: Tally;
+  /** Today's Special rounds that reached game over, and how they went. */
+  special: {
+    finished: number;
+    solved: Tally;
+    shared: Tally;
+    /** solvedIn[i] = Specials solved in i+1 guesses, every finished Special. */
+    solvedIn: number[];
+    /** Same, but only each device's first finished Special: skill before practice. */
+    firstSolvedIn: number[];
+  };
+  /** Devices that have ever played each kind of round. */
+  reach: Record<RoundKind, Tally>;
+  /** Devices that have ever shared a result. */
+  sharedEver: Tally;
+  /** Devices that play inside Discord. */
+  discord: Tally;
+  /** What a device did on its first day: the thing that may predict the rest. */
+  dayOne: { finished: Tally; solved: Tally; shared: Tally; extra: Tally };
+  /** First-touch source, most devices first. Devices from before source tracking are left out. */
+  sources: { source: string; devices: number }[];
+}
+
+/**
+ * The most engaged tenth of devices against the other nine (GET /regulars).
+ *
+ * Ranked by distinct ET days played. The regulars' numbers carry a built-in
+ * lean: a device that has played the most days has also had the most practice,
+ * so `firstSolvedIn` is the fair read of whether they were simply better to
+ * begin with.
+ */
+export interface RegularsReport {
+  /** Devices with at least one round. */
+  devices: number;
+  /** Regulars played on at least this many days; null when nobody qualifies. */
+  cutoffDays: number | null;
+  /** Null when no device has come back, so there is no top tenth to speak of. */
+  regulars: RegularsGroup | null;
+  rest: RegularsGroup;
+  /** The regulars' rounds out of every round. */
+  roundsShare: Tally;
+  /** First ET day with a tracked device, for the "since" line. */
+  since: string | null;
+  today: string;
+}
 
 /**
  * Everything one anonymous device has written into the analytics tables — the

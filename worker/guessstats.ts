@@ -4,11 +4,14 @@
 // only in which column pair the route reads, so the rows arrive as target_id /
 // guessed_id and the fold never learns which menu it is looking at.
 //
-// Counts only. A guess is a pick from the catalogue, so a row carries nothing
-// personal, but this still never returns a per-device trail: the grouping key is
-// (answer, pick), and nothing here can name a player.
+// The report folds are counts only: the grouping key is (answer, pick), and
+// nothing in them can name a player. `foldRoundGuesses` at the bottom is the one
+// exception, and it is keyed by a single round id: the admin's Activity feed
+// opens one round and reads what it guessed, in order. A guess is a pick from the
+// catalogue, so a row carries nothing personal, and that route sits behind the
+// admin session like the rest of /api/admin.
 
-import type { GuessPick, GuessReport, GuessReportRow } from "../shared/types";
+import type { GuessPick, GuessReport, GuessReportRow, RoundGuess, RoundGuesses } from "../shared/types";
 
 /** One (answer, pick) pair, with whether it was guess number one. */
 export interface GuessPairRow {
@@ -97,4 +100,25 @@ export function foldGuessStats(
     decoys: top(decoys, TOP_OVERALL),
     openers: top(openers, TOP_OVERALL),
   };
+}
+
+/** One ledger row for a round, with the guessed item's name already joined. */
+export interface RoundGuessRow {
+  guess_number: number;
+  name: string | null;
+  country: string | null;
+  /** 1 when the pick was the answer. Computed in SQL from the two id columns. */
+  correct: number;
+}
+
+/**
+ * One round's guesses, in the order they were made. The query orders them, and
+ * this orders them again: the primary key is (round, number), so a fold that
+ * trusted its input would be one reordered query away from a scrambled board.
+ */
+export function foldRoundGuesses(roundId: string, rows: Iterable<RoundGuessRow>): RoundGuesses {
+  const guesses: RoundGuess[] = [...rows]
+    .map((r) => ({ number: r.guess_number, name: r.name, country: r.country, correct: r.correct === 1 }))
+    .sort((a, b) => a.number - b.number);
+  return { roundId, guesses };
 }

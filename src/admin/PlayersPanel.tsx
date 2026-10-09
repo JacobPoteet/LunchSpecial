@@ -15,6 +15,7 @@ import { DNF_GRACE_MINUTES } from "../../shared/types";
 import { SOURCE_DIRECT } from "../../shared/attribution";
 import { rate, separated } from "../../shared/sample";
 import Fold from "./Fold";
+import RegularsPanel from "./RegularsPanel";
 import { ArrivalSplit, CohortGrid } from "./AudiencePanels";
 import {
   PlayersRow,
@@ -907,6 +908,10 @@ export default function PlayersPanel({
           )}
         </p>
       </section>
+
+      {/* Who the people who keep coming back are, set against everyone else.
+          Fetches its own endpoint and follows the surface filter. */}
+      <RegularsPanel surface={surface} />
 
       {/* Between the totals and the coming-back charts, because that's the order
           the questions come in: how many, then where they fell out, then whether

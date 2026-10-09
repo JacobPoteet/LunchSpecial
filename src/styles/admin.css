@@ -1549,6 +1549,15 @@
 .act-beacons li { padding: 2px 0; font-size: var(--fs-xs); }
 .act-beacons .ev-sub { display: inline; margin-left: 6px; }
 
+/* A round's guesses, one per line, in the order they were made. The answer is a
+   word and a check, never a colour: the dashboard's four colour meanings are
+   taken. */
+.act-guesses { margin: 8px 0; padding-left: 0; list-style: none; }
+.act-guesses li { display: flex; align-items: baseline; gap: 8px; padding: 2px 0; font-size: var(--fs-xs); }
+.act-guesses .ev-sub { display: inline; }
+.act-guesses__n { min-width: 1.4em; font-family: var(--font-gothic); }
+.act-guesses__hit { font-family: var(--font-gothic); letter-spacing: 0.04em; text-transform: uppercase; }
+
 /* ---- visit headers ---- */
 
 .act-group td {

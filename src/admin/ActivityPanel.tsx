@@ -4,6 +4,7 @@ import type {
   AnalyticsEventType,
   DeviceDataDeleted,
   DeviceDataSummary,
+  RoundGuesses,
   RoundKind,
 } from "../../shared/types";
 import { ACTIVITY_MAX, ACTIVITY_PAGE, ROUND_KINDS, maxGuessesFor } from "../../shared/types";
@@ -668,6 +669,65 @@ function BeaconList({ round }: { round: ActivityRoundView }) {
   );
 }
 
+/**
+ * What the round guessed, in order, under its beacons.
+ *
+ * Fetched when the row opens, not with the feed: fifty rounds of guesses would
+ * be a long payload for a read most rows never get. The ledger only has rounds
+ * from the release that added it, so an empty answer is **unmeasured**, and the
+ * line says so. A round with fewer rows than guesses used (a retry the Worker
+ * never saw) says that instead, never a list pretending to be whole.
+ *
+ * The answer carries a check mark and the word "answer", not a colour.
+ */
+function RoundGuessList({ round }: { round: ActivityRoundView }) {
+  const [data, setData] = useState<RoundGuesses | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Refetched when the round gains a guess, so a live row does not go stale.
+  useEffect(() => {
+    let alive = true;
+    api.getRoundGuesses(round.roundId).then(
+      (g) => alive && setData(g),
+      (e: Error) => alive && setError(e.message),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [round.roundId, round.guesses]);
+
+  if (error) return <p className="dash-note">Couldn't load the guesses: {error}</p>;
+  if (!data) return <p className="dash-note">Reading the order tickets…</p>;
+  if (data.guesses.length === 0) {
+    return (
+      <p className="dash-note">
+        No guesses on file for this round. They are written from the release that added the guess ledger onward, and only
+        for a round the player's browser tagged, so this is unmeasured rather than empty.
+      </p>
+    );
+  }
+  const missing = round.guesses !== null && data.guesses.length < round.guesses;
+  return (
+    <>
+      <ol className="act-guesses">
+        {data.guesses.map((g) => (
+          <li key={g.number}>
+            <span className="act-guesses__n">{g.number}</span>
+            <span className="ev-when">{g.name ?? "Left the menu"}</span>
+            {g.country && <span className="ev-sub">{g.country}</span>}
+            {g.correct && <span className="act-guesses__hit">✓ answer</span>}
+          </li>
+        ))}
+      </ol>
+      {missing && (
+        <p className="dash-note">
+          {data.guesses.length} of {round.guesses} guesses on file.
+        </p>
+      )}
+    </>
+  );
+}
+
 export default function ActivityPanel({
   surface,
   onOpenDishReport,
@@ -994,6 +1054,7 @@ export default function ActivityPanel({
           <tr className="act-detail">
             <td colSpan={7}>
               <BeaconList round={r} />
+              <RoundGuessList round={r} />
               <p className="dash-note">
                 Round <code className="ev-player">{r.roundId}</code> · played {r.playedDay} ET
                 {/* A Nightcap's date is the local night it belongs to, not a
