@@ -921,6 +921,9 @@ export default function PlayersPanel({
             <p className="dash-note">
               By first <code>utm_source</code>.{sources.untracked > 0 && ` ${sourceUntrackedNote(sources)}`}
             </p>
+            <p className="dash-note">
+              Tag links: <code>https://lunchspecial.app/?utm_source=testShare</code>
+            </p>
           </>
         )}
       </section>
