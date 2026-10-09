@@ -8,6 +8,11 @@
 //   { "pho": { "1": "A noodle soup from Southeast Asia.", "5": "…" } }
 //
 //   node scripts/patch-clues.mjs <patch.json> <migration-name>
+//   node scripts/patch-clues.mjs --drinks <patch.json> <migration-name>
+//
+// --drinks does the same for After Dark: coasters 1-3 in drink_clues, keyed by
+// drink slug. The seed writes those rows as (SELECT id FROM drinks WHERE
+// slug='x'), so the slug is the key in both places.
 //
 // It rewrites the matching rows in seed/seed.sql (keyed by the dish id the seed
 // already uses) and writes migrations/00NN_<migration-name>.sql as UPDATEs
@@ -33,21 +38,35 @@ const sqlEscape = (s) => s.replace(/'/g, "''");
 /** One generated UPDATE, so a re-run can read back what it wrote last time. */
 const MIGRATION_ROW =
   /UPDATE clues SET text = '((?:[^']|'')*)'\n WHERE dish_id = \(SELECT id FROM dishes WHERE slug = '([a-z0-9-]+)'\) AND order_index = (\d);/g;
+const DRINK_MIGRATION_ROW =
+  /UPDATE drink_clues SET text = '((?:[^']|'')*)'\n WHERE drink_id = \(SELECT id FROM drinks WHERE slug = '([a-z0-9-]+)'\) AND order_index = (\d);/g;
 
 function main() {
-  const [patchPath, migrationName] = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  const drinks = args[0] === "--drinks";
+  const [patchPath, migrationName] = drinks ? args.slice(1) : args;
   if (!patchPath || !migrationName) {
-    console.error("usage: patch-clues.mjs <patch.json> <migration-name>");
+    console.error("usage: patch-clues.mjs [--drinks] <patch.json> <migration-name>");
     process.exit(1);
   }
+  const maxBeat = drinks ? 3 : 5;
+  const noun = drinks ? "drink" : "dish";
 
   const patch = JSON.parse(readFileSync(patchPath, "utf8"));
-  let seed = readFileSync(SEED, "utf8");
+  // The seed is CRLF on Windows checkouts. Match on LF, write back what was read.
+  const raw = readFileSync(SEED, "utf8");
+  const crlf = raw.includes("\r\n");
+  let seed = raw.replace(/\r\n/g, "\n");
 
-  // slug -> id, straight out of the seed's own INSERT INTO dishes rows.
+  // slug -> key, straight out of the seed's own INSERT rows. A dish row starts
+  // with its literal id; a drink row has none, so the slug is the key.
   const slugToId = new Map();
-  for (const m of seed.matchAll(/^\((\d+),'(?:[^']|'')*','([a-z0-9-]+)',/gm)) {
-    slugToId.set(m[2], Number(m[1]));
+  if (drinks) {
+    for (const m of seed.matchAll(/^\('(?:[^']|'')*','([a-z0-9-]+)','/gm)) slugToId.set(m[1], m[1]);
+  } else {
+    for (const m of seed.matchAll(/^\((\d+),'(?:[^']|'')*','([a-z0-9-]+)',/gm)) {
+      slugToId.set(m[2], Number(m[1]));
+    }
   }
 
   const updates = [];
@@ -56,18 +75,24 @@ function main() {
   for (const [slug, beats] of Object.entries(patch)) {
     const id = slugToId.get(slug);
     if (id === undefined) {
-      problems.push(`${slug}: no such dish in seed.sql`);
+      problems.push(`${slug}: no such ${noun} in seed.sql`);
       continue;
     }
     for (const [beatKey, text] of Object.entries(beats)) {
       const beat = Number(beatKey);
-      if (!(beat >= 1 && beat <= 5)) {
-        problems.push(`${slug}: beat ${beatKey} is not 1-5`);
+      if (!(beat >= 1 && beat <= maxBeat)) {
+        problems.push(`${slug}: beat ${beatKey} is not 1-${maxBeat}`);
         continue;
       }
-      // The clue row as the seed writes it: (id,order,'text'), terminated by
-      // either a comma or the statement's semicolon.
-      const row = new RegExp(`^\\(${id},${beat},'((?:[^']|'')*)'\\)(,|;)$`, "m");
+      // The clue row as the seed writes it, terminated by either a comma or
+      // the statement's semicolon.
+      const row = drinks
+        ? new RegExp(`^\\(\\(SELECT id FROM drinks WHERE slug='${id}'\\), ${beat}, '((?:[^']|'')*)'\\)(,|;)$`, "m")
+        : new RegExp(`^\\(${id},${beat},'((?:[^']|'')*)'\\)(,|;)$`, "m");
+      const rebuilt = (end) =>
+        drinks
+          ? `((SELECT id FROM drinks WHERE slug='${id}'), ${beat}, '${sqlEscape(text)}')${end}`
+          : `(${id},${beat},'${sqlEscape(text)}')${end}`;
       const found = seed.match(row);
       if (!found) {
         problems.push(`${slug} beat ${beat}: row not found in seed.sql`);
@@ -77,7 +102,7 @@ function main() {
         problems.push(`${slug} beat ${beat}: text is unchanged`);
         continue;
       }
-      seed = seed.replace(row, `(${id},${beat},'${sqlEscape(text)}')${found[2]}`);
+      seed = seed.replace(row, () => rebuilt(found[2]));
       updates.push({ slug, beat, text });
     }
   }
@@ -99,8 +124,8 @@ function main() {
   // a revised clue replaces its earlier version rather than appearing twice.
   const merged = new Map();
   try {
-    const prior = readFileSync(file, "utf8");
-    for (const m of prior.matchAll(MIGRATION_ROW)) {
+    const prior = readFileSync(file, "utf8").replace(/\r\n/g, "\n");
+    for (const m of prior.matchAll(drinks ? DRINK_MIGRATION_ROW : MIGRATION_ROW)) {
       merged.set(`${m[2]}:${m[3]}`, {
         slug: m[2],
         beat: Number(m[3]),
@@ -115,24 +140,26 @@ function main() {
 
   const body = [
     `-- Backfill: clue rewrites against the beat sheet.`,
-    `-- ${all.length} clues across ${new Set(all.map((u) => u.slug)).size} dishes.`,
+    `-- ${all.length} clues across ${new Set(all.map((u) => u.slug)).size} ${noun}s.`,
     `-- UPDATEs, not INSERTs: these rows already exist. Keyed by slug so the ids`,
     `-- this migration lands on do not have to match the seed's.`,
     `-- Generated by scripts/patch-clues.mjs. Edit the patch, not this file.`,
     "",
-    ...all.map(
-      (u) =>
-        `UPDATE clues SET text = '${sqlEscape(u.text)}'\n` +
-        ` WHERE dish_id = (SELECT id FROM dishes WHERE slug = '${u.slug}') AND order_index = ${u.beat};`,
+    ...all.map((u) =>
+      drinks
+        ? `UPDATE drink_clues SET text = '${sqlEscape(u.text)}'\n` +
+          ` WHERE drink_id = (SELECT id FROM drinks WHERE slug = '${u.slug}') AND order_index = ${u.beat};`
+        : `UPDATE clues SET text = '${sqlEscape(u.text)}'\n` +
+          ` WHERE dish_id = (SELECT id FROM dishes WHERE slug = '${u.slug}') AND order_index = ${u.beat};`,
     ),
     "",
   ].join("\n");
 
-  writeFileSync(SEED, seed);
+  writeFileSync(SEED, crlf ? seed.replace(/\n/g, "\r\n") : seed);
   writeFileSync(file, body);
 
   console.log(
-    `patched ${updates.length} clues across ${new Set(updates.map((u) => u.slug)).size} dishes ` +
+    `patched ${updates.length} clues across ${new Set(updates.map((u) => u.slug)).size} ${noun}s ` +
       `(migration now holds ${all.length})`,
   );
   console.log(`  seed/seed.sql`);
