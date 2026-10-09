@@ -1,6 +1,6 @@
 // Admin API client. Session cookie rides along automatically (same origin).
 
-import type { AdminOccasions, OccasionBooking, OccasionReport } from "../../shared/occasions";
+import type { AdminOccasions, OccasionBooking } from "../../shared/occasions";
 
 import type {
   AdminAnnouncement,
@@ -256,11 +256,10 @@ export const createShowcase = (days: number) =>
 export const getNightReport = (surface?: Surface) =>
   request<AfterDarkReport>(`/night-report${surface ? `?surface=${surface}` : ""}`);
 
-// Occasions: when the diner dresses up. Never "/events" (see conventions.test.ts).
+// Occasions: the Events page. Never "/events" (see conventions.test.ts).
+/** Every booking with its reach and impact. */
 export const getOccasions = () => request<AdminOccasions>("/occasions");
 export const createOccasionBooking = (input: OccasionBooking) => request<{ id: number }>("/occasions", json(input));
 export const updateOccasionBooking = (id: number, input: OccasionBooking) =>
   request<{ ok: true }>(`/occasions/${id}`, { ...json(input), method: "PUT" });
 export const deleteOccasionBooking = (id: number) => request<{ ok: true }>(`/occasions/${id}`, { method: "DELETE" });
-export const getOccasionReport = (surface?: Surface) =>
-  request<OccasionReport>(surface ? `/occasion-report?surface=${surface}` : "/occasion-report");

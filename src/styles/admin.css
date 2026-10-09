@@ -3673,90 +3673,6 @@
 /* Today's housekeeping when there is nothing to fix: one line, not two cards. */
 .panel--calm { padding-top: 12px; padding-bottom: 12px; }
 
-/* ---- Occasions (Schedule page) ----
-   A costume on the calendar is an annotation, not a category, so it takes the
-   dashboard's annotation colour: dashed ink. No new hue (CLAUDE.md, the four
-   taken meanings). */
-
-.occasion-card {
-  border-top: 1px solid var(--paper-edge);
-  padding: 12px 0 4px;
-}
-
-.occasion-card__name {
-  margin: 0;
-  font-family: var(--font-gothic);
-  font-size: 1.3rem;
-  font-weight: 400;
-  letter-spacing: 0.03em;
-  color: var(--ink);
-}
-
-.occasion-card__name small {
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  font-style: italic;
-  color: var(--ink-soft);
-  letter-spacing: 0;
-}
-
-.occasion-card__line {
-  margin: 4px 0 0;
-  font-weight: 700;
-  color: var(--ink);
-}
-
-.occasion-card__window {
-  margin: 2px 0 8px;
-}
-
-.occasion-card__actions {
-  flex-wrap: wrap;
-}
-
-.occasion-card__actions a.btn {
-  text-decoration: none;
-}
-
-.occasion-bookings {
-  list-style: none;
-  margin: 0 0 10px;
-  padding: 0;
-}
-
-.occasion-bookings__row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 6px 0;
-  border-bottom: 1px dashed var(--paper-edge);
-}
-
-.occasion-bookings__span {
-  min-width: 130px;
-  font-family: var(--font-gothic);
-  font-size: 1.05rem;
-}
-
-.occasion-bookings__actions {
-  display: inline-flex;
-  gap: 6px;
-  margin-left: auto;
-}
-
-.occasion-form {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  margin: 8px 0 12px;
-}
-
-.occasion-form__live {
-  flex-basis: 100%;
-}
-
 /* The tag on a Specials board day. Beside the weekday, in the annotation
    style, so it reads as a note about the day and never as the day's state. */
 .sched-occasion {
@@ -3772,44 +3688,41 @@
   vertical-align: 2px;
 }
 
-/* ---- Events page (src/admin/OccasionsView.tsx) ---- */
+/* ---- Events page (src/admin/OccasionsView.tsx) ----
+   Built from the Announcements page's cards (.announce-*); these are the bits
+   only an event has. */
 
-.occasion-view__bar {
+.occasion-billing {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* A costume whose usual season is coming up with nothing booked: a note with
+   one button, dashed ink because it is an annotation about the calendar. */
+.occasion-suggest {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  margin: 0 0 12px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--ink);
+  border-radius: var(--radius-paper);
 }
 
-.occasion-view__title {
+.occasion-suggest p {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 400;
-  color: var(--cream);
+  color: var(--ink);
 }
 
-.occasion-run__head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.occasion-run__title {
-  margin: 0;
-}
-
-.occasion-run__section {
-  margin: 16px 0 8px;
-  font-family: var(--font-gothic);
-  font-size: 1.1rem;
-  font-weight: 400;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
+/* The folded detail spans the whole card, under the main column and the strip. */
+.occasion-details {
+  grid-column: 1 / -1;
+  margin-top: 4px;
 }
 
 .occasion-metric__sub {
@@ -3817,15 +3730,6 @@
   margin-top: 4px;
   font-size: 0.78rem;
   color: var(--ink-soft);
-}
-
-/* Reach per day: one hue, the way the notices' reach strip draws it. */
-.occasion-spark {
-  margin: 4px 0 18px;
-}
-
-.occasion-spark__bar {
-  background: var(--teal);
 }
 
 .occasion-first {

@@ -1,14 +1,13 @@
 -- Occasions: the days the diner dresses up (Halloween first).
 --
--- Every costume is handcrafted in src/occasions/<id>/ and every occasion has a
--- default window in code (shared/occasions.ts), so a holiday turns up on time
--- with this table empty. A row here is /admin overriding that window for one
--- season: shifting it, shortening it, switching it off (is_active = 0), or
--- running a costume outside its season. A booking that touches a season speaks
--- for the whole of it; the fold is in shared/occasions.ts.
+-- Every costume is handcrafted in src/occasions/<id>/. A row here is one run of
+-- one costume, booked on the admin's Events page exactly like a notice: dates
+-- both ends inclusive, is_active outranks the dates, and live rows never
+-- overlap (the Worker refuses). No row, no costume. The fold is in
+-- shared/occasions.ts.
 --
 -- Pool-style rule as for `schedule`: no migration or seed ever INSERTs here.
--- Booking happens in /admin and unbooked seasons run on the code's window.
+-- Booking happens in /admin.
 --
 -- `occasion_id` is a key of OCCASIONS, checked by the Worker on write rather
 -- than by a CHECK, so adding an occasion is a code change and never a

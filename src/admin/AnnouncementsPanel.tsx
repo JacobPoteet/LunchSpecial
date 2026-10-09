@@ -53,7 +53,7 @@ function blankInput(): AnnouncementInput {
  * hue on purpose — the days are a sequence, not categories, so height already
  * carries the only value there is.
  */
-function Reach({ reach }: { reach: AnnouncementReach }) {
+export function Reach({ reach }: { reach: AnnouncementReach }) {
   const peak = Math.max(1, ...reach.daily.map((d) => d.players));
   return (
     <div className="reach">

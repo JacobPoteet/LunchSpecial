@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import type { OccasionReport, OccasionRun } from "../../shared/occasions";
+import type { AdminOccasions, OccasionRun } from "../../shared/occasions";
 import * as api from "./api";
 import type {
   AudienceReport,
@@ -434,11 +434,11 @@ export default function TrendsPanel({
 }) {
   // Costumed runs, for the dashed bands on the growth chart. What each run did
   // is read on the Events page.
-  const [occasionReport, setOccasionReport] = useState<OccasionReport | null>(null);
+  const [occasions, setOccasions] = useState<AdminOccasions | null>(null);
   useEffect(() => {
     let live = true;
-    api.getOccasionReport(surface === "all" ? undefined : surface).then(
-      (r) => live && setOccasionReport(r),
+    api.getOccasions().then(
+      (r) => live && setOccasions(r),
       // The bands are an annotation; without them the chart still reads.
       () => {},
     );
@@ -570,7 +570,9 @@ export default function TrendsPanel({
               played since {shortDate(growth.days[0].date)}.
               {growth.trend && ` ${growthNote(growth.trend, growth.days[0].date)}`}
             </p>
-            <GrowthChart growth={growth} experiments={experiments} occasions={occasionReport?.runs ?? []} />
+            <GrowthChart growth={growth} experiments={experiments} occasions={(occasions?.events ?? [])
+                .filter((e) => e.isActive && e.startDate <= occasions!.today)
+                .map((e): OccasionRun => ({ occasionId: e.occasionId, start: e.startDate, end: e.endDate }))} />
             <details className="dash-details">
               <summary>How to read it</summary>
               <p className="dash-note">

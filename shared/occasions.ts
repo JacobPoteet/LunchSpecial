@@ -2,21 +2,14 @@
 //
 // An occasion is a costume the game wears for a stretch of the calendar
 // (Halloween is the first). Every costume is handcrafted in
-// src/occasions/<id>/; this module only decides WHEN one is worn, and the
-// dashboard only decides when, never what.
+// src/occasions/<id>/. The admin's Events page books it, exactly the way a
+// notice is booked on Announcements: one row per run (`occasion_bookings`),
+// dates both ends inclusive, a Live switch that outranks the dates. No booking,
+// no costume. The code only SUGGESTS dates (`OCCASIONS[id].suggested`) to
+// prefill the form and to flag a season nobody has booked yet.
 //
-// Two sources answer "when", in this order:
-//
-//   1. Bookings made in /admin (`occasion_bookings`). A booking that covers the
-//      day and is live puts the occasion on.
-//   2. The occasion's own window in code (`OCCASIONS[id].from/to`, every
-//      year). It runs unless a booking for that occasion touches the same
-//      season, in which case the bookings speak for the whole season. That is
-//      how /admin shortens, shifts or switches off a year's Halloween without
-//      the default creeping back in around the edges.
-//
-// So a holiday turns up on time with nobody opening /admin, the same way an
-// unbooked day still gets a Special from the fallback pick.
+// Bookings may not overlap while live (`findOverlap`): one costume at a time,
+// and one row per run, so every event on the Events page is exactly one run.
 //
 // The day is the round's own day, fixed at entry: the puzzle date for lunch
 // (so a Leftover from Oct 31 replays in costume) and the night key for the bar.
@@ -38,9 +31,12 @@ export interface OccasionMeta {
   name: string;
   /** What the diner calls it, in its own voice: the marquee and the share line. */
   billing: string;
-  /** Default window, MM-DD, both ends inclusive. `from` after `to` wraps the new year. */
-  from: string;
-  to: string;
+  /**
+   * The dates it usually runs, MM-DD, both ends inclusive. Only a suggestion:
+   * it prefills the booking form and flags an unbooked season. Nothing runs
+   * off it.
+   */
+  suggested: { from: string; to: string };
   /**
    * One line between the grid and the url in a shared result. Emoji are fine
    * here (share text keeps emoji); it never names the dish.
@@ -53,8 +49,7 @@ export const OCCASIONS: Record<OccasionId, OccasionMeta> = {
     id: "halloween",
     name: "Halloween",
     billing: "Graveyard shift",
-    from: "10-24",
-    to: "10-31",
+    suggested: { from: "10-24", to: "10-31" },
     shareLine: "🎃 Graveyard shift at Lunch Special",
   },
 };
@@ -70,8 +65,18 @@ export interface OccasionBooking {
   startDate: string;
   /** Last day, YYYY-MM-DD, inclusive. */
   endDate: string;
-  /** Off outranks the dates: an inactive booking covers its days with nothing. */
+  /** Live. Off outranks the dates: a pulled booking covers its days with nothing. */
   isActive: boolean;
+}
+
+/** Where a booking sits relative to today, in the Announcements page's terms. */
+export type OccasionStatus = "active" | "upcoming" | "past" | "retired";
+
+export function occasionStatus(b: OccasionBooking, today: string): OccasionStatus {
+  if (!b.isActive) return "retired";
+  if (today < b.startDate) return "upcoming";
+  if (today > b.endDate) return "past";
+  return "active";
 }
 
 /** A stretch of consecutive days, both ends inclusive. */
@@ -80,49 +85,44 @@ export interface Span {
   end: string;
 }
 
-const covers = (s: Span, day: string) => s.start <= day && day <= s.end;
 const overlaps = (a: Span, b: Span) => a.start <= b.end && b.start <= a.end;
 
-/**
- * The occasion's default window that `day` falls inside, or null.
- *
- * A wrapping window (Dec 31 → Jan 1) belongs to the year it opens in, so a
- * January day checks the window that opened the December before.
- */
-export function defaultSeason(id: OccasionId, day: string): Span | null {
-  const { from, to } = OCCASIONS[id];
-  const year = Number(day.slice(0, 4));
-  const candidates: Span[] =
-    from <= to
-      ? [{ start: `${year}-${from}`, end: `${year}-${to}` }]
-      : [
-          { start: `${year - 1}-${from}`, end: `${year}-${to}` },
-          { start: `${year}-${from}`, end: `${year + 1}-${to}` },
-        ];
-  return candidates.find((s) => covers(s, day)) ?? null;
-}
-
-/** The default window that opens in `year`. What /admin offers to book. */
-export function seasonOpening(id: OccasionId, year: number): Span {
-  const { from, to } = OCCASIONS[id];
+/** The suggested dates as they fall in `year`. A wrap past Dec 31 ends the year after. */
+export function suggestedDates(id: OccasionId, year: number): Span {
+  const { from, to } = OCCASIONS[id].suggested;
   return { start: `${year}-${from}`, end: `${from <= to ? year : year + 1}-${to}` };
 }
 
 /**
- * Which occasion, if any, the diner wears on `day`.
- *
- * Where two would overlap, the earlier one in OCCASION_IDS wins. Handcrafted
- * costumes don't layer: one set of decorations was designed for each room.
+ * The next suggested season that hasn't ended by `today`: this year's, or
+ * next year's once this one is over.
  */
+export function nextSuggested(id: OccasionId, today: string): Span {
+  const year = Number(today.slice(0, 4));
+  const now = suggestedDates(id, year);
+  return today > now.end ? suggestedDates(id, year + 1) : now;
+}
+
+/** Which occasion, if any, the diner wears on `day`: the live booking that covers it. */
 export function occasionOn(day: string, bookings: readonly OccasionBooking[]): OccasionId | null {
-  for (const id of OCCASION_IDS) {
-    const own = bookings.filter((b) => b.occasionId === id);
-    const spans = own.map((b) => ({ start: b.startDate, end: b.endDate }));
-    if (own.some((b, i) => b.isActive && covers(spans[i], day))) return id;
-    const season = defaultSeason(id, day);
-    if (season && !spans.some((s) => overlaps(s, season))) return id;
-  }
-  return null;
+  return bookings.find((b) => b.isActive && b.startDate <= day && day <= b.endDate)?.occasionId ?? null;
+}
+
+/**
+ * The live booking a new or edited one would collide with, if any. Only live
+ * bookings collide: a pulled one keeps its numbers and covers nothing.
+ */
+export function findOverlap<T extends OccasionBooking & { id: number }>(
+  input: OccasionBooking,
+  others: readonly T[],
+  selfId: number | null = null,
+): T | null {
+  if (!input.isActive) return null;
+  return (
+    others.find(
+      (o) => o.id !== selfId && o.isActive && overlaps({ start: o.startDate, end: o.endDate }, { start: input.startDate, end: input.endDate }),
+    ) ?? null
+  );
 }
 
 /** One unbroken run of an occasion, as the dashboard draws and counts it. */
@@ -295,7 +295,8 @@ export function foldReach(run: Span, today: string, rows: readonly SightingRow[]
   };
 }
 
-export interface OccasionRunReport extends OccasionRun {
+/** What a run did, against the same weekdays just before it. */
+export interface OccasionImpact {
   /** Same length, same weekdays, just before the run. See {@link baselineFor}. */
   baseline: Span;
   /** The run reaches today or later: its numbers are still coming in. */
@@ -306,24 +307,25 @@ export interface OccasionRunReport extends OccasionRun {
    */
   lunch: { run: OccasionTally; baseline: OccasionTally };
   night: { run: OccasionTally; baseline: OccasionTally };
-  reach: OccasionReach;
   /** Devices whose first-ever round started on a day of the run, and of the baseline. */
   firstTimers: { run: number; baseline: number };
 }
 
-export interface OccasionReport {
-  today: string;
-  /** Every run from Puzzle #1 to today, newest first. Upcoming runs are not here. */
-  runs: OccasionRunReport[];
-  /** The first ET day any sighting was recorded, or null before the ledger has a row. */
-  trackingStart: string | null;
+/** One booking on the Events page, with its numbers once it has started. */
+export interface AdminOccasion extends OccasionBooking {
+  id: number;
+  status: OccasionStatus;
+  /** Null until its first day. */
+  reach: OccasionReach | null;
+  impact: OccasionImpact | null;
 }
 
-/** GET /api/admin/occasions: the registry, the bookings and the day it was read. */
+/** GET /api/admin/occasions. */
 export interface AdminOccasions {
   today: string;
   occasions: OccasionMeta[];
-  bookings: (OccasionBooking & { id: number })[];
+  /** Every booking, latest start first. */
+  events: AdminOccasion[];
 }
 
 /**

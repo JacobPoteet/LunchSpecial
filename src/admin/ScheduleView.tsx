@@ -328,7 +328,7 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
             onClear={() => void clearDay(row.date)}
             onOpenDish={onOpenDish}
             onTestPlay={(id) => void testPlay(id)}
-            occasion={occasions ? occasionOn(row.date, occasions.bookings) : null}
+            occasion={occasions ? occasionOn(row.date, occasions.events) : null}
           />
         ))}
       </ul>

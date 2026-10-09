@@ -3,15 +3,17 @@ import {
   OCCASIONS,
   OCCASION_IDS,
   baselineFor,
-  defaultSeason,
+  findOverlap,
+  foldReach,
+  nextSuggested,
   occasionOn,
   occasionRuns,
+  occasionStatus,
   parseBookingInput,
-  seasonOpening,
   shareVerdict,
-  foldReach,
-  type SightingRow,
+  suggestedDates,
   type OccasionBooking,
+  type SightingRow,
 } from "./occasions";
 
 const booking = (startDate: string, endDate: string, isActive = true): OccasionBooking => ({
@@ -21,25 +23,65 @@ const booking = (startDate: string, endDate: string, isActive = true): OccasionB
   isActive,
 });
 
-describe("the default window", () => {
-  it("runs Oct 24 to Oct 31, both ends included, every year", () => {
-    expect(occasionOn("2026-10-23", [])).toBeNull();
-    expect(occasionOn("2026-10-24", [])).toBe("halloween");
-    expect(occasionOn("2026-10-31", [])).toBe("halloween");
-    expect(occasionOn("2026-11-01", [])).toBeNull();
-    expect(occasionOn("2031-10-28", [])).toBe("halloween");
+describe("occasionOn", () => {
+  it("wears nothing with nothing booked: suggested dates never run on their own", () => {
+    expect(occasionOn("2026-10-31", [])).toBeNull();
   });
 
-  it("finds the season a day sits in", () => {
-    expect(defaultSeason("halloween", "2026-10-30")).toEqual({ start: "2026-10-24", end: "2026-10-31" });
-    expect(defaultSeason("halloween", "2026-07-17")).toBeNull();
-    expect(seasonOpening("halloween", 2027)).toEqual({ start: "2027-10-24", end: "2027-10-31" });
+  it("wears a live booking on its days, both ends included", () => {
+    const b = [booking("2026-10-24", "2026-10-31")];
+    expect(occasionOn("2026-10-23", b)).toBeNull();
+    expect(occasionOn("2026-10-24", b)).toBe("halloween");
+    expect(occasionOn("2026-10-31", b)).toBe("halloween");
+    expect(occasionOn("2026-11-01", b)).toBeNull();
   });
 
-  it("every registered window is a real MM-DD pair", () => {
+  it("off outranks the dates", () => {
+    expect(occasionOn("2026-10-30", [booking("2026-10-24", "2026-10-31", false)])).toBeNull();
+  });
+});
+
+describe("occasionStatus", () => {
+  const b = booking("2026-10-24", "2026-10-31");
+  it("reads like a notice's", () => {
+    expect(occasionStatus(b, "2026-10-01")).toBe("upcoming");
+    expect(occasionStatus(b, "2026-10-24")).toBe("active");
+    expect(occasionStatus(b, "2026-11-01")).toBe("past");
+    expect(occasionStatus({ ...b, isActive: false }, "2026-10-28")).toBe("retired");
+  });
+});
+
+describe("findOverlap", () => {
+  const rows = [
+    { ...booking("2026-10-24", "2026-10-31"), id: 1 },
+    { ...booking("2026-12-01", "2026-12-03", false), id: 2 },
+  ];
+
+  it("refuses a second live booking over the same days", () => {
+    expect(findOverlap(booking("2026-10-30", "2026-11-02"), rows)?.id).toBe(1);
+  });
+
+  it("lets a booking be edited over its own days", () => {
+    expect(findOverlap(booking("2026-10-20", "2026-10-31"), rows, 1)).toBeNull();
+  });
+
+  it("ignores pulled bookings on either side", () => {
+    expect(findOverlap(booking("2026-12-02", "2026-12-02"), rows)).toBeNull();
+    expect(findOverlap(booking("2026-10-25", "2026-10-26", false), rows)).toBeNull();
+  });
+});
+
+describe("suggested dates", () => {
+  it("land in the year asked, and roll to next year once this one is over", () => {
+    expect(suggestedDates("halloween", 2027)).toEqual({ start: "2027-10-24", end: "2027-10-31" });
+    expect(nextSuggested("halloween", "2026-10-09")).toEqual({ start: "2026-10-24", end: "2026-10-31" });
+    expect(nextSuggested("halloween", "2026-10-31")).toEqual({ start: "2026-10-24", end: "2026-10-31" });
+    expect(nextSuggested("halloween", "2026-11-01")).toEqual({ start: "2027-10-24", end: "2027-10-31" });
+  });
+
+  it("every registered suggestion is a real MM-DD pair", () => {
     for (const id of OCCASION_IDS) {
-      const { from, to } = OCCASIONS[id];
-      for (const md of [from, to]) {
+      for (const md of [OCCASIONS[id].suggested.from, OCCASIONS[id].suggested.to]) {
         expect(md).toMatch(/^\d{2}-\d{2}$/);
         expect(Number.isNaN(Date.parse(`2028-${md}`))).toBe(false);
       }
@@ -47,58 +89,16 @@ describe("the default window", () => {
   });
 });
 
-describe("bookings", () => {
-  it("a live booking puts the occasion on outside its window (a test run in March)", () => {
-    expect(occasionOn("2027-03-02", [booking("2027-03-01", "2027-03-03")])).toBe("halloween");
-    expect(occasionOn("2027-03-04", [booking("2027-03-01", "2027-03-03")])).toBeNull();
-  });
-
-  it("a booking that touches the season speaks for all of it (shortened)", () => {
-    const shortened = [booking("2026-10-30", "2026-10-31")];
-    expect(occasionOn("2026-10-26", shortened)).toBeNull();
-    expect(occasionOn("2026-10-30", shortened)).toBe("halloween");
-  });
-
-  it("shifted and extended", () => {
-    const shifted = [booking("2026-10-17", "2026-11-01")];
-    expect(occasionOn("2026-10-17", shifted)).toBe("halloween");
-    expect(occasionOn("2026-11-01", shifted)).toBe("halloween");
-    expect(occasionOn("2026-11-02", shifted)).toBeNull();
-  });
-
-  it("off outranks the dates: an inactive booking switches the year off", () => {
-    const off = [booking("2026-10-24", "2026-10-31", false)];
-    expect(occasionOn("2026-10-31", off)).toBeNull();
-    // ...and leaves next year's default alone.
-    expect(occasionOn("2027-10-31", off)).toBe("halloween");
-  });
-
-  it("an unrelated booking in another month leaves the season's default running", () => {
-    expect(occasionOn("2026-10-28", [booking("2026-03-01", "2026-03-03")])).toBe("halloween");
-  });
-});
-
 describe("runs", () => {
-  it("folds a range into unbroken runs, clipped to the range", () => {
-    expect(occasionRuns("2026-10-01", "2026-10-27", [])).toEqual([
+  it("folds bookings into unbroken runs, clipped to the range", () => {
+    const b = [booking("2026-10-24", "2026-10-31"), booking("2027-10-24", "2027-10-31")];
+    expect(occasionRuns("2026-10-01", "2026-10-27", b)).toEqual([
       { occasionId: "halloween", start: "2026-10-24", end: "2026-10-27" },
     ]);
-    expect(occasionRuns("2026-07-17", "2027-12-31", [])).toEqual([
-      { occasionId: "halloween", start: "2026-10-24", end: "2026-10-31" },
-      { occasionId: "halloween", start: "2027-10-24", end: "2027-10-31" },
-    ]);
-  });
-
-  it("a gap in the bookings is two runs", () => {
-    const split = [booking("2026-10-24", "2026-10-25"), booking("2026-10-30", "2026-10-31")];
-    expect(occasionRuns("2026-10-01", "2026-11-30", split)).toEqual([
-      { occasionId: "halloween", start: "2026-10-24", end: "2026-10-25" },
-      { occasionId: "halloween", start: "2026-10-30", end: "2026-10-31" },
-    ]);
+    expect(occasionRuns("2026-07-17", "2027-12-31", b)).toHaveLength(2);
   });
 
   it("baselines on the same weekdays, ending before the run starts", () => {
-    // Eight days (Sat Oct 24 .. Sat Oct 31) -> two weeks back, eight days long.
     expect(baselineFor({ start: "2026-10-24", end: "2026-10-31" })).toEqual({ start: "2026-10-10", end: "2026-10-17" });
     expect(baselineFor({ start: "2026-10-31", end: "2026-10-31" })).toEqual({ start: "2026-10-24", end: "2026-10-24" });
   });
