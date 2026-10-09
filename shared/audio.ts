@@ -18,6 +18,7 @@
 // everything else carries on. Dropping the licensed files into src/assets/sfx/
 // under these names is the whole of turning sound on — there is no flag.
 
+import type { OccasionId } from "./occasions";
 import type { Surface } from "./types";
 
 /** Which bus a sound rides. The two are muted, ducked and defaulted separately. */
@@ -56,7 +57,11 @@ export type SfxName =
   // saying different things.
   | "lights-out" // the diner dims and the neon comes up
   | "coaster-slide" // a coaster comes across the bar
-  | "pour"; // the winning drink goes into the glass
+  | "pour" // the winning drink goes into the glass
+  // Occasions. Their everyday files don't exist and aren't meant to; the
+  // occasion that knocks or thunders brings its own (OCCASION_SFX below).
+  | "knock" // a knuckle on the cloche
+  | "thunder"; // the lightning in the walk to the bar
 
 export interface SfxSpec {
   /** Filename inside `src/assets/sfx/`. */
@@ -104,6 +109,9 @@ export const SFX: Record<SfxName, SfxSpec> = {
   "lights-out": { file: "lights-out.wav", gain: 0.7, duck: true },
   "coaster-slide": { file: "ticket-print.wav", gain: 0.6 },
   "pour": { file: "pour.wav", gain: 0.85, duck: true },
+  "knock": { file: "knock.wav", gain: 0.6 },
+  // No duck: it lands inside the walk to the bar, which already dips the bed.
+  "thunder": { file: "thunder.wav", gain: 0.75 },
   error: { file: "error.wav", gain: 0.5 },
 };
 
@@ -331,4 +339,32 @@ export function guessArc(input: ArcInput): ArcStep[] {
   if (input.hasClue) steps.push({ sfx: night ? "coaster-slide" : "ticket-print", delayMs: TICKET_MS, rate: 1 });
 
   return steps.sort((a, b) => a.delayMs - b.delayMs);
+}
+
+/**
+ * An occasion's own take on a sound, as a path inside `src/assets/sfx/`.
+ *
+ * Same rule as the registry: a file that isn't there is a supported state, and
+ * here it means the everyday sound plays instead. The mix (gain, duck) stays
+ * the registry's, so a costume can change what a moment sounds like but never
+ * how loud it sits against the rest.
+ */
+export const OCCASION_SFX: { [K in OccasionId]?: Partial<Record<SfxName, string>> } = {
+  halloween: {
+    knock: "occasions/halloween/knock.wav",
+    thunder: "occasions/halloween/thunder.wav",
+    // A theremin's wobble where the sympathetic chord usually goes, and an
+    // organ under the check. Both shrug back to the everyday file when absent.
+    "round-lost": "occasions/halloween/theremin.wav",
+    "receipt-print": "occasions/halloween/organ-chord.wav",
+  },
+};
+
+/**
+ * The file a sound plays from right now: the occasion's when it has one that
+ * exists, else the everyday file. `exists` is the engine's glob lookup.
+ */
+export function sfxFileFor(name: SfxName, occasion: OccasionId | null, exists: (file: string) => boolean): string {
+  const own = occasion ? OCCASION_SFX[occasion]?.[name] : undefined;
+  return own && exists(own) ? own : SFX[name].file;
 }

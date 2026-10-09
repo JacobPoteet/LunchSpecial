@@ -185,6 +185,43 @@ const SCANS = [
       await page.waitForSelector(".archive-cal__day");
     },
   },
+  // Occasions (src/occasions/<id>/). A costume is decoration only, but it sits
+  // beside and behind the type in both palettes, and it brings the one control
+  // a costume may add (the cloche). So each room is measured in costume, the
+  // way the bar is measured in its own palette. `?occasion=` is cosmetic and
+  // works on any build; it is what puts Halloween on in July.
+  {
+    name: "Halloween: board after a miss (palette, sign, lights, pumpkins, cloche)",
+    async setup(page) {
+      await page.goto(`${BASE}/?special=${TARGET_SLUG}&occasion=halloween`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector(".hw-cloche__btn");
+      await guess(page, WRONG_GUESS);
+      await page.waitForSelector(".attr-tile--revealed");
+      await page.waitForSelector(".ticket");
+    },
+  },
+  {
+    // The palette swap reaches the check too: pumpkin share button, black
+    // frame, orange stock under the stats.
+    name: "Halloween: the check (orange-and-black palette, verdict art)",
+    async setup(page) {
+      await guess(page, "Ramen");
+      await page.waitForSelector(".modal--receipt");
+      await page.waitForSelector(".hw-verdict");
+    },
+  },
+  {
+    name: "Halloween: bar mid-round (night palette in costume, coaster)",
+    async setup(page) {
+      await page.goto(`${BASE}/?bar=1&handoff=1&nightcap=${TARGET_DRINK}&occasion=halloween`, {
+        waitUntil: "domcontentloaded",
+      });
+      await page.waitForSelector(BAR_INPUT);
+      await pour(page, WRONG_POUR);
+      await page.waitForSelector(".ticket--coaster");
+      await page.waitForSelector(".hw-sign");
+    },
+  },
 ];
 
 /**

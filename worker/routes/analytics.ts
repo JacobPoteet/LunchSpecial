@@ -10,6 +10,7 @@ import { getSeededDish, getTargetDish, serverToday } from "../db";
 import { getTargetDrink } from "../drinkdb";
 import { isValidDateString } from "../game";
 import { isAnalyticsId } from "../guesslog";
+import { occasionFor } from "../occasions";
 import { RECOVER_THROUGH, foldPastRounds, type PastRoundRow } from "../pastrounds";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -229,16 +230,19 @@ app.post("/start", async (c) => {
   // clients omit it — so a bad/absent value just stores NULL. Powers the
   // new-vs-returning player split in the admin dashboard.
   const playerId = isAnalyticsId(raw!.playerId) ? raw!.playerId : null;
-  const [dishId, drinkId] = await Promise.all([
+  // `occasion` is insert-only like the rest: the costume the round's own day
+  // wore, stamped here so the client has nothing to say about it.
+  const [dishId, drinkId, occasion] = await Promise.all([
     resolveDishId(c.env, b.kind, b.date, seedOf(raw)),
     resolveDrinkId(c.env, b.kind, b.date),
+    occasionFor(c.env.DB, b.date),
   ]);
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, player_id, dish_id, drink_id, tz_offset, started_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, player_id, dish_id, drink_id, tz_offset, occasion, started_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO NOTHING`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), playerId, dishId, drinkId, tzOffsetOf(raw))
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), playerId, dishId, drinkId, tzOffsetOf(raw), occasion)
     .run();
   return c.json({ ok: true });
 });
@@ -262,19 +266,22 @@ app.post("/complete", async (c) => {
   // /start already fixed them, so the conflict path leaves them alone. `completed_at`
   // keeps the FIRST completion time (a replayed beacon must not move it) — it's
   // what the admin activity feed timestamps the event with.
-  const [dishId, drinkId] = await Promise.all([
+  // `occasion` is insert-only like the rest: the costume the round's own day
+  // wore, stamped here so the client has nothing to say about it.
+  const [dishId, drinkId, occasion] = await Promise.all([
     resolveDishId(c.env, b.kind, b.date, seedOf(raw)),
     resolveDrinkId(c.env, b.kind, b.date),
+    occasionFor(c.env.DB, b.date),
   ]);
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, dish_id, drink_id, tz_offset, started_at, guesses, solved, completed, completed_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, 1, datetime('now'), datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, dish_id, drink_id, tz_offset, occasion, started_at, guesses, solved, completed, completed_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, 1, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO UPDATE SET
        guesses = excluded.guesses, solved = excluded.solved, completed = 1,
        completed_at = COALESCE(analytics_rounds.completed_at, excluded.completed_at),
        updated_at = excluded.updated_at`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), dishId, drinkId, tzOffsetOf(raw), guesses, solved)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), dishId, drinkId, tzOffsetOf(raw), occasion, guesses, solved)
     .run();
   return c.json({ ok: true });
 });
@@ -287,18 +294,21 @@ app.post("/share", async (c) => {
   // share's time, like `completed_at` above. `dish_id`/`country` are insert-only;
   // only the share button's kinds (daily/leftover) reach here, so a date lookup
   // suffices.
-  const [dishId, drinkId] = await Promise.all([
+  // `occasion` is insert-only like the rest: the costume the round's own day
+  // wore, stamped here so the client has nothing to say about it.
+  const [dishId, drinkId, occasion] = await Promise.all([
     resolveDishId(c.env, b.kind, b.date, seedOf(raw)),
     resolveDrinkId(c.env, b.kind, b.date),
+    occasionFor(c.env.DB, b.date),
   ]);
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, dish_id, drink_id, started_at, shared, shared_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), 1, datetime('now'), datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, dish_id, drink_id, occasion, started_at, shared, shared_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), 1, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO UPDATE SET shared = 1,
        shared_at = COALESCE(analytics_rounds.shared_at, excluded.shared_at),
        updated_at = excluded.updated_at`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), dishId, drinkId)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), dishId, drinkId, occasion)
     .run();
   return c.json({ ok: true });
 });

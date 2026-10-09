@@ -19,6 +19,7 @@
 // barred. Tile colours and counts are safe; they say how it went, not what it
 // was.
 
+import type { OccasionId } from "./occasions";
 import type { DrinkGuessFeedback, GuessFeedback, MatchLevel } from "./types";
 import { DRINK_MAX_GUESSES, MAX_GUESSES } from "./types";
 
@@ -53,6 +54,12 @@ export interface Scorecard {
   rows: ScorecardRow[];
   /** Where to go and play it. */
   footer: string;
+  /**
+   * The costume the round was played in, for a corner of art and nothing
+   * else. Set by the page, never by these folds: it is a fact about the day,
+   * not about the score.
+   */
+  occasion?: OccasionId | null;
 }
 
 /** Printed along the bottom so a card that gets forwarded still says where it's from. */

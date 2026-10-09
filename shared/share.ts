@@ -7,6 +7,7 @@
 // that reads `navigator` lives in src/game/share.ts, and the Discord half in
 // src/discord/share.ts.
 
+import { OCCASIONS, type OccasionId } from "./occasions";
 import type { DrinkGuessFeedback, GuessFeedback, MatchLevel } from "./types";
 import { DRINK_MAX_GUESSES, MAX_GUESSES } from "./types";
 
@@ -21,9 +22,14 @@ export const SHARE_URL = "https://lunchspecial.app";
  * the url and drop the text — so a payload split across both fields arrives as
  * a bare link with the whole score card missing. One field can't be
  * half-delivered.
+ *
+ * A round played on an occasion (shared/occasions.ts) carries that occasion's
+ * one line between the grid and the url. The grid itself is untouched, so a
+ * costumed result still reads as the same game in a channel full of plain ones.
  */
-export function shareMessage(text: string): string {
-  return `${text}\n${SHARE_URL}`;
+export function shareMessage(text: string, occasion: OccasionId | null = null): string {
+  const line = occasion ? `\n${OCCASIONS[occasion].shareLine}` : "";
+  return `${text}${line}\n${SHARE_URL}`;
 }
 
 /**

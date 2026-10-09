@@ -61,6 +61,7 @@ import {
   type Stats,
 } from "./storage";
 import { seededShowcaseRound } from "./showcase";
+import { useOccasion, useWearOccasion } from "../occasions/store";
 import clocheUrl from "../assets/art/ai-cloche.svg";
 
 // Web vs Discord Activity — stable for the page's lifetime, so resolve it once
@@ -387,13 +388,17 @@ function ResultModal({
   onClose: () => void;
 }) {
   const won = round.status === "won";
+  // The costume the board behind this check is wearing. Its line rides the
+  // share text; its art sits beside the verdict and in the card's corner.
+  const { id: occasion, kit } = useOccasion();
   // The dispatcher and the label, shared with the bar's tab (useShare.ts). The
   // daily and leftover replays both carry an analytics id; the test modes
   // (preview, playtest) never get one, so their share stays untracked.
   const sharing = useShare({
     surface: SURFACE,
-    message: () => shareMessage(buildShareText(daily.puzzleNumber, round.guesses, won, daily.ingredientCount)),
-    card: () => buildScorecard(daily.puzzleNumber, round.guesses, won, daily.ingredientCount),
+    message: () =>
+      shareMessage(buildShareText(daily.puzzleNumber, round.guesses, won, daily.ingredientCount), occasion),
+    card: () => ({ ...buildScorecard(daily.puzzleNumber, round.guesses, won, daily.ingredientCount), occasion }),
     onShare: () => {
       if (round.analyticsId) {
         beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date, kind, surface: SURFACE });
@@ -481,6 +486,7 @@ function ResultModal({
             Chef's Choice can be played again right now. */}
         <p className="receipt__verdict">
           {won ? "On the house!" : asDaily ? "Better luck tomorrow" : "Better luck next time"}
+          {kit?.Verdict && <kit.Verdict won={won} />}
         </p>
       </div>
       {reveal && (
@@ -574,6 +580,10 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
     return isDaily ? loadRound(date) : isArchive ? loadArchiveRound(date) : emptyRound(date);
   });
   const [reveal, setReveal] = useState<RevealInfo | null>(null);
+  // Dressed for the round's own day, fixed at entry: a Leftover from Oct 31
+  // wears Halloween in March. See src/occasions/store.ts.
+  useWearOccasion(date, "diner", tracked);
+  const { kit } = useOccasion();
   const [stats, setStats] = useState<Stats>(() => loadStats());
   const [error, setError] = useState<string | null>(null);
   // Initial-load failure, kept apart from `error` (a single guess that didn't
@@ -986,12 +996,16 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         {liveClue}
       </p>
       {toast && <WinToast text={toast} />}
+      {toast && kit?.Win && <kit.Win />}
       <header className="marquee">
-        <h1 className="marquee__script">Lunch Special</h1>
-        <p className="marquee__sub">The daily dish guessing game</p>
+        <h1 className="marquee__script">
+          {kit?.Sign ? <kit.Sign text="Lunch Special" room="diner" /> : "Lunch Special"}
+        </h1>
+        <p className="marquee__sub">{kit?.copy?.sub ?? "The daily dish guessing game"}</p>
       </header>
 
       <main className="menu-card">
+        {kit?.Card && <kit.Card room="diner" />}
         {isPreview && (
           <p className="preview-banner">Admin test play — nothing is saved, counted or shown to players</p>
         )}
@@ -1088,7 +1102,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         ) : (
           <>
             <div className={showSpotlight ? "special-line special-line--lit" : "special-line"}>
-              <img src={clocheUrl} alt="" aria-hidden="true" />
+              {kit?.Cloche ? <kit.Cloche src={clocheUrl} /> : <img src={clocheUrl} alt="" aria-hidden="true" />}
               <div className="special-line__body">
                 <p className="special-line__label">
                   <span>{isRandom ? "Chef's choice" : "Daily Special"}</span>
@@ -1158,8 +1172,10 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         )}
 
         <footer className="menu-card__thanks">
-          <p className="menu-card__thanks-script">Best food in town!</p>
-          <p className="menu-card__thanks-fine">No substitutions on the Special · Ask about our pie</p>
+          <p className="menu-card__thanks-script">{kit?.copy?.thanks ?? "Best food in town!"}</p>
+          <p className="menu-card__thanks-fine">
+            {kit?.copy?.fine ?? "No substitutions on the Special · Ask about our pie"}
+          </p>
           {/* How-to and Sound moved off the main toolbar: neither is
               time-sensitive the way Leftovers, Your check or After Dark are,
               and the toolbar was showing up to six controls on a 375px card

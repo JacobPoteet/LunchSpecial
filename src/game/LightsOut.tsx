@@ -7,6 +7,7 @@
 
 import { useEffect } from "react";
 import { playSfx } from "../audio";
+import { useOccasion } from "../occasions/store";
 
 /**
  * How long the sweep runs. Must stay in sync with the `lights-out` keyframes in
@@ -41,12 +42,14 @@ export function prefersReducedMotion(): boolean {
  * order would strand a keyboard player on it for a second and a half.
  */
 export default function LightsOut() {
+  const { kit } = useOccasion();
   useEffect(() => {
     playSfx("lights-out");
   }, []);
   return (
     <div className="lights-out" aria-hidden="true">
       <div className="lights-out__scrim" />
+      {kit?.LightsOut && <kit.LightsOut />}
       <p className="lights-out__sign">After Dark</p>
     </div>
   );

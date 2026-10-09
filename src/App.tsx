@@ -5,6 +5,7 @@ import LightsOut, { LIGHTS_OUT_MS, prefersReducedMotion } from "./game/LightsOut
 import { surfaceUrl } from "./discord/bootstrap";
 import { devUrl } from "./game/devHarness";
 import sceneUrl from "./assets/art/diner-backdrop.png";
+import { useOccasion } from "./occasions/store";
 
 const AdminApp = lazy(() => import("./admin/AdminApp"));
 
@@ -32,6 +33,7 @@ export default function App() {
   // Read once. Everything after this is state, and the hooks below must not sit
   // behind the admin branch's early return.
   const [room, setRoom] = useState<Room>(() => (urlWantsBar() ? "bar" : "diner"));
+  const { kit } = useOccasion();
 
   // Back and forward. The bar is one history entry past the diner (see
   // openBar), so the browser's own back gesture is a real way out of it — which
@@ -106,6 +108,10 @@ export default function App() {
           {room === "dimming" && <LightsOut />}
         </>
       )}
+      {/* After the scene in the tree, so a costume's room layer (fog) paints
+          over the backdrop's vignette and still under everything that reads.
+          See .hw-fog in src/occasions/halloween/halloween.css. */}
+      {kit?.Room && <kit.Room room={room === "bar" ? "bar" : "diner"} />}
     </div>
   );
 }

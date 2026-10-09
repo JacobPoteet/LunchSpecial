@@ -12,6 +12,7 @@ npm run play         # opens /play: a fresh round on a random dish, nothing save
 npm run ramen        # same, pinned to one dish (/play?special=ramen)
 npm run lastcall     # hand-off harness: seeds a finished, won Special so the After Dark band is live
 npm run negroni      # a Nightcap on one named pour, opening hours ignored (?bar=1&nightcap=negroni)
+npm run halloween    # the diner in its Halloween costume (?occasion=halloween; works on any URL, any build)
 npm run admin        # opens /admin at the login
 npm test             # vitest — worker/**/*.test.ts + shared/**/*.test.ts
 npm run check        # tsc -b (3 project refs: app / worker / node)
@@ -105,6 +106,24 @@ A second daily puzzle: one **drink** a night, **4 guesses**, **3 coasters**, bet
 - **Cannot be revoked** (stateless HMAC; rotating `SESSION_SECRET` kills every session and preview). Lifetimes are a closed set (`SHOWCASE_TTL_DAYS`); the mint route 400s rather than clamping.
 - Token format changes in `worker/auth.ts` (128-bit truncated signature, base36 expiry) are shared by every token and invalidate all live ones. Payload is `sc`, no colon; `classifyDrinkPreview` matches it exactly. Don't build a D1 short-code table.
 
+## Occasions
+
+A costume the game wears for a stretch of the calendar (Halloween first). **Handcrafted in code; /admin only decides when.** Never call it an "event" in a URL, path or table (ad blockers; `conventions.test.ts`).
+
+- `shared/occasions.ts` is the only place that decides which occasion a day wears (`occasionOn`): the live booking covering it. **No booking, no costume.** `OCCASION_IDS` is a closed set; `OCCASIONS[id].suggested` only prefills the form and flags an unbooked season. Never `INSERT INTO occasion_bookings` from a migration or the seed.
+- **Booked like a notice:** one row per run, both ends inclusive, Live outranks the dates. Live bookings never overlap (`findOverlap`, the Worker 409s), so one booking is one run and owns its numbers.
+- **The day is the round's own, fixed at entry:** the puzzle date for lunch (a Leftover from Oct 31 replays in costume), the night key at the bar. Pages call `useWearOccasion(day)`; everything else reads `useOccasion()`. `primeOccasion()` dresses the page before mount (capped wait).
+- `?occasion=<id>|none` is cosmetic and honoured in production on purpose. The Worker stamps `analytics_rounds.occasion` on insert from `play_date` and never reads the param.
+- **A costume is `src/occasions/<id>/`**, a lazy chunk that fills the slots in `src/occasions/kit.ts`. A new slot is a deliberate change to `kit.ts` and the page that mounts it. CSS scoped to `:root[data-occasion="<id>"]`; anything that must show off-season (the Leftovers calendar mark) lives in game.css.
+- **Decoration only:** `aria-hidden`, never under text, never recolours text or a fill text sits on. The one pressable slot (Cloche) is a real button with a label and announces its result.
+- **Lights loop, the way the bar band's halo does:** no flash faster than 3/s (2.3.1), never over text, and every keyframe in the costume's own reduced-motion block, same commit. Looping past 5s with no pause control is a known WCAG 2.2.2 gap; reduced motion is the off switch.
+- **A costume's palette is a token swap** scoped `:root[data-occasion="<id>"]:not([data-after-dark])` (an unscoped one ties with After Dark and repaints the bar). `--hit`/`--near`/`--miss` never move. Measure on the painted surface and add an a11y state for every screen the swap reaches.
+- Share: `shareMessage(text, occasion)` adds the occasion's line between grid and url; the grid is untouched. Score card corner art is a pixel map, never emoji. Neither names the dish.
+- Sounds: `OCCASION_SFX` in `shared/audio.ts`, files under `src/assets/sfx/occasions/<id>/`. Missing file = everyday sound.
+- `npm run a11y` scans each room in costume; add states for a new occasion.
+- **Reach (`occasion_views`, `POST /api/occasions/seen`):** one row per (occasion, device, ET seen_day, room, moment); moments `seen` and `knock`. The client sends only from a tracked round, never under `?occasion=` or before the bookings come back from the Worker (`noteOccasionMoment`); the Worker re-runs the fold on `play_day` and 400s a costume that day didn't wear. Runs are attributed by `play_day`, so a Leftover replayed later counts as "after", not as reach. Reach before the ledger's first row is unmeasured (`measuredFrom: null`), never zero.
+- **Events page** (admin nav "Events", view `occasions`) works like Announcements: cards grouped On now / Booked / Ran / Pulled, "+ New event", an editor, Delete with a confirm. `GET /api/admin/occasions` returns each booking with its reach (the notices' strip on the card) and impact (folded: room, returned, knocked, after; same weekdays before via `baselineFor`, lunch and Nightcap apart, pooled rates, `shareVerdict`, first-time players). Schedule keeps only the dashed-ink day tags; Trends keeps the costume bands (annotations, dashed ink, never a fifth colour).
+
 ## Game rules
 
 - **6 guesses.** `POST /guess` returns clue N after miss N from `clues.order_index`. Feedback: ingredient set intersection (exact, plus **close**) + 4 tiles. Country: hit = same country, near = same `region`, miss. Course/temperature/protein: hit|miss.
@@ -144,7 +163,7 @@ A second daily puzzle: one **drink** a night, **4 guesses**, **3 coasters**, bet
 
 ### Beacons and analytics
 
-- **Keep client-called URLs boring** (ad blockers match `analytics`, `event`, `track`, `visit`, `view` and similar; `shared/conventions.test.ts` enforces it). Beacons are `/api/rounds/seated|start|complete|share`; the admin feed is `/api/admin/recent-rounds`.
+- **Keep client-called URLs boring** (ad blockers match `analytics`, `event`, `track`, `visit`, `view` and similar; `shared/conventions.test.ts` enforces it). Beacons are `/api/rounds/seated|start|complete|share`, plus `/api/announcements/seen` and `/api/occasions/seen`; the admin feed is `/api/admin/recent-rounds`.
 - `player_id` is an anonymous per-device UUID, bound only by `/start`. `kind` and `surface` are set on insert only; Discord iframe params are captured into sessionStorage and re-attached by `surfaceUrl()`. `country` is stamped server-side. `dish_id` is resolved by `resolveDishId` (random dishes send `seed`). `source` is re-normalised by the Worker always, captured into sessionStorage, never localStorage. Visits: `markSeated()` decides to send, `PRIMARY KEY (visit_day, player_id)` decides to count; first touch wins.
 
 - **Guesses are written by the guess routes, not a beacon** (`analytics_guesses`, `worker/guesslog.ts`). The client sends `roundId` on `/guess` and `/night/guess` for tracked rounds only; previews, playtests and pins record nothing, and the Worker re-checks. No FK to `analytics_rounds` (a blocked `/start` must not drop a guess); the target is stored on the row, never joined from `schedule`. Dish and drink ids sit in separate column pairs. Rows older than 0053 are unmeasured. Each row carries the client's `player_id` too, so a wipe reaches guesses with no round row; wiping deletes them first. Last write per guess number wins (a retry after a lost response sends the board's dish). `correct` is not stored: it is guessed = target. Aggregate only on any public route; no per-device guess trail.
@@ -175,7 +194,7 @@ A second daily puzzle: one **drink** a night, **4 guesses**, **3 coasters**, bet
 - **Announcements:** Today's Special only. Window is ET days, both ends inclusive; `is_active` outranks the dates. Logic in `worker/announcements.ts`. A notice you aren't eligible for never leaves the Worker. Body is limited markdown rendered as tokens; **no `innerHTML`, don't build an HTML renderer**. The `notice` modal drops from above so it differs from the check; its exit must stay within `MODAL_EXIT_MS`.
 - **Requests:** `POST /api/requests` is public and anonymous. Inbox is `dish_requests` with `kind` (`REQUEST_KINDS`); the admin renders one section per kind off that enum. `is_fan_submission` is a credit only; nothing reads it for scheduling or feedback. "Add as dish/drink" pre-ticks it.
 - **Sound:** two buses, one mute button, no audio files in the repo yet. A missing file is a supported state; the engine uses `import.meta.glob` and there is **no ENABLED flag**. Without files the whole system stands down. SFX are scheduled on the audio clock via `guessArc`, never `setTimeout`. `shared/audio.ts` timing constants mirror the CSS dial in game.css; re-time one and you re-time both. `AUDIO_DEFAULTS` is the only home of a default; stored prefs are optional fields. Reduced motion does not gate audio. `option-tick` is keyboard-only and computed outside the state updater.
-- **My own test data** (Activity tab): "me" is the feed's `mine` filter (`peekPlayerId()`); review precedes wipe; tables are `analytics_guesses` (first, by `player_id` or round), `analytics_rounds`, `analytics_visits`, `announcement_views` (not `dish_requests`); the device id survives.
+- **My own test data** (Activity tab): "me" is the feed's `mine` filter (`peekPlayerId()`); review precedes wipe; tables are `analytics_guesses` (first, by `player_id` or round), `analytics_rounds`, `analytics_visits`, `announcement_views`, `occasion_views` (not `dish_requests`); the device id survives.
 - **Issue composer:** GitHub is the record (no D1 table). `GITHUB_TOKEN` never reaches the browser. The read answers 200 with `configured: false`, the write 503. `GET /issues` drops PRs in `toIssue`.
 
 ## Adding dishes and drinks
@@ -198,7 +217,7 @@ A second daily puzzle: one **drink** a night, **4 guesses**, **3 coasters**, bet
 - `vitest.config.ts` is separate from `vite.config.ts` on purpose (tests must not load the cloudflare plugin); it covers `worker/` and `shared/`.
 - `tsc -b` is incremental and can report success on a stale graph; use `npx tsc -b --force` after changing a `shared/` type. Three composite projects: worker code uses no DOM libs. `worker-configuration.d.ts` is generated, never hand-edited.
 - Cookies: HttpOnly+Secure+SameSite=Strict, 7-day HMAC token. Routes under `worker/routes/admin/` are mounted in a load-bearing order: `auth.ts` above the session guard, everything else below.
-- Public GETs with a `Cache-Control` header: `/api/dishes` and `/api/night/drinks` only (5 min). Keep it off `/daily` and the beacons.
+- Public GETs with a `Cache-Control` header: `/api/dishes` and `/api/night/drinks` only (5 min). Keep it off `/daily`, `/occasions` and the beacons.
 - Don't add npm deps casually; the only runtime deps are hono, react, react-dom.
 - Art: swap `ai-*.svg` in place (same viewBox ratio, keep the AI-GENERATED header) and update `ASSETS.md`. The neon logo is CSS text.
 - **No emoji in the game's chrome**; draw `Icon` (`src/game/Icon.tsx`, add a path to `PATHS`). Share text keeps emoji.

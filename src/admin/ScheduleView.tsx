@@ -11,6 +11,7 @@ import {
   type BoardRow,
 } from "../../shared/schedule";
 import * as api from "./api";
+import { OCCASIONS, occasionOn, type AdminOccasions, type OccasionId } from "../../shared/occasions";
 
 import { Icon } from "../game/Icon";
 /** How far ◀ / ▶ move the window. Roughly a month, so two presses clear the default view. */
@@ -88,6 +89,12 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
   /** The window to ask for. Null leaves the route's own default (today-7 → today+45). */
   const [range, setRange] = useState<{ from: string; to: string } | null>(null);
   const today = gameToday();
+  // Which days are in costume, for the tags on the board. Booking lives on the
+  // Events page; a failure here only costs the tags.
+  const [occasions, setOccasions] = useState<AdminOccasions | null>(null);
+  useEffect(() => {
+    api.getOccasions().then(setOccasions, () => {});
+  }, []);
 
   const reload = useCallback(() => {
     api.getSchedule(range?.from, range?.to).then(
@@ -293,7 +300,7 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
       {flash && flash.date === null && <p className={flash.ok ? "form-ok" : "form-error"}>{flash.text}</p>}
 
       <p className="dash-note" style={{ marginBottom: 10 }}>
-        Past days are locked. Only dishes marked <span className="badge">ready</span> can be booked. Auto-fill keeps regions, countries and desserts apart. Dates roll over at midnight ET.
+        Past days are locked. Only dishes marked <span className="badge">ready</span> can be booked. Auto-fill keeps regions, countries and desserts apart. Dates roll over at midnight ET. A dashed tag marks a day in costume; events are booked on the Events page.
       </p>
 
       <ul className="sched-list">
@@ -321,6 +328,7 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
             onClear={() => void clearDay(row.date)}
             onOpenDish={onOpenDish}
             onTestPlay={(id) => void testPlay(id)}
+            occasion={occasions ? occasionOn(row.date, occasions.events) : null}
           />
         ))}
       </ul>
@@ -382,6 +390,7 @@ function Row({
   onClear,
   onOpenDish,
   onTestPlay,
+  occasion,
 }: {
   row: BoardRow;
   today: string;
@@ -399,6 +408,8 @@ function Row({
   onClear: () => void;
   onOpenDish: (id: number | null) => void;
   onTestPlay: (dishId: number) => void;
+  /** The costume this day's Special is served in, if any. A note, never a lock. */
+  occasion: OccasionId | null;
 }) {
   const [active, setActive] = useState(0);
   const classes = [
@@ -416,7 +427,10 @@ function Row({
   return (
     <>
       <li id={`sched-${row.date}`} className={classes}>
-        <span className="sched-date">{weekday(row.date)}</span>
+        <span className="sched-date">
+          {weekday(row.date)}
+          {occasion && <span className="sched-occasion">{OCCASIONS[occasion].name}</span>}
+        </span>
 
         {row.isPast ? (
           <span className="sched-dish sched-dish--locked">{row.dishName ?? "— fallback pick —"}</span>

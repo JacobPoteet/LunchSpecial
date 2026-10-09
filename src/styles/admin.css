@@ -3672,3 +3672,83 @@
 
 /* Today's housekeeping when there is nothing to fix: one line, not two cards. */
 .panel--calm { padding-top: 12px; padding-bottom: 12px; }
+
+/* The tag on a Specials board day. Beside the weekday, in the annotation
+   style, so it reads as a note about the day and never as the day's state. */
+.sched-occasion {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px dashed var(--ink);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: var(--ink);
+  vertical-align: 2px;
+}
+
+/* ---- Events page (src/admin/OccasionsView.tsx) ----
+   Built from the Announcements page's cards (.announce-*); these are the bits
+   only an event has. */
+
+.occasion-billing {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* A costume whose usual season is coming up with nothing booked: a note with
+   one button, dashed ink because it is an annotation about the calendar. */
+.occasion-suggest {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--ink);
+  border-radius: var(--radius-paper);
+}
+
+.occasion-suggest p {
+  margin: 0;
+  color: var(--ink);
+}
+
+/* The folded detail spans the whole card, under the main column and the strip. */
+.occasion-details {
+  grid-column: 1 / -1;
+  margin-top: 4px;
+}
+
+.occasion-metric__sub {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.occasion-first {
+  margin: 10px 0 0;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+
+/* The costume's days on the growth chart: an annotation, so dashed ink and the
+   faintest wash of it. Under the curve, like the shipped-change marks. */
+.gchart__occasion {
+  fill: color-mix(in srgb, var(--ink) 6%, transparent);
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.6;
+}
+
+.gchart__swatch--occasion {
+  border: 1px dashed var(--ink);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}

@@ -18,6 +18,8 @@ import {
   flipRate,
   guessArc,
   isDuplicateSchedule,
+  OCCASION_SFX,
+  sfxFileFor,
   shouldPlay,
 } from "./audio";
 import { SURFACES } from "./types";
@@ -233,6 +235,26 @@ describe("isDuplicateSchedule", () => {
     for (let i = 1; i < flips.length; i++) {
       const previous = flips[i - 1].delayMs / 1000;
       expect(isDuplicateSchedule(flips[i].delayMs / 1000, previous)).toBe(false);
+    }
+  });
+});
+
+describe("occasion sounds", () => {
+  const all = () => true;
+  const none = () => false;
+
+  it("plays the occasion's file when it exists, the everyday file when it doesn't", () => {
+    expect(sfxFileFor("round-lost", "halloween", all)).toBe("occasions/halloween/theremin.wav");
+    expect(sfxFileFor("round-lost", "halloween", none)).toBe(SFX["round-lost"].file);
+    expect(sfxFileFor("round-lost", null, all)).toBe(SFX["round-lost"].file);
+    expect(sfxFileFor("ui-click", "halloween", all)).toBe(SFX["ui-click"].file);
+  });
+
+  it("keeps every override inside its occasion's folder", () => {
+    for (const [id, files] of Object.entries(OCCASION_SFX)) {
+      for (const file of Object.values(files ?? {})) {
+        expect(file).toMatch(new RegExp(`^occasions/${id}/[a-z0-9-]+[.](wav|m4a|opus|mp3)$`));
+      }
     }
   });
 });

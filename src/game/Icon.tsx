@@ -35,6 +35,16 @@ const PATHS = {
       <path d="M16 3v4" />
     </>
   ),
+  // A pumpkin, for the days the diner dressed for Halloween (the Leftovers
+  // calendar keeps them marked for good).
+  pumpkin: (
+    <>
+      <path d="M12 8c-4.7 0-7.5 2.6-7.5 6s2.8 6 7.5 6 7.5-2.6 7.5-6-2.8-6-7.5-6z" />
+      <path d="M12 8c-1.9 0-3.1 2.6-3.1 6s1.2 6 3.1 6" />
+      <path d="M12 8c1.9 0 3.1 2.6 3.1 6s-1.2 6-3.1 6" />
+      <path d="M12 8c0-1.7.7-3 2.2-3.7" />
+    </>
+  ),
   dice: (
     <>
       <rect x="4" y="4" width="16" height="16" rx="3" />

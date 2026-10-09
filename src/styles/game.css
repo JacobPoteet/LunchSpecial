@@ -2232,6 +2232,20 @@ textarea.dish-request__input {
   height: 0.8em;
 }
 
+/* A day the diner dressed up (shared/occasions.ts), kept for good. Here and not
+   in the costume's stylesheet, because the calendar marks last October in
+   May, when no costume is loaded. Drawn in the cell's own ink, so it takes the
+   played/won/lost colour like the glyph below it; the cell's label names the
+   occasion, so the mark is never the only way to know. */
+.archive-cal__occasion {
+  position: absolute;
+  top: 1px;
+  right: 2px;
+  font-size: 0.62rem;
+  line-height: 0;
+  opacity: 0.8;
+}
+
 /* Same green-on-green pair as .chip--match, same fix. */
 .archive-cal__day--won {
   background: var(--hit-soft);

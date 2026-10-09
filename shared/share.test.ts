@@ -28,6 +28,12 @@ describe("shareMessage", () => {
   it("leaves a lost round's X/6 intact", () => {
     expect(shareMessage("Lunch Special #26 — X/6")).toContain("X/6");
   });
+
+  it("puts an occasion's line between the grid and the url, once, and leaves the grid alone", () => {
+    const message = shareMessage(GRID, "halloween");
+    expect(message).toBe(`${GRID}\n🎃 Graveyard shift at Lunch Special\n${SHARE_URL}`);
+    expect(message.split(SHARE_URL)).toHaveLength(2);
+  });
 });
 
 describe("wantsNativeShare", () => {

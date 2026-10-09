@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- AI-GENERATED PLACEHOLDER — replace with commissioned art. See ASSETS.md ("ai-pumpkin.svg"). -->
+  <!-- An uncarved pumpkin: a guess still in hand on Halloween's punch card. -->
+  <path d="M11.6 7.2c-.3-1.8.3-3.4 1.8-4.3l.9 1.2c-1 .7-1.4 1.7-1.2 3.1z" fill="#5d6b2b"/>
+  <ellipse cx="7.9" cy="14.3" rx="5.4" ry="6.9" fill="#c9581a"/>
+  <ellipse cx="16.1" cy="14.3" rx="5.4" ry="6.9" fill="#c9581a"/>
+  <ellipse cx="12" cy="14.3" rx="5.2" ry="7.3" fill="#e9782a"/>
+  <path d="M12 7.3v14" stroke="#b44e17" stroke-width=".7" opacity=".55"/>
+</svg>

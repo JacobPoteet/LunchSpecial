@@ -30,6 +30,7 @@ describe("foldDeviceData", () => {
       visits: { total: 0, firstDay: null, lastDay: null },
       noticeViews: 0,
       guesses: 0,
+      occasionViews: 0,
     });
   });
 
