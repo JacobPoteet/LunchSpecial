@@ -221,7 +221,7 @@ A costume the game wears for a stretch of the calendar (Halloween first). **Hand
 - Don't add npm deps casually; the only runtime deps are hono, react, react-dom.
 - Art: swap `ai-*.svg` in place (same viewBox ratio, keep the AI-GENERATED header) and update `ASSETS.md`. The neon logo is CSS text.
 - **No emoji in the game's chrome**; draw `Icon` (`src/game/Icon.tsx`, add a path to `PATHS`). Share text keeps emoji.
-- **Three faces:** Alfa Slab One (sign, 1rem and up only), Yellowtail (neon/flourish), League Gothic `--font-gothic` (tabs, labels, small print). Fonts ship as `.woff2` only. Paper surfaces take `--radius-paper`, controls `--radius`.
+- **Three faces:** Alfa Slab One (sign, 1rem and up only), Yellowtail (neon/flourish), League Gothic `--font-gothic` (tabs, labels, small print). Fonts ship as `.woff2` only. Paper surfaces take `--radius-paper`, controls `--radius`. One job per face: Alfa Slab = headings and big numbers, Gothic = labels, Georgia = reading text and controls; Yellowtail = the neon title only. Sizes come from the `--fs-xs`…`--fs-xxl` scale in `base.css`; no raw rem or px font sizes in `admin.css`, nothing under `--fs-xs`.
 
 ## Accessibility (player-facing UI)
 
