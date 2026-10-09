@@ -161,7 +161,7 @@
    the toolbar and the Special label all in caps there was no level left for
    the card to drop to. */
 .menu-card__meta {
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   font-style: italic;
   color: var(--ink-soft);
   margin: 6px 0 0;
@@ -225,7 +225,7 @@
   background: transparent;
   color: var(--ink);
   border-radius: 999px;
-  font-size: 1.02rem;
+  font-size: var(--fs-md);
   line-height: 1;
   padding: 0 11px;
   letter-spacing: 0.06em;
@@ -247,7 +247,7 @@
 }
 
 .icon-btn--solo .icon {
-  font-size: 1.15rem;
+  font-size: var(--fs-lg2);
 }
 
 .icon-btn:hover {
@@ -339,7 +339,7 @@
   align-items: baseline;
   gap: 7px;
   font-family: var(--font-gothic);
-  font-size: 1.3rem;
+  font-size: var(--fs-lg2);
   line-height: 1.1;
   letter-spacing: 0.07em;
   color: var(--cherry-dark);
@@ -353,7 +353,7 @@
 
 .special-line__price {
   font-family: var(--font-script);
-  font-size: 1.3rem;
+  font-size: var(--fs-lg2);
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
@@ -362,7 +362,7 @@
 
 .special-line__hint {
   margin: 4px 0 0;
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   font-style: italic;
   color: var(--ink-soft);
 }
@@ -392,7 +392,7 @@
   border-radius: var(--radius);
   background: var(--paper-bright);
   padding: 11px 14px;
-  font-size: 1.05rem;
+  font-size: var(--fs-lg);
   color: var(--ink);
   min-width: 0;
 }
@@ -409,7 +409,7 @@
   border: none;
   border-radius: var(--radius);
   padding: 0 18px;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -439,7 +439,7 @@
 .guess-input__option {
   padding: 9px 12px;
   border-radius: 6px;
-  font-size: 1rem;
+  font-size: var(--fs-md);
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -453,7 +453,7 @@
    in disguise. Shrinks before the name does, and never wraps. */
 .guess-input__hint {
   flex: 0 1 auto;
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -517,7 +517,7 @@
 
 .tally__text {
   font-family: var(--font-gothic);
-  font-size: 1.02rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -599,7 +599,7 @@
 
 .guess-row__name {
   font-family: var(--font-display);
-  font-size: 0.98rem;
+  font-size: var(--fs-md);
   margin: 0 0 8px;
   color: var(--ink);
   display: flex;
@@ -613,7 +613,7 @@
 
 .guess-row__count {
   font-family: var(--font-body);
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   font-weight: normal;
   color: var(--ink-soft);
   white-space: nowrap;
@@ -663,7 +663,7 @@
   justify-content: center;
   gap: 3px;
   font-family: var(--font-gothic);
-  font-size: 0.84rem;
+  font-size: var(--fs-sm);
   line-height: 1.05;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -690,16 +690,16 @@
   /* The gothic has no ✓ or ×, so the mark keeps the body face rather than
      falling through to whatever the platform substitutes. */
   font-family: var(--font-body);
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
   line-height: 1;
   letter-spacing: normal;
-  font-weight: bold;
+  font-weight: 700;
 }
 
 .attr-tile__value {
   display: block;
-  font-size: 0.8rem;
-  font-weight: bold;
+  font-size: var(--fs-xs);
+  font-weight: 700;
   text-transform: capitalize;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -724,7 +724,7 @@
 }
 
 .chip {
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   border-radius: 999px;
   padding: 2.5px 10px;
   border: 1px solid transparent;
@@ -739,7 +739,7 @@
   background: var(--hit-soft);
   border-color: var(--hit);
   color: var(--hit-ink);
-  font-weight: bold;
+  font-weight: 700;
 }
 
 .chip--matchless {
@@ -780,7 +780,7 @@
 
 .ticket__head {
   font-family: var(--font-gothic);
-  font-size: 1rem;
+  font-size: var(--fs-md);
   line-height: 1.1;
   letter-spacing: 0.1em;
   color: var(--cherry);
@@ -790,7 +790,7 @@
 
 .ticket__text {
   margin: 0;
-  font-size: 0.97rem;
+  font-size: var(--fs-md);
   line-height: 1.45;
 }
 
@@ -805,7 +805,7 @@
 
 .menu-card__thanks-script {
   font-family: var(--font-script);
-  font-size: 1.55rem;
+  font-size: var(--fs-xl);
   line-height: 1.1;
   color: var(--cherry);
   margin: 0;
@@ -815,7 +815,7 @@
    contrast change in disguise. */
 .menu-card__thanks-fine {
   font-family: var(--font-gothic);
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -911,7 +911,7 @@
   margin: 0 0 6px;
   padding-right: 40px; /* clears .modal__close */
   font-family: var(--font-gothic);
-  font-size: 0.98rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -938,7 +938,7 @@
 .modal--notice .notice__title {
   margin: 0 0 12px;
   font-family: var(--font-body);
-  font-size: 1.4rem;
+  font-size: var(--fs-lg2);
   font-weight: 700;
   line-height: 1.25;
   color: var(--teal);
@@ -1000,7 +1000,7 @@
   background: var(--ink);
   color: var(--cream);
   font-family: var(--font-display);
-  font-size: 1.02rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.03em;
   box-shadow: 0 10px 30px rgba(10, 20, 18, 0.45);
   pointer-events: none;
@@ -1030,7 +1030,7 @@
   padding: 0;
   background: none;
   border: none;
-  font-size: 1.4rem;
+  font-size: var(--fs-lg2);
   color: var(--ink-soft);
   line-height: 1;
 }
@@ -1045,7 +1045,7 @@
 .receipt__title {
   font-family: var(--font-gothic);
   letter-spacing: 0.1em;
-  font-size: 1.3rem;
+  font-size: var(--fs-lg2);
   line-height: 1.1;
   margin: 0;
   text-transform: uppercase;
@@ -1053,7 +1053,7 @@
 
 .receipt__verdict {
   font-family: var(--font-script);
-  font-size: 2rem;
+  font-size: var(--fs-xxl);
   line-height: 1.15;
   margin: 6px 0 0;
   color: var(--cherry);
@@ -1067,7 +1067,7 @@
   margin: 0 0 6px;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: 1.65rem;
+  font-size: var(--fs-xl);
   line-height: 1.12;
   text-wrap: balance;
 }
@@ -1098,7 +1098,7 @@
 .guest-check__house {
   margin: 0;
   font-family: var(--font-script);
-  font-size: 1.6rem;
+  font-size: var(--fs-xl);
   line-height: 1;
   color: var(--cherry);
 }
@@ -1108,7 +1108,7 @@
 .guest-check__no {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-size: var(--fs-lg2);
   line-height: 1;
   color: var(--cherry);
   white-space: nowrap;
@@ -1140,7 +1140,7 @@
 
 .guest-check__box dt {
   font-family: var(--font-gothic);
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -1148,7 +1148,7 @@
 
 .guest-check__box dd {
   margin: 1px 0 0;
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
@@ -1158,7 +1158,7 @@
 .receipt__facts {
   text-align: center;
   color: var(--ink-soft);
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   margin: 0 0 12px;
   text-transform: capitalize;
 }
@@ -1166,7 +1166,7 @@
 .receipt__ingredients {
   text-align: center;
   color: var(--ink-soft);
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   line-height: 1.5;
   margin: -6px 0 12px;
   text-transform: capitalize;
@@ -1179,7 +1179,7 @@
   border-bottom: 2px dashed var(--paper-edge);
   padding: 12px 2px;
   margin: 0 0 12px;
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   line-height: 1.5;
   text-align: center;
   color: var(--ink);
@@ -1221,7 +1221,7 @@
   border-radius: 50%;
   background: var(--mustard);
   color: var(--on-near);
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   line-height: 1;
   box-shadow: inset 0 0 0 2px var(--paper);
 }
@@ -1229,7 +1229,7 @@
 .fan-stamp__title {
   margin: 0;
   font-family: var(--font-gothic);
-  font-size: 1.02rem;
+  font-size: var(--fs-md);
   line-height: 1.1;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1238,7 +1238,7 @@
 
 .fan-stamp__body {
   margin: 1px 0 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
   line-height: 1.35;
   color: var(--ink-soft);
 }
@@ -1261,7 +1261,7 @@
   border-radius: var(--radius);
   color: var(--ink-soft);
   font-family: var(--font-gothic);
-  font-size: 1.08rem;
+  font-size: var(--fs-lg);
   line-height: 1.1;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -1313,7 +1313,7 @@
   display: flex;
   gap: 10px;
   align-items: baseline;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
   line-height: 1.45;
 }
 
@@ -1327,7 +1327,7 @@
   background: var(--paper-edge);
   color: var(--ink);
   font-family: var(--font-gothic);
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
 }
 
 .story__text {
@@ -1342,7 +1342,7 @@
   color: var(--cream);
   border: none;
   border-radius: var(--radius);
-  font-size: 1rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.08em;
   padding: 12px;
   text-transform: uppercase;
@@ -1358,7 +1358,7 @@
 .share-btn--primary {
   background: var(--cherry);
   color: var(--on-cherry);
-  font-size: 1.28rem;
+  font-size: var(--fs-lg2);
   padding: 16px;
   margin-top: 4px;
   margin-bottom: 14px;
@@ -1399,7 +1399,7 @@
   flex: 1 1 0;
   min-width: 0;
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--fs-md);
   padding: 13px 10px;
 }
 
@@ -1417,7 +1417,7 @@
 
 .countdown__label {
   font-family: var(--font-gothic);
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -1425,7 +1425,7 @@
 
 .countdown__time {
   font-family: var(--font-display);
-  font-size: 1.16rem;
+  font-size: var(--fs-lg2);
   font-variant-numeric: tabular-nums;
   color: var(--ink);
   line-height: 1.1;
@@ -1458,7 +1458,7 @@
   color: var(--ink-soft);
   border: 1.5px solid color-mix(in srgb, var(--ink) 25%, transparent);
   border-radius: var(--radius);
-  font-size: 1.08rem;
+  font-size: var(--fs-lg);
   line-height: 1.1;
   letter-spacing: 0.06em;
   padding: 8px 6px;
@@ -1475,7 +1475,7 @@
 
 .countdown {
   text-align: center;
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   color: var(--ink-soft);
   margin: 0;
 }
@@ -1506,7 +1506,7 @@
   background: transparent;
   color: var(--ink-soft);
   font-family: var(--font-gothic);
-  font-size: 1.08rem;
+  font-size: var(--fs-lg);
   line-height: 1.1;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1549,7 +1549,7 @@
 .dish-request__title {
   margin: 0;
   font-family: var(--font-gothic);
-  font-size: 1.08rem;
+  font-size: var(--fs-lg);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink);
@@ -1591,7 +1591,7 @@ textarea.dish-request__input {
   background: transparent;
   border: none;
   color: var(--ink-soft);
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   cursor: pointer;
   text-decoration: underline;
 }
@@ -1599,7 +1599,7 @@ textarea.dish-request__input {
 .dish-request__error {
   margin: 0;
   color: var(--miss, #b23);
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   text-align: center;
 }
 
@@ -1625,13 +1625,13 @@ textarea.dish-request__input {
 
 .stat__num {
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: var(--fs-xl);
   display: block;
 }
 
 .stat__label {
   font-family: var(--font-gothic);
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -1652,7 +1652,7 @@ textarea.dish-request__input {
 .receipt__streak {
   text-align: center;
   color: var(--ink-soft);
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   line-height: 1.5;
   margin: 0 0 12px;
 }
@@ -1661,7 +1661,7 @@ textarea.dish-request__input {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
 }
 
 /* Width comes from --w on the row so the grow animation has a target to
@@ -1685,7 +1685,7 @@ textarea.dish-request__input {
 }
 
 .dist__row--current > span:first-child {
-  font-weight: bold;
+  font-weight: 700;
   color: var(--cherry);
 }
 
@@ -1698,7 +1698,7 @@ textarea.dish-request__input {
   font-family: var(--font-display);
   color: var(--cherry);
   margin: 0 0 12px;
-  font-size: 1.2rem;
+  font-size: var(--fs-lg2);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -1768,7 +1768,7 @@ textarea.dish-request__input {
 
 .coach__text {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   line-height: 1.45;
   color: var(--ink);
 }
@@ -1799,7 +1799,7 @@ textarea.dish-request__input {
   border: none;
   background: transparent;
   color: var(--ink-soft);
-  font-size: 1.2rem;
+  font-size: var(--fs-lg2);
   line-height: 1;
   border-radius: 50%;
 }
@@ -1889,7 +1889,7 @@ textarea.dish-request__input {
 .error-note__detail {
   display: block;
   margin-top: 4px;
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
 }
 
 .preview-banner {
@@ -1898,7 +1898,7 @@ textarea.dish-request__input {
      1.7:1. Same token and same reason as the near tile. */
   color: var(--on-near);
   font-family: var(--font-gothic);
-  font-size: 1rem;
+  font-size: var(--fs-md);
   line-height: 1.2;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1966,7 +1966,7 @@ textarea.dish-request__input {
   align-items: center;
   gap: 7px;
   font-family: var(--font-gothic);
-  font-size: 1.05rem;
+  font-size: var(--fs-lg);
   line-height: 1.2;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1980,7 +1980,7 @@ textarea.dish-request__input {
 .bar-return__btn {
   min-height: 30px;
   font-family: var(--font-gothic);
-  font-size: 1rem;
+  font-size: var(--fs-md);
   line-height: 1;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -2039,7 +2039,7 @@ textarea.dish-request__input {
 .closed__sign {
   font-family: var(--font-display);
   color: var(--cherry);
-  font-size: 1.35rem;
+  font-size: var(--fs-lg2);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   margin: 0 0 8px;
@@ -2056,7 +2056,7 @@ textarea.dish-request__input {
    happened in the player's terms; this is only here for the one person in a
    hundred who'll paste it into a bug report. */
 .closed__detail {
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   color: var(--ink-soft);
   margin: 0 0 14px;
 }
@@ -2074,7 +2074,7 @@ textarea.dish-request__input {
   font-family: var(--font-display);
   color: var(--cherry);
   margin: 0 0 4px;
-  font-size: 1.2rem;
+  font-size: var(--fs-lg2);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   text-align: center;
@@ -2083,7 +2083,7 @@ textarea.dish-request__input {
 .archive-cal__lede {
   text-align: center;
   color: var(--ink-soft);
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
   margin: 0 0 14px;
 }
 
@@ -2092,7 +2092,7 @@ textarea.dish-request__input {
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px 14px;
-  font-size: 0.74rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   margin-bottom: 8px;
 }
@@ -2145,7 +2145,7 @@ textarea.dish-request__input {
 
 .archive-cal__month-name {
   font-family: var(--font-gothic);
-  font-size: 1.25rem;
+  font-size: var(--fs-lg2);
   font-weight: 400;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -2162,7 +2162,7 @@ textarea.dish-request__input {
   background: var(--paper-bright);
   color: var(--ink);
   font-family: var(--font-display);
-  font-size: 1.1rem;
+  font-size: var(--fs-lg);
   line-height: 1;
   padding: 0;
   cursor: pointer;
@@ -2186,7 +2186,7 @@ textarea.dish-request__input {
 
 .archive-cal__dow {
   text-align: center;
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   font-family: var(--font-gothic);
   letter-spacing: 0.04em;
   color: var(--ink-soft);
@@ -2222,12 +2222,12 @@ textarea.dish-request__input {
 }
 
 .archive-cal__num {
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   line-height: 1;
 }
 
 .archive-cal__mark {
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
   line-height: 1;
   height: 0.8em;
 }
@@ -2241,7 +2241,7 @@ textarea.dish-request__input {
   position: absolute;
   top: 1px;
   right: 2px;
-  font-size: 0.62rem;
+  font-size: var(--fs-xs);
   line-height: 0;
   opacity: 0.8;
 }
@@ -2251,7 +2251,7 @@ textarea.dish-request__input {
   background: var(--hit-soft);
   border-color: var(--hit);
   color: var(--hit-ink);
-  font-weight: bold;
+  font-weight: 700;
 }
 
 .archive-cal__day--lost {
@@ -2307,7 +2307,7 @@ textarea.dish-request__input {
 
 .chefs-choice__title {
   font-family: var(--font-gothic);
-  font-size: 1.3rem;
+  font-size: var(--fs-lg2);
   font-weight: 400;
   line-height: 1.1;
   letter-spacing: 0.07em;
@@ -2323,7 +2323,7 @@ textarea.dish-request__input {
 /* One line at 375px, two at 320. This copy used to run to three, and in a zone
    that's now pinned every line it wraps costs the calendar a row. */
 .chefs-choice__note {
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
   line-height: 1.4;
   color: var(--ink-soft);
   margin: 0 0 10px;
@@ -2334,7 +2334,7 @@ textarea.dish-request__input {
    its own press transition, and forking it here would fight the shared press
    rules further down the file. */
 .chefs-choice__btn {
-  font-size: 1.05rem;
+  font-size: var(--fs-lg);
   /* Narrow side padding so the label holds one line at 320px — the footer's own
      20px gutters already keep it off the card edge. */
   padding: 14px 8px;
@@ -2348,7 +2348,7 @@ textarea.dish-request__input {
 .footer-note {
   margin-top: 22px;
   color: rgba(246, 237, 217, 0.62);
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   text-align: center;
 }
 
@@ -2374,8 +2374,8 @@ textarea.dish-request__input {
    check. */
 .footer-note__build {
   margin-top: 6px;
-  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  font-size: 0.68rem;
+  font-family: var(--font-gothic);
+  font-size: var(--fs-xs);
   letter-spacing: 0.06em;
 }
 
@@ -2933,7 +2933,7 @@ textarea.dish-request__input {
 .bar-band--soon {
   margin: 10px 0 0;
   padding-top: 10px;
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   text-align: center;
   font-style: italic;
@@ -3012,7 +3012,7 @@ textarea.dish-request__input {
    beat. aria-hidden: the two lines beside it already name the destination. */
 .bar-band__arrow {
   flex: none;
-  font-size: 1.1rem;
+  font-size: var(--fs-lg);
   line-height: 1;
   color: var(--on-cherry);
   animation: bar-band-arrow 2.6s ease-in-out 1.7s infinite;
@@ -3021,7 +3021,7 @@ textarea.dish-request__input {
 .bar-band__tag {
   display: block;
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.02em;
   /* A dark shadow under light text, so it only ever raises contrast. */
   text-shadow: 0 1px 0 var(--cherry-dark);
@@ -3029,7 +3029,7 @@ textarea.dish-request__input {
 
 .bar-band__sub {
   display: block;
-  font-size: 0.76rem;
+  font-size: var(--fs-xs);
   /* On the filled band the sub-line sits on cherry, not on paper, so --ink-soft
      would be the wrong pair entirely — and NOT stepped back with opacity, which
      was the first attempt and dropped it to 3.62 against the fill. Hierarchy
@@ -3249,7 +3249,7 @@ textarea.dish-request__input {
 
 .bar-countdown {
   font-family: var(--font-display);
-  font-size: 1.3rem;
+  font-size: var(--fs-lg2);
   color: var(--cherry);
   margin: 6px 0 14px;
   font-variant-numeric: tabular-nums;
@@ -3388,7 +3388,7 @@ textarea.dish-request__input {
   }
 
   .attr-tile__value {
-    font-size: 0.7rem;
+    font-size: var(--fs-xs);
   }
 
   /* Tighter gutters buy the check ~16px of width, which keeps the countdown
@@ -3406,7 +3406,7 @@ textarea.dish-request__input {
   }
 
   .check-actions .share-btn--primary {
-    font-size: 0.9rem;
+    font-size: var(--fs-md);
     padding: 12px 6px;
     letter-spacing: 0.04em;
   }
@@ -3414,7 +3414,7 @@ textarea.dish-request__input {
   /* Alfa Slab One is wide enough that "Cook me something" needs 266px and a
      320px card only offers ~254. Same trim the check's share button takes. */
   .chefs-choice__btn {
-    font-size: 0.9rem;
+    font-size: var(--fs-md);
     letter-spacing: 0.04em;
   }
 
@@ -3423,11 +3423,11 @@ textarea.dish-request__input {
   }
 
   .countdown__time {
-    font-size: 1.05rem;
+    font-size: var(--fs-lg);
   }
 
   .win-toast {
-    font-size: 0.94rem;
+    font-size: var(--fs-md);
     padding: 10px 16px;
   }
 }

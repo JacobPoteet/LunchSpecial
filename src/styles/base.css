@@ -111,6 +111,17 @@
   --font-body: Georgia, "Times New Roman", serif;
   --font-gothic: "League Gothic", "Arial Narrow", "Roboto Condensed", sans-serif;
 
+  /* One type scale for the back office (admin.css). Admin rules had drifted
+     into 37 sizes a hundredth of a rem apart. Nothing sits below --fs-xs:
+     League Gothic is condensed and reads smaller than its size. */
+  --fs-xs: 0.8rem;
+  --fs-sm: 0.875rem;
+  --fs-md: 0.95rem;
+  --fs-lg: 1.1rem;
+  --fs-lg2: 1.3rem;
+  --fs-xl: 1.5rem;
+  --fs-xxl: 2rem;
+
   /* The second tube in the sign, under the pink script. The backdrop's own
      signs pair a warm script with a cool block word, and so does this one. Only
      ever drawn on the dark scene, never on paper. */

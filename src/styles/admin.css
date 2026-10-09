@@ -24,7 +24,7 @@
   font-family: var(--font-script);
   color: #ffd9e0;
   text-shadow: 0 0 10px rgba(255, 95, 122, 0.8);
-  font-size: 2rem;
+  font-size: var(--fs-xxl);
   margin: 0;
   font-weight: 400;
 }
@@ -36,7 +36,7 @@
   display: block;
   margin-top: 4px;
   font-family: var(--font-gothic);
-  font-size: 1rem;
+  font-size: var(--fs-md);
   line-height: 1;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -70,7 +70,7 @@
 
 .admin-nav button {
   font-family: var(--font-gothic);
-  font-size: 1.05rem;
+  font-size: var(--fs-lg);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   border: 1.5px solid color-mix(in srgb, var(--cream) 55%, transparent);
@@ -95,8 +95,8 @@
 .admin__build {
   margin-top: 28px;
   color: rgba(246, 237, 217, 0.66);
-  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  font-size: 0.72rem;
+  font-family: var(--font-gothic);
+  font-size: var(--fs-xs);
   letter-spacing: 0.03em;
   text-align: right;
 }
@@ -109,7 +109,7 @@
   border-radius: 999px;
   background: var(--cream);
   color: var(--cherry);
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   line-height: 1.4;
   text-align: center;
@@ -145,7 +145,7 @@
 
 .admin-tabs__btn {
   font-family: var(--font-gothic);
-  font-size: 1.1rem;
+  font-size: var(--fs-lg);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -203,9 +203,9 @@
    serif. Uppercase slab turned a question into a shout, and a run of words in
    Alfa Slab is the thing ASSETS.md already says it can't do. */
 .panel h2 {
-  font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 1.22rem;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-lg);
   line-height: 1.25;
   letter-spacing: 0;
   text-transform: none;
@@ -219,7 +219,7 @@
 
 .btn {
   font-family: var(--font-gothic);
-  font-size: 1.08rem;
+  font-size: var(--fs-lg);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   /* Transparent rather than none, so a solid button is exactly as tall as the
@@ -297,12 +297,12 @@
 
 .dash-big {
   font-family: var(--font-display);
-  font-size: 1.4rem;
+  font-size: var(--fs-xl);
   margin: 2px 0 4px;
   color: var(--ink);
 }
 
-.dash-note { color: var(--ink-soft); margin: 0; font-size: 0.9rem; }
+.dash-note { color: var(--ink-soft); margin: 0; font-size: var(--fs-md); }
 
 /* Spoiler veil (Veil.tsx). The text behind the blur is same-shaped filler, not the
    answer. The eye is an ordinary ghost button, icon only. */
@@ -326,13 +326,13 @@
   padding: 4px 9px;
   line-height: 1;
 }
-.veil__eye .icon { font-size: 1.2rem; }
+.veil__eye .icon { font-size: var(--fs-lg); }
 
 /* Splits a panel into named blocks (Today / All time) without promoting either
    to its own card — they're two reads on the same thing. */
 .dash-subhead {
   font-family: var(--font-gothic);
-  font-size: 1rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -343,7 +343,7 @@
 .dash-count {
   margin-left: 10px;
   font-family: var(--font-body);
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
   letter-spacing: 0;
   text-transform: none;
   color: var(--ink-soft);
@@ -361,7 +361,7 @@
 }
 
 .dash-list li {
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   line-height: 1.35;
   padding-left: 10px;
   border-left: 3px solid var(--hit);
@@ -369,7 +369,7 @@
 
 .dash-list__meta {
   display: block;
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
@@ -392,7 +392,7 @@
 .metric__num {
   display: block;
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: var(--fs-xl);
   color: var(--teal);
   line-height: 1.1;
 }
@@ -400,7 +400,7 @@
 .metric__label {
   font-family: var(--font-gothic);
   display: block;
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -425,7 +425,7 @@
 }
 
 .metric--primary .metric__num {
-  font-size: 1.9rem;
+  font-size: var(--fs-xxl);
 }
 
 .metric--primary .metric__label {
@@ -438,7 +438,7 @@
   flex-wrap: wrap;
   gap: 4px 14px;
   margin-bottom: 8px;
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
@@ -486,7 +486,7 @@
 }
 .surface-toggle__btn {
   font-family: var(--font-gothic);
-  font-size: 1rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   border: none;
@@ -508,7 +508,7 @@
      body serif in bold caps, which was the legible choice while the only other
      option was the slab. */
   font-family: var(--font-gothic);
-  font-size: 1.02rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -524,7 +524,7 @@
   width: 14px;
   text-align: center;
   color: var(--ink-soft);
-  font-size: 1.05rem;
+  font-size: var(--fs-lg);
 }
 
 .gd__bar {
@@ -534,7 +534,7 @@
   min-width: 22px;
   background: var(--teal);
   color: var(--cream);
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -560,7 +560,7 @@
 }
 
 .spark__num {
-  font-size: 0.66rem;
+  font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
   line-height: 1;
@@ -588,7 +588,7 @@
 .spark__tick {
   position: absolute;
   bottom: -14px;
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   white-space: nowrap;
 }
@@ -606,14 +606,14 @@
 
 .gchart__headline {
   margin: 0 0 10px;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
   color: var(--ink);
 }
 
 /* The all-time total leads the sentence — it's the number the chart is about. */
 .gchart__total {
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: var(--fs-lg);
   color: var(--teal);
   margin-right: 2px;
 }
@@ -623,7 +623,7 @@
   flex-wrap: wrap;
   gap: 4px 14px;
   margin-bottom: 8px;
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
@@ -656,7 +656,7 @@
 .gchart__axis {
   fill: var(--ink-soft);
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: var(--fs-xs);
 }
 
 .gchart__line {
@@ -715,7 +715,7 @@
 .hourly__num {
   position: absolute;
   bottom: calc(var(--h, 0%) + 2px);
-  font-size: 0.66rem;
+  font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
   line-height: 1;
@@ -731,7 +731,7 @@
 .hourly__tick {
   position: absolute;
   bottom: -14px;
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
@@ -756,7 +756,7 @@
 .hourly__col--future { opacity: 0.32; }
 .hourly__col--future .hourly__tick { opacity: 0.6; }
 
-.hourly__caption { margin-top: 18px; font-size: 0.78rem; }
+.hourly__caption { margin-top: 18px; font-size: var(--fs-xs); }
 
 /* The three sentences beside the day's tape: pace, difficulty, liveness. Each
    is a full read on its own, so they're a list rather than a run-on paragraph,
@@ -769,7 +769,7 @@
   flex-direction: column;
   gap: 10px;
   color: var(--ink);
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   line-height: 1.45;
 }
 
@@ -823,7 +823,7 @@
 .ztape__day {
   display: block;
   font-family: var(--font-gothic);
-  font-size: 1.2rem;
+  font-size: var(--fs-lg);
   line-height: 1.1;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -834,7 +834,7 @@
   display: block;
   margin-top: 2px;
   font-style: italic;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
   color: var(--ink-soft);
 }
 
@@ -859,7 +859,7 @@
   align-items: baseline;
   gap: 6px;
   font-family: var(--font-gothic);
-  font-size: 1.05rem;
+  font-size: var(--fs-lg);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -876,7 +876,7 @@
 .ztape__line dd {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: var(--fs-lg);
   line-height: 1.1;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
@@ -889,18 +889,18 @@
 }
 
 .ztape__line--total dd {
-  font-size: 1.55rem;
+  font-size: var(--fs-xl);
   color: var(--teal);
 }
 
 /* A subset of the line above it: indented, and a step quieter. */
 .ztape__line--sub dt {
   padding-left: 16px;
-  font-size: 0.98rem;
+  font-size: var(--fs-md);
 }
 
 .ztape__line--sub dd {
-  font-size: 1rem;
+  font-size: var(--fs-md);
   color: var(--ink-soft);
 }
 
@@ -938,7 +938,7 @@
 .alltime__num {
   display: block;
   font-family: var(--font-display);
-  font-size: 2.2rem;
+  font-size: var(--fs-xxl);
   line-height: 1;
   color: var(--teal);
 }
@@ -947,7 +947,7 @@
   font-family: var(--font-gothic);
   display: block;
   margin-top: 4px;
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink);
@@ -956,7 +956,7 @@
 .alltime__foot {
   display: block;
   margin-top: 2px;
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
@@ -996,7 +996,7 @@
   flex-wrap: wrap;
   gap: 4px 8px;
   margin: 5px 0 0;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   color: var(--ink);
 }
 
@@ -1014,18 +1014,18 @@
 
 .finish__num {
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: var(--fs-lg);
   color: var(--teal);
   font-variant-numeric: tabular-nums;
 }
 
-.finish__of { color: var(--ink-soft); font-size: 0.78rem; }
+.finish__of { color: var(--ink-soft); font-size: var(--fs-xs); }
 
 /* The drop-offs, trailing the finishers on purpose. */
 .finish__rest {
   margin-left: auto;
   color: var(--ink-soft);
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
   cursor: help;
 }
@@ -1039,7 +1039,7 @@
 
 .retention__headline {
   margin: 0 0 14px;
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   color: var(--ink);
   border-left: 3px solid var(--teal);
   padding-left: 10px;
@@ -1054,7 +1054,7 @@
 
 .retention__key {
   font-family: var(--font-gothic);
-  font-size: 1.05rem;
+  font-size: var(--fs-lg);
   color: var(--ink-soft);
   letter-spacing: 0.06em;
   padding-top: 1px;
@@ -1082,7 +1082,7 @@
   flex-wrap: wrap;
   gap: 4px 8px;
   margin: 5px 0 0;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   color: var(--ink);
 }
 
@@ -1096,19 +1096,19 @@
 
 .retention__num {
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: var(--fs-lg);
   color: var(--teal);
   font-variant-numeric: tabular-nums;
 }
 
-.retention__of { color: var(--ink-soft); font-size: 0.78rem; }
+.retention__of { color: var(--ink-soft); font-size: var(--fs-xs); }
 
 /* The caveats — late returns, open windows, thin cohorts — trailing the rate,
    the same placement `.finish__rest` gives the drop-offs. */
 .retention__rest {
   margin-left: auto;
   color: var(--ink-soft);
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1126,7 +1126,7 @@
 
 .funnel__headline {
   margin: 0 0 14px;
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   color: var(--ink);
   border-left: 3px solid var(--teal);
   padding-left: 10px;
@@ -1143,7 +1143,7 @@
 
 .funnel__label {
   font-family: var(--font-gothic);
-  font-size: 1rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -1153,7 +1153,7 @@
 .funnel__num {
   margin-left: auto;
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: var(--fs-lg);
   color: var(--teal);
   font-variant-numeric: tabular-nums;
 }
@@ -1186,17 +1186,17 @@
   flex-wrap: wrap;
   gap: 2px 8px;
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
 }
 
 .funnel__step-pct {
   font-family: var(--font-gothic);
-  font-size: 1.2rem;
+  font-size: var(--fs-lg);
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
 
-.funnel__of { color: var(--ink-soft); font-size: 0.78rem; }
+.funnel__of { color: var(--ink-soft); font-size: var(--fs-xs); }
 
 /* Share-of-arrivals trails the step conversion, because the step is the one
    that says whether *this* hand-off worked. */
@@ -1207,7 +1207,7 @@
 .funnel__drop {
   margin: 6px 0 10px;
   padding-left: 14px;
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
@@ -1225,7 +1225,7 @@
 
 .cpie__headline {
   margin: 0 0 14px;
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   color: var(--ink);
   border-left: 3px solid var(--teal);
   padding-left: 10px;
@@ -1270,7 +1270,7 @@
   grid-template-columns: 11px minmax(0, 1fr) auto;
   align-items: baseline;
   gap: 2px 8px;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   color: var(--ink);
 }
 
@@ -1294,7 +1294,7 @@
 
 .cpie__share {
   font-family: var(--font-gothic);
-  font-size: 1.2rem;
+  font-size: var(--fs-lg);
   color: var(--teal);
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -1305,7 +1305,7 @@
 .cpie__detail {
   grid-column: 2 / -1;
   color: var(--ink-soft);
-  font-size: 0.76rem;
+  font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1328,7 +1328,7 @@
 .cpie__expand-btn:hover,
 .cpie__expand-btn:focus-visible { color: var(--teal); }
 
-.cpie__caret { font-size: 0.7rem; color: var(--ink-soft); }
+.cpie__caret { font-size: var(--fs-xs); color: var(--ink-soft); }
 
 .cpie__sublist {
   grid-column: 1 / -1;
@@ -1347,10 +1347,10 @@
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
 }
 .cpie__subrow .cpie__name { color: var(--ink); flex: 1 1 auto; }
-.cpie__subrow .cpie__detail { color: var(--ink-soft); font-size: 0.76rem; flex: none; }
+.cpie__subrow .cpie__detail { color: var(--ink-soft); font-size: var(--fs-xs); flex: none; }
 
 /* The all-time strip trails a full day's worth of charts now — give it air. */
 .analytics-block + .dash-subhead { margin-top: 22px; }
@@ -1372,13 +1372,13 @@
 .day-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
 }
 
 .day-table th {
   text-align: right;
   font-family: var(--font-gothic);
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -1410,14 +1410,14 @@
 
 .ev-sub {
   display: block;
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
 .ev-badge {
   display: inline-block;
   font-family: var(--font-gothic);
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 2px 8px;
@@ -1430,7 +1430,7 @@
 .ev-badge--share { background: var(--mustard); color: var(--ink); }
 
 .ev-player {
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
@@ -1441,7 +1441,7 @@
   border: 1px solid var(--teal);
   border-radius: 999px;
   font-family: var(--font-gothic);
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--teal);
@@ -1479,7 +1479,7 @@
   width: 0.8em;
   flex: none;
   color: var(--ink-soft);
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
   line-height: 1.4;
 }
 
@@ -1537,7 +1537,7 @@
   padding: 6px 10px;
   border-left: 3px solid var(--teal);
   background: rgba(27, 79, 74, 0.06);
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
   color: var(--ink);
 }
 
@@ -1546,7 +1546,7 @@
   white-space: normal;
 }
 .act-beacons { margin: 6px 0; padding-left: 0; list-style: none; }
-.act-beacons li { padding: 2px 0; font-size: 0.8rem; }
+.act-beacons li { padding: 2px 0; font-size: var(--fs-xs); }
 .act-beacons .ev-sub { display: inline; margin-left: 6px; }
 
 /* ---- visit headers ---- */
@@ -1580,7 +1580,7 @@
 
 .act-group__meta,
 .act-group__tally {
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 .act-group__tally { margin-left: auto; }
@@ -1607,14 +1607,14 @@
   flex: none;
   width: 62px;
   font-family: var(--font-gothic);
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
 
 .act-filters__chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
-.act-filters__clear { font-size: 0.75rem; margin-left: 4px; }
+.act-filters__clear { font-size: var(--fs-xs); margin-left: 4px; }
 
 .act-chip {
   display: inline-flex;
@@ -1625,7 +1625,7 @@
   border-radius: 999px;
   background: var(--paper);
   font-family: var(--font-body);
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   color: var(--ink);
   cursor: pointer;
 }
@@ -1640,7 +1640,7 @@
 
 .act-chip__n {
   font-variant-numeric: tabular-nums;
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 .act-chip--on .act-chip__n { color: var(--cream); }
@@ -1680,7 +1680,7 @@
   grid-template-columns: 92px minmax(0, 1fr) 46px 52px;
   align-items: center;
   gap: 8px;
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
 }
 
 /* Pantry bars have no pool baseline to compare against — no delta column. */
@@ -1748,14 +1748,14 @@
 
 .mix__pct {
   display: block;
-  font-size: 0.66rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   line-height: 1.2;
 }
 
 /* Gap to the pool's share, in percentage points. */
 .mix__delta {
-  font-size: 0.66rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -1786,7 +1786,7 @@
 }
 
 .cadence__label {
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   white-space: nowrap;
 }
@@ -1806,7 +1806,7 @@
 .cadence__row--axis { margin-top: 4px; }
 
 .cadence__tick {
-  font-size: 0.62rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
@@ -1824,7 +1824,7 @@
 }
 
 .btn--small {
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   padding: 4px 12px;
 }
 
@@ -1851,19 +1851,19 @@
   gap: 10px;
   padding: 8px 0;
   border-bottom: 1px dashed var(--paper-edge);
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
 }
 
 .warning-list li:last-child { border-bottom: none; }
 
 /* tables (collapse to cards on mobile) */
 
-.admin-table { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: var(--fs-md); }
 
 .admin-table th {
   text-align: left;
   font-family: var(--font-gothic);
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -1881,7 +1881,7 @@
 
 .badge {
   display: inline-block;
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   border-radius: 999px;
   padding: 2px 9px;
   background: var(--hit-soft);
@@ -1948,7 +1948,7 @@
   padding: 7px 12px;
   background: #fffdf6;
   font-family: var(--font-body);
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
 }
 
 .sort-picker {
@@ -1959,7 +1959,7 @@
 
 .sort-picker span {
   font-family: var(--font-gothic);
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -1971,7 +1971,7 @@
   padding: 6px 10px;
   background: #fffdf6;
   font-family: var(--font-body);
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
 }
 
 /* 92px matches the mix bars' label column, so the two panels rhyme. */
@@ -1984,7 +1984,7 @@
 
 .facet__label {
   font-family: var(--font-gothic);
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -2006,7 +2006,7 @@
   padding: 0 9px;
   gap: 5px;
   font-family: var(--font-body);
-  font-size: 0.76rem;
+  font-size: var(--fs-xs);
   line-height: 1;
   border: 1.5px solid var(--paper-edge);
   border-radius: 999px;
@@ -2033,7 +2033,7 @@
    empty so clicking one chip doesn't shuffle the rest of the row. */
 .chip-btn__mark {
   width: 8px;
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   text-align: center;
 }
 
@@ -2043,7 +2043,7 @@
   min-width: 1.6em;
   text-align: right;
   font-variant-numeric: tabular-nums;
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
@@ -2056,7 +2056,7 @@
   padding: 0 11px;
   background: #fffdf6;
   font-family: var(--font-body);
-  font-size: 0.76rem;
+  font-size: var(--fs-xs);
   width: 150px;
 }
 
@@ -2071,7 +2071,7 @@
   border-radius: 999px;
   background: none;
   font-family: var(--font-body);
-  font-size: 0.74rem;
+  font-size: var(--fs-xs);
   color: var(--teal);
   cursor: pointer;
 }
@@ -2079,7 +2079,7 @@
 .facet-more:hover { border-color: var(--teal); }
 
 .facet-count {
-  font-size: 0.74rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   margin-left: auto;
   font-variant-numeric: tabular-nums;
@@ -2129,7 +2129,7 @@
 .field label {
   display: block;
   font-family: var(--font-gothic);
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -2148,14 +2148,14 @@
 
 .field textarea { resize: vertical; min-height: 52px; line-height: 1.4; }
 
-.field-hint { font-size: 0.78rem; color: var(--ink-soft); margin: 3px 0 0; font-style: italic; }
+.field-hint { font-size: var(--fs-xs); color: var(--ink-soft); margin: 3px 0 0; font-style: italic; }
 .field-hint--warn { color: var(--mustard-ink, #8a5a12); font-style: normal; }
 
 /* The clue budget, live under each beat's textarea. Tabular figures so the
    number doesn't jiggle as you type, and the colour only appears once the
    count is worth acting on — see the budgets in .claude/skills/create-dishes/SKILL.md. */
 .clue-count {
-  font-size: 0.74rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   margin: 3px 0 0;
   text-align: right;
@@ -2196,7 +2196,7 @@
   background: var(--teal);
   color: var(--cream);
   border-radius: 999px;
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
   padding: 3px 4px 3px 10px;
   display: inline-flex;
   align-items: center;
@@ -2210,7 +2210,7 @@
   border-radius: 50%;
   width: 16px;
   height: 16px;
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
   line-height: 1;
   padding: 0;
 }
@@ -2236,7 +2236,7 @@
   box-shadow: 0 10px 24px rgba(20, 17, 16, 0.2);
 }
 
-.tag-suggest__list li { padding: 6px 10px; border-radius: 6px; font-size: 0.9rem; }
+.tag-suggest__list li { padding: 6px 10px; border-radius: 6px; font-size: var(--fs-md); }
 .tag-suggest__list li:hover, .tag-suggest__list li.hl { background: var(--mustard); cursor: pointer; }
 .tag-suggest__new { font-style: italic; color: var(--ink-soft); }
 
@@ -2249,7 +2249,7 @@
 
 .preview-pane h3 {
   font-family: var(--font-gothic);
-  font-size: 1.02rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--teal);
@@ -2277,7 +2277,7 @@
 
 .sched-date {
   font-family: var(--font-gothic);
-  font-size: 1.08rem;
+  font-size: var(--fs-lg);
   min-width: 130px;
   color: var(--ink);
 }
@@ -2294,7 +2294,7 @@
   gap: 6px;
   flex: 1 1 200px;
   flex-wrap: wrap;
-  font-size: 0.76rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
@@ -2365,15 +2365,15 @@
 
 .sched-option--active { background: var(--hit-soft); }
 
-.sched-option__name { font-size: 0.9rem; color: var(--ink); }
-.sched-option__meta { font-size: 0.74rem; color: var(--ink-soft); }
+.sched-option__name { font-size: var(--fs-md); color: var(--ink); }
+.sched-option__meta { font-size: var(--fs-xs); color: var(--ink-soft); }
 
 /* Errors only, under the row that raised one. Successes print nothing: the row
    already shows the new dish, and a line saying so changed the row's height on
    every click, which read as a flicker. */
 .sched-flash {
   flex-basis: 100%;
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
   padding: 4px 6px 0;
   color: var(--cherry);
 }
@@ -2393,7 +2393,7 @@
 
 .sched-summary {
   margin: 0 0 8px;
-  font-size: 0.88rem;
+  font-size: var(--fs-sm);
   color: var(--ink);
 }
 
@@ -2402,7 +2402,7 @@
    is something to know before you fill it. */
 .sched-balance {
   margin: -4px 0 8px;
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   color: var(--ink-soft);
 }
 
@@ -2415,7 +2415,7 @@
 
 .sched-window__span {
   font-family: var(--font-gothic);
-  font-size: 1.08rem;
+  font-size: var(--fs-lg);
   color: var(--ink-soft);
   min-width: 130px;
   text-align: center;
@@ -2440,7 +2440,7 @@
   border-radius: var(--radius-paper);
   padding: 8px 12px;
   margin-bottom: 10px;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
 }
 
 .form-ok {
@@ -2451,7 +2451,7 @@
   border-radius: var(--radius-paper);
   padding: 8px 12px;
   margin-bottom: 10px;
-  font-size: 0.88rem;
+  font-size: var(--fs-sm);
 }
 
 @media (max-width: 640px) {
@@ -2468,7 +2468,7 @@
   .admin-table td[data-label]::before {
     content: attr(data-label) ": ";
     font-family: var(--font-display);
-    font-size: 0.62rem;
+    font-size: var(--fs-xs);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--ink-soft);
@@ -2483,7 +2483,7 @@
   font-family: var(--font-gothic);
   color: var(--teal);
   margin: 0 0 4px;
-  font-size: 1.5rem;
+  font-size: var(--fs-xl);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   text-align: center;
@@ -2492,7 +2492,7 @@
 .daypick__lede {
   text-align: center;
   color: var(--ink-soft);
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
   margin: 0 0 14px;
 }
 
@@ -2501,7 +2501,7 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px 14px;
-  font-size: 0.74rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   margin-bottom: 14px;
 }
@@ -2524,7 +2524,7 @@
 
 .daypick__month-name {
   font-family: var(--font-gothic);
-  font-size: 1.2rem;
+  font-size: var(--fs-lg);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink);
@@ -2540,7 +2540,7 @@
 
 .daypick__dow {
   text-align: center;
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
   font-family: var(--font-gothic);
   letter-spacing: 0.06em;
   color: var(--ink-soft);
@@ -2557,7 +2557,7 @@
   background: #fffdf6;
   color: var(--ink);
   font-family: var(--font-body);
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   line-height: 1;
   padding: 0;
 }
@@ -2578,7 +2578,7 @@
   background: var(--hit-soft);
   border-color: var(--hit);
   color: var(--hit);
-  font-weight: bold;
+  font-weight: 700;
   cursor: pointer;
 }
 .daypick__day--active:hover {
@@ -2634,7 +2634,7 @@
 .announce-group__title {
   margin: 0 0 2px;
   font-family: var(--font-gothic);
-  font-size: 1.08rem;
+  font-size: var(--fs-lg);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -2647,7 +2647,7 @@
   border-radius: 10px;
   background: var(--miss-soft);
   color: var(--ink-soft);
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
 }
 
 .announce-list {
@@ -2682,13 +2682,14 @@
 .announce-card__header {
   margin: 0 0 6px;
   font-family: var(--font-display);
-  font-size: 1rem;
+  font-size: var(--fs-lg);
+  line-height: 1.25;
   color: var(--teal);
 }
 
 .announce-card__body {
   color: var(--ink);
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   line-height: 1.5;
 }
 .announce-card__body p { margin: 0 0 8px; }
@@ -2700,7 +2701,7 @@
   align-items: center;
   gap: 8px;
   margin: 8px 0 10px;
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   color: var(--ink-soft);
 }
 
@@ -2719,14 +2720,14 @@
 
 .reach__total {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   color: var(--ink-soft);
 }
 
 .reach__total strong {
   display: block;
   font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-size: var(--fs-xl);
   line-height: 1.1;
   color: var(--ink);
 }
@@ -2766,7 +2767,7 @@
    contrast change in disguise (the lesson the game's check learned twice). */
 .rate-range {
   display: block;
-  font-size: 0.74rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -2793,7 +2794,7 @@
 .dash-details > summary {
   font-family: var(--font-gothic);
   cursor: pointer;
-  font-size: 1rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--teal);
@@ -2814,14 +2815,14 @@
 
 /* A folded table keeps its heading looking like a heading, not like a link. */
 .dash-details--table > summary { text-transform: none; letter-spacing: 0; }
-.dash-details--table > summary h2 { display: inline; font-size: 1.05rem; }
+.dash-details--table > summary h2 { display: inline; font-size: var(--fs-lg); }
 .dash-details--table > .day-table-wrap { margin-top: 12px; }
 
 /* ---- Dish report --------------------------------------------------------- */
 
 .dish-report__headline {
   margin: 0 0 12px;
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   color: var(--ink);
   border-left: 4px solid var(--mustard);
   padding-left: 10px;
@@ -2852,13 +2853,13 @@
 }
 .fold__btn:hover .fold__title { color: var(--cherry); }
 .fold__title {
-  font-family: var(--font-body);
-  font-weight: 700;
-  font-size: 1.22rem;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--fs-lg);
   color: var(--teal);
 }
 .fold__title::before { content: "▸ "; }
-.fold__hint { font-size: 0.85rem; color: var(--ink-soft); }
+.fold__hint { font-size: var(--fs-sm); color: var(--ink-soft); }
 .fold__hide { margin: -8px 0 16px; }
 
 /* A dish with too few finishes to have a record. Dimmed rather than dropped —
@@ -2902,12 +2903,12 @@
   grid-template-columns: 34px 1fr 40px auto;
   align-items: center;
   gap: 8px;
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
 }
 
 .wprofile__key {
   font-family: var(--font-gothic);
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -2940,13 +2941,13 @@
 .wprofile__num {
   font-family: var(--font-gothic);
   color: var(--teal);
-  font-size: 1.15rem;
+  font-size: var(--fs-lg);
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
 .wprofile__of {
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   white-space: nowrap;
 }
@@ -2971,7 +2972,7 @@
 
 .heat__htick,
 .heat__wtick {
-  font-size: 0.6rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   text-align: center;
   letter-spacing: 0.04em;
@@ -3041,7 +3042,7 @@
 .field > span {
   display: block;
   font-family: var(--font-gothic);
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -3050,7 +3051,7 @@
 
 .xp__hypothesis {
   margin: 0 0 12px;
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   color: var(--ink);
   border-left: 4px solid var(--teal);
   padding-left: 10px;
@@ -3063,7 +3064,7 @@
 .xp__control > span {
   font-family: var(--font-gothic);
   display: block;
-  font-size: 0.88rem;
+  font-size: var(--fs-sm);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -3085,7 +3086,7 @@
   padding: 8px 11px;
   border-radius: var(--radius-paper);
   background: rgba(232, 165, 58, 0.16);
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   color: var(--ink);
 }
 
@@ -3101,7 +3102,7 @@
   margin-bottom: 12px;
 }
 
-.xp__verdict strong { font-family: var(--font-display); font-size: 0.98rem; }
+.xp__verdict strong { font-family: var(--font-display); font-size: var(--fs-md); }
 
 /* Four states, and two of them are "we can't say yet". The undecided pair take
    muted ink rather than a warning colour — not knowing is the normal state at
@@ -3115,7 +3116,7 @@
 
 .xp__delta {
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: var(--fs-lg);
   color: var(--teal);
   font-variant-numeric: tabular-nums;
 }
@@ -3123,7 +3124,7 @@
 .xp__metric {
   font-family: var(--font-gothic);
   margin-left: auto;
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -3148,7 +3149,7 @@
 .xp__side-num {
   display: block;
   font-family: var(--font-display);
-  font-size: 1.4rem;
+  font-size: var(--fs-xl);
   color: var(--teal);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
@@ -3157,18 +3158,18 @@
 .xp__side-label {
   font-family: var(--font-gothic);
   display: block;
-  font-size: 0.88rem;
+  font-size: var(--fs-sm);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
   margin-top: 3px;
 }
 
-.xp__arrow { font-size: 1.2rem; color: var(--ink-soft); }
+.xp__arrow { font-size: var(--fs-lg); color: var(--ink-soft); }
 
 .xp__advice {
   margin: 0;
-  font-size: 0.88rem;
+  font-size: var(--fs-sm);
   color: var(--ink);
   padding: 8px 11px;
   border-radius: var(--radius-paper);
@@ -3249,7 +3250,7 @@
   margin: 0 0 10px;
   padding: 0;
   color: var(--ink-soft);
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
 }
 
 .device-data__facts li + li { margin-top: 3px; }
@@ -3285,8 +3286,8 @@
 
 .issue-composer__title {
   font-family: var(--font-display);
-  font-size: 1.05rem;
-  letter-spacing: 0.05em;
+  font-size: var(--fs-lg);
+  line-height: 1.25;
   color: var(--teal);
   margin: 0 0 6px;
 }
@@ -3308,7 +3309,7 @@
   align-items: center;
   gap: 7px;
   font-family: var(--font-body) !important;
-  font-size: 0.9rem !important;
+  font-size: var(--fs-md) !important;
   letter-spacing: 0 !important;
   text-transform: none !important;
   color: var(--ink) !important;
@@ -3325,7 +3326,7 @@
   margin: 6px 0 0;
   padding: 7px 10px;
   border-left: 3px solid var(--paper-edge);
-  font-size: 0.82rem;
+  font-size: var(--fs-sm);
   color: var(--ink-soft);
 }
 
@@ -3334,7 +3335,7 @@
 /* The user agent is the one line that can run long enough to widen the card. */
 .issue-context__ua {
   overflow-wrap: anywhere;
-  font-size: 0.76rem;
+  font-size: var(--fs-xs);
 }
 
 .issue-open {
@@ -3347,7 +3348,7 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  font-size: 0.88rem;
+  font-size: var(--fs-sm);
 }
 
 .issue-list__row {
@@ -3358,12 +3359,12 @@
 
 .issue-list__row:last-child { border-bottom: none; }
 
-.issue-list__label { margin-left: 6px; font-size: 0.68rem; }
+.issue-list__label { margin-left: 6px; font-size: var(--fs-xs); }
 
 .issue-list__when {
   margin-left: 6px;
   color: var(--ink-soft);
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
 }
 
@@ -3383,7 +3384,7 @@
 .night-board__label {
   font-family: var(--font-gothic);
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -3392,7 +3393,7 @@
 .night-board__drink {
   margin: 2px 0 0;
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: var(--fs-lg);
 }
 
 .night-stats {
@@ -3410,21 +3411,21 @@
 
 .night-stat__num {
   font-family: var(--font-display);
-  font-size: 1.6rem;
+  font-size: var(--fs-xl);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
 .night-stat__label {
   font-family: var(--font-gothic);
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
 
 .night-stat__hint {
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
@@ -3480,7 +3481,7 @@
 .night-hours__num {
   position: absolute;
   top: -12px;
-  font-size: 0.6rem;
+  font-size: var(--fs-xs);
   line-height: 1;
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
@@ -3489,7 +3490,7 @@
 .night-hours__tick {
   position: absolute;
   bottom: -14px;
-  font-size: 0.6rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
@@ -3528,7 +3529,7 @@
 
 .wkpi__label {
   font-family: var(--font-gothic);
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
@@ -3536,13 +3537,13 @@
 
 .wkpi__num {
   font-family: var(--font-display);
-  font-size: 1.9rem;
+  font-size: var(--fs-xxl);
   line-height: 1.1;
   color: var(--teal);
 }
 
 .wkpi__split,
-.wkpi__change { font-size: 0.85rem; color: var(--ink); }
+.wkpi__change { font-size: var(--fs-sm); color: var(--ink); }
 
 /* Direction is carried by the arrow glyph and the verdict text; the weight is
    only emphasis, so nothing here is colour alone. */
@@ -3551,14 +3552,14 @@
 
 .wkpi__verdict {
   display: block;
-  font-size: 0.8rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
 .wau-legend {
   display: flex;
   gap: 14px;
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   color: var(--ink-soft);
   margin-bottom: 6px;
 }
@@ -3601,7 +3602,7 @@
   right: 0;
   margin-bottom: 2px;
   text-align: center;
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
@@ -3611,14 +3612,14 @@
   left: 50%;
   bottom: -16px;
   transform: translateX(-50%);
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
   white-space: nowrap;
 }
 
 .cohort td,
 .cohort th { text-align: center; }
-.cohort__cell { font-size: 0.8rem; }
+.cohort__cell { font-size: var(--fs-xs); }
 .cohort__cell--open { background: repeating-linear-gradient(135deg, transparent 0 4px, rgba(27, 79, 74, 0.07) 4px 6px); }
 .cohort__row--small td { color: var(--ink-soft); }
 
@@ -3634,7 +3635,7 @@
   opacity: 0.55;
 }
 .arrivals__pct { font-weight: 700; }
-.arrivals__na { color: var(--ink-soft); font-size: 0.8rem; }
+.arrivals__na { color: var(--ink-soft); font-size: var(--fs-xs); }
 .arrivals .rate-range { display: inline; margin-left: 4px; }
 
 /* ---- ingredient families (Menu tab) ----
@@ -3654,20 +3655,20 @@
 .iw-detail { margin: 12px 0 8px; max-width: 74ch; min-height: 3.2em; }
 .iw-detail p { margin: 0 0 6px; }
 .iw-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.iw-chip { font: inherit; font-size: 0.8rem; font-weight: 600; padding: 3px 10px; border: 1.5px solid var(--ink-soft); background: var(--paper); color: var(--ink); border-radius: 999px; cursor: pointer; }
+.iw-chip { font: inherit; font-size: var(--fs-xs); font-weight: 700; padding: 3px 10px; border: 1.5px solid var(--ink-soft); background: var(--paper); color: var(--ink); border-radius: 999px; cursor: pointer; }
 .iw-chip--on { background: var(--ink); color: var(--paper); }
 .iw-chip--warn { border-color: var(--cherry); color: var(--cherry); }
 .iw-chip--warn.iw-chip--on { background: var(--cherry); color: var(--on-cherry); }
 .iw-warn { color: var(--ink); }
 .iw-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-.iw-pair label { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--ink-soft); min-width: 0; }
-.iw-pair input { font: inherit; font-size: 0.95rem; padding: 7px 9px; border: 1.5px solid var(--ink-soft); border-radius: 6px; background: #fff; color: var(--ink); min-width: 0; width: 100%; }
+.iw-pair label { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-xs); color: var(--ink-soft); min-width: 0; }
+.iw-pair input { font: inherit; font-size: var(--fs-md); padding: 7px 9px; border: 1.5px solid var(--ink-soft); border-radius: 6px; background: #fff; color: var(--ink); min-width: 0; width: 100%; }
 .iw-result p { margin: 0 0 8px; }
 .iw-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-.iw-tag { font-size: 0.82rem; border-radius: 999px; padding: 3px 11px; border: 1px solid var(--miss); color: var(--ink-soft); background: transparent; }
-.iw-tag small { font-size: 0.72rem; margin-left: 4px; opacity: 0.85; }
+.iw-tag { font-size: var(--fs-sm); border-radius: 999px; padding: 3px 11px; border: 1px solid var(--miss); color: var(--ink-soft); background: transparent; }
+.iw-tag small { font-size: var(--fs-xs); margin-left: 4px; opacity: 0.85; }
 .iw-tag--hit { background: var(--hit-soft); border-color: var(--hit); color: var(--hit-ink); font-weight: 700; }
-.iw-tag--near { background: var(--near-soft); border: 1px dashed var(--near); color: var(--ink); font-weight: 600; }
+.iw-tag--near { background: var(--near-soft); border: 1px dashed var(--near); color: var(--ink); font-weight: 700; }
 @media (max-width: 560px) { .iw-pair { grid-template-columns: 1fr; } }
 
 /* Today's housekeeping when there is nothing to fix: one line, not two cards. */
@@ -3682,7 +3683,7 @@
   border: 1px dashed var(--ink);
   border-radius: 999px;
   font-family: var(--font-body);
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
   line-height: 1.5;
   color: var(--ink);
   vertical-align: 2px;
@@ -3694,7 +3695,7 @@
 
 .occasion-billing {
   font-family: var(--font-body);
-  font-size: 0.85rem;
+  font-size: var(--fs-sm);
   font-style: italic;
   font-weight: 400;
   color: var(--ink-soft);
@@ -3728,13 +3729,13 @@
 .occasion-metric__sub {
   display: block;
   margin-top: 4px;
-  font-size: 0.78rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
 .occasion-first {
   margin: 10px 0 0;
-  font-size: 0.92rem;
+  font-size: var(--fs-md);
   color: var(--ink);
 }
 
