@@ -40,7 +40,7 @@ const SECTION: Record<
     command: "/create-dishes",
     addLabel: "Add as dish",
     where: "the check after a round",
-    empty: "No dish requests. They show up here as players send them in from the check.",
+    empty: "No dish requests.",
   },
   drink: {
     heading: "Drink requests",
@@ -48,7 +48,7 @@ const SECTION: Record<
     command: "/create-drinks",
     addLabel: "Add as drink",
     where: "the tab after a Nightcap",
-    empty: "No drink requests. They show up here as players send them in from the tab.",
+    empty: "No drink requests.",
   },
 };
 
@@ -225,8 +225,7 @@ export default function RequestsView({
           <h3 style={{ marginTop: 0 }}>Clear all {SECTION[confirmingClear].noun} requests?</h3>
           <p>
             Remove all {byKind[confirmingClear].length} {SECTION[confirmingClear].noun} request
-            {byKind[confirmingClear].length === 1 ? "" : "s"} from the inbox? This can't be undone — copy them first if
-            you want to keep them.
+            {byKind[confirmingClear].length === 1 ? "" : "s"}? Can't be undone.
           </p>
           <div className="btn-row" style={{ marginTop: 16 }}>
             <button className="btn btn--red" onClick={() => void clearSection(confirmingClear)}>

@@ -1545,18 +1545,46 @@
   background: rgba(230, 217, 184, 0.25);
   white-space: normal;
 }
-.act-beacons { margin: 6px 0; padding-left: 0; list-style: none; }
-.act-beacons li { padding: 2px 0; font-size: var(--fs-xs); }
-.act-beacons .ev-sub { display: inline; margin-left: 6px; }
-
-/* A round's guesses, one per line, in the order they were made. The answer is a
-   word and a check, never a colour: the dashboard's four colour meanings are
-   taken. */
-.act-guesses { margin: 8px 0; padding-left: 0; list-style: none; }
-.act-guesses li { display: flex; align-items: baseline; gap: 8px; padding: 2px 0; font-size: var(--fs-xs); }
-.act-guesses .ev-sub { display: inline; }
-.act-guesses__n { min-width: 1.4em; font-family: var(--font-gothic); }
-.act-guesses__hit { font-family: var(--font-gothic); letter-spacing: 0.04em; text-transform: uppercase; }
+/* An expanded round as a timeline: clock time, a marker on a rule, then what
+   happened. The rule is ink; the beacon badges keep their event colours and
+   nothing else takes one. A faint step (not on file, not finished) is a hollow
+   line, never a fifth colour. The answer is a word and a check. */
+.act-timeline { position: relative; margin: 8px 0; padding: 0; list-style: none; }
+.act-timeline::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: calc(5.5em + 12px + 3em);
+  border-left: 1px solid var(--ink-soft);
+}
+.act-timeline__step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 5.5em 6em 1fr;
+  column-gap: 12px;
+  align-items: baseline;
+  padding: 3px 0;
+  font-size: var(--fs-xs);
+}
+.act-timeline__at { text-align: right; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.act-timeline__mark { position: relative; display: flex; justify-content: center; }
+.act-timeline__mark .ev-badge { font-size: var(--fs-xs); padding: 1px 6px; white-space: nowrap; }
+.act-timeline__n {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.6em;
+  height: 1.6em;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: var(--cream);
+  font-family: var(--font-gothic);
+}
+.act-timeline__step--faint .act-timeline__n { border-style: dashed; color: var(--ink-soft); }
+.act-timeline__step--faint .act-timeline__body { color: var(--ink-soft); }
+.act-timeline__body .ev-sub { display: inline; }
+.act-timeline__after { margin-left: 8px; }
+.act-timeline__hit { margin-left: 6px; font-family: var(--font-gothic); letter-spacing: 0.04em; text-transform: uppercase; }
 
 /* ---- visit headers ---- */
 
@@ -3762,3 +3790,31 @@
   border: 1px dashed var(--ink);
   background: color-mix(in srgb, var(--ink) 6%, transparent);
 }
+
+/* The regulars: one table, cut into the questions it answers. A section row is
+   a caption across all three columns; a row's label is a row header in body
+   type, so it reads as a question, not a column title. */
+.regulars-table tbody th[scope="row"] {
+  text-align: left;
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ink);
+  font-weight: normal;
+  padding: 5px 8px;
+  border-bottom: 1px dashed var(--paper-edge);
+}
+.regulars-table td { vertical-align: top; }
+.regulars-table__section th {
+  padding: 16px 8px 4px;
+  text-align: left;
+  color: var(--ink);
+  border-bottom: 1px solid var(--ink-soft);
+}
+.regulars-table__section .ev-sub {
+  font-family: var(--font-body);
+  letter-spacing: normal;
+  text-transform: none;
+}
+.regulars-table tbody:first-of-type .regulars-table__section th { padding-top: 8px; }

@@ -64,6 +64,7 @@ describe("foldRoundGuesses", () => {
     name,
     country: name ? "Italy" : null,
     correct,
+    created_at: `2026-10-08 20:0${guess_number}:00`,
   });
 
   it("returns the guesses in the order they were made, whatever order they arrive in", () => {
@@ -78,7 +79,9 @@ describe("foldRoundGuesses", () => {
 
   it("keeps a guess whose dish has left the catalogue, nameless, rather than dropping it", () => {
     const r = foldRoundGuesses("round-1", [row(1, null)]);
-    expect(r.guesses).toEqual([{ number: 1, name: null, country: null, correct: false }]);
+    expect(r.guesses).toEqual([
+      { number: 1, name: null, country: null, correct: false, at: "2026-10-08T20:01:00Z" },
+    ]);
   });
 
   it("is empty for a round the ledger never saw: unmeasured, not zero guesses", () => {

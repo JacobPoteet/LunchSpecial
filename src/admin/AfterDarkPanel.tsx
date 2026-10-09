@@ -9,7 +9,7 @@
 import { useEffect, useState } from "react";
 import GuessPanel from "./GuessPanel";
 import type { AfterDarkReport, CrossoverDay, NightDrinkRow, NightServiceDay } from "../../shared/types";
-import { DRINK_MAX_GUESSES, NIGHT_EPOCH_DATE } from "../../shared/types";
+import { DRINK_MAX_GUESSES } from "../../shared/types";
 import { BAR_CLOSE_HOUR, BAR_OPEN_HOUR } from "../../shared/night";
 import { rangeLabel, type Rate } from "../../shared/sample";
 import * as api from "./api";
@@ -83,7 +83,7 @@ function HourProfile({
   const peak = Math.max(1, ...hours);
   const total = hours.reduce((a, b) => a + b, 0);
   if (total === 0) {
-    return <p className="dash-note">No Nightcaps recorded yet, so there is no shape to read.</p>;
+    return <p className="dash-note">No Nightcaps yet.</p>;
   }
   // Rotated so column 0 is opening time. Still every hour, still in clock order.
   const axis = Array.from({ length: 24 }, (_, i) => (BAR_OPEN_HOUR + i) % 24);
@@ -112,20 +112,9 @@ function HourProfile({
         })}
       </div>
       <p className="dash-note">
-        Local hour, from each device's own clock. The axis opens at{" "}
-        {hourLabel(BAR_OPEN_HOUR)}; shaded columns are hours the door is shut.
-        {untracked > 0 && (
-          <>
-            {" "}
-            <b>{untracked}</b> {untracked === 1 ? "round carries" : "rounds carry"} no offset and{" "} {untracked === 1 ? "is" : "are"} not placed.
-          </>
-        )}
-        {outside > 0 && (
-          <>
-            {" "}
-            <b>{outside}</b> started with the doors shut (a wound-forward clock), drawn where they landed.
-          </>
-        )}
+        Player&apos;s local hour. Shaded: closed.
+        {untracked > 0 && ` ${untracked} without a clock left out.`}
+        {outside > 0 && ` ${outside} started while closed.`}
       </p>
     </>
   );
@@ -239,7 +228,7 @@ export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) 
           <div>
             <p className="night-board__label">Tonight</p>
             <p className="night-board__drink">
-              {board.tonight.drinkName ?? <span className="dash-note">unbooked — runs on the fallback pour</span>}
+              {board.tonight.drinkName ?? <span className="dash-note">unbooked: fallback pour</span>}
             </p>
           </div>
           <div>
@@ -248,15 +237,13 @@ export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) 
               {board.tomorrow.drinkName ? (
                 <Veiled veil={tomorrowVeil} text={board.tomorrow.drinkName} what="tomorrow's pour" />
               ) : (
-                <span className="dash-note">unbooked — runs on the fallback pour</span>
+                <span className="dash-note">unbooked: fallback pour</span>
               )}
             </p>
           </div>
         </div>
         <p className="dash-note">
-          {board.bookedAhead} {board.bookedAhead === 1 ? "night" : "nights"} booked from tonight ·{" "}
-          {board.neverPoured} {board.neverPoured === 1 ? "drink has" : "drinks have"} never been on.
-          {board.neverPoured === 0 && " The shuffle has nothing left to roll."}
+          {board.bookedAhead} {board.bookedAhead === 1 ? "night" : "nights"} booked · {board.neverPoured} never poured
         </p>
       </section>
 
@@ -271,9 +258,6 @@ export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) 
           <RateStat label="Solved" rate={report.totals.winRate} />
           <RateStat label="Shared" rate={report.totals.shareRate} />
         </div>
-        <p className="dash-note">
-          
-        </p>
         <h3>Guesses used</h3>
         <NightGuessBars dist={report.guessDistribution} fails={fails} />
         <p className="dash-note">
@@ -289,28 +273,11 @@ export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) 
           <CountStat label="Did" value={crossover.cameToBar} hint="devices" />
         </div>
         <p className="dash-note">
-          The denominator is devices that <b>finished that day&apos;s Special</b>, on a night the bar was open and is now over. Devices, not rounds.
+          Of devices that finished the Special, closed nights only.
+          {crossover.pending &&
+            ` Tonight so far: ${crossover.pending.cameToBar} of ${crossover.pending.finishedLunch}.`}
+          {crossover.barOnly > 0 && ` ${crossover.barOnly} came to the bar without lunch, left out.`}
         </p>
-        <p className="dash-note">
-          Left out: Specials finished before the bar&apos;s first night ({shortDate(NIGHT_EPOCH_DATE)}), and nights still being played.{" "}
-          {crossover.pending ? (
-            <>
-              <b>{crossover.pending.finishedLunch}</b>{" "}
-              {crossover.pending.finishedLunch === 1 ? "device has" : "devices have"} finished lunch so
-              far and <b>{crossover.pending.cameToBar}</b>{" "}
-              {crossover.pending.cameToBar === 1 ? "has" : "have"} come down.
-            </>
-          ) : (
-            null
-          )}
-        </p>
-        {crossover.barOnly > 0 && (
-          <p className="dash-note">
-            <b>{crossover.barOnly}</b> {crossover.barOnly === 1 ? "device" : "devices"} reached the bar
-            without finishing a Special on the same key (lunch on a phone, a drink on a laptop). Counted in neither half of the rate.
-          </p>
-        )}
-        {crossover.rate?.small && <p className="dash-note">{SAMPLE_NOTE}</p>}
       </section>
 
       <section className="panel">
@@ -366,9 +333,7 @@ export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) 
             note={`${report.alcohol.sober.completed} finished`}
           />
         </div>
-        <p className="dash-note">
-          Split on the stored flag. Two rates differ only when their intervals stop overlapping.
-        </p>
+
       </section>
 
       {/* Drinks only. The kitchen's version of this panel is on Menu. */}
@@ -391,8 +356,8 @@ export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) 
                   <th>Finished</th>
                   <th>Solved</th>
                   <th>Shared</th>
-                  <th title="Devices that finished that day&apos;s Special">Could have</th>
-                  <th title="Of those, how many came to the bar">Stayed</th>
+                  <th title="Finished the Special">Could have</th>
+                  <th>Stayed</th>
                 </tr>
               </thead>
               <tbody>
@@ -431,9 +396,7 @@ export default function AfterDarkPanel({ surface }: { surface: SurfaceFilter }) 
               </tbody>
             </table>
           </div>
-          <p className="dash-note">
-            Newest first. Nights with no rounds are omitted; a night still being played shows counts, no rate.
-          </p>
+
           </details>
         </section>
       )}

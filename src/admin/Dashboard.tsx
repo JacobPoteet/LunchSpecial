@@ -252,10 +252,10 @@ export default function Dashboard({
           <GuessPanel />
           {/* The catalogue halves answer questions you ask rarely and fetch
               their own data, so they stay a bar until opened. */}
-          <Fold title="Menu mix" hint="What the kitchen has served, against the pool. Catalogue data.">
+          <Fold title="Menu mix" hint="Served vs the pool.">
             <MenuMixPanel onOpenDishes={onOpenDishes} />
           </Fold>
-          <Fold title="Ingredient families" hint="What a guess would call close, drawn. Catalogue data.">
+          <Fold title="Ingredient families" hint="What counts as close.">
             <IngredientWebPanel />
           </Fold>
         </>

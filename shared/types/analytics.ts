@@ -1002,6 +1002,11 @@ export interface RoundGuess {
   country: string | null;
   /** The guess was the answer (guessed id = target id; never stored). */
   correct: boolean;
+  /**
+   * When the Worker wrote it, as an ISO-8601 UTC instant. A retried number
+   * rewrites the row, so this is the last write, not the first try.
+   */
+  at: string;
 }
 
 /**
@@ -1062,6 +1067,12 @@ export interface RegularsGroup {
     solvedIn: number[];
     /** Same, but only each device's first finished Special: skill before practice. */
     firstSolvedIn: number[];
+    /**
+     * Devices whose first finished Special was solved, of devices that finished
+     * one. `firstSolvedIn` alone counts only the solves, so it can't say how
+     * many first Specials were lost.
+     */
+    firstSolved: Tally;
   };
   /** Devices that have ever played each kind of round. */
   reach: Record<RoundKind, Tally>;
@@ -1073,6 +1084,8 @@ export interface RegularsGroup {
   dayOne: { finished: Tally; solved: Tally; shared: Tally; extra: Tally };
   /** First-touch source, most devices first. Devices from before source tracking are left out. */
   sources: { source: string; devices: number }[];
+  /** Devices with a known first-touch source: the denominator for `sources`. */
+  sourced: number;
 }
 
 /**
@@ -1090,7 +1103,16 @@ export interface RegularsReport {
   cutoffDays: number | null;
   /** Null when no device has come back, so there is no top tenth to speak of. */
   regulars: RegularsGroup | null;
+  /**
+   * Devices below the line whose first day is at least a retention window old.
+   * A device first seen this week has not had the time to become a regular, so
+   * it would drag every "ever" and "lately" rate on this side down.
+   */
   rest: RegularsGroup;
+  /** Devices below the line still inside their first window: counted apart, never dropped. */
+  pending: number;
+  /** That window, in days (the retention window), so the panel can name it. */
+  windowDays: number;
   /** The regulars' rounds out of every round. */
   roundsShare: Tally;
   /** First ET day with a tracked device, for the "since" line. */

@@ -53,7 +53,7 @@ function growthNote(trend: GrowthTrend, since: string): string {
 
   // A flat tail is the one case where a ratio would be silly: nothing happened.
   if (trend.recentPerDay === 0) {
-    return `■ Stalled — no games at all in ${lately}. The curve has gone flat against a ${average}.`;
+    return `■ Stalled: no games in ${lately}.`;
   }
   // Cumulative series only rise, so a non-positive slope means the whole run is
   // one burst and there's no average worth dividing by.
@@ -64,12 +64,12 @@ function growthNote(trend: GrowthTrend, since: string): string {
   const ratio = trend.recentPerDay / trend.slope;
   const recent = `${lately} ran about ${games(trend.recentPerDay)} games a day`;
   if (ratio > 1 + GROWTH_STEADY_BAND) {
-    return `▲ Gaining — ${recent}, ahead of the ${average}. The curve is pulling above its steady-pace line.`;
+    return `▲ Gaining: ${recent}, vs ${average}.`;
   }
   if (ratio < 1 - GROWTH_STEADY_BAND) {
-    return `▼ Losing steam — ${recent}, behind the ${average}. The curve is flattening off.`;
+    return `▼ Slowing: ${recent}, vs ${average}.`;
   }
-  return `Holding steady — ${recent}, in line with the ${average}. Growth is straight-line, not compounding.`;
+  return `Steady: ${recent}, in line with ${average}.`;
 }
 
 /**
@@ -290,18 +290,16 @@ const WEEKDAY_MIN_OCCURRENCES = 3;
 function weekdayNote(byWeekday: WeekdayPlay[]): string | null {
   const eligible = byWeekday.filter((d) => d.days >= WEEKDAY_MIN_OCCURRENCES);
   if (eligible.length < 2) {
-    return `Every weekday needs about ${WEEKDAY_MIN_OCCURRENCES} outings before its average means anything — check back in a couple of weeks.`;
+    return `Needs ${WEEKDAY_MIN_OCCURRENCES} of each weekday.`;
   }
   const sorted = [...eligible].sort((a, b) => b.perDay - a.perDay);
   const best = sorted[0];
   const worst = sorted[sorted.length - 1];
   if (best.perDay === 0) return null;
   const ratio = worst.perDay === 0 ? Infinity : best.perDay / worst.perDay;
-  const lead = `${WEEKDAY_LABELS[best.weekday]} is the busiest day at ${best.perDay.toFixed(1)} games a time, ${WEEKDAY_LABELS[worst.weekday]} the quietest at ${worst.perDay.toFixed(1)}`;
-  if (ratio < 1.25) {
-    return `${lead} — close enough that the week is basically flat, so a dip on any one day is worth looking into rather than shrugging off.`;
-  }
-  return `${lead}, about ${ratio === Infinity ? "∞" : `${ratio.toFixed(1)}×`} the traffic. Worth scheduling the harder Specials into the busy days, where a low win rate is measured on enough people to mean something.`;
+  const lead = `Busiest ${WEEKDAY_LABELS[best.weekday]} (${best.perDay.toFixed(1)}), quietest ${WEEKDAY_LABELS[worst.weekday]} (${worst.perDay.toFixed(1)})`;
+  if (ratio < 1.25) return `${lead}. Flat week.`;
+  return `${lead}, ${ratio === Infinity ? "∞" : `${ratio.toFixed(1)}×`}.`;
 }
 
 /**
@@ -409,7 +407,7 @@ function Heatmap({ rhythm }: { rhythm: PlayRhythm }) {
         <span className="heat__corner" />
       </div>
       <p className="dash-note heat__caption">
-        Rounds started, by ET weekday and hour, all time. The side and bottom bars are the grid's totals.
+        Rounds started by ET weekday and hour. Edge bars are totals.
       </p>
     </div>
   );
@@ -573,15 +571,7 @@ export default function TrendsPanel({
             <GrowthChart growth={growth} experiments={experiments} occasions={(occasions?.events ?? [])
                 .filter((e) => e.isActive && e.startDate <= occasions!.today)
                 .map((e): OccasionRun => ({ occasionId: e.occasionId, start: e.startDate, end: e.endDate }))} />
-            <details className="dash-details">
-              <summary>How to read it</summary>
-              <p className="dash-note">
-                A running total of every game started, by ET day. It only goes up, so read the shape.{" "}
-            {growth.trend
-              ? "The dashed line is one constant pace, for reference."
-              : "The steady-pace line appears with more history."}
-              </p>
-            </details>
+            {growth.trend && <p className="dash-note">Dashed: steady pace.</p>}
           </>
         )}
       </section>
@@ -594,7 +584,7 @@ export default function TrendsPanel({
         {weekday && <p className="dish-report__headline">{weekday}</p>}
         <WeekdayProfile byWeekday={rhythm.byWeekday} />
         <p className="dash-note">
-          Games started per <em>occurrence</em> of each weekday, not in total.
+          Games per occurrence of each weekday.
         </p>
       </section>
 

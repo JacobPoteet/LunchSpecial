@@ -37,7 +37,7 @@ const STATUS_META: { key: OccasionStatus; label: string; blurb: string }[] = [
   { key: "active", label: "On now", blurb: "Players are seeing this costume today." },
   { key: "upcoming", label: "Booked", blurb: "Waiting on its first day." },
   { key: "past", label: "Ran", blurb: "Finished. Its numbers are final." },
-  { key: "retired", label: "Pulled", blurb: "Switched off by hand, whatever the dates say. Keeps the numbers it earned." },
+  { key: "retired", label: "Pulled", blurb: "Switched off by hand." },
 ];
 
 const span = (b: { startDate: string; endDate: string }) =>
@@ -190,10 +190,7 @@ function Details({ reach, impact }: { reach: OccasionReach; impact: OccasionImpa
         .
       </p>
       <p className="dash-note">
-        Reach counts devices, once each. "Found the ghost" is out of devices that saw the diner; "replayed it later"
-        is a Leftover from one of these days opened after it ended. Impact compares{" "}
-        {shortDate(impact.baseline.start)} – {shortDate(impact.baseline.end)}, the same weekdays; finished is per round
-        started, shared per round finished.
+        Devices, once each. Compared with {shortDate(impact.baseline.start)} – {shortDate(impact.baseline.end)}, same weekdays.
       </p>
     </details>
   );
@@ -262,8 +259,7 @@ function Editor({
             ))}
           </select>
           <p className="field-hint">
-            Each costume is built in code. It usually runs {suggested.from.replace("-", "/")} –{" "}
-            {suggested.to.replace("-", "/")}.
+            Usually {suggested.from.replace("-", "/")} – {suggested.to.replace("-", "/")}.
           </p>
         </div>
 
@@ -278,8 +274,7 @@ function Editor({
           </div>
         </div>
         <p className="field-hint">
-          Both days included. Lunch goes by the Special's ET date, the bar by its night. Can't overlap another live
-          event.
+          Both days included. Can't overlap another live event.
         </p>
 
         <div className="field">
@@ -290,7 +285,7 @@ function Editor({
               onChange={(e) => set("isActive", e.target.checked)}
               style={{ width: "auto", marginRight: 8 }}
             />
-            Live (uncheck to pull it without deleting it or its numbers)
+            Live
           </label>
         </div>
 
@@ -392,8 +387,7 @@ export default function OccasionsView() {
       {error && <p className="form-error">{error}</p>}
 
       <p className="dash-note" style={{ marginTop: 0 }}>
-        A costume the whole game wears while its event runs. Reach counts devices that saw it, once each; "Try it
-        on" is never counted.
+        Reach counts devices once each.
       </p>
 
       {unbooked.map(({ o, season }) => (
@@ -472,8 +466,7 @@ export default function OccasionsView() {
         <Modal onClose={() => setConfirmDelete(null)}>
           <h3 style={{ marginTop: 0 }}>Delete {OCCASIONS[confirmDelete.occasionId].name} {span(confirmDelete)}?</h3>
           <p>
-            This removes the booking, and the Events page stops showing its numbers. To take the costume off but keep
-            the numbers, edit it and uncheck <strong>Live</strong> instead.
+            Removes the booking and its numbers. To keep the numbers, uncheck <strong>Live</strong> instead.
           </p>
           <div className="btn-row" style={{ marginTop: 16 }}>
             <button className="btn btn--red" onClick={() => void remove(confirmDelete)}>

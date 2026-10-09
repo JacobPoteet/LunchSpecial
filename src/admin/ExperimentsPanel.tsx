@@ -39,12 +39,12 @@ import { Icon } from "../game/Icon";
 export const METRIC_META: Record<ExperimentMetric, { label: string; hint: string; unit: string }> = {
   visitors: { label: "Visitors", hint: "Devices that opened a board per day", unit: "a day" },
   started: { label: "Games started", hint: "Rounds begun per day, every mode", unit: "a day" },
-  playRate: { label: "Play rate", hint: "Share of the devices that opened a board which then played", unit: "" },
+  playRate: { label: "Play rate", hint: "Openers who played", unit: "" },
   players: { label: "Players", hint: "Distinct devices playing per day", unit: "a day" },
   newPlayers: { label: "New players", hint: "Devices whose first-ever play was that day", unit: "a day" },
-  finishRate: { label: "Finish rate", hint: "Share of started rounds that reached game over", unit: "" },
-  winRate: { label: "Win rate", hint: "Share of finished rounds that were won", unit: "" },
-  shareRate: { label: "Share rate", hint: "Share of finishers who sent their result on", unit: "" },
+  finishRate: { label: "Finish rate", hint: "Started rounds finished", unit: "" },
+  winRate: { label: "Win rate", hint: "Finished rounds won", unit: "" },
+  shareRate: { label: "Share rate", hint: "Finishers who shared", unit: "" },
 };
 
 const VERDICT_META: Record<Comparison["verdict"], { label: string; cls: string }> = {
@@ -72,35 +72,31 @@ function evidence(c: Comparison): string {
   const m = METRIC_META[c.metric];
   if (c.before.value === null || c.after.value === null) {
     const side = c.before.value === null ? "before" : "after";
-    return `Not enough data ${side} the change to compare against — ${
-      side === "before" ? "this shipped too close to the start of the record" : "give it a few more days"
-    }.`;
+    return `Not enough data ${side} the change.`;
   }
   if (c.isRate) {
-    return `${valueLabel(c.before, true)} of ${c.before.n} → ${valueLabel(c.after, true)} of ${c.after.n}. A percentage off ${c.after.n} round${c.after.n === 1 ? "" : "s"} is only as firm as that number.`;
+    return `${valueLabel(c.before, true)} of ${c.before.n} → ${valueLabel(c.after, true)} of ${c.after.n}.`;
   }
   const swing = c.before.sd ?? 0;
   return `${valueLabel(c.before, false)} ${m.unit} over ${c.before.days} day${
     c.before.days === 1 ? "" : "s"
-  } → ${valueLabel(c.after, false)} ${m.unit} over ${c.after.days}. Day to day this metric swings about ±${swing.toFixed(1)} on its own.`;
+  } → ${valueLabel(c.after, false)} ${m.unit} over ${c.after.days}. Daily swing ±${swing.toFixed(1)}.`;
 }
 
 /** How the verdict should be acted on, which is not the same as what it says. */
 function advice(c: Comparison): string | null {
   if (c.verdict === "moved-up" || c.verdict === "moved-down") {
-    return "The gap is bigger than this metric's own noise over these windows. That's as close to a result as this volume gets — worth keeping.";
+    return "Bigger than the noise.";
   }
   if (c.daysNeeded === null) {
     return c.verdict === "inconclusive"
-      ? "Nothing to project from yet — there'll be a estimate here once both sides have a few days."
+      ? "Needs a few days each side."
       : null;
   }
   if (c.daysNeeded === 0) {
-    return `There's enough data now to have caught a ${Math.round(TARGET_LIFT * 100)}% change, and none showed. A smaller effect is still possible — this rules out a big one, not any one.`;
+    return `Rules out a ${Math.round(TARGET_LIFT * 100)}% change, not a smaller one.`;
   }
-  return `At this traffic, spotting a ${Math.round(
-    TARGET_LIFT * 100,
-  )}% change would take about ${c.daysNeeded} more day${c.daysNeeded === 1 ? "" : "s"}. Until then the honest answer is "don't know" — not "it didn't work".`;
+  return `About ${c.daysNeeded} more day${c.daysNeeded === 1 ? "" : "s"} to spot a ${Math.round(TARGET_LIFT * 100)}% change.`;
 }
 
 /**
@@ -252,9 +248,7 @@ function ExperimentCard({
 
       {offPlan && (
         <p className="xp__offplan">
-          This change was declared against <strong>{METRIC_META[experiment.metric].label}</strong>. Reading a
-          different metric is fine for a look around, but a result you went hunting for isn't the same kind of
-          evidence as the one you predicted.
+          Logged against <strong>{METRIC_META[experiment.metric].label}</strong>. Other metrics are a look around, not evidence.
         </p>
       )}
 
@@ -470,7 +464,7 @@ export default function ExperimentsPanel({
           )}
         </div>
         <p className="dash-note">
-          Did something you changed cause it? Each change is measured against the metric you named when you logged it. “Too early to tell” is the normal answer for a couple of weeks.
+          Each change is measured on the metric logged with it.
         </p>
       </section>
 
@@ -491,7 +485,7 @@ export default function ExperimentsPanel({
       {experiments.length === 0 && !showForm && (
         <section className="panel">
           <p className="dash-note">
-            Nothing logged yet. Log a change with the metric you expect it to move.
+            Nothing logged yet.
           </p>
         </section>
       )}

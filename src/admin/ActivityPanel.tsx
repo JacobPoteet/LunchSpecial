@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type {
   ActivityFeed,
   AnalyticsEventType,
@@ -257,9 +257,6 @@ function MyDataPanel({
       <div className="analytics-head">
         <h2>This device's data</h2>
       </div>
-      <p className="dash-note">
-        Your own play-testing is in every number here, including arrivals. Review what this browser recorded, then clear it.
-      </p>
 
       {!playerId && (
         <p className="dash-note" style={{ marginTop: 12 }}>
@@ -364,13 +361,12 @@ function MyDataPanel({
         <Modal onClose={() => setConfirming(false)}>
           <h3 style={{ marginTop: 0 }}>Delete this device's data?</h3>
           <p>
-            This permanently removes <strong>{summary.rounds.total}</strong> round
+            Removes <strong>{summary.rounds.total}</strong> round
             {summary.rounds.total === 1 ? "" : "s"}, <strong>{summary.guesses}</strong> guess
             {summary.guesses === 1 ? "" : "es"}, <strong>{summary.visits.total}</strong> arrival
             {summary.visits.total === 1 ? "" : "s"}, <strong>{summary.noticeViews}</strong> notice view
             {summary.noticeViews === 1 ? "" : "s"} and <strong>{summary.occasionViews}</strong> event sighting
-            {summary.occasionViews === 1 ? "" : "s"} recorded by this browser. Every chart on the dashboard will
-            change. It can't be undone — there's no backup of the live database unless you took one.
+            {summary.occasionViews === 1 ? "" : "s"}. Can't be undone.
           </p>
           <div className="btn-row" style={{ marginTop: 16 }}>
             <button className="btn btn--red" onClick={wipe}>
@@ -647,44 +643,48 @@ function GroupHeader({
 
 const surfaceLabel = (s: string) => (s === "discord" ? "Discord" : "Web");
 
-/** The three beacons written out, under an expanded round. */
-function BeaconList({ round }: { round: ActivityRoundView }) {
-  const rows: { type: AnalyticsEventType; at: string | null; on: boolean; delta: number | null }[] = [
-    { type: "start", at: round.startedAt, on: true, delta: null },
-    { type: "complete", at: round.completedAt, on: round.completed, delta: round.solveMs },
-    { type: "share", at: round.sharedAt, on: round.shared, delta: round.shareMs },
-  ];
-  return (
-    <ul className="act-beacons">
-      {rows
-        .filter((r) => r.on)
-        .map((r) => (
-          <li key={r.type}>
-            <span className={`ev-badge ev-badge--${EVENT_META[r.type].cls}`}>{EVENT_META[r.type].label}</span>{" "}
-            {r.at ? etStamp(r.at) : "time not recorded (round predates per-event stamps)"}
-            {r.delta !== null && <span className="ev-sub"> +{spanLabel(r.delta)}</span>}
-          </li>
-        ))}
-    </ul>
-  );
+/** One line of a round's timeline. */
+interface Step {
+  key: string;
+  at: string | null;
+  /** The marker: a beacon badge, or a guess number. */
+  mark: ReactNode;
+  body: ReactNode;
+  /** The gap that matters for this step, already worded ("+38s"). */
+  after?: string | null;
+  /** Hollow marker: a step that didn't happen (yet), or one the ledger lacks. */
+  faint?: boolean;
 }
 
+/** Milliseconds from a to b, or null when either end is missing or the order is broken. */
+const gapMs = (a: string | null, b: string | null): number | null => {
+  if (!a || !b) return null;
+  const ms = Date.parse(b) - Date.parse(a);
+  return ms >= 0 ? ms : null;
+};
+
 /**
- * What the round guessed, in order, under its beacons.
+ * An expanded round as one timeline: started, each guess in order, then how it
+ * ended and whether it was shared.
  *
- * Fetched when the row opens, not with the feed: fifty rounds of guesses would
- * be a long payload for a read most rows never get. The ledger only has rounds
- * from the release that added it, so an empty answer is **unmeasured**, and the
- * line says so. A round with fewer rows than guesses used (a retry the Worker
- * never saw) says that instead, never a list pretending to be whole.
+ * The beacons render at once; the guesses are fetched when the row opens, not
+ * with the feed (fifty rounds of guesses would be a long payload for a read most
+ * rows never get), and are refetched when a live round gains one.
  *
- * The answer carries a check mark and the word "answer", not a colour.
+ * Each guess carries the wait since the step before it, which is the read the
+ * timeline exists for: where a player stalled. Guess one has no wait; the start
+ * beacon fires on it. A wait that comes out negative (two clocks, one beacon)
+ * is dropped, never clamped.
+ *
+ * The ledger starts with the release that added it, so an empty answer is
+ * **unmeasured** and says so in the guesses' place. A number the ledger lacks
+ * (a retry the Worker never saw) gets its own faint line rather than closing up
+ * the gap. The answer carries a check and the word, never a colour.
  */
-function RoundGuessList({ round }: { round: ActivityRoundView }) {
+function RoundTimeline({ round }: { round: ActivityRoundView }) {
   const [data, setData] = useState<RoundGuesses | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Refetched when the round gains a guess, so a live row does not go stale.
   useEffect(() => {
     let alive = true;
     api.getRoundGuesses(round.roundId).then(
@@ -696,35 +696,106 @@ function RoundGuessList({ round }: { round: ActivityRoundView }) {
     };
   }, [round.roundId, round.guesses]);
 
-  if (error) return <p className="dash-note">Couldn't load the guesses: {error}</p>;
-  if (!data) return <p className="dash-note">Reading the order tickets…</p>;
-  if (data.guesses.length === 0) {
-    return (
-      <p className="dash-note">
-        No guesses on file for this round. They are written from the release that added the guess ledger onward, and only
-        for a round the player's browser tagged, so this is unmeasured rather than empty.
-      </p>
-    );
+  const steps: Step[] = [
+    {
+      key: "start",
+      at: round.startedAt,
+      mark: <span className={`ev-badge ev-badge--${EVENT_META.start.cls}`}>{EVENT_META.start.label}</span>,
+      body: null,
+    },
+  ];
+
+  let note: string | null = null;
+  if (error) note = `Couldn't load the guesses: ${error}`;
+  else if (!data) note = "Reading the order tickets…";
+  else if (data.guesses.length === 0) {
+    note = "No guesses on file.";
+  } else {
+    const byNumber = new Map(data.guesses.map((g) => [g.number, g]));
+    const last = Math.max(round.guesses ?? 0, ...data.guesses.map((g) => g.number));
+    let prev: string | null = round.startedAt;
+    for (let n = 1; n <= last; n++) {
+      const g = byNumber.get(n);
+      const mark = <span className="act-timeline__n">{n}</span>;
+      if (!g) {
+        steps.push({ key: `g${n}`, at: null, mark, body: <span className="ev-sub">Not on file</span>, faint: true });
+        prev = null;
+        continue;
+      }
+      const wait = n === 1 ? null : gapMs(prev, g.at);
+      steps.push({
+        key: `g${n}`,
+        at: g.at,
+        mark,
+        body: (
+          <>
+            <strong>{g.name ?? "Left the menu"}</strong>
+            {g.country && <span className="ev-sub"> · {g.country}</span>}
+            {g.correct && <span className="act-timeline__hit"> ✓ answer</span>}
+          </>
+        ),
+        after: wait === null ? null : `+${spanLabel(wait)}`,
+      });
+      prev = g.at;
+    }
   }
-  const missing = round.guesses !== null && data.guesses.length < round.guesses;
+
+  if (round.completed) {
+    const ending =
+      round.guesses === null
+        ? STATE_LABEL[round.state]
+        : round.state === "solved"
+          ? `Solved in ${round.guesses}`
+          : `${STATE_LABEL[round.state]} after ${round.guesses}`;
+    steps.push({
+      key: "complete",
+      at: round.completedAt,
+      mark: <span className={`ev-badge ev-badge--${EVENT_META.complete.cls}`}>{EVENT_META.complete.label}</span>,
+      body: (
+        <>
+          {ending}
+          {!round.completedAt && <span className="ev-sub"> · time not recorded</span>}
+        </>
+      ),
+      after: round.solveMs === null ? null : `${spanLabel(round.solveMs)} at the counter`,
+    });
+  } else {
+    steps.push({ key: "open", at: null, mark: <span className="act-timeline__n">·</span>, body: STATE_LABEL[round.state], faint: true });
+  }
+
+  if (round.shared) {
+    steps.push({
+      key: "share",
+      at: round.sharedAt,
+      mark: <span className={`ev-badge ev-badge--${EVENT_META.share.cls}`}>{EVENT_META.share.label}</span>,
+      body: round.sharedAt ? null : <span className="ev-sub">time not recorded</span>,
+      after: round.shareMs === null ? null : `+${spanLabel(round.shareMs)} after finishing`,
+    });
+  }
+
   return (
-    <>
-      <ol className="act-guesses">
-        {data.guesses.map((g) => (
-          <li key={g.number}>
-            <span className="act-guesses__n">{g.number}</span>
-            <span className="ev-when">{g.name ?? "Left the menu"}</span>
-            {g.country && <span className="ev-sub">{g.country}</span>}
-            {g.correct && <span className="act-guesses__hit">✓ answer</span>}
+    <ol className="act-timeline">
+      {steps.map((s, i) => (
+        <Fragment key={s.key}>
+          <li className={`act-timeline__step${s.faint ? " act-timeline__step--faint" : ""}`}>
+            <span className="act-timeline__at">{s.at ? clock(s.at) : ""}</span>
+            <span className="act-timeline__mark">{s.mark}</span>
+            <span className="act-timeline__body">
+              {s.body}
+              {s.after && <span className="ev-sub act-timeline__after">{s.after}</span>}
+            </span>
           </li>
-        ))}
-      </ol>
-      {missing && (
-        <p className="dash-note">
-          {data.guesses.length} of {round.guesses} guesses on file.
-        </p>
-      )}
-    </>
+          {/* The guesses sit between the start and the ending; a note stands in their place. */}
+          {i === 0 && note && (
+            <li className="act-timeline__step act-timeline__step--faint">
+              <span className="act-timeline__at" />
+              <span className="act-timeline__mark" />
+              <span className="act-timeline__body dash-note">{note}</span>
+            </li>
+          )}
+        </Fragment>
+      ))}
+    </ol>
   );
 }
 
@@ -866,7 +937,7 @@ export default function ActivityPanel({
               title={
                 g === "log"
                   ? "Every round in time order"
-                  : "Folded into visits — one device, one ET day, the same unit the funnel counts"
+                  : "One device, one ET day"
               }
               className={`surface-toggle__btn${group === g ? " surface-toggle__btn--active" : ""}`}
               onClick={() => setGroup(g)}
@@ -885,7 +956,7 @@ export default function ActivityPanel({
         </button>
         <button
           className={`btn btn--ghost btn--small${date ? " btn--on" : ""}`}
-          title="Show one ET day's service instead of the most recent rounds"
+          title="Pick an ET day"
           onClick={() => setPickingDay(true)}
         >
           <Icon name="calendar" /> {date ?? "All days"}
@@ -909,7 +980,7 @@ export default function ActivityPanel({
   const mineSection = (
     <Fold
       title="This device's data"
-      hint="Your own play-testing is in every number here. Review it, then clear it."
+      hint="Review and clear your own test rounds."
     >
       <MyDataPanel
         playerId={myId}
@@ -1053,8 +1124,7 @@ export default function ActivityPanel({
         {open && (
           <tr className="act-detail">
             <td colSpan={7}>
-              <BeaconList round={r} />
-              <RoundGuessList round={r} />
+              <RoundTimeline round={r} />
               <p className="dash-note">
                 Round <code className="ev-player">{r.roundId}</code> · played {r.playedDay} ET
                 {/* A Nightcap's date is the local night it belongs to, not a
@@ -1152,11 +1222,6 @@ export default function ActivityPanel({
             </>
           )}
         </p>
-        {group === "visit" && (
-          <p className="dash-note">
-            A visit is one device on one ET day. A header showing “3 of 9” means the device played nine rounds that day and three are on this page.
-          </p>
-        )}
         {feed?.since && (
           <p className="dash-note">
             Back to {etStamp(feed.since)}. 

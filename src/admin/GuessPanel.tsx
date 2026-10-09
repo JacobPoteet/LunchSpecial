@@ -107,10 +107,7 @@ export default function GuessPanel({ catalogue = "dish" }: { catalogue?: Catalog
     return (
       <section className="panel">
         <h2>{title}</h2>
-        <p className="dash-note">
-          No guesses recorded yet. They are written as players guess, from the release that added the guess ledger
-          onward; earlier days are unmeasured, not empty.
-        </p>
+        <p className="dash-note">No guesses recorded yet.</p>
       </section>
     );
   }
@@ -165,8 +162,8 @@ export default function GuessPanel({ catalogue = "dish" }: { catalogue?: Catalog
               <thead>
                 <tr>
                   <th>{w.answer}</th>
-                  <th title="Guesses recorded against it, right and wrong">Guesses</th>
-                  <th title="Rounds those guesses came from">Rounds</th>
+                  <th>Guesses</th>
+                  <th>Rounds</th>
                   <th>{w.wrongCol}</th>
                 </tr>
               </thead>
@@ -203,8 +200,8 @@ export default function GuessPanel({ catalogue = "dish" }: { catalogue?: Catalog
       )}
 
       <p className="dash-note" style={{ marginTop: 10 }}>
-        Counts of guesses, not people. {w.foot} No Web/Discord filter: guesses carry no surface. Days before
-        {report.since ? ` ${shortDate(report.since)}` : " recording began"} are unmeasured.
+        Guesses, not people. {w.foot}
+        {report.since && ` Since ${shortDate(report.since)}.`}
       </p>
     </section>
   );

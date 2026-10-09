@@ -125,7 +125,7 @@ export default function DayPicker({
     <Modal onClose={onClose}>
       <h2 className="daypick__title">Pick a service</h2>
       <p className="daypick__lede">
-        Only days with recorded activity can be opened. Everything else is a quiet day.
+        Only days with activity open.
       </p>
       <div className="daypick__legend">
         <span>

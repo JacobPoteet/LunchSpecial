@@ -19,10 +19,10 @@ import * as api from "./api";
 
 /** Display order for the groups — what's live first, history last. */
 const STATUS_META: { key: AnnouncementStatus; label: string; blurb: string }[] = [
-  { key: "active", label: "On the board", blurb: "Running right now — players are seeing these." },
+  { key: "active", label: "On the board", blurb: "Showing now." },
   { key: "upcoming", label: "Booked", blurb: "Waiting on their start date." },
   { key: "past", label: "Served", blurb: "Their window has closed." },
-  { key: "retired", label: "Pulled", blurb: "Switched off by hand, whatever the dates say." },
+  { key: "retired", label: "Pulled", blurb: "Switched off by hand." },
 ];
 
 /** Also used by the dashboard's Overview tab to label a live notice. */
@@ -208,9 +208,7 @@ function Editor({
               <option value="all">Everyone</option>
               <option value="returning">Returning players only</option>
             </select>
-            <p className="field-hint">
-              Returning means the device has finished at least one game.
-            </p>
+            <p className="field-hint">Returning: finished a game before.</p>
           </div>
 
           <div className="field">
@@ -221,7 +219,7 @@ function Editor({
                 onChange={(e) => set("isActive", e.target.checked)}
                 style={{ width: "auto", marginRight: 8 }}
               />
-              Live — uncheck to pull it off the board without deleting it
+              Live
             </label>
           </div>
 
@@ -388,9 +386,8 @@ export default function AnnouncementsPanel() {
         <Modal onClose={() => setConfirmDelete(null)}>
           <h3 style={{ marginTop: 0 }}>Delete "{confirmDelete.header}"?</h3>
           <p>
-            This removes the notice and the {confirmDelete.reach.players} view
-            {confirmDelete.reach.players === 1 ? "" : "s"} recorded against it. To stop showing it but keep the
-            numbers, edit it and uncheck <strong>Live</strong> instead.
+            Removes the notice and its {confirmDelete.reach.players} view
+            {confirmDelete.reach.players === 1 ? "" : "s"}. To keep the numbers, uncheck <strong>Live</strong> instead.
           </p>
           <div className="btn-row" style={{ marginTop: 16 }}>
             <button className="btn btn--red" onClick={() => void remove(confirmDelete)}>
