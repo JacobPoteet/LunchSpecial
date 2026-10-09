@@ -2829,6 +2829,38 @@
 
 .dish-table td { vertical-align: middle; }
 
+/* Dish names run longer than the pantry's ingredients; widen the label column. */
+.mix__row--wide { grid-template-columns: minmax(96px, 170px) minmax(0, 1fr) 34px; }
+
+/* A panel folded to one bar (src/admin/Fold.tsx). The whole bar is the button.
+   No keyframes and no transition: nothing on the dashboard animates. */
+.panel--fold { padding: 0; }
+.fold__btn {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  width: 100%;
+  padding: 14px 20px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: var(--radius-paper);
+  cursor: pointer;
+}
+.fold__btn:hover .fold__title { color: var(--cherry); }
+.fold__title {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 1.22rem;
+  color: var(--teal);
+}
+.fold__title::before { content: "▸ "; }
+.fold__hint { font-size: 0.85rem; color: var(--ink-soft); }
+.fold__hide { margin: -8px 0 16px; }
+
 /* A dish with too few finishes to have a record. Dimmed rather than dropped —
    "how did Wednesday's dish go" is a real question, and a missing row answers it
    worse than a quiet one. */
@@ -3637,6 +3669,9 @@
 .iw-tag--hit { background: var(--hit-soft); border-color: var(--hit); color: var(--hit-ink); font-weight: 700; }
 .iw-tag--near { background: var(--near-soft); border: 1px dashed var(--near); color: var(--ink); font-weight: 600; }
 @media (max-width: 560px) { .iw-pair { grid-template-columns: 1fr; } }
+
+/* Today's housekeeping when there is nothing to fix: one line, not two cards. */
+.panel--calm { padding-top: 12px; padding-bottom: 12px; }
 
 /* ---- Occasions (Schedule page) ----
    A costume on the calendar is an annotation, not a category, so it takes the

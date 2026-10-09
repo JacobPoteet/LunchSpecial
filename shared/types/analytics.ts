@@ -341,6 +341,45 @@ export interface DishReport {
   rounds: number;
 }
 
+/** A dish (or, on the bar, a drink) players ordered, and how many times. */
+export interface GuessPick {
+  id: number;
+  name: string;
+  count: number;
+}
+
+/** What players ordered against one Special: the wrong dishes it draws. */
+export interface GuessReportRow {
+  id: number;
+  name: string;
+  country: string;
+  /** Guesses recorded against this dish as the answer, right and wrong. */
+  guesses: number;
+  /** Rounds those guesses came from. */
+  rounds: number;
+  /** The most-ordered wrong dishes, biggest first. Counts, never rates. */
+  topWrong: GuessPick[];
+}
+
+/**
+ * What players actually guess (analytics_guesses, migrations/0053), for one menu:
+ * the kitchen's on Menu, the bar's on After Dark. Counts throughout: a rate off a handful of
+ * guesses is the thing the dashboard refuses to print.
+ */
+export interface GuessReport {
+  /** Guesses recorded, and the rounds they came from. */
+  guesses: number;
+  rounds: number;
+  /** Day of the first recorded guess. Earlier days are unmeasured, not empty. */
+  since: string | null;
+  /** Answers with at least one wrong guess, most-guessed first. */
+  rows: GuessReportRow[];
+  /** The wrong dishes ordered most across every Special. */
+  decoys: GuessPick[];
+  /** What players open with (guess one), across every Special. */
+  openers: GuessPick[];
+}
+
 /**
  * How long a round takes, as a distribution rather than a mean.
  *

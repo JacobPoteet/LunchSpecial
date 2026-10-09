@@ -8,6 +8,8 @@ import AfterDarkPanel from "./AfterDarkPanel";
 import DishReportPanel from "./DishReportPanel";
 import ExperimentsPanel from "./ExperimentsPanel";
 import IngredientWebPanel from "./IngredientWebPanel";
+import Fold from "./Fold";
+import GuessPanel from "./GuessPanel";
 import MenuMixPanel from "./MenuMixPanel";
 import OverviewPanel from "./OverviewPanel";
 import PlayersPanel from "./PlayersPanel";
@@ -247,8 +249,15 @@ export default function Dashboard({
             onPickDate={setDate}
           />
           <DishReportPanel surface={surface} focusDish={focusDish} onFocused={() => setFocusDish(null)} />
-          <MenuMixPanel onOpenDishes={onOpenDishes} />
-          <IngredientWebPanel />
+          <GuessPanel />
+          {/* The catalogue halves answer questions you ask rarely and fetch
+              their own data, so they stay a bar until opened. */}
+          <Fold title="Menu mix" hint="What the kitchen has served, against the pool. Catalogue data.">
+            <MenuMixPanel onOpenDishes={onOpenDishes} />
+          </Fold>
+          <Fold title="Ingredient families" hint="What a guess would call close, drawn. Catalogue data.">
+            <IngredientWebPanel />
+          </Fold>
         </>
       )}
       {tab === "players" && (

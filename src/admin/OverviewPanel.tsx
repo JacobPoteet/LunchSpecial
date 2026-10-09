@@ -675,6 +675,9 @@ export default function OverviewPanel({
   if (!data) return <p style={{ color: "var(--cream)" }}>Loading the front of house…</p>;
 
   const lowSchedule = data.scheduledAhead < 7;
+  // Nothing to fix: the two housekeeping cards say so in one line at the foot,
+  // and come back as full cards the moment either has something to act on.
+  const calm = !lowSchedule && data.warnings.length === 0;
 
   return (
     <>
@@ -690,6 +693,7 @@ export default function OverviewPanel({
 
         <TonightsNightcap tonight={data.tonight} />
 
+        {!calm && (
         <section className={lowSchedule ? "panel panel--warn" : "panel"}>
           <h2>Schedule health</h2>
           <p className="dash-big">
@@ -705,6 +709,7 @@ export default function OverviewPanel({
             </button>
           </div>
         </section>
+        )}
       </div>
 
       <OnTheBoard
@@ -720,6 +725,19 @@ export default function OverviewPanel({
         onOpenTab={onOpenTab}
       />
 
+      {calm && (
+        <section className="panel panel--calm">
+          <p className="dash-note" style={{ margin: 0 }}>
+            <strong>Housekeeping is clear.</strong> {data.scheduledAhead} day{data.scheduledAhead === 1 ? "" : "s"} booked ahead
+            {data.firstGap ? `, first empty day ${data.firstGap}` : ", next 60 days fully booked"}; every dish is complete.{" "}
+            <button className="link-btn" onClick={() => onNavigate("schedule")}>
+              Open schedule
+            </button>
+          </p>
+        </section>
+      )}
+
+      {!calm && (
       <section className={data.warnings.length > 0 ? "panel panel--warn" : "panel"}>
         <h2>Content warnings</h2>
         {data.warnings.length === 0 ? (
@@ -749,6 +767,7 @@ export default function OverviewPanel({
           </ul>
         )}
       </section>
+      )}
     </>
   );
 }

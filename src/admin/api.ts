@@ -19,6 +19,7 @@ import type {
   DeviceDataDeleted,
   DeviceDataSummary,
   DishReport,
+  GuessReport,
   DishRequest,
   ExperimentInput,
   ExperimentReport,
@@ -132,7 +133,10 @@ export const getPantry = () => request<Pantry>("/pantry");
  */
 /** Weekly active, cohorts and the first-visit funnel — every surface's slice in one call. */
 export const getAudience = () => request<AudienceReport>("/audience");
-export const getDishReport = (surface?: Surface) =>
+/** What players order, per answer: the kitchen's or the bar's. No surface filter (the ledger has none). */
+export const getGuessReport = (catalogue: "dish" | "drink" = "dish") =>
+  request<GuessReport>(catalogue === "dish" ? "/picks" : "/picks/drinks");
+export const getDishReport =(surface?: Surface) =>
   request<DishReport>(`/dish-report${surface ? `?surface=${surface}` : ""}`);
 /**
  * The change log plus the all-time daily series it's measured against. One call:

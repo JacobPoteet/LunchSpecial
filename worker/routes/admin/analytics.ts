@@ -32,6 +32,13 @@ import { foldCountries, type CountryRow } from "../../countries";
 import { foldSources, type VisitSourceRow } from "../../attribution";
 
 import { foldDishStats, type DishMetaRow, type DishStatRow } from "../../dishstats";
+import {
+  foldGuessStats,
+  type GuessNameRow,
+  type GuessPairRow,
+  type GuessRoundsRow,
+  type GuessTotalsRow,
+} from "../../guessstats";
 
 import { foldFunnel, type FunnelBucketRow } from "../../funnel";
 import { foldRhythm, type RhythmRow } from "../../rhythm";
@@ -596,6 +603,50 @@ app.get("/dish-report", async (c) => {
     foldDishStats(roundsRes.results as unknown as DishStatRow[], metaRes.results as unknown as DishMetaRow[]),
   );
 });
+
+// What players order: the wrong picks each answer draws, and what they open
+// with. Reads analytics_guesses, which the guess routes write (worker/guesslog.ts).
+// "/picks" is the kitchen's (dish ids); "/picks/drinks" is the bar's, for the
+// After Dark tab. A Nightcap's drink ids never meet the dish pool.
+//
+// Not surface-filtered: the ledger has no surface column, and joining it to
+// analytics_rounds would drop every guess whose /start beacon never landed.
+// "/picks" for the same ad-blocker reason as "/dish-report".
+async function guessReport(db: D1Database, catalogue: "dish" | "drink") {
+  // Column and table names come from this closed pair, never from the request.
+  const guessed = `guessed_${catalogue}_id`;
+  const target = `target_${catalogue}_id`;
+  const table = catalogue === "dish" ? "dishes" : "drinks";
+  const [pairsRes, roundsRes, namesRes, totalsRes] = await db.batch([
+    db.prepare(
+      `SELECT ${target} AS target_id, ${guessed} AS guessed_id, (guess_number = 1) AS opener, COUNT(*) AS n
+         FROM analytics_guesses
+        WHERE ${guessed} IS NOT NULL
+        GROUP BY ${target}, ${guessed}, opener`,
+    ),
+    db.prepare(
+      `SELECT ${target} AS target_id, COUNT(DISTINCT round_id) AS rounds
+         FROM analytics_guesses
+        WHERE ${guessed} IS NOT NULL
+        GROUP BY ${target}`,
+    ),
+    db.prepare(`SELECT id, name, country FROM ${table}`),
+    db.prepare(
+      `SELECT COUNT(*) AS guesses, COUNT(DISTINCT round_id) AS rounds, MIN(created_at) AS first
+         FROM analytics_guesses
+        WHERE ${guessed} IS NOT NULL`,
+    ),
+  ]);
+  return foldGuessStats(
+    pairsRes.results as unknown as GuessPairRow[],
+    roundsRes.results as unknown as GuessRoundsRow[],
+    namesRes.results as unknown as GuessNameRow[],
+    totalsRes.results[0] as unknown as GuessTotalsRow | undefined,
+  );
+}
+
+app.get("/picks", async (c) => c.json(await guessReport(c.env.DB, "dish")));
+app.get("/picks/drinks", async (c) => c.json(await guessReport(c.env.DB, "drink")));
 
 // Weekly active devices, the cohort grid and the first-visit funnel. Not
 // surface-filtered: the fold returns every surface's slice at once, because the

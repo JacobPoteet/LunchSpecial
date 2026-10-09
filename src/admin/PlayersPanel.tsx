@@ -14,6 +14,7 @@ import type {
 import { DNF_GRACE_MINUTES } from "../../shared/types";
 import { SOURCE_DIRECT } from "../../shared/attribution";
 import { rate, separated } from "../../shared/sample";
+import Fold from "./Fold";
 import { ArrivalSplit, CohortGrid } from "./AudiencePanels";
 import {
   PlayersRow,
@@ -927,6 +928,10 @@ export default function PlayersPanel({
           ladder under it asks it by how many times they already have. */}
       <CohortGrid data={audience} error={audienceError} surface={surface} />
 
+      {/* The three reads below are asked less often than the funnel and the
+          cohort grid above them, so each is a bar carrying its own verdict until
+          opened. Closed they are not mounted. */}
+      <Fold title="Repeat visits" hint={headline || "How many visits it takes before a player returns."}>
       <section className="panel">
         <h2>Repeat visits</h2>
         {retention === null || retention.steps.length === 0 ? (
@@ -938,7 +943,9 @@ export default function PlayersPanel({
           </>
         )}
       </section>
+      </Fold>
 
+      <Fold title="How they got here" hint={sourceHeadline || "Where first visits came from, by utm_source."}>
       <section className="panel">
         <h2>How they got here · all time</h2>
         {sources.entries.length === 0 ? (
@@ -957,7 +964,12 @@ export default function PlayersPanel({
           </>
         )}
       </section>
+      </Fold>
 
+      <Fold
+        title="Where players are"
+        hint={countries.players === 0 ? "No country recorded yet." : countryNote(countries, countrySlices)}
+      >
       <section className="panel">
         <h2>Where players are · all time</h2>
         {countries.players === 0 ? (
@@ -976,6 +988,7 @@ export default function PlayersPanel({
           </>
         )}
       </section>
+      </Fold>
     </>
   );
 }
