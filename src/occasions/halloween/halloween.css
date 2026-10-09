@@ -2,35 +2,74 @@
  *
  * Loaded with the costume (src/occasions/halloween/index.tsx), and every rule
  * is scoped to `:root[data-occasion="halloween"]`, so the costume comes off
- * the moment the attribute does, chunk or no chunk.
+ * the moment the attribute does.
  *
- * Decoration only. Nothing here recolours text or a fill that text sits on, so
- * every contrast pair measured in base.css still holds; the decorations live in
- * the margins, the corners and behind the card. Colour here never carries
- * meaning: the jack-o'-lanterns stand in for the punch card's holes, whose
- * words beside them ("4 guesses left") say the same thing.
+ * Two layers. The PALETTE is a token swap, the way After Dark is: the menu
+ * goes orange and black, and every component inherits it with no copy of its
+ * own. The LIGHTS are the costume's own elements: the re-tubed sign, a flicker,
+ * brownouts, a flashlight, string lights and fog.
  *
- * WCAG 2.2.2: nothing moves or blinks for more than five seconds on its own.
+ * Every pair below was measured on the PAINTED surface (the card's sheen
+ * darkens its foot to #ebcfa8), WCAG AA 4.5 for text:
+ *
+ *   ink / card foot        11.7     on-cherry / cherry      6.97
+ *   ink-soft / card foot    6.24    on-cherry / hover       9.6
+ *   cherry / card foot      5.08    teal (plum) / foot      7.97
+ *   mustard-ink / foot      5.50    hit-ink / hit-soft      5.56 (unchanged)
+ *
+ * --hit, --near and --miss do not move: they carry the game's meaning, and a
+ * costume decorates the board without re-teaching it. Lights never sit under
+ * text and never flash faster than three times a second. `npm run a11y`
+ * scans both rooms in costume.
  */
 
+/* The menu, reprinted for the party: aged orange stock, black ink, a black
+   frame, pumpkin where the diner uses cherry, plum where it uses teal. The
+   diner only: `:not([data-after-dark])` because this selector would otherwise
+   tie with After Dark's and, loading later, repaint the bar's dark stock. */
+:root[data-occasion="halloween"]:not([data-after-dark]) {
+  --paper: #f2dcb8;
+  --paper-bright: #fbecd3;
+  --paper-edge: #c9a77a;
+  --ink: #1c120e;
+  --ink-soft: #5b412f;
+  --cherry: #923608;
+  --cherry-dark: #1c120e;
+  --cherry-hover: #6e2806;
+  --on-cherry: #fff3e3;
+  --teal: #4b2357;
+  --teal-dark: #0f0812;
+  --mustard-ink: #704508;
+  --paper-sheen: linear-gradient(rgba(255, 236, 200, 0.3), rgba(160, 90, 30, 0.1));
+  --paper-stipple: rgba(90, 40, 10, 0.08);
+  --row-fill: rgba(255, 245, 228, 0.6);
+}
+
+/* The costume's own colours, both rooms: lights and art only, never text. */
 :root[data-occasion="halloween"] {
   --pumpkin: #e2701b;
   --pumpkin-glow: rgba(255, 170, 60, 0.75);
+  --bulb-orange: #ff8a1f;
+  --bulb-violet: #a46bff;
   --hw-ghost: #f7f3ea;
   --hw-ghost-edge: #2b2320;
-  --hw-web: rgba(91, 79, 69, 0.42);
+  --hw-web: rgba(28, 18, 14, 0.38);
   --hw-fog: rgba(196, 206, 214, 0.15);
 }
 
+/* The bar keeps After Dark's dark stock and swaps the neon pink for orange.
+   On --paper #1d1714: cherry 7.56, hover 10.0; --on-cherry on cherry 7.54. */
 :root[data-occasion="halloween"][data-after-dark] {
+  --cherry: #ff8a3d;
+  --cherry-dark: #b9501a;
+  --cherry-hover: #ffb27a;
   --hw-web: rgba(240, 230, 212, 0.26);
   --hw-fog: rgba(150, 140, 170, 0.13);
 }
 
 /* ---- the room ----
-   The diner at dusk: the backdrop goes down a step and cools toward violet.
-   It sits behind the card and under the sign's glow, which only gets brighter
-   against it. The bar keeps its own treatment (`.scene--bar`). */
+   The diner after dark on the one night it should be: the backdrop down a
+   step and cooled toward violet, a violet vignette. */
 :root[data-occasion="halloween"] .scene:not(.scene--bar)::before {
   filter: blur(2px) brightness(0.6) saturate(0.85) hue-rotate(-14deg);
 }
@@ -44,9 +83,57 @@
   );
 }
 
-/* Fog along the floor. A sibling of the scene, fixed and in the negative-z band,
-   so it paints over the backdrop and its vignette and under everything that
-   reads. Two banks, one rolling in from each side, then lying still. */
+/* The lights are out, and your pointer is the flashlight. A sibling of the
+   scene, fixed in the negative-z band: it darkens the backdrop and never the
+   card or the sign, which paint above it. Off a pointer the beam rests on the
+   sign. */
+.hw-dark {
+  --beam-x: 50%;
+  --beam-y: 22%;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    circle 300px at var(--beam-x) var(--beam-y),
+    rgba(255, 214, 160, 0.06) 0,
+    rgba(6, 3, 10, 0.1) 40%,
+    rgba(6, 3, 10, 0.84) 100%
+  );
+}
+
+/* The power. It stutters on as the page opens, then the whole room browns out
+   every so often: two quick sags inside half a second, every seventeen. The
+   sign sags with it (hw-sign-sag), because they're on the same circuit. */
+.hw-dark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #050207;
+  animation:
+    hw-power-on 1.5s steps(1, end) 0.2s both,
+    hw-brownout 17s linear 4s infinite;
+}
+
+@keyframes hw-power-on {
+  0% { opacity: 1; }
+  22% { opacity: 0.35; }
+  30% { opacity: 1; }
+  48% { opacity: 0.15; }
+  56% { opacity: 0.7; }
+  70%, 100% { opacity: 0; }
+}
+
+@keyframes hw-brownout {
+  0%, 93% { opacity: 0; }
+  94% { opacity: 0.6; }
+  95.5% { opacity: 0.1; }
+  97% { opacity: 0.5; }
+  98.5%, 100% { opacity: 0; }
+}
+
+/* Fog along the floor, over the dark and under everything that reads. Two
+   banks roll in from either side and then drift. */
 .hw-fog {
   position: fixed;
   inset: auto 0 0 0;
@@ -63,18 +150,22 @@
   height: 100%;
   border-radius: 50%;
   background: radial-gradient(closest-side, var(--hw-fog), transparent);
-  animation: hw-fog-in 4.5s ease-out both;
+  animation:
+    hw-fog-in 4.5s ease-out both,
+    hw-fog-drift 26s ease-in-out 4.5s infinite alternate;
 }
 
 .hw-fog__bank--back {
   left: -20%;
   --from: -18%;
+  --drift: 6%;
 }
 
 .hw-fog__bank--front {
   right: -20%;
   bottom: -12vh;
   --from: 18%;
+  --drift: -7%;
 }
 
 @keyframes hw-fog-in {
@@ -88,80 +179,178 @@
   }
 }
 
-/* ---- the sign ---- */
+@keyframes hw-fog-drift {
+  to {
+    transform: translateX(var(--drift));
+  }
+}
+
+/* ---- the sign ----
+   Re-tubed for the night: pumpkin script over an ultraviolet block word. Same
+   construction as the everyday sign (a near-white core inside its halo), only
+   the gas changes. */
+:root[data-occasion="halloween"] .marquee__script {
+  color: #fff1df;
+  text-shadow:
+    0 0 4px #fff7ea,
+    0 0 10px rgba(255, 138, 31, 1),
+    0 0 24px rgba(255, 138, 31, 0.85),
+    0 0 52px rgba(255, 110, 20, 0.65),
+    0 0 96px rgba(255, 90, 10, 0.4);
+}
+
+:root[data-occasion="halloween"] .marquee__sub {
+  color: #f6efff;
+  text-shadow:
+    0 0 3px rgba(190, 140, 255, 0.95),
+    0 0 10px rgba(164, 107, 255, 0.8),
+    0 0 26px rgba(140, 80, 255, 0.55);
+}
 
 .hw-sign {
   position: relative;
   display: inline-block;
 }
 
-/* The tube that blew. Two stutters on arrival, then dark for the night: lit
-   glass with the gas gone out, so the shape still reads as a letter. */
-.hw-sign__dead {
-  animation: hw-tube-die 1.8s steps(1, end) 0.6s both;
+/* The whole sign stutters on with the room, and sags with it in a brownout. */
+.hw-sign__tube {
+  animation:
+    hw-sign-power 1.5s steps(1, end) 0.2s both,
+    hw-sign-sag 17s linear 4s infinite;
 }
 
-@keyframes hw-tube-die {
-  0% {
-    opacity: 1;
-  }
-  18% {
-    opacity: 0.25;
-    text-shadow: none;
-  }
-  30% {
-    opacity: 1;
-  }
-  52% {
-    opacity: 0.25;
-    text-shadow: none;
-  }
-  64% {
-    opacity: 0.9;
-  }
-  100% {
-    opacity: 0.22;
-    text-shadow: none;
-    color: #8d6f78;
-  }
+@keyframes hw-sign-power {
+  0% { opacity: 0.08; }
+  22% { opacity: 0.8; }
+  30% { opacity: 0.15; }
+  48% { opacity: 1; }
+  56% { opacity: 0.4; }
+  70%, 100% { opacity: 1; }
 }
 
-/* Roosting on the last letter, upside down, swaying twice and then still. */
-.hw-sign__bat {
-  position: absolute;
-  right: -0.15em;
-  top: 0.08em;
-  width: 0.62em;
-  height: 0.31em;
-  color: #120b16;
-  transform: rotate(180deg);
-  transform-origin: 50% 0;
-  filter: drop-shadow(0 0 2px rgba(255, 95, 122, 0.5));
-  animation: hw-bat-sway 1.6s ease-in-out 2.2s 2 alternate;
+@keyframes hw-sign-sag {
+  0%, 93% { opacity: 1; }
+  94% { opacity: 0.55; }
+  95.5% { opacity: 0.95; }
+  97% { opacity: 0.6; }
+  98.5%, 100% { opacity: 1; }
 }
 
-@keyframes hw-bat-sway {
-  from {
-    transform: rotate(180deg);
-  }
-  to {
-    transform: rotate(192deg);
-  }
+/* The bad tube. Lit most of the time and then it catches: a single drop, a
+   double stutter, a long sputter, on a 4.6s loop that never lines up with the
+   brownout. Two dips inside any one second at most. The glow is part of the
+   letter's painting, so opacity takes the halo down with it. */
+.hw-sign__flicker {
+  display: inline-block;
+  animation: hw-tube-flicker 4.6s steps(1, end) 1.9s infinite;
+}
+
+@keyframes hw-tube-flicker {
+  0%, 8% { opacity: 1; }
+  9% { opacity: 0.22; }
+  11%, 37% { opacity: 1; }
+  38% { opacity: 0.28; }
+  40% { opacity: 0.9; }
+  43% { opacity: 0.2; }
+  46%, 70% { opacity: 1; }
+  71% { opacity: 0.25; }
+  79% { opacity: 0.55; }
+  83%, 100% { opacity: 1; }
+}
+
+/* The bar's sign gets the same tubes, turned up the way the bar always turns
+   its sign up. */
+:root[data-occasion="halloween"] .marquee--bar .marquee__script {
+  color: #fff4ea;
+  text-shadow:
+    0 0 4px #ffffff,
+    0 0 11px rgba(255, 138, 31, 1),
+    0 0 26px rgba(255, 138, 31, 0.9),
+    0 0 56px rgba(255, 110, 20, 0.75),
+    0 0 104px rgba(255, 90, 10, 0.45);
 }
 
 /* ---- the card ---- */
 
+/* Room under the string lights for the header. */
+:root[data-occasion="halloween"] .menu-card {
+  padding-top: 46px;
+}
+
+.hw-lights {
+  position: absolute;
+  top: -7px;
+  left: 10px;
+  right: 10px;
+  height: 40px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.hw-lights__wire {
+  position: absolute;
+  inset: 0 0 auto 0;
+  width: 100%;
+  height: 30px;
+  overflow: visible;
+  fill: none;
+  stroke: #1c120e;
+  stroke-width: 1.6;
+}
+
+:root[data-after-dark] .hw-lights__wire {
+  stroke: #6b5a48;
+}
+
+/* A bulb hangs from its socket at the wire. */
+.hw-bulb {
+  position: absolute;
+  width: 9px;
+  height: 13px;
+  margin-left: -4.5px;
+  border-radius: 50% 50% 50% 50% / 38% 38% 62% 62%;
+  border-top: 3px solid #2b2320;
+  background: var(--bulb);
+  box-shadow:
+    0 0 6px 1px var(--bulb),
+    0 0 16px 3px color-mix(in srgb, var(--bulb) 45%, transparent);
+  animation: hw-bulb-chase 2.8s ease-in-out infinite;
+}
+
+.hw-bulb--orange {
+  --bulb: var(--bulb-orange);
+}
+
+.hw-bulb--violet {
+  --bulb: var(--bulb-violet);
+}
+
+/* Every string has one. */
+.hw-bulb--bad {
+  animation: hw-tube-flicker 3.7s steps(1, end) infinite;
+}
+
+@keyframes hw-bulb-chase {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+    box-shadow: 0 0 3px 0 var(--bulb);
+  }
+}
+
+/* Cobwebs in the bottom corners, under the sign-off. */
 .hw-webs {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  /* Above the inner rule of the double frame, below everything in flow. */
   z-index: 0;
 }
 
 .hw-web {
   position: absolute;
-  top: 6px;
+  bottom: 6px;
   width: 54px;
   height: 54px;
   fill: none;
@@ -172,69 +361,12 @@
 
 .hw-web--left {
   left: 6px;
+  transform: scaleY(-1);
 }
 
 .hw-web--right {
   right: 6px;
-  transform: scaleX(-1);
-}
-
-.hw-spider {
-  position: absolute;
-  top: 10px;
-  right: 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.hw-spider__thread {
-  width: 1px;
-  height: 22px;
-  background: var(--hw-web);
-  transform-origin: top;
-  animation: hw-spider-drop 2.4s cubic-bezier(0.3, 0.7, 0.4, 1) 1.2s both;
-}
-
-.hw-spider__body {
-  width: 13px;
-  height: 11px;
-  fill: var(--hw-ghost-edge);
-  stroke: var(--hw-ghost-edge);
-  stroke-width: 1;
-  stroke-linecap: round;
-  animation: hw-spider-follow 2.4s cubic-bezier(0.3, 0.7, 0.4, 1) 1.2s both;
-}
-
-:root[data-after-dark] .hw-spider__body {
-  fill: #b3a591;
-  stroke: #b3a591;
-}
-
-@keyframes hw-spider-drop {
-  from {
-    transform: scaleY(0.05);
-  }
-  to {
-    transform: none;
-  }
-}
-
-@keyframes hw-spider-follow {
-  from {
-    transform: translateY(-21px);
-  }
-  to {
-    transform: none;
-  }
-}
-
-/* The header carries centred type, and at 320px the title runs close to the
-   corners. The webs sit inside the frame's padding; this keeps the card's
-   heading off them. */
-:root[data-occasion="halloween"] .menu-card__header {
-  position: relative;
-  z-index: 1;
+  transform: scale(-1, -1);
 }
 
 /* ---- the cloche ---- */
@@ -323,18 +455,13 @@
   filter: drop-shadow(0 0 3px var(--pumpkin-glow));
 }
 
-/* The last order still rings; it rings round a pumpkin. */
 :root[data-occasion="halloween"] .tally--final .tally__hole:not(.tally__hole--punched) {
   border: 0;
 }
 
-/* ---- clue tickets ---- */
-
-:root[data-occasion="halloween"] .ticket:not(.ticket--coaster) {
-  border-top-color: var(--pumpkin);
-}
-
-/* Pinned up with a candy corn instead of a tack. */
+/* ---- clue tickets ----
+   The ticket's head bar is already --cherry, so the palette turns it pumpkin.
+   Pinned up with a candy corn. */
 :root[data-occasion="halloween"] .ticket:not(.ticket--coaster)::after {
   content: "";
   position: absolute;
@@ -436,8 +563,8 @@
 }
 
 /* ---- the walk to the bar ----
-   One flash, not a strobe: WCAG 2.3.1 allows three a second and this is one
-   in the whole walk. It is under the sign, so the sign still lands on top. */
+   One flash in the whole walk (WCAG 2.3.1 allows three a second). Under the
+   sign, so the sign still lands on top. */
 .hw-lightning {
   position: absolute;
   inset: 0;
@@ -494,25 +621,31 @@
 }
 
 /* ---- Discord's picture-in-picture tile ----
-   A corner of someone else's screen. The costume stays on the tiles and the
-   punch card; nothing else has room. */
+   A corner of someone else's screen. The palette stays; nothing else has room. */
 :root[data-discord-layout="pip"] .hw-fog,
+:root[data-discord-layout="pip"] .hw-dark,
+:root[data-discord-layout="pip"] .hw-lights,
 :root[data-discord-layout="pip"] .hw-webs,
 :root[data-discord-layout="pip"] .hw-candy {
   display: none;
 }
 
+:root[data-discord-layout="pip"][data-occasion="halloween"] .menu-card {
+  padding-top: 8px;
+}
+
 /* ---- less motion ----
-   Every keyframe above, in the same commit as its keyframe. The decorations
-   still appear, in their resting state: the letter is already dead, the bat
-   already hangs, the fog is already in, the spider is already down. The peek
-   still happens (it is what the knock does), it just doesn't move. Falling
-   candy and the flock are motion and nothing else, so they go. */
+   Every keyframe above. The costume still appears, at rest: the power is on,
+   every tube and bulb is lit, the fog lies still, the ghost still peeks (it
+   is what the knock does) without moving. Falling candy and the flock are
+   motion and nothing else, so they go. The flashlight follows the pointer
+   either way: that is the player moving, not the page. */
 @media (prefers-reduced-motion: reduce) {
+  .hw-dark::after,
   .hw-fog__bank,
-  .hw-sign__bat,
-  .hw-spider__thread,
-  .hw-spider__body,
+  .hw-sign__tube,
+  .hw-sign__flicker,
+  .hw-bulb,
   .hw-cloche__img--knocked,
   .hw-cloche__ghost,
   .hw-verdict--ghost,
@@ -520,11 +653,8 @@
     animation: none !important;
   }
 
-  .hw-sign__dead {
-    animation: none !important;
-    opacity: 0.22;
-    text-shadow: none;
-    color: #8d6f78;
+  .hw-dark::after {
+    opacity: 0;
   }
 
   .hw-cloche__ghost {

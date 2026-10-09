@@ -1,18 +1,18 @@
 // Halloween: the graveyard shift.
 //
-// The diner on Halloween is the late-night diner out of a 1950s B-picture, not
-// a party shop. One letter of the sign has gone dead, a bat roosts on the
-// tube, fog comes in along the floor, the clue tickets are pinned up with candy
-// corn and every spent guess is a jack-o'-lantern with a candle in it.
+// The whole diner changes, not just its corners. The menu goes orange and black
+// (its own token swap, like the bar's), the neon is re-tubed in pumpkin and
+// ultraviolet with a C in SPECIAL that won't stay lit, the room's lights brown
+// out, and the diner is dark enough that your pointer carries a flashlight
+// across it. String lights hang over the card; fog lies along the floor.
 //
 // Loaded only while it is worn (src/occasions/store.ts). Everything here is
 // decoration: aria-hidden, behind or beside the type, never under it. The one
 // thing you can press is the cloche, and it says what it did.
 //
-// WCAG 2.2.2 shapes the motion: nothing here moves or blinks for longer than
-// five seconds on its own. The sign stutters and then stays dead, the bat sways
-// and then hangs, the fog rolls in and then lies there. Everything that moves
-// at all is in the reduced-motion block at the bottom of halloween.css.
+// The lights loop, the way the bar band's halo does: no flash faster than
+// three a second, never over text, and all of it stops under reduced motion
+// (the block at the bottom of halloween.css).
 
 import { useEffect, useRef, useState } from "react";
 import { playSfx } from "../../audio";
@@ -56,64 +56,120 @@ function Ghost({ className }: { className?: string }) {
 }
 
 /**
- * Which letter of each sign has gone. One per sign, chosen by eye: the C of
- * SPECIAL leaves "SPE IAL", which still reads at a glance and looks exactly
- * like a tube that blew.
+ * Which letter of each sign has a bad tube. One per sign: the C of SPECIAL,
+ * which still reads as SPECIAL in the dark beat, and the A of DARK.
  */
-const DEAD_LETTER: Record<string, number> = {
+const BAD_TUBE: Record<string, number> = {
   "Lunch Special": "Lunch Spe".length,
   "After Dark": "After D".length,
 };
 
 function Sign({ text }: { text: string; room: Room }) {
-  const at = DEAD_LETTER[text];
-  const letters =
-    at === undefined ? (
-      text
-    ) : (
-      <>
-        {text.slice(0, at)}
-        <span className="hw-sign__dead">{text[at]}</span>
-        {text.slice(at + 1)}
-      </>
-    );
+  const at = BAD_TUBE[text];
   return (
     <span className="hw-sign">
       {/* The words are said once, whole: a split word reads letter by letter. */}
       <span className="sr-only">{text}</span>
-      <span aria-hidden="true">{letters}</span>
-      <Bat className="hw-sign__bat" />
+      <span className="hw-sign__tube" aria-hidden="true">
+        {at === undefined ? (
+          text
+        ) : (
+          <>
+            {text.slice(0, at)}
+            <span className="hw-sign__flicker">{text[at]}</span>
+            {text.slice(at + 1)}
+          </>
+        )}
+      </span>
     </span>
   );
 }
 
-function Fog({ room }: { room: Room }) {
+/**
+ * The room with its lights down. In the diner a pointer carries a flashlight
+ * beam across the backdrop; on a touch screen there is no pointer, so the beam
+ * rests on the sign. The bar is dark already and keeps only the fog.
+ *
+ * The beam is the player's own motion, not an animation, so it follows under
+ * reduced motion too. The brownouts are animation, and stop.
+ */
+function Room({ room }: { room: Room }) {
+  const dark = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = dark.current;
+    if (!el || matchMedia("(pointer: coarse)").matches) return;
+    let frame = 0;
+    let x = 0;
+    let y = 0;
+    const move = (e: PointerEvent) => {
+      x = e.clientX;
+      y = e.clientY;
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        el.style.setProperty("--beam-x", `${x}px`);
+        el.style.setProperty("--beam-y", `${y}px`);
+      });
+    };
+    window.addEventListener("pointermove", move, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", move);
+      cancelAnimationFrame(frame);
+    };
+  }, [room]);
   return (
-    <div className={`hw-fog hw-fog--${room}`} aria-hidden="true">
-      <span className="hw-fog__bank hw-fog__bank--back" />
-      <span className="hw-fog__bank hw-fog__bank--front" />
-    </div>
+    <>
+      {room === "diner" && <div ref={dark} className="hw-dark" aria-hidden="true" />}
+      <div className={`hw-fog hw-fog--${room}`} aria-hidden="true">
+        <span className="hw-fog__bank hw-fog__bank--back" />
+        <span className="hw-fog__bank hw-fog__bank--front" />
+      </div>
+    </>
   );
 }
 
-function Cobwebs() {
+/**
+ * Party lights strung across the top of the card in two swags. Each bulb sits
+ * on the wire's curve: the wire is a quadratic with its control point at twice
+ * the sag, so a bulb at t along a swag hangs at 4 + 72·t·(1 − t) px.
+ */
+const BULBS = Array.from({ length: 16 }, (_, i) => {
+  const u = (i + 0.5) / 16;
+  const t = (u % 0.5) / 0.5;
+  return { left: u * 100, top: 4 + 72 * t * (1 - t), hue: i % 2 === 0 ? "orange" : "violet", bad: i === 11 };
+});
+
+function Lights() {
   return (
-    <span className="hw-webs" aria-hidden="true">
+    <span className="hw-lights" aria-hidden="true">
+      <svg className="hw-lights__wire" viewBox="0 0 100 30" preserveAspectRatio="none" focusable="false">
+        <path d="M0,4 Q25,40 50,4 Q75,40 100,4" vectorEffect="non-scaling-stroke" />
+      </svg>
+      {BULBS.map((b, i) => (
+        <span
+          key={i}
+          className={`hw-bulb hw-bulb--${b.hue}${b.bad ? " hw-bulb--bad" : ""}`}
+          style={{ left: `${b.left}%`, top: `${b.top}px`, animationDelay: `${i * 0.175}s` }}
+        />
+      ))}
+    </span>
+  );
+}
+
+/** String lights across the top, cobwebs in the bottom corners. */
+function Card() {
+  return (
+    <>
+      <Lights />
+      <span className="hw-webs" aria-hidden="true">
       <svg className="hw-web hw-web--left" viewBox="0 0 62 62" focusable="false">
         <path d={WEB_PATH} />
       </svg>
       <svg className="hw-web hw-web--right" viewBox="0 0 62 62" focusable="false">
         <path d={WEB_PATH} />
       </svg>
-      {/* A spider on a thread from the right-hand web. Lowered once, then still. */}
-      <span className="hw-spider">
-        <span className="hw-spider__thread" />
-        <svg className="hw-spider__body" viewBox="0 0 16 14" focusable="false">
-          <path d="M8 4 3 1M8 4 13 1M8 6 1 5M8 6 15 5M8 8 2 10M8 8 14 10M8 9 4 13M8 9 12 13" />
-          <ellipse cx="8" cy="7" rx="3" ry="3.4" />
-        </svg>
       </span>
-    </span>
+    </>
   );
 }
 
@@ -235,8 +291,8 @@ function LightsOut() {
 
 const halloween: OccasionKit = {
   Sign,
-  Room: Fog,
-  Card: Cobwebs,
+  Room,
+  Card,
   Cloche,
   Win,
   Verdict,

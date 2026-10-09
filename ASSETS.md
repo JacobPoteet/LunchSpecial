@@ -68,8 +68,8 @@ viewBox proportions, keep a credit comment.
 | `ai-bat.svg` | A bat in silhouette, pale and translucent | Printed in the corner of the bar's coasters (dark stock) | 32×16, drawn at 30px |
 
 Drawn inline in `src/occasions/halloween/index.tsx` rather than as files,
-because they take `currentColor` or a theme token: the bat on the neon sign and
-in the walk to the bar, the cobwebs in the menu card's corners, the spider, and
+because they take `currentColor` or a theme token: the bats in the walk to the bar,
+the cobwebs in the menu card's corners, and
 the ghost (under the cloche, beside a lost check). The score card's
 jack-o'-lantern is a pixel map in `src/occasions/halloween/pixels.ts`, because
 the card is drawn in rects (see `src/game/scorecard.ts`).

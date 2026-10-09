@@ -116,7 +116,8 @@ A costume the game wears for a stretch of the calendar (Halloween first). **Hand
 - `?occasion=<id>|none` is cosmetic and honoured in production on purpose. The Worker stamps `analytics_rounds.occasion` on insert from `play_date` and never reads the param.
 - **A costume is `src/occasions/<id>/`**, a lazy chunk that fills the slots in `src/occasions/kit.ts`. A new slot is a deliberate change to `kit.ts` and the page that mounts it. CSS scoped to `:root[data-occasion="<id>"]`; anything that must show off-season (the Leftovers calendar mark) lives in game.css.
 - **Decoration only:** `aria-hidden`, never under text, never recolours text or a fill text sits on. The one pressable slot (Cloche) is a real button with a label and announces its result.
-- **WCAG 2.2.2:** nothing in a costume moves or blinks for over 5s on its own (animate in, then rest). One flash at most (2.3.1). Every keyframe in the costume's own reduced-motion block, same commit.
+- **Lights loop, the way the bar band's halo does:** no flash faster than 3/s (2.3.1), never over text, and every keyframe in the costume's own reduced-motion block, same commit. Looping past 5s with no pause control is a known WCAG 2.2.2 gap; reduced motion is the off switch.
+- **A costume's palette is a token swap** scoped `:root[data-occasion="<id>"]:not([data-after-dark])` (an unscoped one ties with After Dark and repaints the bar). `--hit`/`--near`/`--miss` never move. Measure on the painted surface and add an a11y state for every screen the swap reaches.
 - Share: `shareMessage(text, occasion)` adds the occasion's line between grid and url; the grid is untouched. Score card corner art is a pixel map, never emoji. Neither names the dish.
 - Sounds: `OCCASION_SFX` in `shared/audio.ts`, files under `src/assets/sfx/occasions/<id>/`. Missing file = everyday sound.
 - `npm run a11y` scans each room in costume; add states for a new occasion.

@@ -191,13 +191,23 @@ const SCANS = [
   // way the bar is measured in its own palette. `?occasion=` is cosmetic and
   // works on any build; it is what puts Halloween on in July.
   {
-    name: "Halloween: board after a miss (sign, pumpkins, candy-corn ticket, cloche)",
+    name: "Halloween: board after a miss (palette, sign, lights, pumpkins, cloche)",
     async setup(page) {
       await page.goto(`${BASE}/?special=${TARGET_SLUG}&occasion=halloween`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector(".hw-cloche__btn");
       await guess(page, WRONG_GUESS);
       await page.waitForSelector(".attr-tile--revealed");
       await page.waitForSelector(".ticket");
+    },
+  },
+  {
+    // The palette swap reaches the check too: pumpkin share button, black
+    // frame, orange stock under the stats.
+    name: "Halloween: the check (orange-and-black palette, verdict art)",
+    async setup(page) {
+      await guess(page, "Ramen");
+      await page.waitForSelector(".modal--receipt");
+      await page.waitForSelector(".hw-verdict");
     },
   },
   {
