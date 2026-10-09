@@ -67,7 +67,7 @@ function later(a: string | null, b: string | null): string | null {
 /**
  * Fold one device's grouped rows into the review payload shown before a wipe.
  *
- * `visits`, `noticeViews` and `guesses` are passed already-aggregated because they're
+ * `visits`, `noticeViews`, `guesses` and `occasionViews` are passed already-aggregated because they're
  * single-number reads with no grouping to undo — but they're folded in here so
  * the shape the admin reviews and the shape the route returns are built in one
  * place, and a table added to the delete has to be added to the summary too.
@@ -78,6 +78,7 @@ export function foldDeviceData(
   visits: DeviceVisitRow,
   noticeViews: number,
   guesses: number,
+  occasionViews: number = 0,
 ): DeviceDataSummary {
   const byKind = Object.fromEntries(ROUND_KINDS.map((k) => [k, 0])) as StartedByKind;
   const bySurface = Object.fromEntries(SURFACES.map((s) => [s, 0])) as Record<Surface, number>;
@@ -108,5 +109,6 @@ export function foldDeviceData(
     },
     noticeViews: Number(noticeViews) || 0,
     guesses: Number(guesses) || 0,
+    occasionViews: Number(occasionViews) || 0,
   };
 }

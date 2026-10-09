@@ -249,7 +249,7 @@ function MyDataPanel({
     );
   };
 
-  const total = summary ? summary.rounds.total + summary.visits.total + summary.noticeViews + summary.guesses : 0;
+  const total = summary ? summary.rounds.total + summary.visits.total + summary.noticeViews + summary.guesses + summary.occasionViews : 0;
 
   return (
     <section className="panel">
@@ -277,8 +277,9 @@ function MyDataPanel({
           {deleted && (
             <p className="dash-note dash-note--warn">
               Removed {deleted.rounds} round{deleted.rounds === 1 ? "" : "s"}, {deleted.guesses} guess
-              {deleted.guesses === 1 ? "" : "es"}, {deleted.visits} arrival{deleted.visits === 1 ? "" : "s"} and{" "}
-              {deleted.noticeViews} notice view{deleted.noticeViews === 1 ? "" : "s"}. 
+              {deleted.guesses === 1 ? "" : "es"}, {deleted.visits} arrival{deleted.visits === 1 ? "" : "s"},{" "}
+              {deleted.noticeViews} notice view{deleted.noticeViews === 1 ? "" : "s"} and {deleted.occasionViews} event
+              sighting{deleted.occasionViews === 1 ? "" : "s"}. 
             </p>
           )}
 
@@ -306,6 +307,10 @@ function MyDataPanel({
                 <div className="metric">
                   <span className="metric__num">{summary.noticeViews}</span>
                   <span className="metric__label">Notice views</span>
+                </div>
+                <div className="metric">
+                  <span className="metric__num">{summary.occasionViews}</span>
+                  <span className="metric__label">Event sightings</span>
                 </div>
               </div>
               <ul className="device-data__facts">
@@ -361,8 +366,9 @@ function MyDataPanel({
             This permanently removes <strong>{summary.rounds.total}</strong> round
             {summary.rounds.total === 1 ? "" : "s"}, <strong>{summary.guesses}</strong> guess
             {summary.guesses === 1 ? "" : "es"}, <strong>{summary.visits.total}</strong> arrival
-            {summary.visits.total === 1 ? "" : "s"} and <strong>{summary.noticeViews}</strong> notice view
-            {summary.noticeViews === 1 ? "" : "s"} recorded by this browser. Every chart on the dashboard will
+            {summary.visits.total === 1 ? "" : "s"}, <strong>{summary.noticeViews}</strong> notice view
+            {summary.noticeViews === 1 ? "" : "s"} and <strong>{summary.occasionViews}</strong> event sighting
+            {summary.occasionViews === 1 ? "" : "s"} recorded by this browser. Every chart on the dashboard will
             change. It can't be undone — there's no backup of the live database unless you took one.
           </p>
           <div className="btn-row" style={{ marginTop: 16 }}>

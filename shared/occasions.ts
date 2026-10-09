@@ -26,6 +26,7 @@
 // shared/conventions.test.ts), which is why the concept is called an occasion.
 
 import { rate, separated } from "./sample";
+import type { Surface } from "./types";
 
 /** Every occasion the code knows how to dress for. A closed set, like ROUND_KINDS. */
 export const OCCASION_IDS = ["halloween"] as const;
@@ -191,6 +192,109 @@ export interface OccasionTally {
   shared: number;
 }
 
+// ---- Reach: who saw a costume (occasion_views, migrations/0055) ----
+
+/** Where the costume was on screen. */
+export const OCCASION_ROOMS = ["diner", "bar"] as const;
+export type OccasionRoom = (typeof OCCASION_ROOMS)[number];
+
+/**
+ * What a device did with it. `seen` is the costume on screen; `knock` is the
+ * ghost under the cloche (three knocks). A new moment is a code change here.
+ */
+export const OCCASION_MOMENTS = ["seen", "knock"] as const;
+export type OccasionMoment = (typeof OCCASION_MOMENTS)[number];
+
+/** What POST /api/occasions/seen carries. */
+export interface OccasionSighting {
+  occasionId: OccasionId;
+  playerId: string;
+  /** The round's own day that put the costume on: puzzle date or night key. */
+  playDay: string;
+  room: OccasionRoom;
+  moment: OccasionMoment;
+  surface: Surface;
+}
+
+/** One deduped row of occasion_views, as the reach fold reads it. */
+export interface SightingRow {
+  player_id: string;
+  seen_day: string;
+  play_day: string;
+  room: string;
+  moment: string;
+  surface: string;
+}
+
+/**
+ * How far a run's costume reached. Every count is distinct devices; nothing
+ * here is a rate, so the panel makes the rates and carries their intervals.
+ */
+export interface OccasionReach {
+  /**
+   * The first day this run was measured from, or null when sightings began
+   * after it ended. Null means unmeasured, never zero (the run predates the
+   * ledger).
+   */
+  measuredFrom: string | null;
+  /** Devices that saw the costume on a day of the run. */
+  devices: number;
+  byRoom: Record<OccasionRoom, number>;
+  bySurface: Record<Surface, number>;
+  /** Every day of the run up to today, in order, zero-filled. */
+  daily: { date: string; devices: number }[];
+  /** Devices that saw it on two or more days of the run. */
+  returned: number;
+  /** Devices that knocked the ghost out from under the cloche. */
+  knocked: number;
+  /**
+   * Devices that saw this run's costume AFTER it ended: a Leftover from one of
+   * its days, replayed in costume. Attributed by play_day, counted by device.
+   */
+  after: number;
+}
+
+/**
+ * Fold a run's sighting rows into its reach. `rows` are every row whose
+ * play_day falls in the run; this decides which of them count where.
+ * `trackingStart` is the first seen_day in the whole ledger.
+ */
+export function foldReach(run: Span, today: string, rows: readonly SightingRow[], trackingStart: string | null): OccasionReach {
+  const last = run.end < today ? run.end : today;
+  const measuredFrom = trackingStart === null || trackingStart > run.end ? null : trackingStart > run.start ? trackingStart : run.start;
+  const during = rows.filter((r) => r.moment === "seen" && r.seen_day >= run.start && r.seen_day <= run.end);
+  const distinct = (list: readonly SightingRow[]) => new Set(list.map((r) => r.player_id)).size;
+
+  const daysPerDevice = new Map<string, Set<string>>();
+  for (const r of during) {
+    const days = daysPerDevice.get(r.player_id) ?? new Set<string>();
+    days.add(r.seen_day);
+    daysPerDevice.set(r.player_id, days);
+  }
+
+  const daily: { date: string; devices: number }[] = [];
+  for (let d = run.start; d <= last; d = shiftDay(d, 1)) {
+    daily.push({ date: d, devices: distinct(during.filter((r) => r.seen_day === d)) });
+  }
+
+  return {
+    measuredFrom,
+    devices: distinct(during),
+    byRoom: {
+      diner: distinct(during.filter((r) => r.room === "diner")),
+      bar: distinct(during.filter((r) => r.room === "bar")),
+    },
+    bySurface: {
+      web: distinct(during.filter((r) => r.surface === "web")),
+      discord: distinct(during.filter((r) => r.surface === "discord")),
+    },
+    daily,
+    returned: [...daysPerDevice.values()].filter((days) => days.size >= 2).length,
+    knocked: distinct(rows.filter((r) => r.moment === "knock")),
+    after: distinct(rows.filter((r) => r.moment === "seen" && r.seen_day > run.end)),
+  };
+}
+
 export interface OccasionRunReport extends OccasionRun {
   /** Same length, same weekdays, just before the run. See {@link baselineFor}. */
   baseline: Span;
@@ -202,11 +306,17 @@ export interface OccasionRunReport extends OccasionRun {
    */
   lunch: { run: OccasionTally; baseline: OccasionTally };
   night: { run: OccasionTally; baseline: OccasionTally };
+  reach: OccasionReach;
+  /** Devices whose first-ever round started on a day of the run, and of the baseline. */
+  firstTimers: { run: number; baseline: number };
 }
 
 export interface OccasionReport {
+  today: string;
   /** Every run from Puzzle #1 to today, newest first. Upcoming runs are not here. */
   runs: OccasionRunReport[];
+  /** The first ET day any sighting was recorded, or null before the ledger has a row. */
+  trackingStart: string | null;
 }
 
 /** GET /api/admin/occasions: the registry, the bookings and the day it was read. */

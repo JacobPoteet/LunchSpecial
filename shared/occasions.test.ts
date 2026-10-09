@@ -9,6 +9,8 @@ import {
   parseBookingInput,
   seasonOpening,
   shareVerdict,
+  foldReach,
+  type SightingRow,
   type OccasionBooking,
 } from "./occasions";
 
@@ -137,5 +139,56 @@ describe("shareVerdict", () => {
     expect(shareVerdict(t(12, 10, 4), t(12, 10, 2), false)).toBe(
       "No clear difference in sharing: 40% of finished rounds in costume against 20% before.",
     );
+  });
+});
+
+describe("foldReach", () => {
+  const run = { start: "2026-10-24", end: "2026-10-31" };
+  const row = (player_id: string, seen_day: string, extra: Partial<SightingRow> = {}): SightingRow => ({
+    player_id,
+    seen_day,
+    play_day: seen_day,
+    room: "diner",
+    moment: "seen",
+    surface: "web",
+    ...extra,
+  });
+
+  it("counts distinct devices, by room and surface, and zero-fills the days so far", () => {
+    const reach = foldReach(run, "2026-10-26", [
+      row("a", "2026-10-24"),
+      row("a", "2026-10-24", { room: "bar" }),
+      row("b", "2026-10-26", { surface: "discord" }),
+    ], "2026-10-20");
+    expect(reach.devices).toBe(2);
+    expect(reach.byRoom).toEqual({ diner: 2, bar: 1 });
+    expect(reach.bySurface).toEqual({ web: 1, discord: 1 });
+    expect(reach.daily).toEqual([
+      { date: "2026-10-24", devices: 1 },
+      { date: "2026-10-25", devices: 0 },
+      { date: "2026-10-26", devices: 1 },
+    ]);
+    expect(reach.measuredFrom).toBe("2026-10-24");
+  });
+
+  it("counts returns, knocks and Leftover replays after the run apart", () => {
+    const reach = foldReach(run, "2027-03-02", [
+      row("a", "2026-10-24"),
+      row("a", "2026-10-30"),
+      row("b", "2026-10-25"),
+      row("b", "2026-10-25", { moment: "knock" }),
+      row("c", "2027-03-01", { play_day: "2026-10-31" }),
+    ], "2026-10-20");
+    expect(reach.devices).toBe(2);
+    expect(reach.returned).toBe(1);
+    expect(reach.knocked).toBe(1);
+    expect(reach.after).toBe(1);
+    expect(reach.daily).toHaveLength(8);
+  });
+
+  it("calls a run before the ledger unmeasured, and a run it began during partly measured", () => {
+    expect(foldReach(run, "2027-01-01", [], null).measuredFrom).toBeNull();
+    expect(foldReach(run, "2027-01-01", [], "2026-11-05").measuredFrom).toBeNull();
+    expect(foldReach(run, "2027-01-01", [], "2026-10-28").measuredFrom).toBe("2026-10-28");
   });
 });

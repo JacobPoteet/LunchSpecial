@@ -9,10 +9,11 @@ import Dashboard from "./Dashboard";
 import DishEditor from "./DishEditor";
 import DishList from "./DishList";
 import IssueComposer, { currentIssueContext } from "./IssueComposer";
+import OccasionsView from "./OccasionsView";
 import RequestsView from "./RequestsView";
 import ScheduleView from "./ScheduleView";
 
-export type AdminView = "dashboard" | "dishes" | "schedule" | "bar" | "announcements" | "requests";
+export type AdminView = "dashboard" | "dishes" | "schedule" | "bar" | "occasions" | "announcements" | "requests";
 
 /**
  * Prefill for a brand-new dish or drink opened from a player request. `kind`
@@ -155,6 +156,13 @@ export default function AdminApp() {
                 <button className={view === "bar" ? "active" : ""} onClick={() => changeView("bar")}>
                   Bar
                 </button>
+                {/* "Events" is what you call them; the code says occasions,
+                    because ad blockers match "event" in a URL. Its own
+                    destination because a costume spans both rooms, so it
+                    belongs to neither Schedule nor Bar. */}
+                <button className={view === "occasions" ? "active" : ""} onClick={() => changeView("occasions")}>
+                  Events
+                </button>
                 <button
                   className={view === "announcements" ? "active" : ""}
                   onClick={() => changeView("announcements")}
@@ -219,6 +227,7 @@ export default function AdminApp() {
                 onDraftDone={() => setDraft(null)}
               />
             )}
+            {view === "occasions" && <OccasionsView />}
             {view === "announcements" && <AnnouncementsPanel />}
             {view === "requests" && (
               <RequestsView onAddAs={openFromRequest} onCountChange={setRequestCount} />

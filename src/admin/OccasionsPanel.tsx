@@ -1,4 +1,4 @@
-// The occasions lane of the Schedule page: when the diner dresses up.
+// The Events page's schedule: when the diner dresses up.
 //
 // This panel books and switches costumes; it never edits one. Every costume is
 // handcrafted in src/occasions/<id>/, and each comes with its own yearly window
@@ -132,10 +132,11 @@ export default function OccasionsPanel({
 
   return (
     <section className="panel">
-      <h2 style={{ marginTop: 0 }}>Occasions</h2>
+      <h2 style={{ marginTop: 0 }}>Schedule</h2>
       <p className="dash-note" style={{ marginTop: 0 }}>
-        Days the diner dresses up. Each costume is built in code and runs in its own window every year; book here to
-        move, shorten or switch off a season. The lunch side keys on the Special's ET date, the bar on its night.
+        Each costume is built in code and runs in its own window every year, booked or not. Book here to move,
+        shorten or switch off a season. Lunch keys on the Special's ET date, the bar on its night. "Try it on" is
+        never counted.
       </p>
       {problem && <p className="form-error">{problem}</p>}
 

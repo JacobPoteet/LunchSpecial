@@ -17,6 +17,7 @@
 import { useEffect, useRef, useState } from "react";
 import { playSfx } from "../../audio";
 import type { OccasionKit, Room } from "../kit";
+import { noteOccasionMoment } from "../store";
 import jackUrl from "./art/ai-jack.svg";
 import "./halloween.css";
 
@@ -205,6 +206,8 @@ function Cloche({ src }: { src: string }) {
     knocks.current = [...knocks.current.filter((t) => now - t < KNOCK_WINDOW_MS), now];
     if (knocks.current.length < KNOCKS) return;
     knocks.current = [];
+    // Who found it: the Events page counts devices that knocked.
+    noteOccasionMoment("knock");
     setPeeking(true);
     setSaid("Boo.");
     window.clearTimeout(timer.current);

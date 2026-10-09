@@ -279,7 +279,7 @@ app.get("/device-data", async (c) => {
 
   // Grouped by (kind, surface) rather than aggregated flat: the fold needs the
   // split to zero-fill, and one query is cheaper than four COUNT(*)s.
-  const [rounds, visits, views, guesses] = await c.env.DB.batch([
+  const [rounds, visits, views, guesses, sightings] = await c.env.DB.batch([
     c.env.DB.prepare(
       `SELECT kind, surface, COUNT(*) AS rounds,
               SUM(completed) AS completed, SUM(shared) AS shared,
@@ -297,6 +297,7 @@ app.get("/device-data", async (c) => {
       `SELECT COUNT(*) AS total FROM analytics_guesses
         WHERE player_id = ? OR round_id IN (SELECT round_id FROM analytics_rounds WHERE player_id = ?)`,
     ).bind(player, player),
+    c.env.DB.prepare(`SELECT COUNT(*) AS total FROM occasion_views WHERE player_id = ?`).bind(player),
   ]);
 
   const visitRow = (visits.results[0] as DeviceVisitRow | undefined) ?? {
@@ -306,8 +307,16 @@ app.get("/device-data", async (c) => {
   };
   const viewCount = (views.results[0] as { total: number } | undefined)?.total ?? 0;
   const guessCount = (guesses.results[0] as { total: number } | undefined)?.total ?? 0;
+  const sightingCount = (sightings.results[0] as { total: number } | undefined)?.total ?? 0;
   return c.json(
-    foldDeviceData(player, rounds.results as unknown as DeviceRoundRow[], visitRow, viewCount, guessCount),
+    foldDeviceData(
+      player,
+      rounds.results as unknown as DeviceRoundRow[],
+      visitRow,
+      viewCount,
+      guessCount,
+      sightingCount,
+    ),
   );
 });
 
@@ -322,7 +331,7 @@ app.delete("/device-data", async (c) => {
   // Guesses first: besides their own player_id (which a guess whose round row
   // never landed is reachable by alone), they are found through this device's
   // round ids, which the next statement deletes. The batch runs in order.
-  const [guesses, rounds, visits, views] = await c.env.DB.batch([
+  const [guesses, rounds, visits, views, sightings] = await c.env.DB.batch([
     c.env.DB.prepare(
       `DELETE FROM analytics_guesses
         WHERE player_id = ? OR round_id IN (SELECT round_id FROM analytics_rounds WHERE player_id = ?)`,
@@ -330,6 +339,7 @@ app.delete("/device-data", async (c) => {
     c.env.DB.prepare("DELETE FROM analytics_rounds WHERE player_id = ?").bind(player),
     c.env.DB.prepare("DELETE FROM analytics_visits WHERE player_id = ?").bind(player),
     c.env.DB.prepare("DELETE FROM announcement_views WHERE player_id = ?").bind(player),
+    c.env.DB.prepare("DELETE FROM occasion_views WHERE player_id = ?").bind(player),
   ]);
 
   const deleted: DeviceDataDeleted = {
@@ -337,6 +347,7 @@ app.delete("/device-data", async (c) => {
     visits: visits.meta.changes ?? 0,
     noticeViews: views.meta.changes ?? 0,
     guesses: guesses.meta.changes ?? 0,
+    occasionViews: sightings.meta.changes ?? 0,
   };
   return c.json(deleted);
 });

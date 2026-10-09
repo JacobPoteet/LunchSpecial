@@ -18,10 +18,19 @@
 // known, and the slots fill in when the chunk lands.
 
 import { useEffect, useSyncExternalStore } from "react";
-import { isOccasionId, occasionOn, type OccasionBooking, type OccasionId } from "../../shared/occasions";
+import {
+  isOccasionId,
+  occasionOn,
+  type OccasionBooking,
+  type OccasionId,
+  type OccasionMoment,
+  type OccasionRoom,
+} from "../../shared/occasions";
 import { resolveMode } from "../../shared/mode";
 import { gameToday } from "../../shared/time";
-import { fetchOccasions } from "../api";
+import { fetchOccasions, markOccasionSeen } from "../api";
+import { currentSurface } from "../discord/bootstrap";
+import { getPlayerId } from "../game/storage";
 import { setSfxOccasion } from "../audio/engine";
 import { currentNight } from "../game/night";
 import type { OccasionKit } from "./kit";
@@ -73,6 +82,12 @@ export interface OccasionState {
 const override = readOverride();
 let bookings: OccasionBooking[] = readCache();
 let day: string | null = null;
+/** Who is wearing it: the room, and whether the round may be counted at all. */
+let wearer: { room: OccasionRoom; tracked: boolean } | null = null;
+/** The bookings have come back from the Worker this page load. */
+let fresh = false;
+/** Sightings already sent this page load. The Worker dedupes per day as well. */
+const sent = new Set<string>();
 let kits = new Map<OccasionId, OccasionKit>();
 let state: OccasionState = { id: null, kit: null, bookings };
 const listeners = new Set<() => void>();
@@ -124,7 +139,9 @@ function refreshBookings(): void {
       const clean = list.filter((b) => isOccasionId(b.occasionId));
       writeCache(clean);
       bookings = clean;
+      fresh = true;
       publish();
+      noteOccasionMoment("seen");
     },
     () => {},
   );
@@ -135,20 +152,49 @@ function refreshBookings(): void {
  * The undo only clears what it set, so a page swapping for another one in the
  * same tick doesn't strip the newcomer's costume.
  */
-export function wearOccasion(d: string): () => void {
+export function wearOccasion(d: string, who?: { room: OccasionRoom; tracked: boolean }): () => void {
   day = d;
+  wearer = who ?? null;
   publish();
   refreshBookings();
+  // A page that mounts after the bookings landed (the walk into the bar) is
+  // counted now; one that mounts first is counted when they land.
+  if (fresh) noteOccasionMoment("seen");
   return () => {
     if (day !== d) return;
     day = null;
+    wearer = null;
     publish();
   };
 }
 
 /** The page's costume, for as long as it is mounted. */
-export function useWearOccasion(d: string): void {
-  useEffect(() => wearOccasion(d), [d]);
+export function useWearOccasion(d: string, room: OccasionRoom, tracked: boolean): void {
+  useEffect(() => wearOccasion(d, { room, tracked }), [d, room, tracked]);
+}
+
+/**
+ * Tell the Worker the costume reached this device, or that it did something
+ * with it (a knock on the cloche). Counted only when the CALENDAR put the
+ * costume on, on a round that counts: never under `?occasion=`, never from a
+ * preview, playtest or showcase, and never off a cached booking list that
+ * hasn't been checked against the Worker yet.
+ */
+export function noteOccasionMoment(moment: OccasionMoment): void {
+  if (!day || !wearer?.tracked || override || !fresh) return;
+  const id = occasionOn(day, bookings);
+  if (!id) return;
+  const key = `${id}|${wearer.room}|${moment}|${gameToday()}`;
+  if (sent.has(key)) return;
+  sent.add(key);
+  markOccasionSeen({
+    occasionId: id,
+    playerId: getPlayerId(),
+    playDay: day,
+    room: wearer.room,
+    moment,
+    surface: currentSurface(),
+  });
 }
 
 function subscribe(fn: () => void): () => void {

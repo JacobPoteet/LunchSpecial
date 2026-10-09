@@ -13,7 +13,7 @@ import { verifyToken } from "../auth";
 import { getClues, getDishById, getDishBySlug, getSeededDish, getTargetDish, serverToday } from "../db";
 import { computeFeedback, isPlayableDate, puzzleNumber } from "../game";
 import { guessRecord, isAnalyticsId, recordGuess } from "../guesslog";
-import { loadBookings } from "../occasions";
+import { loadBookings, parseSighting } from "../occasions";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -232,6 +232,30 @@ interface AnnouncementRow {
 app.get("/occasions", async (c) => {
   const rows = await loadBookings(c.env.DB);
   return c.json(rows.map(({ occasionId, startDate, endDate, isActive }) => ({ occasionId, startDate, endDate, isActive })));
+});
+
+/**
+ * A costume reached somebody: the reach ledger behind the admin's Events page
+ * (occasion_views, migrations/0055). Fire-and-forget like the round beacons;
+ * one row per (occasion, device, ET day, room, moment), so a replay is a no-op.
+ *
+ * "seen", never "view" or "event": ad blockers match those words in a path,
+ * and a blocked sighting looks exactly like nobody turning up. The fold is
+ * re-run on `playDay`, so an override or a forged body records nothing.
+ */
+app.post("/occasions/seen", async (c) => {
+  const raw = await c.req.json().catch(() => null);
+  const parsed = parseSighting(raw, await loadBookings(c.env.DB), serverToday());
+  if ("error" in parsed) return c.json({ error: parsed.error }, 400);
+  const s = parsed.sighting;
+  await c.env.DB.prepare(
+    `INSERT INTO occasion_views (occasion_id, player_id, seen_day, play_day, room, moment, surface, seen_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+     ON CONFLICT(occasion_id, player_id, seen_day, room, moment) DO NOTHING`,
+  )
+    .bind(s.occasionId, s.playerId, serverToday(), s.playDay, s.room, s.moment, s.surface)
+    .run();
+  return c.json({ ok: true });
 });
 
 /**

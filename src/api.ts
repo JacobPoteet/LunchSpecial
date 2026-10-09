@@ -1,6 +1,6 @@
 // Thin fetch wrappers around the public game API.
 
-import type { OccasionBooking } from "../shared/occasions";
+import type { OccasionBooking, OccasionSighting } from "../shared/occasions";
 import type {
   Announcement,
   AnnouncementSeenInput,
@@ -163,6 +163,14 @@ export function fetchAnnouncements(returning: boolean): Promise<Announcement[]> 
  */
 export function fetchOccasions(): Promise<OccasionBooking[]> {
   return request("/api/occasions");
+}
+
+/**
+ * A costume reached this device (the admin's Events page counts these).
+ * "seen", never "view": see the conventions test. Fire-and-forget.
+ */
+export function markOccasionSeen(body: OccasionSighting): void {
+  beacon("/api/occasions/seen", body);
 }
 
 /**

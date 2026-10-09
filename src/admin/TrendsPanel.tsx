@@ -1,7 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import type { OccasionReport, OccasionRun } from "../../shared/occasions";
 import * as api from "./api";
-import OccasionReportPanel from "./OccasionReportPanel";
 import type {
   AudienceReport,
   AnalyticsSummary,
@@ -433,14 +432,15 @@ export default function TrendsPanel({
   audience: AudienceReport | null;
   audienceError: string | null;
 }) {
-  // Its own read, so a failure here costs the costume card and nothing else.
+  // Costumed runs, for the dashed bands on the growth chart. What each run did
+  // is read on the Events page.
   const [occasionReport, setOccasionReport] = useState<OccasionReport | null>(null);
-  const [occasionError, setOccasionError] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
     api.getOccasionReport(surface === "all" ? undefined : surface).then(
       (r) => live && setOccasionReport(r),
-      (e: Error) => live && setOccasionError(e.message),
+      // The bands are an annotation; without them the chart still reads.
+      () => {},
     );
     return () => {
       live = false;
@@ -584,10 +584,6 @@ export default function TrendsPanel({
         )}
       </section>
       </Fold>
-
-      {/* Right under the curve its bands are drawn on: each costumed run against
-          the same weekdays before it. Absent until an occasion has run. */}
-      <OccasionReportPanel report={occasionReport} error={occasionError} />
 
       {/* The weekly cycle the growth curve deliberately averages out. Above the
           heatmap because it's the summary the grid is the detail of. */}

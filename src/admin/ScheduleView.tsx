@@ -11,7 +11,6 @@ import {
   type BoardRow,
 } from "../../shared/schedule";
 import * as api from "./api";
-import OccasionsPanel from "./OccasionsPanel";
 import { OCCASIONS, occasionOn, type AdminOccasions, type OccasionId } from "../../shared/occasions";
 
 import { Icon } from "../game/Icon";
@@ -90,13 +89,12 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
   /** The window to ask for. Null leaves the route's own default (today-7 → today+45). */
   const [range, setRange] = useState<{ from: string; to: string } | null>(null);
   const today = gameToday();
-  // The occasions lane. Its own read, so a failure here never blanks the board.
+  // Which days are in costume, for the tags on the board. Booking lives on the
+  // Events page; a failure here only costs the tags.
   const [occasions, setOccasions] = useState<AdminOccasions | null>(null);
-  const [occasionError, setOccasionError] = useState<string | null>(null);
-  const loadOccasions = useCallback(() => {
-    api.getOccasions().then(setOccasions, (e: Error) => setOccasionError(e.message));
+  useEffect(() => {
+    api.getOccasions().then(setOccasions, () => {});
   }, []);
-  useEffect(loadOccasions, [loadOccasions]);
 
   const reload = useCallback(() => {
     api.getSchedule(range?.from, range?.to).then(
@@ -254,8 +252,6 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
   const last = entries[entries.length - 1]?.date;
 
   return (
-    <>
-    <OccasionsPanel data={occasions} error={occasionError} onChanged={loadOccasions} />
     <section className="panel">
       <div className="btn-row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
         <h2 style={{ margin: 0 }}>Specials board</h2>
@@ -304,7 +300,7 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
       {flash && flash.date === null && <p className={flash.ok ? "form-ok" : "form-error"}>{flash.text}</p>}
 
       <p className="dash-note" style={{ marginBottom: 10 }}>
-        Past days are locked. Only dishes marked <span className="badge">ready</span> can be booked. Auto-fill keeps regions, countries and desserts apart. Dates roll over at midnight ET.
+        Past days are locked. Only dishes marked <span className="badge">ready</span> can be booked. Auto-fill keeps regions, countries and desserts apart. Dates roll over at midnight ET. A dashed tag marks a day in costume; events are booked on the Events page.
       </p>
 
       <ul className="sched-list">
@@ -337,7 +333,6 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
         ))}
       </ul>
     </section>
-    </>
   );
 }
 

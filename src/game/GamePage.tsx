@@ -582,7 +582,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   const [reveal, setReveal] = useState<RevealInfo | null>(null);
   // Dressed for the round's own day, fixed at entry: a Leftover from Oct 31
   // wears Halloween in March. See src/occasions/store.ts.
-  useWearOccasion(date);
+  useWearOccasion(date, "diner", tracked);
   const { kit } = useOccasion();
   const [stats, setStats] = useState<Stats>(() => loadStats());
   const [error, setError] = useState<string | null>(null);

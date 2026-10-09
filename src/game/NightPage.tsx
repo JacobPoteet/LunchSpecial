@@ -236,10 +236,10 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   // finishes at 03:10 played THIS night: recomputing would hand them tomorrow's
   // board mid-round, and recomputing at midnight would do it to everybody.
   const [night] = useState(() => grace ?? currentNight());
-  // The bar dresses for the night key, fixed at entry like the night itself.
-  useWearOccasion(night);
-  const { kit } = useOccasion();
   const tracked = !isPreview && !pinned;
+  // The bar dresses for the night key, fixed at entry like the night itself.
+  useWearOccasion(night, "bar", tracked);
+  const { kit } = useOccasion();
 
   const [drinks, setDrinks] = useState<DrinkPoolEntry[]>([]);
   const [info, setInfo] = useState<NightcapInfo | null>(null);

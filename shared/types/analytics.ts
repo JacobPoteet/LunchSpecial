@@ -1033,6 +1033,8 @@ export interface DeviceDataSummary {
   noticeViews: number;
   /** Guesses recorded against this device's rounds (analytics_guesses, migrations/0053). */
   guesses: number;
+  /** Costume sightings and knocks (occasion_views, migrations/0055). */
+  occasionViews: number;
 }
 
 /** What a device wipe actually removed, per table — reported back, never assumed. */
@@ -1041,6 +1043,7 @@ export interface DeviceDataDeleted {
   visits: number;
   noticeViews: number;
   guesses: number;
+  occasionViews: number;
 }
 
 /** Anonymous engagement aggregates for the admin dashboard. */
