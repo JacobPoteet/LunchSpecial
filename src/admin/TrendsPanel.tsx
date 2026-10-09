@@ -12,7 +12,7 @@ import type {
 } from "../../shared/types";
 import { WeeklyActiveChart } from "./AudiencePanels";
 import Fold from "./Fold";
-import { KIND_META, KindLegend, hourLabel, noRoundsNote, pct, shortDate, type SurfaceFilter } from "./analyticsUi";
+import { KIND_META, KindLegend, hourLabel, hourTick, noRoundsNote, pct, shortDate, type SurfaceFilter } from "./analyticsUi";
 
 /**
  * Everything that moves over *time*, and nothing else.
@@ -371,7 +371,7 @@ function Heatmap({ rhythm }: { rhythm: PlayRhythm }) {
         {/* Hour ticks along the top, every three hours so they fit on a phone. */}
         {Array.from({ length: 24 }, (_, h) => (
           <span className="heat__htick" key={`h${h}`}>
-            {h % 3 === 0 ? String(h).padStart(2, "0") : ""}
+            {h % 3 === 0 ? hourTick(h) : ""}
           </span>
         ))}
         <span className="heat__corner" />

@@ -18,6 +18,9 @@ import type {
 } from "../../shared/types";
 import { DNF_GRACE_MINUTES, PLAYTIME_CAP_MINUTES } from "../../shared/types";
 import { rangeLabel, rate, SMALL_SAMPLE_MIN } from "../../shared/sample";
+import { hourOfDay, hourTick } from "../../shared/time";
+
+export { hourTick };
 
 export const pct = (n: number, of: number) => (of === 0 ? 0 : Math.round((n / of) * 100));
 
@@ -55,8 +58,8 @@ export function ago(atMs: number, nowMs: number): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-/** "14" → "14:00", the one way this dashboard writes an hour of the day. */
-export const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00`;
+/** "14" → "2 PM", the one way this dashboard writes an hour of the day. */
+export const hourLabel = hourOfDay;
 
 /**
  * The game kinds, in display order. The first (daily) is the priority metric —
@@ -421,7 +424,7 @@ export function HourlyByKind({ hours, nowHour }: { hours: AnalyticsHour[]; nowHo
                 );
               })}
             </span>
-            {h.hour % 3 === 0 && <span className="hourly__tick">{String(h.hour).padStart(2, "0")}</span>}
+            {h.hour % 3 === 0 && <span className="hourly__tick">{hourTick(h.hour)}</span>}
           </div>
         );
       })}

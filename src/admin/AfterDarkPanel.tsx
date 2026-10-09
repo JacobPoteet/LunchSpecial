@@ -14,7 +14,7 @@ import { BAR_CLOSE_HOUR, BAR_OPEN_HOUR } from "../../shared/night";
 import { rangeLabel, type Rate } from "../../shared/sample";
 import * as api from "./api";
 import { Veiled, useVeil } from "./Veil";
-import { hourLabel, RangeHint, SAMPLE_NOTE, shortDate, type SurfaceFilter } from "./analyticsUi";
+import { hourLabel, hourTick, RangeHint, SAMPLE_NOTE, shortDate, type SurfaceFilter } from "./analyticsUi";
 
 /**
  * A percentage with its interval underneath, which is the only way a rate is
@@ -106,7 +106,7 @@ function HourProfile({
               {n > 0 && <span className="night-hours__num">{n}</span>}
               <div className="night-hours__bar" style={{ height: n === 0 ? 0 : `${(n / peak) * 100}%` }} />
               {/* Every third hour, or the axis is unreadable at 320px. */}
-              {h % 3 === 0 && <span className="night-hours__tick">{String(h).padStart(2, "0")}</span>}
+              {h % 3 === 0 && <span className="night-hours__tick">{hourTick(h)}</span>}
             </div>
           );
         })}

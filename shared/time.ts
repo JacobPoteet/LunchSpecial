@@ -67,28 +67,43 @@ const zoneDay = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
 });
 
+/** Hour (0–23) as 1–12 with its "AM" / "PM" suffix. */
+function twelveHour(h: number): { h: number; suffix: "AM" | "PM" } {
+  return { h: h % 12 === 0 ? 12 : h % 12, suffix: h < 12 ? "AM" : "PM" };
+}
+
 /**
- * An instant as a compact wall clock in GAME_TIMEZONE — "7/20 14:32:07". Used by
+ * An instant as a compact wall clock in GAME_TIMEZONE — "7/20 2:32:07 PM". Used by
  * the admin activity feed, which logs UTC instants but reads them in game time.
  */
 export function gameTimestamp(instant: Date): string {
-  return `${zoneDay.format(instant)} ${wallClock.format(instant)}`;
+  const [hh, mm, ss] = wallClock.format(instant).split(":").map(Number);
+  const t = twelveHour(hh);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${zoneDay.format(instant)} ${t.h}:${pad(mm)}:${pad(ss)} ${t.suffix}`;
 }
 
-const zoneClock = new Intl.DateTimeFormat("en-GB", {
-  timeZone: GAME_TIMEZONE,
-  hourCycle: "h23",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
 /**
- * An instant as an hours:minutes wall clock in GAME_TIMEZONE — "17:58". The
- * activity feed's visit headers use it for a span ("17:58 → 23:41"), where
+ * An instant as an hours:minutes wall clock in GAME_TIMEZONE — "5:58 PM". The
+ * activity feed's visit headers use it for a span ("5:58 PM → 11:41 PM"), where
  * {@link gameTimestamp}'s date and seconds would be noise on both ends.
  */
 export function gameClock(instant: Date): string {
-  return zoneClock.format(instant);
+  const [hh, mm] = wallClock.format(instant).split(":").map(Number);
+  const t = twelveHour(hh);
+  return `${t.h}:${String(mm).padStart(2, "0")} ${t.suffix}`;
+}
+
+/** An hour of day (0–23) as "2 PM", the dashboard's one way to name an hour. */
+export function hourOfDay(h: number): string {
+  const t = twelveHour(h);
+  return `${t.h} ${t.suffix}`;
+}
+
+/** An hour of day as an axis tick, short enough for a narrow column: "12a", "3p". */
+export function hourTick(h: number): string {
+  const t = twelveHour(h);
+  return `${t.h}${t.suffix === "AM" ? "a" : "p"}`;
 }
 
 /** Break a millisecond span into zero-padded hh/mm/ss strings for a countdown. */
