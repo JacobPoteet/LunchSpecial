@@ -32,6 +32,13 @@ import { foldCountries, type CountryRow } from "../../countries";
 import { foldSources, type VisitSourceRow } from "../../attribution";
 
 import { foldDishStats, type DishMetaRow, type DishStatRow } from "../../dishstats";
+import {
+  foldGuessStats,
+  type GuessDishRow,
+  type GuessPairRow,
+  type GuessRoundsRow,
+  type GuessTotalsRow,
+} from "../../guessstats";
 
 import { foldFunnel, type FunnelBucketRow } from "../../funnel";
 import { foldRhythm, type RhythmRow } from "../../rhythm";
@@ -594,6 +601,44 @@ app.get("/dish-report", async (c) => {
   ]);
   return c.json(
     foldDishStats(roundsRes.results as unknown as DishStatRow[], metaRes.results as unknown as DishMetaRow[]),
+  );
+});
+
+// What players order: the wrong dishes each Special draws, and what they open
+// with. Reads analytics_guesses, which the guess routes write (worker/guesslog.ts).
+// Dishes only; Nightcap guesses carry drink ids and belong to the After Dark tab.
+//
+// Not surface-filtered: the ledger has no surface column, and joining it to
+// analytics_rounds would drop every guess whose /start beacon never landed.
+// "/picks" for the same ad-blocker reason as "/dish-report".
+app.get("/picks", async (c) => {
+  const [pairsRes, roundsRes, dishesRes, totalsRes] = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `SELECT target_dish_id, guessed_dish_id, (guess_number = 1) AS opener, COUNT(*) AS n
+         FROM analytics_guesses
+        WHERE guessed_dish_id IS NOT NULL
+        GROUP BY target_dish_id, guessed_dish_id, opener`,
+    ),
+    c.env.DB.prepare(
+      `SELECT target_dish_id, COUNT(DISTINCT round_id) AS rounds
+         FROM analytics_guesses
+        WHERE guessed_dish_id IS NOT NULL
+        GROUP BY target_dish_id`,
+    ),
+    c.env.DB.prepare("SELECT id, name, country FROM dishes"),
+    c.env.DB.prepare(
+      `SELECT COUNT(*) AS guesses, COUNT(DISTINCT round_id) AS rounds, MIN(created_at) AS first
+         FROM analytics_guesses
+        WHERE guessed_dish_id IS NOT NULL`,
+    ),
+  ]);
+  return c.json(
+    foldGuessStats(
+      pairsRes.results as unknown as GuessPairRow[],
+      roundsRes.results as unknown as GuessRoundsRow[],
+      dishesRes.results as unknown as GuessDishRow[],
+      totalsRes.results[0] as unknown as GuessTotalsRow | undefined,
+    ),
   );
 });
 
