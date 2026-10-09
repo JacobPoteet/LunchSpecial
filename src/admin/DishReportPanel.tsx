@@ -22,7 +22,10 @@ import { RangeHint, avgGuesses, pct, shortDate, type SurfaceFilter } from "./ana
  */
 const DISH_MIN_COMPLETED = 8;
 
-type SortKey = "hardest" | "played" | "shared" | "recent";
+/** Dishes the table lists before "show all". */
+const ROWS_SHOWN = 5;
+
+type SortKey ="hardest" | "played" | "shared" | "recent";
 
 const SORTS: { key: SortKey; label: string; hint: string }[] = [
   { key: "hardest", label: "Hardest", hint: "Most losses per completed round — the clue ladder's failures first" },
@@ -132,7 +135,16 @@ export default function DishReportPanel({
     };
   }, [surface]);
 
-  const rows = useMemo(() => (report ? sortRows(report.rows, sort) : []), [report, sort]);
+  const sorted = useMemo(() => (report ? sortRows(report.rows, sort) : []), [report, sort]);
+  // The panel opens on the few dishes worth a look; the rest is one click away.
+  // A dish the Activity feed sent you to is always shown, wherever it ranks.
+  const [showAll, setShowAll] = useState(false);
+  const rows = useMemo(() => {
+    if (showAll) return sorted;
+    const head = sorted.slice(0, ROWS_SHOWN);
+    const wanted = focusDish == null ? undefined : sorted.find((d) => d.dishId === focusDish);
+    return wanted && !head.includes(wanted) ? [...head, wanted] : head;
+  }, [sorted, showAll, focusDish]);
 
   if (error) {
     return (
@@ -250,6 +262,14 @@ export default function DishReportPanel({
           </tbody>
         </table>
       </div>
+
+      {report.rows.length > ROWS_SHOWN && (
+        <p className="dash-note" style={{ marginTop: 8 }}>
+          <button className="link-btn" aria-expanded={showAll} onClick={() => setShowAll(!showAll)}>
+            {showAll ? `Show the top ${ROWS_SHOWN}` : `Show all ${report.rows.length} dishes`}
+          </button>
+        </p>
+      )}
 
       <p className="dash-note" style={{ marginTop: 8 }}>
         Every mode counts, not just the Special. Grey rows have under {DISH_MIN_COMPLETED} finishes: read them as anecdotes.
