@@ -103,8 +103,8 @@ export function clueBeat(beat: number): ClueBeat | undefined {
 export const COASTER_BEATS: readonly ClueBeat[] = [
   {
     beat: 1,
-    name: "The room",
-    job: "The region, and what kind of drink it is. Never the country.",
+    name: "First impression",
+    job: "One angle on the drink: glass, ritual, sound, look, hour. Never the country.",
     lo: 35,
     hi: 70,
     max: 85,
@@ -113,7 +113,7 @@ export const COASTER_BEATS: readonly ClueBeat[] = [
   {
     beat: 2,
     name: "The pour",
-    job: "Who mixed it and what goes in the glass.",
+    job: "Who made it and what goes in the glass.",
     lo: 65,
     hi: 125,
     max: 140,
@@ -122,7 +122,7 @@ export const COASTER_BEATS: readonly ClueBeat[] = [
   {
     beat: 3,
     name: "Last call",
-    job: "The country, and what it looks like in front of you.",
+    job: "The country, placed naturally, and the sight of it in front of you.",
     lo: 45,
     hi: 100,
     max: 115,

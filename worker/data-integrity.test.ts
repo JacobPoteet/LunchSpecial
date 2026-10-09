@@ -947,6 +947,129 @@ describe("the coaster sheet", () => {
       .map(([phrase, slugs]) => `"${phrase}" on ${[...slugs].join(", ")}`);
     expect(shared, `\n${shared.join("\n")}\n`).toEqual([]);
   });
+
+  // The kitchen's variety pass, run on the bar. Coaster 1 used to be "a form
+  // from a region" on 108 of 108 drinks, and coaster 3 opened with the country
+  // on nearly all of them. These are ratchets: loose enough that a good batch
+  // never trips them, tight enough that the template cannot grow back.
+  describe("coaster variety", () => {
+    const byCoaster = (n: number) => rows.filter((r) => r.order_index === n);
+    const coaster1 = byCoaster(1);
+    const REGION_WORD =
+      /\b(europe\w*|asia\w*|africa\w*|middle east\w*|america\w*|latin|caribbean|oceania|scandinav\w*|mediterranean|balkans?|levant\w*|andes|andean|pacific|lowcountry|gulf coast|new england|midwest\w*|southwest\w*|northeast\w*|bayou)\b/i;
+    const BARE_FORM_FROM_REGION =
+      /^an?\s[^,.]*\s(?:from|out of|of)\s(?:the\s)?[^,.]*\b(?:europe\w*|asia\w*|africa\w*|middle east\w*|america\w*|caribbean|oceania|scandinav\w*|mediterranean)\b[^,.]*\.?$/i;
+
+    it("keeps region words to a minority of coaster 1s", () => {
+      const hits = coaster1.filter((r) => REGION_WORD.test(r.text));
+      expect(
+        hits.length / coaster1.length,
+        `${hits.length} of ${coaster1.length}\n${hits.map((r) => `${r.slug}: ${r.text}`).join("\n")}`,
+      ).toBeLessThanOrEqual(0.2);
+    });
+
+    it("keeps the bare 'a form from a region' skeleton under 5%", () => {
+      const hits = coaster1.filter((r) => BARE_FORM_FROM_REGION.test(r.text));
+      expect(
+        hits.length / coaster1.length,
+        hits.map((r) => `${r.slug}: ${r.text}`).join("\n"),
+      ).toBeLessThanOrEqual(0.05);
+    });
+
+    it("does not let 'A' or 'An' open more than 70% of coaster 1s", () => {
+      const hits = coaster1.filter((r) => /^an?\s/i.test(r.text));
+      expect(hits.length / coaster1.length, `${hits.length} of ${coaster1.length}`).toBeLessThanOrEqual(0.7);
+    });
+
+    it("lets the country open no more than 60% of coaster 3s", () => {
+      const coaster3 = byCoaster(3);
+      const hits = coaster3.filter((r) => {
+        const opening = fold(r.text).split(/\s+/).slice(0, 3).join(" ");
+        return countryTerms(r.country).some((t) => opening.includes(t));
+      });
+      expect(
+        hits.length / coaster3.length,
+        `${hits.length} of ${coaster3.length} open with the country`,
+      ).toBeLessThanOrEqual(0.6);
+    });
+
+    it("keeps coaster 2s that cite a year or a numbered century to a third", () => {
+      const coaster2 = byCoaster(2);
+      const dated = coaster2.filter((r) =>
+        /\b(1\d{3}|20\d{2})s?\b|\b\d{1,2}(st|nd|rd|th)[- ]century|\bmillenni/i.test(r.text),
+      );
+      expect(dated.length / coaster2.length, `${dated.length} of ${coaster2.length}`).toBeLessThanOrEqual(1 / 3);
+    });
+
+    it("never lets two coasters of one drink say the same thing", () => {
+      const failures: string[] = [];
+      for (const [slug, clues] of bySlug) {
+        for (let i = 0; i < clues.length; i++) {
+          for (let j = i + 1; j < clues.length; j++) {
+            const a = contentWords(clues[i].text);
+            const b = contentWords(clues[j].text);
+            const small = Math.min(a.size, b.size);
+            if (small < 3) continue;
+            let shared = 0;
+            for (const w of b) if (a.has(w)) shared++;
+            if (shared / small > 0.6) {
+              failures.push(
+                `${slug}: coasters ${clues[i].order_index} and ${clues[j].order_index} share ${Math.round((shared / small) * 100)}% of their words`,
+              );
+            }
+          }
+        }
+      }
+      expect(failures, `\n${failures.join("\n")}\n`).toEqual([]);
+    });
+  });
+});
+
+// The coaster backfills ship as UPDATEs on drink_clues, and buildDb() applies
+// the seed last, so a migration missing rows is invisible to every test above.
+// Same guard as the dish clues: the last write to a (slug, coaster) must match
+// the seed.
+const MIGRATION_DRINK_CLUE_UPDATE =
+  /UPDATE drink_clues SET text = '((?:[^']|'')*)'\s*\n\s*WHERE drink_id = \(SELECT id FROM drinks WHERE slug = '([a-z0-9-]+)'\) AND order_index = (\d);/g;
+
+describe("drink clue migrations and the seed agree", () => {
+  const db = buildDb();
+  const seedText = new Map<string, string>();
+  for (const r of db
+    .prepare(
+      `SELECT d.slug AS slug, c.order_index AS beat, c.text AS text
+       FROM drinks d JOIN drink_clues c ON c.drink_id = d.id`,
+    )
+    .all() as { slug: string; beat: number; text: string }[]) {
+    seedText.set(`${r.slug}:${r.beat}`, r.text);
+  }
+
+  it("has no drink clue UPDATE that disagrees with the catalogue", () => {
+    const lastWrite = new Map<string, { file: string; text: string }>();
+    const mismatches: string[] = [];
+    const dir = join(ROOT, "migrations");
+    let parsed = 0;
+    for (const file of readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort()) {
+      const sql = readFileSync(join(dir, file), "utf8");
+      for (const m of sql.matchAll(MIGRATION_DRINK_CLUE_UPDATE)) {
+        const [, raw, slug, beat] = m;
+        const key = `${slug}:${beat}`;
+        parsed++;
+        if (!seedText.has(key)) mismatches.push(`${file}: ${slug} coaster ${beat} is not in the catalogue`);
+        lastWrite.set(key, { file, text: raw.replace(/''/g, "'") });
+      }
+    }
+    for (const [key, { file, text }] of lastWrite) {
+      const seeded = seedText.get(key);
+      if (seeded !== undefined && seeded !== text) {
+        mismatches.push(`${file}: ${key}\n    migration: ${text}\n    seed:      ${seeded}`);
+      }
+    }
+    expect(parsed, "no drink_clues UPDATEs parsed out of migrations/").toBeGreaterThan(0);
+    expect(mismatches, `\n${mismatches.join("\n")}\n`).toEqual([]);
+  });
 });
 
 // ---- the pantry ----

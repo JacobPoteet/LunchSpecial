@@ -110,70 +110,104 @@ counter under each textarea in the admin's Bar editor.
 
 | # | Beat | The handle it hands over |
 |---|---|---|
-| 1 | **The room** | The region, and what kind of drink is in the glass. Never the country |
-| 2 | **The pour** | Who mixed it and what goes in. Two sentences allowed; it is the only one |
-| 3 | **Last call** | The country, and what it looks like in front of you |
+| 1 | **First impression** | One angle on the drink: the glass, the ritual, the look, the hour. Never the country; a region only with a second fact beside it |
+| 2 | **The pour** | Who made it and what goes in. Two sentences allowed; it is the only one |
+| 3 | **Last call** | The country, placed naturally, and the sight of it in front of you |
 
-#### Coaster 1 — The room
+The bar used to define coaster 1 as "region and form, nothing else", and all 108 drinks came out as
+"a [form] from [region]". The region is what the Country tile's near match already says, so the clue
+spent one fact twice. Don't write that clue. The rules below are the fix, and
+`worker/data-integrity.test.ts` ("coaster variety") holds the line.
 
-Region and form. Nothing else, and it should read as short as it is.
+#### Coaster 1: First impression
 
-**Never name the country, and never riddle your way to it.** The country tile is the middle game's
-work.
+One angle on the drink, one sentence. **Never the country, and never riddle your way to it** ("a
+boot-shaped peninsula"). Never another coaster's handle: no ingredient list, no person or date, no
+translation of the name. A region is allowed only when there is more to the clue than the region.
 
-> A blood-red aperitivo from southern Europe, stirred and never shaken. *(Negroni)*
->
-> A clear anise spirit from southern Europe that clouds with water. *(Ouzo)*
->
-> A salty yogurt drink from the Middle East, served ice cold. *(Ayran)*
+Rotate through these. Look at what the neighbours in the catalogue are doing and pick a lens that is
+under-used.
 
-The United States is the one exemption, exactly as in the kitchen: its region-level answer is a
-part of the country. Say "the American bar canon" or "North America", never the state or the city.
+| Lens | What it shows | Example |
+|---|---|---|
+| **Glass and garnish** | What it arrives in, what sits on it | A frosted silver cup packed to the brim with crushed ice. |
+| **Ritual** | How it is ordered, served or drunk | Poured with two hands, and not into your own cup first. |
+| **Sound or motion** | What the bartender or the drinker does | Shaken hard and long, until the tin rattles with loose froth. |
+| **Color and look** | One visual hook | Orange as a traffic cone, and sweet enough to match. |
+| **The hour** | When it is ordered | The last order of the night that tastes like dessert. |
+| **Misconception** | What people assume wrongly | The pitcher on the counter that looks like milk and isn't. |
+| **The room itself** | The kind of bar it belongs to | The tiki-bar standard, garnished like a small jungle. |
+| **Eater** | Who it wins over | The sweet entry point for people who think they hate spirits. |
+| **Region, with more** | A region plus a second fact | A Caribbean drink poured over a mountain of crushed ice. |
 
-Say what *kind* of drink it is. "A cocktail from Europe" is not a clue; "a bright orange patio
-drink from southern Europe, mostly bubbles" is.
+Ceilings that keep the set varied (all in the integrity test): region words in at most 20% of
+coaster 1s, the bare "a form from a region" skeleton in at most 5%, an opening "A" or "An" in at
+most 70%.
 
-#### Coaster 2 — The pour
+**Do not give away a tile.** Coaster 1 must not name the base spirit or the temperature in a way
+that makes the Spirit or Temperature tile redundant on the first miss. Say the glass, not the pour.
+A spiritless drink is a real answer (`spirit: 'none'`), so a mocktail's coaster 1 leans on glass,
+ritual or look, never on "alcohol-free".
 
-Who made it, when, why, and what goes in the glass. This is the beat carrying two of the kitchen's,
-which is why it gets two sentences and the widest budget.
+The United States is the one country exemption, exactly as in the kitchen: its region-level answer
+is part of the country. Say "the American bar canon", never the state or the city.
 
-A person or a group has to be the subject, and the build has to be specific enough to act on.
+#### Coaster 2: The pour
+
+Who made it, and what goes in the glass. This is the beat carrying two of the kitchen's, which is
+why it gets two sentences and the widest budget. A person or a group has to be the subject, and the
+build has to be specific enough to act on.
 
 > A count in Florence asked for his aperitivo stiffened with gin in 1919, and got equal parts of
 > three bottles poured over ice. *(Negroni)*
 >
-> A model asked a Soho bartender in 1983 for something to wake her up and knock her out, so he
-> shook vodka with coffee and its liqueur. *(Espresso Martini)*
->
 > A soldier arrived at a Paris bar in a motorcycle's passenger seat, and the barman shook cognac
 > with orange liqueur and lemon for him. *(Sidecar)*
 
-Contested origins are good material. State the fight plainly rather than hedging it. If you can't
-source a date, leave the date out.
+Vary the lens, so it stops being "a bartender in [year] mixed [x] and [y]":
 
-Name the ingredients the feedback tiles score on. Three or four is plenty.
+| Lens | What it shows |
+|---|---|
+| **A named person** | Who poured it, and what they had in front of them |
+| **A fight over who invented it** | The claimants, stated plainly rather than hedged |
+| **An accident or a shortage** | What ran out, or what was left over |
+| **A migration** | Who carried it where, and what they swapped in |
+| **A job or a class** | Who drank it, and why they needed it |
+| **A law or a ritual** | The rule that shaped the pour |
+| **A date, only when the date is the clue** | A year is one lens, not the default |
 
-#### Coaster 3 — Last call
+At most a third of coaster 2s may cite a year or a numbered century. If you can't source a date,
+leave the date out. Name the ingredients the feedback tiles score on; three or four is plenty.
+
+#### Coaster 3: Last call
 
 Everything but the name. Missing here should feel unlucky, never unfair.
 
 Two jobs, and they don't conflict. As a clue it is the last thing read before the final guess. As a
 caption it is the one-line definition printed under the answer on the tab, because `NightPage`
-takes `reveal.coasters.at(-1)` and prints it there.
+takes `reveal.coasters.at(-1)` and prints it there. So it must still read as a definition.
 
-Both want the same sentence: **name the country, then say what the thing looks and feels like in
-front of you.**
+**The country does not have to open the sentence.** Picture first, country placed naturally. At
+most 60% of coaster 3s may name the country in their first three words.
 
-> Mexico's pale green sour, served up or on the rocks with a crust along the lip. *(Margarita)*
+> A frosted copper mug with a spent lime shell in it, the American cooler. *(Moscow Mule)*
 >
-> Korea's green bottle poured into shot glasses, and you fill a neighbour's before your own.
-> *(Soju)*
+> Poured into shot glasses in Korea, a green bottle that never stays full. *(Soju)*
 >
-> America's copper-mug cooler, frosted on the outside with a spent lime shell in it. *(Moscow Mule)*
+> Small, dark and sweet in a stemmed glass beside the cheese board, Portugal's after-dinner pour. *(Port)*
 
-Test it by covering coaster 2. If coaster 3 still tells you something, it's a beat. If it doesn't,
-it's a summary.
+Test it by covering coaster 2. If coaster 3 still tells you something and adds words coaster 2 did
+not use, it's a beat. If it doesn't, it's a summary.
+
+#### What makes a coaster weak, on any of the three
+
+- **An opinion where a picture should be.** "Refreshing", "a crowd-pleaser", "perfect for summer".
+- **A legend stated as fact.** Contested origins are good material; the fight is stated plainly.
+- **A figure the player has to decode.** "Forty proof" tells most players nothing.
+- **A coaster that repeats another coaster of the same drink.** The test fails any two coasters of
+  one drink that share more than 60% of the smaller clue's content words.
+- **An opener the neighbours already use.** Read the same coaster across the catalogue before you
+  commit.
 
 ### 3.3 Budgets
 
@@ -182,7 +216,7 @@ the choice a long clue avoids.
 
 | Beat | Target | Hard max | Sentences |
 |---|---|---|---|
-| 1 The room | 35–70 | 85 | 1 |
+| 1 First impression | 35–70 | 85 | 1 |
 | 2 The pour | 65–125 | 140 | 1–2 |
 | 3 Last call | 45–100 | 115 | 1–2 |
 
@@ -211,7 +245,7 @@ invitation. Those two are yours, like the swap test.
    Root Beer Float can't say root or beer, so it says "a dark sassafras soda" — a real synonym, not
    a riddle. If the clue collapses without the word, the name was doing all the work and coaster 2
    needs a better fact.
-4. **Coaster 1 never names the country. Coaster 3 always does.** The US is the one exemption.
+4. **Coaster 1 never names the country. Coaster 3 always does**, though not necessarily first. The US is the one exemption.
 5. **No em dashes.** A comma or a full stop keeps the beat to a single idea.
 6. **Coaster 3 must add vocabulary coaster 2 didn't have.** Ceiling is 70% shared.
 7. **No phrase of five or more words appears on two different drinks.**
@@ -294,10 +328,10 @@ the country.
 npx vitest run worker/data-integrity.test.ts
 ```
 
-Two describe blocks cover the bar. **`back bar data integrity`** checks the pool size, the 55–75%
+Two describe blocks cover the bar, and the coaster sheet carries a nested `coaster variety` block. **`back bar data integrity`** checks the pool size, the 55–75%
 alcohol band, regions, spirits, profiles, slugs, ingredient counts, exactly three coasters, the
 beer/wine alcohol pairing, and that no night is booked with an unpourable drink.
-**`the coaster sheet`** runs every rule in section 3.4 over every drink.
+**`the coaster sheet`** runs every rule in section 3.4 over every drink, then the variety ratchets from section 3.2 and an all-pairs check that no two coasters of one drink say the same thing.
 
 Only the ceilings fail. Being outside a target band prints a count and passes, because a test that
 reddens over a well-written 55-character coaster gets muted inside a week. Watch that count.
@@ -327,6 +361,8 @@ text into `/admin` themselves, hand back options and write nothing — that is `
 and the mechanizable checks have to be done by hand.
 
 If the rewrite belongs in the repo, it goes in both places like a new drink: the seed updated in
-place, and an additive migration of `UPDATE drink_clues` keyed by slug. **A rename regenerates the
+place, and an additive migration of `UPDATE drink_clues` keyed by slug. `scripts/patch-clues.mjs
+--drinks <patch.json> <migration-name>` does both from one patch (`{"negroni": {"1": "…"}}`), and
+the "drink clue migrations and the seed agree" test fails if they drift. **A rename regenerates the
 slug**, so a migration written against the old one matches nothing and fails silently — re-aim the
 text at the new slug rather than renaming the drink back.
