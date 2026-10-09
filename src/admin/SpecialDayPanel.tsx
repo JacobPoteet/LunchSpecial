@@ -162,8 +162,13 @@ export default function SpecialDayPanel({
         )}
       </section>
 
+      {/* Folded: today's panel above already reads the same two charts for one
+          day, and the all-time baseline is a comparison, not a first look. */}
       <section className="panel">
-        <h2>How hard the puzzle runs · all time</h2>
+        <details className="dash-details dash-details--table" style={{ marginTop: 0 }}>
+          <summary>
+            <h2>How hard the puzzle runs · all time</h2>
+          </summary>
         <div className="analytics-split">
           <div>
             <h3 className="analytics-sub">Guess distribution</h3>
@@ -183,6 +188,7 @@ export default function SpecialDayPanel({
         <p className="dash-note" style={{ marginTop: 10 }}>
           Every diner mode. Nightcaps are left out.
         </p>
+        </details>
       </section>
     </>
   );

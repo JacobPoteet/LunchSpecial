@@ -276,12 +276,10 @@ export default function MenuMixPanel({
         {mix.unscheduledDays > 0 &&
           ` · ${mix.unscheduledDays} past day${mix.unscheduledDays === 1 ? "" : "s"} ran on the fallback pick`}
       </p>
-      {/* The tab's Web/Discord toggle governs the dish report above, which is
-          player data. This half is the schedule × dishes catalogue — the same
-          menu was served to everyone, so a surface filter would be a lie here. */}
-      <p className="dash-note">
-        Catalogue data. The Web/Discord filter doesn't apply here.
-      </p>
+      {/* The tab's Web/Discord toggle governs the player data above. This half is
+          the schedule × dishes catalogue: the same menu was served to everyone,
+          so a surface filter would be a lie here. The fold's bar already says
+          "catalogue data"; the note on the foot of the panel says the rest. */}
 
       <hr className="analytics-rule" />
 
@@ -342,7 +340,7 @@ export default function MenuMixPanel({
           </h3>
           <CadenceStrip timeline={timeline} />
           <p className="dash-note" style={{ marginTop: 8 }}>
-            One column per Special, oldest on the left. 
+            One column per Special, oldest on the left.
           </p>
         </div>
       )}
@@ -386,7 +384,9 @@ export default function MenuMixPanel({
               {countries.length > COUNTRY_ROWS && (
                 <p className="dash-note" style={{ marginTop: 8 }}>
                   …and {countries.length - COUNTRY_ROWS} more countr
-                  {countries.length - COUNTRY_ROWS === 1 ? "y" : "ies"}, each served once or twice.
+                  {countries.length - COUNTRY_ROWS === 1 ? "y" : "ies"}, each served{" "}
+                  {Math.max(...countries.slice(COUNTRY_ROWS).map((c) => c.servings))} time
+                  {Math.max(...countries.slice(COUNTRY_ROWS).map((c) => c.servings)) === 1 ? "" : "s"} or fewer.
                 </p>
               )}
             </>
@@ -409,8 +409,8 @@ export default function MenuMixPanel({
       </div>
 
       {repeats.length > 0 && (
-        <div className="analytics-block">
-          <h3 className="analytics-sub">Served more than once</h3>
+        <details className="dash-details dash-details--table">
+          <summary>Served more than once · {repeats.length}</summary>
           <div className="day-table-wrap">
             <table className="day-table">
               <thead>
@@ -431,12 +431,11 @@ export default function MenuMixPanel({
               </tbody>
             </table>
           </div>
-        </div>
+        </details>
       )}
 
       <p className="dash-note" style={{ marginTop: 10 }}>
-        Served covers puzzle #1 through
-        today ({mix.today}).
+        Catalogue data: the Web/Discord filter doesn't apply here. Served covers puzzle #1 through today ({mix.today}).
       </p>
     </section>
   );

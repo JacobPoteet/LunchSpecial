@@ -25,24 +25,18 @@ const DISH_MIN_COMPLETED = 8;
 /** Dishes the table lists before "show all". */
 const ROWS_SHOWN = 5;
 
-type SortKey ="hardest" | "played" | "shared" | "recent";
+// Played and Shared were columns and sorts here once. The table is a glance at
+// which dishes landed, so it keeps the two reads that answer that.
+type SortKey = "hardest" | "recent";
 
 const SORTS: { key: SortKey; label: string; hint: string }[] = [
   { key: "hardest", label: "Hardest", hint: "Most losses per completed round — the clue ladder's failures first" },
-  { key: "played", label: "Most played", hint: "Rounds started, every mode" },
-  { key: "shared", label: "Most shared", hint: "Share of finishers who sent their result on" },
   { key: "recent", label: "Recently served", hint: "Last time it was the Special" },
 ];
 
 function sortRows(rows: DishReportRow[], key: SortKey): DishReportRow[] {
   const out = [...rows];
   switch (key) {
-    case "played":
-      return out.sort((a, b) => b.started - a.started);
-    case "shared":
-      // Rate, not count — a dish served three times can't out-share a staple on
-      // volume, and the question is whether the dish made people want to share.
-      return out.sort((a, b) => pct(b.shared, b.completed) - pct(a.shared, a.completed) || b.shared - a.shared);
     case "recent":
       return out.sort((a, b) => (b.lastServed ?? "").localeCompare(a.lastServed ?? ""));
     default:
@@ -204,12 +198,10 @@ export default function DishReportPanel({
           <thead>
             <tr>
               <th>Dish</th>
-              <th title="Rounds started, every mode">Played</th>
               <th title="Rounds that reached game over">Finished</th>
               <th title="Share of finished rounds that were won">Win rate</th>
               <th title="Mean guesses across the rounds that were solved">Avg</th>
               <th title="Guesses used, 1 to 6, then the rounds that ran out">Spread</th>
-              <th title="Share of finishers who sent their result on">Shared</th>
               <th title="Times this dish has been the scheduled Special">Served</th>
             </tr>
           </thead>
@@ -235,7 +227,6 @@ export default function DishReportPanel({
                       {replays > 0 && ` · ${replays} replay${replays === 1 ? "" : "s"}`}
                     </span>
                   </td>
-                  <td>{d.started}</td>
                   <td>{d.completed}</td>
                   <td>
                     {d.completed === 0 ? (
@@ -251,7 +242,6 @@ export default function DishReportPanel({
                   <td>
                     <MiniDist dist={d.guessDistribution} fails={d.fails} />
                   </td>
-                  <td>{d.completed === 0 ? "—" : `${pct(d.shared, d.completed)}%`}</td>
                   <td>
                     {d.timesServed}
                     {d.lastServed && <span className="ev-sub">{shortDate(d.lastServed)}</span>}
