@@ -26,8 +26,7 @@ export const pct = (n: number, of: number) => (of === 0 ? 0 : Math.round((n / of
 
 /** The one wording for why a percentage is carrying a range. */
 export const SAMPLE_NOTE =
-  `Under ${SMALL_SAMPLE_MIN} rounds the percentage moves several points on one player, so the range ` +
-  `it plausibly sits in (95% confidence) is shown beside it.`;
+  `95% range, shown under ${SMALL_SAMPLE_MIN} rounds.`;
 
 /**
  * The honest range around a rate — but only when the sample is thin enough that
@@ -138,7 +137,7 @@ export function avgGuesses(dist: number[]): number | null {
  */
 export const DIFFICULTY_MIN_SOLVES = 5;
 
-export function difficultyNote(dayDist: number[], allTimeDist: number[], isToday: boolean): string | null {
+export function difficultyNote(dayDist: number[], allTimeDist: number[]): string | null {
   const daySolves = dayDist.reduce((a, b) => a + b, 0);
   if (daySolves < DIFFICULTY_MIN_SOLVES) return null;
   const dayAvg = avgGuesses(dayDist);
@@ -147,9 +146,7 @@ export function difficultyNote(dayDist: number[], allTimeDist: number[], isToday
   const delta = dayAvg - allTimeAvg;
   if (Math.abs(delta) < 0.005) return "Right on the all-time average.";
   const harder = delta > 0;
-  return `${harder ? "▲" : "▼"} ${Math.abs(delta).toFixed(2)} ${harder ? "more" : "fewer"} guesses than average — ${
-    isToday ? "today's" : "that day's"
-  } Special played ${harder ? "harder" : "easier"}.`;
+  return `${harder ? "▲" : "▼"} ${Math.abs(delta).toFixed(2)} ${harder ? "more" : "fewer"} guesses than average.`;
 }
 
 /** Games started from midnight ET through the end of `hour`. */
@@ -288,9 +285,9 @@ export function totalTimeLabel(minutes: number): string {
 export function playTimeNote(t: PlayTime): string {
   const trimmed =
     t.capped === 0
-      ? `No round has run past the ${PLAYTIME_CAP_MINUTES}-minute cap yet.`
-      : `${t.capped} ran past the ${PLAYTIME_CAP_MINUTES}-minute cap and count at it — the timer measures how long the tab was open, not how long anyone was playing.`;
-  return `Across ${t.rounds.toLocaleString()} finished round${t.rounds === 1 ? "" : "s"}, first guess to game over. ${trimmed} Rounds nobody finished aren't timed at all, so this is a floor.`;
+      ? ""
+      : ` ${t.capped} capped at ${PLAYTIME_CAP_MINUTES}m.`;
+  return `${t.rounds.toLocaleString()} finished round${t.rounds === 1 ? "" : "s"}, first guess to game over.${trimmed} Unfinished rounds not timed.`;
 }
 
 /**
@@ -312,7 +309,7 @@ export function SolveTimeRead({ times }: { times: SolveTimes }) {
         <span className="metric__num">{minutesLabel(times.medianMinutes)}</span>
         <span className="metric__label">Typical solve</span>
       </div>
-      <div className="metric" title="Nine in ten solved rounds finish inside this. The slow tail, without letting it set the headline.">
+      <div className="metric" title="90th percentile.">
         <span className="metric__num">{times.p90Minutes === null ? "—" : minutesLabel(times.p90Minutes)}</span>
         <span className="metric__label">Slowest tenth</span>
       </div>
@@ -359,8 +356,8 @@ export function PlayersRow({
 /** The one wording for "we weren't counting players yet", used wherever a slice is null. */
 export function untrackedNote(trackingStart?: string | null): string {
   return trackingStart
-    ? `Player tracking didn't start until ${trackingStart} — not measured before that, which isn't the same as zero.`
-    : "Player tracking hasn't recorded anything yet.";
+    ? `Not tracked before ${trackingStart}.`
+    : "Not tracked yet.";
 }
 
 /** The colour key shared by the started-by-kind tiles and the daily bar graph. */
@@ -437,8 +434,7 @@ export function HourlyByKind({ hours, nowHour }: { hours: AnalyticsHour[]; nowHo
  * for why that isn't one number.
  */
 export const DNF_NOTE =
-  `Started but never reached game over. A round begun in the last ${DNF_GRACE_MINUTES / 60} hours is ` +
-  `counted as still playing; older than that and nobody is coming back to it.`;
+  `Started, never finished. Under ${DNF_GRACE_MINUTES / 60}h old counts as still playing.`;
 
 /**
  * How far a day's games got: what share were finished, and what share of *those*
@@ -610,6 +606,6 @@ export function SurfaceToggle({
 /** The wording every tab uses when the surface filter has emptied it out. */
 export function noRoundsNote(surface: SurfaceFilter): string {
   return surface === "all"
-    ? "No rounds recorded yet. Numbers show up here once players start playing."
+    ? "No rounds yet."
     : `No ${surface === "web" ? "web" : "Discord"} rounds recorded yet.`;
 }

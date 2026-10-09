@@ -370,7 +370,7 @@ export default function DishEditor({
               Fan submission (a player asked for this one)
             </label>
             <p className="field-hint">
-              Stamps the check with a credit when this dish is the Special. Changes nothing else.
+              Credits the player on the check.
             </p>
           </div>
 

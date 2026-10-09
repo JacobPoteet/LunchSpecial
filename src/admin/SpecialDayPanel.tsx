@@ -74,7 +74,7 @@ export default function SpecialDayPanel({
   const dayAvg = avgGuesses(day.guessDistribution);
   // How this day's Special played against the average, worded once in
   // analyticsUi so the Overview's copy of this read can't drift from it.
-  const difficulty = difficultyNote(day.guessDistribution, guessDistribution, isToday);
+  const difficulty = difficultyNote(day.guessDistribution, guessDistribution);
   const dayStartedAny = sumKinds(day.startedByKind);
 
   return (
@@ -181,7 +181,7 @@ export default function SpecialDayPanel({
             <h3 className="analytics-sub">Time to solve</h3>
             <SolveTimeRead times={solveTimes} />
             <p className="dash-note" style={{ marginTop: 8 }}>
-              First guess to game over. Median and p90, not an average.
+              First guess to game over.
             </p>
           </div>
         </div>

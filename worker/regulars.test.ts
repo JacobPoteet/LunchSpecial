@@ -175,11 +175,59 @@ describe("foldRegulars", () => {
     expect(r.regulars!.sources).toEqual([{ source: "discord", devices: 1 }]);
   });
 
+  it("holds a device still in its first week apart from everyone else, never drops it", () => {
+    const rows = [
+      ...onceEach(),
+      ...streak("reg-a", "2026-08-19", 4),
+      ...streak("reg-b", "2026-08-19", 4),
+      ...streak("reg-c", "2026-08-19", 4),
+      special("new-a", "2026-08-19"), // first seen yesterday: pending
+      ...streak("new-b", "2026-08-19", 2), // two days, below the line of four, both this week
+    ];
+    const r = foldRegulars(rows, [], TODAY);
+    expect(r.pending).toBe(2);
+    expect(r.rest.devices).toBe(20);
+    expect(r.regulars!.devices + r.rest.devices + r.pending).toBe(r.devices);
+  });
+
+  it("counts a new device that already cleared the line as a regular, not pending", () => {
+    const rows = [...onceEach(), ...streak("keen", "2026-08-19", 5)];
+    const r = foldRegulars(rows, [], TODAY);
+    expect(r.regulars?.devices).toBe(1);
+    expect(r.pending).toBe(0);
+  });
+
+  it("says how many first Specials were lost, not only how the solved ones went", () => {
+    const rows = [
+      ...streak("a", "2026-08-19", 3),
+      special("b", "2026-08-15", { solved: 0, guesses: 6 }),
+      special("b", "2026-08-16"),
+      special("b", "2026-08-17"),
+    ];
+    const g = foldRegulars(rows, [], TODAY).regulars!;
+    expect(g.special.firstSolved).toEqual({ n: 1, of: 2 });
+    expect(g.special.firstSolvedIn).toEqual([0, 0, 1, 0, 0, 0]);
+  });
+
+  it("gives the sources a denominator of devices with a known source", () => {
+    const rows = [...streak("a", "2026-08-19", 3), ...streak("b", "2026-08-19", 3), ...streak("c", "2026-08-19", 3)];
+    const r = foldRegulars(
+      rows,
+      [
+        { player_id: "a", source: "discord" },
+        { player_id: "b", source: "reddit" },
+      ],
+      TODAY,
+    );
+    expect(r.regulars!.sourced).toBe(2);
+  });
+
   it("is an empty, honest report with no rounds", () => {
     const r = foldRegulars([], [], TODAY);
     expect(r.devices).toBe(0);
     expect(r.regulars).toBeNull();
     expect(r.rest.medianDays).toBeNull();
     expect(r.since).toBeNull();
+    expect(r.pending).toBe(0);
   });
 });

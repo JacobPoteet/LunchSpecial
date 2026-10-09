@@ -7,7 +7,6 @@ import type { AdminView } from "./AdminApp";
 import { AUDIENCE_LABEL } from "./AnnouncementsPanel";
 import type { DashboardTab } from "./Dashboard";
 import {
-  DNF_NOTE,
   FinishRate,
   HourlyByKind,
   KIND_META,
@@ -173,7 +172,7 @@ function AtAGlance({
   // that simply haven't happened yet, so only today gets a "now" boundary.
   const nowHour = gameHour(new Date(now));
   const pace = paceNote({ pace: day.pace, hours: day.hourly, isToday, dayStarted: startedAny, nowHour });
-  const difficulty = difficultyNote(day.guessDistribution, guessDistribution, isToday);
+  const difficulty = difficultyNote(day.guessDistribution, guessDistribution);
   const peakHour = day.hourly.reduce((best, h) => (sumKinds(h.startedByKind) > sumKinds(day.hourly[best].startedByKind) ? h.hour : best), 0);
 
   return (
@@ -222,7 +221,7 @@ function AtAGlance({
                             label: "Opened the game",
                             value: String(day.visited),
                             title:
-                              "Devices that opened a playable board this day. One per device, however many times they came back to the tab.",
+                              "One per device.",
                           },
                         ]
                       : []),
@@ -241,12 +240,12 @@ function AtAGlance({
                     {
                       label: "Finished",
                       value: String(day.allKinds.completed),
-                      title: `Games started today that reached game over — all game modes. ${DNF_NOTE}`,
+                      title: "All modes.",
                     },
                     {
                       label: "Win rate",
                       value: `${pct(day.totals.solved, day.totals.completed)}%`,
-                      title: "The Special only — replays and Chef's Choice don't dilute the puzzle's own win rate.",
+                      title: "The Special only.",
                       // A morning's win rate is three players; say how wide that
                       // is rather than printing it at the weight of an all-time one.
                       foot: <RangeHint n={day.totals.solved} of={day.totals.completed} />,
@@ -281,11 +280,7 @@ function AtAGlance({
                   playedBy={day.players === null ? null : day.players.new + day.players.returning}
                 />
                 {day.visited === null && (
-                  <p className="dash-note">
-                    Arrivals weren't counted on this day
-                    {analytics.visits.since && ` — the visit beacon started ${shortDate(analytics.visits.since)}`}
-                    , so the funnel starts at the first guess here.
-                  </p>
+                  <p className="dash-note">Arrivals not counted this day.</p>
                 )}
               </div>
 
@@ -412,9 +407,7 @@ function TodaysSpecial({
       ) : (
         <>
           <p className="dash-big">Nothing scheduled!</p>
-          <p className="dash-note">
-            Nothing booked: players get the fallback dish.
-          </p>
+          <p className="dash-note">Fallback dish today.</p>
           <SwitchCountdown />
           <div className="btn-row">{testPlayBtn}</div>
         </>
@@ -479,14 +472,12 @@ function TonightsNightcap({ tonight }: { tonight: NightEntry }) {
       {tonight.drinkName ? (
         <>
           <p className="dash-big">{tonight.drinkName}</p>
-          <p className="dash-note">Pouring from 8pm, the player's own clock</p>
+          <p className="dash-note">From 8pm, player's local time</p>
         </>
       ) : (
         <>
           <p className="dash-big">Nothing booked</p>
-          <p className="dash-note">
-            Nothing booked: players get the fallback pour.
-          </p>
+          <p className="dash-note">Fallback pour tonight.</p>
         </>
       )}
       <div className="btn-row">
@@ -550,7 +541,7 @@ function TomorrowsSpecial({
     <p className="form-error">{shuffleError}</p>
   ) : remaining !== null ? (
     <p className="dash-note">
-      Rolled from {remaining} dish{remaining === 1 ? "" : "es"} that have never been the Special.
+      {remaining} never-served dish{remaining === 1 ? "" : "es"} left.
     </p>
   ) : null;
 
@@ -575,7 +566,7 @@ function TomorrowsSpecial({
         <>
           <p className="dash-big">Nothing booked</p>
           <p className="dash-note">
-            {tomorrow.date} has nothing booked: it would run on the fallback pick.
+            {tomorrow.date} runs on the fallback pick.
           </p>
           {roll}
           <div className="btn-row">

@@ -11,7 +11,6 @@ import type {
   RetentionStep,
   SourceMix,
 } from "../../shared/types";
-import { DNF_GRACE_MINUTES } from "../../shared/types";
 import { SOURCE_DIRECT } from "../../shared/attribution";
 import { rate, separated } from "../../shared/sample";
 import Fold from "./Fold";
@@ -71,9 +70,7 @@ function retentionNote(steps: RetentionStep[], windowDays: number): string | nul
   const a = pct(first.returned, first.atRisk);
   const b = pct(second.returned, second.atRisk);
   const lead = `A first-timer comes back within ${windowDays} days ${a}% of the time; once they've come twice, ${b}%.`;
-  if (b > a + 5) return `${lead} The second visit is where regulars are made — the earlier you can earn it, the better every later number gets.`;
-  if (a > b + 5) return `${lead} Repeat visits are getting less likely rather than more — worth checking whether the later days are landing.`;
-  return `${lead} The odds barely move with familiarity, so what wins a second visit is winning a first.`;
+  return lead;
 }
 
 /**
@@ -124,7 +121,7 @@ function RetentionCurve({ retention }: { retention: PlayerRetention }) {
               <p className="retention__legend">
                 {unanswered ? (
                   <span className="retention__of">
-                    Nobody's {windowDays} days are up yet — no rate to report.
+                    Too early to say.
                   </span>
                 ) : (
                   <>
@@ -142,10 +139,8 @@ function RetentionCurve({ retention }: { retention: PlayerRetention }) {
         );
       })}
       <p className="dash-note">
-        A “visit” is an ET day this device played on, any game kind. Each rung counts only players whose{" "} {windowDays} days are already up
-        {lateTotal > 0 &&
-          `; ${lateTotal} came back late (listed beside the rung they lapsed on)`}
-        .
+        A visit is an ET day played. Players under {windowDays} days old left out
+        {lateTotal > 0 && `; ${lateTotal} came back late`}.
       </p>
     </div>
   );
@@ -164,16 +159,14 @@ const ENDINGS: { key: FunnelEnding; toggle: string; label: string; lost: string;
     toggle: "Shared",
     label: "Shared a result",
     lost: "kept it to themselves",
-    help: "Devices that sent their result card. Sharing is only reachable after game over, so this is a slice of the finishers above.",
+    help: "Devices that shared a result.",
   },
   {
     key: "playedAgain",
     toggle: "Played again",
     label: "Played another round",
     lost: "stopped after one",
-    help:
-      "Devices that started another game after finishing one, the same ET day — a Leftover or a Chef's Choice. " +
-      "Ordered against the earlier finish, so two boards opened in two tabs before either was played don't count as coming back for seconds.",
+    help: "Devices that started another round after finishing one, same ET day.",
   },
 ];
 
@@ -207,7 +200,7 @@ function stagesOf(counts: FunnelCounts, ending: FunnelEnding): FunnelStage[] {
             label: "Opened the game",
             n: counts.visited,
             lost: "looked and left without a guess",
-            help: "Devices that loaded a playable board. One per device per day, however many times they came back to the tab.",
+            help: "One per device per day.",
           },
         ]),
     {
@@ -222,16 +215,14 @@ function stagesOf(counts: FunnelCounts, ending: FunnelEnding): FunnelStage[] {
           : stillPlaying > 0
             ? "are still playing"
             : "left mid-game",
-      help: "Devices that submitted at least one guess — the point a round counts as started.",
+      help: "Devices with at least one guess.",
     },
     {
       key: "finished",
       label: "Reached game over",
       n: counts.finished,
       lost: last.lost,
-      help: `Devices that finished at least one game, win or lose. A game begun in the last ${
-        DNF_GRACE_MINUTES / 60
-      } hours still counts as in play rather than as a walkout.`,
+      help: "Devices that finished a game, win or lose.",
     },
     { key: ending, label: last.label, n: counts[ending], lost: "", help: last.help },
   ];
@@ -254,9 +245,7 @@ function biggestDropNote(stages: FunnelStage[]): string | null {
     }
   }
   if (worst === null) return null;
-  return `Biggest fall-off: ${worst.lost} of the ${worst.from.n} who ${worst.from.label.toLowerCase()} ${
-    worst.from.lost
-  } — ${pct(worst.lost, worst.from.n)}% of that step.`;
+  return `Biggest drop: ${worst.lost} of ${worst.from.n} ${worst.from.lost} (${pct(worst.lost, worst.from.n)}%).`;
 }
 
 /**
@@ -431,29 +420,10 @@ function FunnelSection({
           {headline && <p className="funnel__headline">{headline}</p>}
           <FunnelChart counts={counts} ending={ending} />
           <p className="dash-note" style={{ marginTop: 12 }}>
-            {scope === "allTime" ? (
-              <>
-                Pooled over {funnel.allTime.days} day{funnel.allTime.days === 1 ? "" : "s"}
-                {funnel.allTime.since && ` since ${shortDate(funnel.allTime.since)}`}, one arrival per device per day.
-              </>
-            ) : (
-              <>
-                {isToday ? "Today" : dayDate} only. “All time” pools every measured day.
-              </>
-            )}
+            Devices, not games.
+            {scope === "allTime" && funnel.allTime.since && ` Since ${shortDate(funnel.allTime.since)}.`}
+            {counts.visited === null && ` Arrivals not counted${visitsSince ? ` before ${shortDate(visitsSince)}` : " yet"}.`}
           </p>
-          {counts.visited === null && (
-            <p className="dash-note">
-              Arrivals weren't counted{visitsSince ? ` before ${shortDate(visitsSince)}` : " yet"}, so this
-              funnel starts at the first guess 
-            </p>
-          )}
-          <details className="dash-details">
-            <summary>What this counts</summary>
-            <p className="dash-note">
-              Every stage counts <strong>devices, not games</strong>: a player who does the Special and three Leftovers is one arrival and four starts. The bar is share of arrivals; the percentage beside it is share of the step above.
-            </p>
-          </details>
         </>
       )}
     </section>
@@ -560,9 +530,7 @@ function countryNote(mix: CountryMix, slices: Slice[]): string {
   const share = pct(top.players, mix.players);
   const places = `${mix.entries.length} countr${mix.entries.length === 1 ? "y" : "ies"}`;
   if (mix.entries.length === 1) return `Every player so far is in ${top.label}.`;
-  if (share >= 80) return `${share}% of players are in ${top.label}; the rest are scattered across ${places}.`;
-  if (share >= 50) return `${top.label} is the home crowd at ${share}% of players, but ${places} are represented.`;
-  return `No single home crowd — the biggest, ${top.label}, is only ${share}% of players across ${places}.`;
+  return `${share}% in ${top.label}, across ${places}.`;
 }
 
 /**
@@ -574,9 +542,7 @@ function countryNote(mix: CountryMix, slices: Slice[]): string {
 function countryUntrackedNote(mix: CountryMix): string {
   if (mix.untracked === 0) return "No country recorded on any round yet.";
   const rounds = `${mix.untracked.toLocaleString()} round${mix.untracked === 1 ? "" : "s"}`;
-  return mix.players === 0
-    ? `Country tracking only starts with rounds recorded after this release — the ${rounds} so far predate it, so there's nothing to plot yet.`
-    : `${rounds} predate country tracking and carry none; they're left out of the shares rather than counted as an unknown country.`;
+  return mix.players === 0 ? `${rounds}, none with a country yet.` : `${rounds} without a country left out.`;
 }
 
 /** `direct` reads as jargon in a column of ad networks; say what it means. */
@@ -591,9 +557,7 @@ const sourceLabel = (source: string) => (source === SOURCE_DIRECT ? "Direct / un
 function sourceUntrackedNote(mix: SourceMix): string {
   if (mix.untracked === 0) return "No arrivals recorded yet.";
   const devices = `${mix.untracked.toLocaleString()} device${mix.untracked === 1 ? "" : "s"}`;
-  return mix.entries.length === 0
-    ? `Arrival sources start with visits recorded after this release — the ${devices} so far predate it, so there's nothing to attribute yet.`
-    : `${devices} first visited before arrival tracking and carry no source; they're left out rather than counted as direct.`;
+  return mix.entries.length === 0 ? `${devices}, none with a source yet.` : `${devices} without a source left out.`;
 }
 
 /**
@@ -612,7 +576,7 @@ function sourceNote(mix: SourceMix): string | null {
   const top = tagged[0];
   const arrivals = `${top.arrivals} device${top.arrivals === 1 ? "" : "s"}`;
   if (top.atRisk === 0) {
-    return `${sourceLabel(top.source)} has brought ${arrivals}, all too recently to say whether they came back — give it ${mix.windowDays} days from each arrival.`;
+    return `${sourceLabel(top.source)}: ${arrivals}, too recent to judge.`;
   }
   const theirs = rate(top.returned, top.atRisk);
   const base = mix.entries.find((e) => e.source === SOURCE_DIRECT);
@@ -620,11 +584,11 @@ function sourceNote(mix: SourceMix): string | null {
   const came = `${top.returned} of ${top.atRisk} came back within ${mix.windowDays} days`;
   if (!separated(theirs, baseline)) {
     return baseline === null
-      ? `${sourceLabel(top.source)} brought ${arrivals}; ${came}. Nothing to compare it against yet.`
-      : `${sourceLabel(top.source)} brought ${arrivals}, and ${came} — not tellably different from the people who arrived on their own.`;
+      ? `${sourceLabel(top.source)}: ${arrivals}; ${came}.`
+      : `${sourceLabel(top.source)}: ${arrivals}; ${came}, same as direct.`;
   }
   const better = (theirs?.pct ?? 0) > (baseline?.pct ?? 0);
-  return `${sourceLabel(top.source)} brought ${arrivals}, and ${came} — ${better ? "better" : "worse"} than the people who arrived on their own.`;
+  return `${sourceLabel(top.source)}: ${arrivals}; ${came}, ${better ? "better" : "worse"} than direct.`;
 }
 
 /**
@@ -657,10 +621,10 @@ function SourceTable({ mix }: { mix: SourceMix }) {
         <thead>
           <tr>
             <th>Came from</th>
-            <th title="Anonymous devices whose first recorded visit carried this source">Arrivals</th>
-            <th title={`Devices that visited again within ${mix.windowDays} days of arriving`}>Came back</th>
-            <th title="Arrived too recently to have had a full return window">Still early</th>
-            <th title="First and most recent day this source brought someone">Active</th>
+            <th>Arrivals</th>
+            <th title={`Within ${mix.windowDays} days`}>Came back</th>
+            <th title={`Under ${mix.windowDays} days old`}>Still early</th>
+            <th>Active</th>
           </tr>
         </thead>
         <tbody>
@@ -899,13 +863,8 @@ export default function PlayersPanel({
         <RatesRow totals={totals} />
         <PlayersRow players={players} trackingStart={playerTrackingStart} />
         <p className="dash-note" style={{ marginTop: 10 }}>
-          Anonymous counts only. A “player” is an anonymous device.
-          {playerTrackingStart && (
-            <>
-              {" "}
-              Player counts start {playerTrackingStart}; “new” means first seen since then.
-            </>
-          )}
+          A player is an anonymous device.
+          {playerTrackingStart && ` Counted since ${playerTrackingStart}.`}
         </p>
       </section>
 
@@ -936,7 +895,7 @@ export default function PlayersPanel({
       {/* The three reads below are asked less often than the funnel and the
           cohort grid above them, so each is a bar carrying its own verdict until
           opened. Closed they are not mounted. */}
-      <Fold title="Repeat visits" hint={headline || "How many visits it takes before a player returns."}>
+      <Fold title="Repeat visits" hint={headline || "Who comes back after each visit."}>
       <section className="panel">
         <h2>Repeat visits</h2>
         {retention === null || retention.steps.length === 0 ? (
@@ -950,7 +909,7 @@ export default function PlayersPanel({
       </section>
       </Fold>
 
-      <Fold title="How they got here" hint={sourceHeadline || "Where first visits came from, by utm_source."}>
+      <Fold title="How they got here" hint={sourceHeadline || "First visits by utm_source."}>
       <section className="panel">
         <h2>How they got here · all time</h2>
         {sources.entries.length === 0 ? (
@@ -959,13 +918,9 @@ export default function PlayersPanel({
           <>
             {sourceHeadline && <p className="retention__headline">{sourceHeadline}</p>}
             <SourceTable mix={sources} />
-            <details className="dash-details">
-              <summary>What this counts</summary>
-              <p className="dash-note">
-                The source is the <code>utm_source</code> on the URL a device first arrived at (untagged lands in Direct). Counts are devices, attributed once, on the day they first showed up. “Came back” only counts devices that have had a full {sources.windowDays} days to do it; newer ones sit in Still early.
-                {sources.untracked > 0 && ` ${sourceUntrackedNote(sources)}`}
-              </p>
-            </details>
+            <p className="dash-note">
+              By first <code>utm_source</code>.{sources.untracked > 0 && ` ${sourceUntrackedNote(sources)}`}
+            </p>
           </>
         )}
       </section>
@@ -983,13 +938,10 @@ export default function PlayersPanel({
           <>
             <p className="cpie__headline">{countryNote(countries, countrySlices)}</p>
             <CountryPie mix={countries} />
-            <details className="dash-details">
-              <summary>What this counts</summary>
-              <p className="dash-note">
-                The country is stamped by Cloudflare when a game <em>starts</em>, so this counts people who actually played. Slices are devices, each counted in the one country it plays from most.
-                {countries.untracked > 0 && ` ${countryUntrackedNote(countries)}`}
-              </p>
-            </details>
+            <p className="dash-note">
+              Devices, by the country they play from most.
+              {countries.untracked > 0 && ` ${countryUntrackedNote(countries)}`}
+            </p>
           </>
         )}
       </section>

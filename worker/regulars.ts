@@ -17,6 +17,9 @@
 //    put a Wilson interval on a thin group.
 // 4. **Today's Special only for guess counts.** A Leftover's answer is old and a
 //    Nightcap has four guesses; neither is the same achievement.
+// 5. **New devices are pending, not "everyone else".** Below the line, a device
+//    first seen inside RETENTION_WINDOW_DAYS has not had the days to become a
+//    regular; it is counted apart, the way retention counts a censored device.
 
 import { daysBetween } from "../shared/time";
 import { medianOf } from "../shared/sample";
@@ -32,7 +35,7 @@ import {
   type Surface,
   type Tally,
 } from "../shared/types";
-import { etDayOfHourBucket } from "./players";
+import { RETENTION_WINDOW_DAYS, etDayOfHourBucket } from "./players";
 
 /** One (device, surface, UTC hour, outcome) group, as the query returns it. */
 export interface RegularsRoundRow {
@@ -168,6 +171,8 @@ function groupOf(
   let specialShared = 0;
   let sharedEver = 0;
   let discord = 0;
+  let firstFinished = 0;
+  let firstSolved = 0;
   const dayOne = { finished: 0, solved: 0, shared: 0, extra: 0 };
 
   for (const d of members) {
@@ -188,7 +193,13 @@ function groupOf(
     solved += d.solved;
     specialShared += d.specialShared;
     d.solvedIn.forEach((n, i) => (solvedIn[i] += n));
-    if (d.first?.solved) firstSolvedIn[d.first.guesses - 1] += 1;
+    if (d.first) {
+      firstFinished += 1;
+      if (d.first.solved) {
+        firstSolved += 1;
+        firstSolvedIn[d.first.guesses - 1] += 1;
+      }
+    }
     const one = d.days.get(sorted[0]) as DayFlags;
     if (one.finished) dayOne.finished += 1;
     if (one.solved) dayOne.solved += 1;
@@ -213,6 +224,7 @@ function groupOf(
       shared: tally(specialShared, finished),
       solvedIn,
       firstSolvedIn,
+      firstSolved: tally(firstSolved, firstFinished),
     },
     reach: Object.fromEntries(ROUND_KINDS.map((k) => [k, tally(kindCount[k], of)])) as Record<RoundKind, Tally>,
     sharedEver: tally(sharedEver, of),
@@ -226,6 +238,7 @@ function groupOf(
     sources: [...sources]
       .map(([source, devices]) => ({ source, devices }))
       .sort((a, b) => b.devices - a.devices || a.source.localeCompare(b.source)),
+    sourced: [...sources.values()].reduce((a, b) => a + b, 0),
   };
 }
 
@@ -242,19 +255,24 @@ export function foldRegulars(
   const line = byDays.length === 0 ? 0 : byDays[Math.max(0, Math.ceil(byDays.length * REGULARS_SHARE) - 1)].days.size;
   const cutoff = Math.max(line, REGULARS_MIN_DAYS);
   const regulars = devices.filter((d) => d.days.size >= cutoff);
-  const rest = devices.filter((d) => d.days.size < cutoff);
+  const firstDay = (d: Device) => [...d.days.keys()].reduce((a, b) => (b < a ? b : a));
+  const settled = (d: Device) => daysBetween(firstDay(d), today) >= RETENTION_WINDOW_DAYS;
+  const below = devices.filter((d) => d.days.size < cutoff);
+  const rest = below.filter(settled);
 
   const allRounds = devices.reduce((n, d) => n + d.rounds, 0);
   const regularRounds = regulars.reduce((n, d) => n + d.rounds, 0);
-  const firstDays = devices.flatMap((d) => [...d.days.keys()]).sort();
+  const since = devices.length === 0 ? null : devices.map(firstDay).reduce((a, b) => (b < a ? b : a));
 
   return {
     devices: devices.length,
     cutoffDays: regulars.length > 0 ? cutoff : null,
     regulars: regulars.length > 0 ? groupOf(regulars, today, sourceOf) : null,
     rest: groupOf(rest, today, sourceOf),
+    pending: below.length - rest.length,
+    windowDays: RETENTION_WINDOW_DAYS,
     roundsShare: tally(regularRounds, allRounds),
-    since: firstDays[0] ?? null,
+    since,
     today,
   };
 }

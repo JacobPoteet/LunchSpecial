@@ -30,8 +30,8 @@ const ROWS_SHOWN = 5;
 type SortKey = "hardest" | "recent";
 
 const SORTS: { key: SortKey; label: string; hint: string }[] = [
-  { key: "hardest", label: "Hardest", hint: "Most losses per completed round — the clue ladder's failures first" },
   { key: "recent", label: "Recently served", hint: "Last time it was the Special" },
+  { key: "hardest", label: "Hardest", hint: "Most losses per finished round" },
 ];
 
 function sortRows(rows: DishReportRow[], key: SortKey): DishReportRow[] {
@@ -56,18 +56,16 @@ function sortRows(rows: DishReportRow[], key: SortKey): DishReportRow[] {
 function spreadNote(rows: DishReportRow[]): string | null {
   const measured = rows.filter((d) => d.completed >= DISH_MIN_COMPLETED);
   if (measured.length < 2) {
-    return `Not enough completed rounds on any two dishes yet to compare them — a dish needs about ${DISH_MIN_COMPLETED} finishes before its win rate means much.`;
+    return `Too few finishes to compare (${DISH_MIN_COMPLETED} per dish needed).`;
   }
   const byWin = [...measured].sort((a, b) => pct(a.solved, a.completed) - pct(b.solved, b.completed));
   const hardest = byWin[0];
   const easiest = byWin[byWin.length - 1];
   const hardRate = rate(hardest.solved, hardest.completed);
   const easyRate = rate(easiest.solved, easiest.completed);
-  const gap = `${hardest.name} is the toughest at ${hardRate?.pct}% solved, ${easiest.name} the kindest at ${easyRate?.pct}%`;
-  if (!separated(hardRate, easyRate)) {
-    return `${gap} — but the two overlap once you account for how few rounds each has, so that's a ranking, not a difference yet.`;
-  }
-  return `${gap}. That gap is wider than the counts can explain by chance — worth reading ${hardest.name}'s clue ladder.`;
+  const gap = `Toughest ${hardest.name} (${hardRate?.pct}% solved), kindest ${easiest.name} (${easyRate?.pct}%)`;
+  if (!separated(hardRate, easyRate)) return `${gap}. Not a clear difference yet.`;
+  return `${gap}. A clear gap.`;
 }
 
 /** One dish's guess distribution as a compact inline strip, 1..6 then a loss bucket. */
@@ -104,7 +102,7 @@ export default function DishReportPanel({
 }) {
   const [report, setReport] = useState<DishReport | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [sort, setSort] = useState<SortKey>("hardest");
+  const [sort, setSort] = useState<SortKey>("recent");
   const focusRow = useRef<HTMLTableRowElement | null>(null);
   const [marked, setMarked] = useState<number | null>(null);
 
@@ -160,11 +158,7 @@ export default function DishReportPanel({
     return (
       <section className="panel">
         <h2>How the dishes played</h2>
-        <p className="dash-note">
-          No rounds have been recorded against a dish yet.
-          {report.untracked > 0 &&
-            ` The ${report.untracked} round${report.untracked === 1 ? "" : "s"} on record predate dish tracking.`}
-        </p>
+        <p className="dash-note">No rounds tied to a dish yet.</p>
       </section>
     );
   }
@@ -198,11 +192,11 @@ export default function DishReportPanel({
           <thead>
             <tr>
               <th>Dish</th>
-              <th title="Rounds that reached game over">Finished</th>
-              <th title="Share of finished rounds that were won">Win rate</th>
-              <th title="Mean guesses across the rounds that were solved">Avg</th>
-              <th title="Guesses used, 1 to 6, then the rounds that ran out">Spread</th>
-              <th title="Times this dish has been the scheduled Special">Served</th>
+              <th>Finished</th>
+              <th>Win rate</th>
+              <th title="Guesses, solved rounds">Avg</th>
+              <th title="1 to 6, then losses">Spread</th>
+              <th>Served</th>
             </tr>
           </thead>
           <tbody>
@@ -262,9 +256,7 @@ export default function DishReportPanel({
       )}
 
       <p className="dash-note" style={{ marginTop: 8 }}>
-        Every mode counts, not just the Special. Grey rows have under {DISH_MIN_COMPLETED} finishes: read them as anecdotes.
-        {report.untracked > 0 &&
-          ` ${report.untracked} round${report.untracked === 1 ? "" : "s"} predate dish tracking and are left out.`}
+        All modes. Grey: under {DISH_MIN_COMPLETED} finishes.
       </p>
     </section>
   );

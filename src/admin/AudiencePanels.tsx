@@ -23,7 +23,7 @@ const COLUMNS: { key: "all" | "web" | "discord"; label: string }[] = [
 ];
 
 const ACTIVE_NOTE =
-  "A device counts as active on a day it started at least one round, in any mode. Opening the board without guessing doesn't count; that's the funnel's job.";
+  "Active: started a round, any mode.";
 
 function Loading({ title, error }: { title: string; error: string | null }) {
   return (
@@ -88,7 +88,7 @@ export function WeeklyKpi({ data, error }: { data: AudienceReport | null; error:
         ))}
       </div>
       <p className="dash-note">
-        Against {shortDate(priorWeek.from)} to {shortDate(priorWeek.to)}. Today is left out. “New” means the device's first round fell in the window.
+        Against {shortDate(priorWeek.from)}–{shortDate(priorWeek.to)}. Excludes today.
       </p>
     </section>
   );
@@ -163,14 +163,7 @@ export function WeeklyActiveChart({
           );
         })}
       </div>
-      <details className="dash-details">
-        <summary>What this counts</summary>
-        <p className="dash-note">
-          {ACTIVE_NOTE} Weeks open on Monday, ET. The faded column is the week still running.
-          {data.trackingStart &&
-            ` Tracking started ${data.trackingStart}; the first week's "new" includes earlier players.`}
-        </p>
-      </details>
+      <p className="dash-note">{ACTIVE_NOTE} Weeks start Monday, ET.</p>
     </section>
   );
 }
@@ -199,12 +192,12 @@ function weeklyNote(full: WeeklyActive[]): string | null {
   const peakRet = full.reduce((a, b) => (b.returning > a.returning ? b : a));
   const newPart =
     last.new < peakNew.new * 0.6
-      ? `New devices are down to ${last.new} a week, from ${peakNew.new} in the week of ${shortDate(peakNew.weekStart)}`
-      : `${last.new} new devices last week`;
+      ? `${last.new} new last week, down from ${peakNew.new}`
+      : `${last.new} new last week`;
   const retPart =
     last.returning >= peakRet.returning * 0.8
-      ? `returning ones are holding at ${last.returning}`
-      : `returning ones are at ${last.returning}, off a best of ${peakRet.returning}`;
+      ? `${last.returning} returning`
+      : `${last.returning} returning, best ${peakRet.returning}`;
   return `${newPart}; ${retPart}.`;
 }
 
@@ -229,7 +222,7 @@ export function CohortGrid({
     <section className="panel">
       <h2>Do new players stick around?</h2>
       {cohorts.length === 0 || width === 0 ? (
-        <p className="dash-note">No cohort has had a full week to come back yet.</p>
+        <p className="dash-note">No full week yet.</p>
       ) : (
         <>
           {cohortNote(cohorts) && <p className="retention__headline">{cohortNote(cohorts)}</p>}
@@ -253,12 +246,9 @@ export function CohortGrid({
               </tbody>
             </table>
           </div>
-          <details className="dash-details">
-            <summary>How to read it</summary>
-            <p className="dash-note">
-              Each row is the devices first seen that week; each cell is the share that played again that many weeks later. Blank means the week isn&apos;t finished. Grey rows have under{" "} {SMALL_SAMPLE_MIN} devices.
-            </p>
-          </details>
+          <p className="dash-note">
+            Share of each week&apos;s new devices that played again N weeks later. Grey: under {SMALL_SAMPLE_MIN} devices.
+          </p>
         </>
       )}
     </section>
@@ -272,7 +262,7 @@ function CohortRow({ cohort, width }: { cohort: WeeklyCohort; width: number }) {
       <td>
         {shortDate(cohort.weekStart)}
         {cohort.firstTracked && (
-          <span title="The first tracked week: it also holds devices that played before tracking began"> *</span>
+          <span title="Includes devices from before tracking"> *</span>
         )}
       </td>
       <td>{cohort.size}</td>
@@ -303,7 +293,7 @@ function cohortNote(cohorts: WeeklyCohort[]): string | null {
   if (answered.length < 2 || size < SMALL_SAMPLE_MIN) return null;
   const back = answered.reduce((n, c) => n + (c.back[0] as number), 0);
   const pooled = rate(back, size)!;
-  return `${pooled.pct}% of new devices play again the following week, pooled over ${answered.length} cohorts and ${size} devices.`;
+  return `${pooled.pct}% of new devices play again the next week (${size} devices).`;
 }
 
 /**
@@ -374,14 +364,14 @@ export function ArrivalSplit({ data, error }: { data: AudienceReport | null; err
               </tr>
             ))}
             <tr>
-              <td title="Played or opened the game again within 7 days, counted only once those 7 days are up">
+              <td>
                 Back within 7 days
               </td>
               {cols.map((c) =>
                 c.first ? (
                   <RateCell key={c.key} n={backOf(c.f).returned} of={backOf(c.f).atRisk} />
                 ) : (
-                  <td key={c.key} className="arrivals__na" title="Returning arrivals are the repeat-visit ladder's job">
+                  <td key={c.key} className="arrivals__na">
                     see below
                   </td>
                 ),
@@ -390,12 +380,7 @@ export function ArrivalSplit({ data, error }: { data: AudienceReport | null; err
           </tbody>
         </table>
       </div>
-      <details className="dash-details">
-        <summary>What this counts</summary>
-        <p className="dash-note">
-          Device-days since {shortDate(data.visitsSince)}, when arrivals started being counted. A first visit is a device&apos;s first day, whether it opened the board or played. “Back within 7 days” counts only arrivals whose 7 days are up.
-        </p>
-      </details>
+      <p className="dash-note">Device-days since {shortDate(data.visitsSince)}.</p>
     </section>
   );
 }
@@ -438,7 +423,7 @@ function arrivalNotes(by: AudienceReport["bySurface"]): string[] {
   const b = rate(bounced.returned, bounced.atRisk);
   if (a && b && separated(a, b)) {
     out.push(
-      `First-timers who guessed came back within a week ${a.pct}% of the time; those who didn't, ${b.pct}%. That's a correlation, not proof a guess causes the return.`,
+      `First-timers who guessed came back ${a.pct}% of the time; those who didn't, ${b.pct}%.`,
     );
   }
   return out;

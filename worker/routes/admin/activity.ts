@@ -257,7 +257,7 @@ app.get("/round-guesses", async (c) => {
   const round = c.req.query("round")?.trim();
   if (!round) return c.json({ error: "No round given" }, 400);
   const res = await c.env.DB.prepare(
-    `SELECT g.guess_number,
+    `SELECT g.guess_number, g.created_at,
             COALESCE(dd.name, dk.name) AS name,
             COALESCE(dd.country, dk.country) AS country,
             COALESCE(g.guessed_dish_id = g.target_dish_id, g.guessed_drink_id = g.target_drink_id, 0) AS correct

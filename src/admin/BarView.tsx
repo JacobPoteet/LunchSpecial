@@ -116,11 +116,10 @@ function ShowcaseLink() {
       <p className="dash-note">
         {link ? (
           <>
-            Expires {new Date(link.expiresAt).toLocaleString()}. It <b>can't be revoked early</b>, and
-            anyone it's forwarded to gets in until then.{" "}
+            Expires {new Date(link.expiresAt).toLocaleString()}. <b>Can't be revoked.</b>{" "}
           </>
         ) : null}
-        Opens on a finished Special with the bar's door lit, whatever the hour. Nothing it does is recorded.
+        Opens a won Special with the bar lit. Not recorded.
       </p>
     </div>
   );
@@ -742,7 +741,7 @@ function NightlyBoard({ onDone }: { onDone: () => void }) {
                         <button
                           className="btn btn--ghost"
                           aria-label="Shuffle this night"
-                          title="Roll a drink that has never been on onto this night"
+                          title="Roll a never-poured drink"
                           onClick={() => roll(e.night)}
                         >
                           <Icon name="dice" />
@@ -763,7 +762,7 @@ function NightlyBoard({ onDone }: { onDone: () => void }) {
         </table>
       </div>
       <p className="dash-note">
-        An unbooked night runs on a fallback pour. Shuffle rolls a drink that has never been on.
+        Unbooked nights get a fallback pour.
       </p>
     </section>
   );

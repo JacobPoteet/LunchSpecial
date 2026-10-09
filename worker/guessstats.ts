@@ -109,6 +109,8 @@ export interface RoundGuessRow {
   country: string | null;
   /** 1 when the pick was the answer. Computed in SQL from the two id columns. */
   correct: number;
+  /** SQLite datetime ("2026-10-08 20:01:00"), UTC. */
+  created_at: string;
 }
 
 /**
@@ -118,7 +120,13 @@ export interface RoundGuessRow {
  */
 export function foldRoundGuesses(roundId: string, rows: Iterable<RoundGuessRow>): RoundGuesses {
   const guesses: RoundGuess[] = [...rows]
-    .map((r) => ({ number: r.guess_number, name: r.name, country: r.country, correct: r.correct === 1 }))
+    .map((r) => ({
+      number: r.guess_number,
+      name: r.name,
+      country: r.country,
+      correct: r.correct === 1,
+      at: `${r.created_at.replace(" ", "T")}Z`,
+    }))
     .sort((a, b) => a.number - b.number);
   return { roundId, guesses };
 }

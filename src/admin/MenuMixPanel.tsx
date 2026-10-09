@@ -230,7 +230,7 @@ export default function MenuMixPanel({
     return (
       <section className="panel">
         {header}
-        <p className="dash-note">No dishes in the catalogue yet — add a few and the mix shows up here.</p>
+        <p className="dash-note">No dishes yet.</p>
       </section>
     );
   }
@@ -327,8 +327,8 @@ export default function MenuMixPanel({
             ))}
           </div>
           <p className="dash-note" style={{ marginTop: 10 }}>
-            Click a bar to open the dish list filtered to it.
-            {baseline && " The grey tick is the pool's share; ± is the gap in points."}
+            Click a bar to filter the dish list.
+            {baseline && " Grey tick: the pool's share."}
           </p>
         </>
       )}
@@ -340,7 +340,7 @@ export default function MenuMixPanel({
           </h3>
           <CadenceStrip timeline={timeline} />
           <p className="dash-note" style={{ marginTop: 8 }}>
-            One column per Special, oldest on the left.
+            Oldest on the left.
           </p>
         </div>
       )}
@@ -435,7 +435,7 @@ export default function MenuMixPanel({
       )}
 
       <p className="dash-note" style={{ marginTop: 10 }}>
-        Catalogue data: the Web/Discord filter doesn't apply here. Served covers puzzle #1 through today ({mix.today}).
+        Catalogue data, through {mix.today}.
       </p>
     </section>
   );
