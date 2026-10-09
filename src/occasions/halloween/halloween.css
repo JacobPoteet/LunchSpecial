@@ -1,0 +1,538 @@
+/* Halloween: the graveyard shift.
+ *
+ * Loaded with the costume (src/occasions/halloween/index.tsx), and every rule
+ * is scoped to `:root[data-occasion="halloween"]`, so the costume comes off
+ * the moment the attribute does, chunk or no chunk.
+ *
+ * Decoration only. Nothing here recolours text or a fill that text sits on, so
+ * every contrast pair measured in base.css still holds; the decorations live in
+ * the margins, the corners and behind the card. Colour here never carries
+ * meaning: the jack-o'-lanterns stand in for the punch card's holes, whose
+ * words beside them ("4 guesses left") say the same thing.
+ *
+ * WCAG 2.2.2: nothing moves or blinks for more than five seconds on its own.
+ */
+
+:root[data-occasion="halloween"] {
+  --pumpkin: #e2701b;
+  --pumpkin-glow: rgba(255, 170, 60, 0.75);
+  --hw-ghost: #f7f3ea;
+  --hw-ghost-edge: #2b2320;
+  --hw-web: rgba(91, 79, 69, 0.42);
+  --hw-fog: rgba(196, 206, 214, 0.15);
+}
+
+:root[data-occasion="halloween"][data-after-dark] {
+  --hw-web: rgba(240, 230, 212, 0.26);
+  --hw-fog: rgba(150, 140, 170, 0.13);
+}
+
+/* ---- the room ----
+   The diner at dusk: the backdrop goes down a step and cools toward violet.
+   It sits behind the card and under the sign's glow, which only gets brighter
+   against it. The bar keeps its own treatment (`.scene--bar`). */
+:root[data-occasion="halloween"] .scene:not(.scene--bar)::before {
+  filter: blur(2px) brightness(0.6) saturate(0.85) hue-rotate(-14deg);
+}
+
+:root[data-occasion="halloween"] .scene:not(.scene--bar)::after {
+  background: radial-gradient(
+    ellipse 120% 90% at 50% 32%,
+    rgba(30, 18, 48, 0) 35%,
+    rgba(22, 12, 36, 0.5) 75%,
+    rgba(12, 6, 22, 0.75) 100%
+  );
+}
+
+/* Fog along the floor. A sibling of the scene, fixed and in the negative-z band,
+   so it paints over the backdrop and its vignette and under everything that
+   reads. Two banks, one rolling in from each side, then lying still. */
+.hw-fog {
+  position: fixed;
+  inset: auto 0 0 0;
+  height: 34vh;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.hw-fog__bank {
+  position: absolute;
+  bottom: -6vh;
+  width: 90%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--hw-fog), transparent);
+  animation: hw-fog-in 4.5s ease-out both;
+}
+
+.hw-fog__bank--back {
+  left: -20%;
+  --from: -18%;
+}
+
+.hw-fog__bank--front {
+  right: -20%;
+  bottom: -12vh;
+  --from: 18%;
+}
+
+@keyframes hw-fog-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--from));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---- the sign ---- */
+
+.hw-sign {
+  position: relative;
+  display: inline-block;
+}
+
+/* The tube that blew. Two stutters on arrival, then dark for the night: lit
+   glass with the gas gone out, so the shape still reads as a letter. */
+.hw-sign__dead {
+  animation: hw-tube-die 1.8s steps(1, end) 0.6s both;
+}
+
+@keyframes hw-tube-die {
+  0% {
+    opacity: 1;
+  }
+  18% {
+    opacity: 0.25;
+    text-shadow: none;
+  }
+  30% {
+    opacity: 1;
+  }
+  52% {
+    opacity: 0.25;
+    text-shadow: none;
+  }
+  64% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0.22;
+    text-shadow: none;
+    color: #8d6f78;
+  }
+}
+
+/* Roosting on the last letter, upside down, swaying twice and then still. */
+.hw-sign__bat {
+  position: absolute;
+  right: -0.15em;
+  top: 0.08em;
+  width: 0.62em;
+  height: 0.31em;
+  color: #120b16;
+  transform: rotate(180deg);
+  transform-origin: 50% 0;
+  filter: drop-shadow(0 0 2px rgba(255, 95, 122, 0.5));
+  animation: hw-bat-sway 1.6s ease-in-out 2.2s 2 alternate;
+}
+
+@keyframes hw-bat-sway {
+  from {
+    transform: rotate(180deg);
+  }
+  to {
+    transform: rotate(192deg);
+  }
+}
+
+/* ---- the card ---- */
+
+.hw-webs {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Above the inner rule of the double frame, below everything in flow. */
+  z-index: 0;
+}
+
+.hw-web {
+  position: absolute;
+  top: 6px;
+  width: 54px;
+  height: 54px;
+  fill: none;
+  stroke: var(--hw-web);
+  stroke-width: 0.9;
+  stroke-linecap: round;
+}
+
+.hw-web--left {
+  left: 6px;
+}
+
+.hw-web--right {
+  right: 6px;
+  transform: scaleX(-1);
+}
+
+.hw-spider {
+  position: absolute;
+  top: 10px;
+  right: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hw-spider__thread {
+  width: 1px;
+  height: 22px;
+  background: var(--hw-web);
+  transform-origin: top;
+  animation: hw-spider-drop 2.4s cubic-bezier(0.3, 0.7, 0.4, 1) 1.2s both;
+}
+
+.hw-spider__body {
+  width: 13px;
+  height: 11px;
+  fill: var(--hw-ghost-edge);
+  stroke: var(--hw-ghost-edge);
+  stroke-width: 1;
+  stroke-linecap: round;
+  animation: hw-spider-follow 2.4s cubic-bezier(0.3, 0.7, 0.4, 1) 1.2s both;
+}
+
+:root[data-after-dark] .hw-spider__body {
+  fill: #b3a591;
+  stroke: #b3a591;
+}
+
+@keyframes hw-spider-drop {
+  from {
+    transform: scaleY(0.05);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes hw-spider-follow {
+  from {
+    transform: translateY(-21px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* The header carries centred type, and at 320px the title runs close to the
+   corners. The webs sit inside the frame's padding; this keeps the card's
+   heading off them. */
+:root[data-occasion="halloween"] .menu-card__header {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- the cloche ---- */
+
+.hw-cloche {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.hw-cloche__btn {
+  position: relative;
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.hw-cloche__img {
+  width: 54px;
+  height: 45px;
+  display: block;
+}
+
+.hw-cloche__img--knocked {
+  animation: hw-knock 0.22s ease-out;
+}
+
+@keyframes hw-knock {
+  30% {
+    transform: rotate(-5deg) translateY(1px);
+  }
+  65% {
+    transform: rotate(3deg);
+  }
+}
+
+/* It lifts out from under the dome and sinks back. The peek itself is the
+   button's state, so a reduced-motion player still sees it, just still. */
+.hw-cloche__ghost {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  width: 26px;
+  height: 30px;
+  margin-left: -13px;
+  pointer-events: none;
+  animation: hw-peek 2.4s ease-in-out both;
+}
+
+@keyframes hw-peek {
+  0% {
+    transform: translateY(14px) scale(0.6);
+    opacity: 0;
+  }
+  22%,
+  78% {
+    transform: translateY(-18px) rotate(-6deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(14px) scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* ---- the punch card ----
+   Holes become pumpkins; a spent guess is carved and lit. "4 guesses left"
+   beside them is still what says it. */
+:root[data-occasion="halloween"] .tally__holes {
+  gap: 5px;
+}
+
+:root[data-occasion="halloween"] .tally__hole {
+  width: 17px;
+  height: 17px;
+  border: 0;
+  border-radius: 50%;
+  background: url("./art/ai-pumpkin.svg") center / contain no-repeat;
+}
+
+:root[data-occasion="halloween"] .tally__hole--punched {
+  background-image: url("./art/ai-jack.svg");
+  box-shadow: none;
+  filter: drop-shadow(0 0 3px var(--pumpkin-glow));
+}
+
+/* The last order still rings; it rings round a pumpkin. */
+:root[data-occasion="halloween"] .tally--final .tally__hole:not(.tally__hole--punched) {
+  border: 0;
+}
+
+/* ---- clue tickets ---- */
+
+:root[data-occasion="halloween"] .ticket:not(.ticket--coaster) {
+  border-top-color: var(--pumpkin);
+}
+
+/* Pinned up with a candy corn instead of a tack. */
+:root[data-occasion="halloween"] .ticket:not(.ticket--coaster)::after {
+  content: "";
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  width: 12px;
+  height: 14px;
+  margin-left: -6px;
+  background: url("./art/ai-candy-corn.svg") center / contain no-repeat;
+  transform: rotate(8deg);
+}
+
+/* ---- the bar's coasters ----
+   A bat printed in the corner, and the third coaster (Last call) cut as a
+   headstone. The head keeps clear of the bat at 320px. */
+:root[data-occasion="halloween"] .ticket--coaster {
+  background:
+    url("./art/ai-bat.svg") right 10px top 10px / 30px 15px no-repeat,
+    color-mix(in srgb, var(--cherry) 6%, var(--paper));
+}
+
+:root[data-occasion="halloween"] .ticket--coaster .ticket__head {
+  padding-right: 40px;
+}
+
+:root[data-occasion="halloween"] .ticket--coaster[data-index="3"] {
+  border-radius: 46% 46% var(--radius-paper) var(--radius-paper) / 34px 34px var(--radius-paper) var(--radius-paper);
+  padding-top: 22px;
+}
+
+/* ---- the win ---- */
+
+.hw-candy {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.hw-candy__piece {
+  position: absolute;
+  top: -24px;
+  width: 12px;
+  height: 14px;
+  background: url("./art/ai-candy-corn.svg") center / contain no-repeat;
+  animation: hw-candy-fall 2.2s cubic-bezier(0.35, 0.1, 0.6, 1) both;
+}
+
+/* A wrapped sweet: a twist of paper either side of a round middle. */
+.hw-candy__piece--wrap {
+  width: 22px;
+  height: 10px;
+  background:
+    radial-gradient(circle at 50% 50%, #8a3fa0 0 4.5px, transparent 5px),
+    conic-gradient(from 60deg at 0 50%, #f2c13a 0 60deg, transparent 0) left / 50% 100% no-repeat,
+    conic-gradient(from 240deg at 100% 50%, #f2c13a 0 60deg, transparent 0) right / 50% 100% no-repeat;
+}
+
+@keyframes hw-candy-fall {
+  from {
+    transform: translateY(0) rotate(0);
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  to {
+    transform: translateY(105vh) rotate(var(--spin));
+    opacity: 0;
+  }
+}
+
+/* ---- the check ---- */
+
+.hw-verdict {
+  display: inline-block;
+  vertical-align: -0.2em;
+  margin-left: 0.35em;
+}
+
+.hw-verdict--jack {
+  width: 1.15em;
+  height: 1.15em;
+  filter: drop-shadow(0 0 4px var(--pumpkin-glow));
+}
+
+/* The one that got away, bobbing three times and then hanging there. */
+.hw-verdict--ghost {
+  width: 1.05em;
+  height: 1.2em;
+  animation: hw-bob 1.4s ease-in-out 0.9s 3 alternate;
+}
+
+@keyframes hw-bob {
+  to {
+    transform: translateY(-5px) rotate(4deg);
+  }
+}
+
+/* ---- the walk to the bar ----
+   One flash, not a strobe: WCAG 2.3.1 allows three a second and this is one
+   in the whole walk. It is under the sign, so the sign still lands on top. */
+.hw-lightning {
+  position: absolute;
+  inset: 0;
+  background: #e9e4ff;
+  opacity: 0;
+  animation: hw-lightning 1.4s linear both;
+}
+
+@keyframes hw-lightning {
+  0%,
+  39% {
+    opacity: 0;
+  }
+  41% {
+    opacity: 0.42;
+  }
+  48%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.hw-flock {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hw-flock__bat {
+  position: absolute;
+  left: -40px;
+  width: 30px;
+  height: 15px;
+  color: #050307;
+  animation: hw-flock 1s cubic-bezier(0.4, 0, 0.7, 1) both;
+}
+
+.hw-flock__bat--0 { top: 34%; animation-delay: 0.42s; }
+.hw-flock__bat--1 { top: 40%; animation-delay: 0.5s; width: 22px; height: 11px; }
+.hw-flock__bat--2 { top: 30%; animation-delay: 0.56s; width: 26px; height: 13px; }
+.hw-flock__bat--3 { top: 46%; animation-delay: 0.62s; width: 18px; height: 9px; }
+.hw-flock__bat--4 { top: 37%; animation-delay: 0.7s; width: 20px; height: 10px; }
+
+@keyframes hw-flock {
+  from {
+    transform: translate(0, 0) scale(0.8);
+  }
+  50% {
+    transform: translate(55vw, -6vh) scale(1);
+  }
+  to {
+    transform: translate(115vw, 3vh) scale(0.85);
+  }
+}
+
+/* ---- Discord's picture-in-picture tile ----
+   A corner of someone else's screen. The costume stays on the tiles and the
+   punch card; nothing else has room. */
+:root[data-discord-layout="pip"] .hw-fog,
+:root[data-discord-layout="pip"] .hw-webs,
+:root[data-discord-layout="pip"] .hw-candy {
+  display: none;
+}
+
+/* ---- less motion ----
+   Every keyframe above, in the same commit as its keyframe. The decorations
+   still appear, in their resting state: the letter is already dead, the bat
+   already hangs, the fog is already in, the spider is already down. The peek
+   still happens (it is what the knock does), it just doesn't move. Falling
+   candy and the flock are motion and nothing else, so they go. */
+@media (prefers-reduced-motion: reduce) {
+  .hw-fog__bank,
+  .hw-sign__bat,
+  .hw-spider__thread,
+  .hw-spider__body,
+  .hw-cloche__img--knocked,
+  .hw-cloche__ghost,
+  .hw-verdict--ghost,
+  .hw-lightning {
+    animation: none !important;
+  }
+
+  .hw-sign__dead {
+    animation: none !important;
+    opacity: 0.22;
+    text-shadow: none;
+    color: #8d6f78;
+  }
+
+  .hw-cloche__ghost {
+    transform: translateY(-18px);
+  }
+
+  .hw-candy,
+  .hw-flock {
+    display: none;
+  }
+}

@@ -26,6 +26,22 @@ empty and everything still builds and runs.
 | `share-success.wav` | the check went to the clipboard or the channel |
 | `error.wav` | the kitchen is closed, or a share failed |
 
+### Occasions (`occasions/<id>/`)
+
+A costume can bring its own take on a sound (`OCCASION_SFX` in
+`shared/audio.ts`). Same rule as above: a missing file plays the everyday sound
+instead, and the mix (gain, duck) stays the registry's.
+
+| File | Marks |
+|---|---|
+| `occasions/halloween/knock.wav` | a knuckle on the cloche (the knock-three-times gag) |
+| `occasions/halloween/thunder.wav` | the one lightning flash in the walk to the bar |
+| `occasions/halloween/theremin.wav` | out of guesses, in place of `round-lost.wav` |
+| `occasions/halloween/organ-chord.wav` | the check printing, in place of `receipt-print.wav` |
+
+`knock` and `thunder` have no everyday file on purpose: outside their occasion
+nothing knocks or thunders.
+
 `.wav` is what the registry currently names; `.m4a`, `.opus` and `.mp3` also
 resolve if you change the `file` field to match. Prefer WAV for one-shots —
 AAC/MP3 encoders bake in 20–45ms of silence at the head that `decodeAudioData`

@@ -1,4 +1,7 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
+import type { OccasionReport, OccasionRun } from "../../shared/occasions";
+import * as api from "./api";
+import OccasionReportPanel from "./OccasionReportPanel";
 import type {
   AudienceReport,
   AnalyticsSummary,
@@ -102,7 +105,16 @@ function growthNote(trend: GrowthTrend, since: string): string {
  *   server-side (worker/growth.ts) so the x-axis is calendar time; closing the
  *   gap over a dead week would sell it as continuous play.
  */
-function GrowthChart({ growth, experiments }: { growth: GameGrowth; experiments: Experiment[] }) {
+function GrowthChart({
+  growth,
+  experiments,
+  occasions,
+}: {
+  growth: GameGrowth;
+  experiments: Experiment[];
+  /** Costumed runs, drawn as dashed bands behind the curve. */
+  occasions: OccasionRun[];
+}) {
   const { days, trend } = growth;
   const W = 660;
   const H = 200;
@@ -134,6 +146,16 @@ function GrowthChart({ growth, experiments }: { growth: GameGrowth; experiments:
   const marks = experiments
     .map((x) => ({ x: x, i: days.findIndex((d) => d.date === x.shippedOn) }))
     .filter((m) => m.i >= 0);
+  // Each run as the span of days it covers on this axis. A run that started
+  // before the axis or ends after it is clipped to what's on it.
+  const bands = occasions
+    .map((o) => ({
+      o,
+      from: days.findIndex((d) => d.date >= o.start),
+      to: days.filter((d) => d.date <= o.end).length - 1,
+    }))
+    .filter((b) => b.from >= 0 && b.to >= b.from);
+  const half = n <= 1 ? 0 : (W - padL - padR) / (n - 1) / 2;
 
   return (
     <div className="gchart">
@@ -152,6 +174,12 @@ function GrowthChart({ growth, experiments }: { growth: GameGrowth; experiments:
           <span className="gchart__legend-item">
             <span className="gchart__swatch gchart__swatch--mark" />
             Change shipped
+          </span>
+        )}
+        {bands.length > 0 && (
+          <span className="gchart__legend-item">
+            <span className="gchart__swatch gchart__swatch--occasion" />
+            In costume
           </span>
         )}
       </div>
@@ -185,6 +213,18 @@ function GrowthChart({ growth, experiments }: { growth: GameGrowth; experiments:
         ))}
         {/* Under the curve, not over it: the data is the subject and these are
             annotations on it. Ink rather than a series hue, like the trend line. */}
+        {bands.map((b) => (
+          <rect
+            key={`${b.o.occasionId}-${b.o.start}`}
+            className="gchart__occasion"
+            x={Math.max(padL, x(b.from) - half)}
+            y={padT}
+            width={Math.min(W - padR, x(b.to) + half) - Math.max(padL, x(b.from) - half)}
+            height={H - padT - padB}
+          >
+            <title>{`${b.o.start} – ${b.o.end} · ${b.o.occasionId}`}</title>
+          </rect>
+        ))}
         {marks.map((m) => (
           <line
             key={m.x.id}
@@ -392,6 +432,20 @@ export default function TrendsPanel({
   audience: AudienceReport | null;
   audienceError: string | null;
 }) {
+  // Its own read, so a failure here costs the costume card and nothing else.
+  const [occasionReport, setOccasionReport] = useState<OccasionReport | null>(null);
+  const [occasionError, setOccasionError] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    api.getOccasionReport(surface === "all" ? undefined : surface).then(
+      (r) => live && setOccasionReport(r),
+      (e: Error) => live && setOccasionError(e.message),
+    );
+    return () => {
+      live = false;
+    };
+  }, [surface]);
+
   if (error) {
     return (
       <section className="panel">
@@ -507,7 +561,7 @@ export default function TrendsPanel({
               played since {shortDate(growth.days[0].date)}.
               {growth.trend && ` ${growthNote(growth.trend, growth.days[0].date)}`}
             </p>
-            <GrowthChart growth={growth} experiments={experiments} />
+            <GrowthChart growth={growth} experiments={experiments} occasions={occasionReport?.runs ?? []} />
             <details className="dash-details">
               <summary>How to read it</summary>
               <p className="dash-note">
@@ -520,6 +574,10 @@ export default function TrendsPanel({
           </>
         )}
       </section>
+
+      {/* Right under the curve its bands are drawn on: each costumed run against
+          the same weekdays before it. Absent until an occasion has run. */}
+      <OccasionReportPanel report={occasionReport} error={occasionError} />
 
       {/* The weekly cycle the growth curve deliberately averages out. Above the
           heatmap because it's the summary the grid is the detail of. */}

@@ -13,6 +13,7 @@ import { verifyToken } from "../auth";
 import { getClues, getDishById, getDishBySlug, getSeededDish, getTargetDish, serverToday } from "../db";
 import { computeFeedback, isPlayableDate, puzzleNumber } from "../game";
 import { guessRecord, isAnalyticsId, recordGuess } from "../guesslog";
+import { loadBookings } from "../occasions";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -218,6 +219,20 @@ interface AnnouncementRow {
   end_date: string;
   is_active: number;
 }
+
+/**
+ * The occasion bookings, for the client's own fold (shared/occasions.ts).
+ *
+ * Every row, past and future: the Leftovers calendar marks old seasons, and a
+ * booked costume is no spoiler (it says the diner dresses up, never what it
+ * serves). An empty list is the normal answer; the code's windows cover it.
+ * Not cached, like /daily: an admin switching a costume off should land on the
+ * next page load.
+ */
+app.get("/occasions", async (c) => {
+  const rows = await loadBookings(c.env.DB);
+  return c.json(rows.map(({ occasionId, startDate, endDate, isActive }) => ({ occasionId, startDate, endDate, isActive })));
+});
 
 /**
  * The notices this player should see right now. `returning=1` is the client

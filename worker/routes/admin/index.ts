@@ -15,6 +15,7 @@ import bar from "./bar";
 import dishes from "./dishes";
 import experiments from "./experiments";
 import issues from "./issues";
+import occasions from "./occasions";
 import pantry from "./pantry";
 import requests from "./requests";
 import schedule from "./schedule";
@@ -23,12 +24,18 @@ const app = new Hono<{ Bindings: Env }>();
 
 app.route("/", auth);
 
-// Everything below requires a valid session.
-app.use("*", async (c, next) => {
-  if (!(await isLoggedIn(c, c.env.SESSION_SECRET))) {
-    return c.json({ error: "Not logged in" }, 401);
-  }
-  await next();
+// Everything below requires a valid session.
+
+app.use("*", async (c, next) => {
+
+  if (!(await isLoggedIn(c, c.env.SESSION_SECRET))) {
+
+    return c.json({ error: "Not logged in" }, 401);
+
+  }
+
+  await next();
+
 });
 
 app.route("/", dishes);
@@ -41,5 +48,6 @@ app.route("/", activity);
 app.route("/", issues);
 app.route("/", bar);
 app.route("/", pantry);
+app.route("/", occasions);
 
 export default app;

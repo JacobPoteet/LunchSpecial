@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- AI-GENERATED PLACEHOLDER — replace with commissioned art. See ASSETS.md ("ai-jack.svg"). -->
+  <!-- A carved jack-o'-lantern with a candle in it: a guess spent. -->
+  <path d="M11.6 7.2c-.3-1.8.3-3.4 1.8-4.3l.9 1.2c-1 .7-1.4 1.7-1.2 3.1z" fill="#5d6b2b"/>
+  <ellipse cx="7.9" cy="14.3" rx="5.4" ry="6.9" fill="#b9501a"/>
+  <ellipse cx="16.1" cy="14.3" rx="5.4" ry="6.9" fill="#b9501a"/>
+  <ellipse cx="12" cy="14.3" rx="5.2" ry="7.3" fill="#dc6a22"/>
+  <path d="M6.9 12.9l1.9-2.9 1.9 2.9zM13.3 12.9l1.9-2.9 1.9 2.9z" fill="#ffd45c"/>
+  <path d="M6.6 15.4c1.3 3 9.5 3 10.8 0l-1.6.7-1-1-1.1 1.1-1.7-1.1-1.7 1.1-1.1-1.1-1 1z" fill="#ffd45c"/>
+</svg>

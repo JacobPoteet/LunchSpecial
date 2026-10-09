@@ -806,7 +806,9 @@ export function DrinkGuessRow({
 /** A coaster slid across the bar. The bar's clue ticket. */
 export function Coaster({ index, text }: { index: number; text: string }) {
   return (
-    <div className="ticket ticket--coaster">
+    // data-index lets a costume tell the three apart (Halloween cuts the third,
+    // Last call, as a headstone).
+    <div className="ticket ticket--coaster" data-index={index}>
       <p className="ticket__head">On the house — coaster #{index}</p>
       <p className="ticket__text">{text}</p>
     </div>

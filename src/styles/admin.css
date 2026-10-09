@@ -3637,3 +3637,133 @@
 .iw-tag--hit { background: var(--hit-soft); border-color: var(--hit); color: var(--hit-ink); font-weight: 700; }
 .iw-tag--near { background: var(--near-soft); border: 1px dashed var(--near); color: var(--ink); font-weight: 600; }
 @media (max-width: 560px) { .iw-pair { grid-template-columns: 1fr; } }
+
+/* ---- Occasions (Schedule page) ----
+   A costume on the calendar is an annotation, not a category, so it takes the
+   dashboard's annotation colour: dashed ink. No new hue (CLAUDE.md, the four
+   taken meanings). */
+
+.occasion-card {
+  border-top: 1px solid var(--paper-edge);
+  padding: 12px 0 4px;
+}
+
+.occasion-card__name {
+  margin: 0;
+  font-family: var(--font-gothic);
+  font-size: 1.3rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  color: var(--ink);
+}
+
+.occasion-card__name small {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--ink-soft);
+  letter-spacing: 0;
+}
+
+.occasion-card__line {
+  margin: 4px 0 0;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.occasion-card__window {
+  margin: 2px 0 8px;
+}
+
+.occasion-card__actions {
+  flex-wrap: wrap;
+}
+
+.occasion-card__actions a.btn {
+  text-decoration: none;
+}
+
+.occasion-bookings {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+
+.occasion-bookings__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--paper-edge);
+}
+
+.occasion-bookings__span {
+  min-width: 130px;
+  font-family: var(--font-gothic);
+  font-size: 1.05rem;
+}
+
+.occasion-bookings__actions {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.occasion-form {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: 8px 0 12px;
+}
+
+.occasion-form__live {
+  flex-basis: 100%;
+}
+
+/* The tag on a Specials board day. Beside the weekday, in the annotation
+   style, so it reads as a note about the day and never as the day's state. */
+.sched-occasion {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px dashed var(--ink);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: var(--ink);
+  vertical-align: 2px;
+}
+
+/* ---- Occasion report (Trends) ---- */
+
+.occasion-report + .occasion-report {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--paper-edge);
+}
+
+.occasion-report__title {
+  margin: 0 0 4px;
+  font-family: var(--font-gothic);
+  font-size: 1.2rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+}
+
+/* The costume's days on the growth chart: an annotation, so dashed ink and the
+   faintest wash of it. Under the curve, like the shipped-change marks. */
+.gchart__occasion {
+  fill: color-mix(in srgb, var(--ink) 6%, transparent);
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.6;
+}
+
+.gchart__swatch--occasion {
+  border: 1px dashed var(--ink);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}

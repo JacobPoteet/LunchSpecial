@@ -18,6 +18,28 @@
 
 import type { MatchLevel } from "../../shared/types";
 import type { Scorecard } from "../../shared/scorecard";
+import type { OccasionId } from "../../shared/occasions";
+import { JACK_COLORS, JACK_PIXELS } from "../occasions/halloween/pixels";
+
+/** Each occasion's corner, in pixels. Off-season the card is unchanged. */
+const CORNER_ART: Record<OccasionId, { pixels: string[]; colors: Record<string, string> }> = {
+  halloween: { pixels: JACK_PIXELS, colors: JACK_COLORS },
+};
+
+/** Draw a pixel map with its top-right corner at (right, top). */
+function drawCorner(ctx: CanvasRenderingContext2D, occasion: OccasionId, right: number, top: number): void {
+  const { pixels, colors } = CORNER_ART[occasion];
+  const size = 3;
+  const width = Math.max(...pixels.map((row) => row.length)) * size;
+  pixels.forEach((row, y) => {
+    [...row].forEach((ch, x) => {
+      const fill = colors[ch];
+      if (!fill) return;
+      ctx.fillStyle = fill;
+      ctx.fillRect(right - width + x * size, top + y * size, size, size);
+    });
+  });
+}
 
 /**
  * From base.css, one palette per room. Kept in sync by eye — a drift here is a
@@ -127,6 +149,9 @@ export async function drawScorecard(card: Scorecard): Promise<Blob | null> {
   ctx.strokeStyle = COLOR.paperEdge;
   ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, WIDTH - 2, height - 2);
+
+  // Clear of the centred title: the title is ~200px wide on a 440px card.
+  if (card.occasion) drawCorner(ctx, card.occasion, WIDTH - 16, 14);
 
   ctx.textAlign = "center";
   ctx.fillStyle = COLOR.accent;

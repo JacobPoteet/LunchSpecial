@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 14">
+  <!-- AI-GENERATED PLACEHOLDER — replace with commissioned art. See ASSETS.md ("ai-candy-corn.svg"). -->
+  <!-- A candy corn, standing in for the pin on a clue ticket. -->
+  <path d="M6 13.4C2.8 13.4.6 12.6.9 11L3.9 1.6C4.4.3 7.6.3 8.1 1.6L11.1 11c.3 1.6-1.9 2.4-5.1 2.4z" fill="#fbf4e0"/>
+  <path d="M.9 11 2.3 6.6h7.4L11.1 11c.3 1.6-1.9 2.4-5.1 2.4S.6 12.6.9 11z" fill="#ef8a2e"/>
+  <path d="M.9 11 1.6 8.9h8.8l.7 2.1c.3 1.6-1.9 2.4-5.1 2.4S.6 12.6.9 11z" fill="#f2c13a"/>
+  <path d="M6 13.4C2.8 13.4.6 12.6.9 11L3.9 1.6C4.4.3 7.6.3 8.1 1.6L11.1 11c.3 1.6-1.9 2.4-5.1 2.4z" fill="none" stroke="#2b2320" stroke-width=".6" opacity=".55"/>
+</svg>

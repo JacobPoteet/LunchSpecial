@@ -32,6 +32,7 @@ import { coasterAnnouncement, drinkGuessAnnouncement } from "../../shared/announ
 import { nightIntroDone, nightIntroDue } from "../../shared/coach";
 import { TICKET_MS } from "../../shared/audio";
 import { buildNightScorecard } from "../../shared/scorecard";
+import { useOccasion, useWearOccasion } from "../occasions/store";
 import { playGuessArc, playSfx, setupAudio } from "../audio";
 import { buildNightShareText, buildShareText, joinShareBlocks, shareMessage } from "./share";
 import {
@@ -235,6 +236,9 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   // finishes at 03:10 played THIS night: recomputing would hand them tomorrow's
   // board mid-round, and recomputing at midnight would do it to everybody.
   const [night] = useState(() => grace ?? currentNight());
+  // The bar dresses for the night key, fixed at entry like the night itself.
+  useWearOccasion(night);
+  const { kit } = useOccasion();
   const tracked = !isPreview && !pinned;
 
   const [drinks, setDrinks] = useState<DrinkPoolEntry[]>([]);
@@ -473,8 +477,10 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
           {toast}
         </div>
       )}
+      {toast && kit?.Win && <kit.Win />}
 
       <main className="menu-card menu-card--bar">
+        {kit?.Card && <kit.Card room="bar" />}
         {isPreview && (
           <p className="preview-banner">
             {isShowcase
@@ -629,6 +635,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
 
 /** The room. Sets the theme attribute for as long as the bar is on screen. */
 function BarScene({ children }: { children: React.ReactNode }) {
+  const { kit } = useOccasion();
   useEffect(() => {
     document.documentElement.dataset.afterDark = "1";
     return () => {
@@ -638,8 +645,10 @@ function BarScene({ children }: { children: React.ReactNode }) {
   return (
     <div className="scene scene--bar">
       <header className="marquee marquee--bar">
-        <h1 className="marquee__script">After Dark</h1>
-        <p className="marquee__sub">One drink. Four guesses. Gone by morning.</p>
+        <h1 className="marquee__script">
+          {kit?.Sign ? <kit.Sign text="After Dark" room="bar" /> : "After Dark"}
+        </h1>
+        <p className="marquee__sub">{kit?.copy?.barSub ?? "One drink. Four guesses. Gone by morning."}</p>
       </header>
       {children}
       {/* The same footer the diner carries, byline included. The bar is a room
@@ -674,6 +683,7 @@ function TabModal({
   onClose: () => void;
 }) {
   const won = round.status === "won";
+  const { id: occasion, kit } = useOccasion();
 
   /**
    * Both grids, in one message.
@@ -709,9 +719,9 @@ function TabModal({
             )
           : null;
       const nightBlock = buildNightShareText(info.nightNumber, round.guesses, won, info.ingredientCount);
-      return shareMessage(joinShareBlocks([lunchBlock, nightBlock]));
+      return shareMessage(joinShareBlocks([lunchBlock, nightBlock]), occasion);
     },
-    card: () => buildNightScorecard(info.nightNumber, round.guesses, won, info.ingredientCount),
+    card: () => ({ ...buildNightScorecard(info.nightNumber, round.guesses, won, info.ingredientCount), occasion }),
     onShare: () => {
       if (tracked && round.analyticsId) {
         beaconShare({
@@ -750,7 +760,10 @@ function TabModal({
     <Modal onClose={onClose} variant="receipt" footer={actions} label="Your tab">
       <div className="receipt__head">
         <p className="receipt__title">After Dark — your tab</p>
-        <p className="receipt__verdict">{won ? "That one's on us" : "Better luck tomorrow night"}</p>
+        <p className="receipt__verdict">
+          {won ? "That one's on us" : "Better luck tomorrow night"}
+          {kit?.Verdict && <kit.Verdict won={won} />}
+        </p>
       </div>
       {reveal && (
         <>

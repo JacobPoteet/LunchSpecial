@@ -17,6 +17,8 @@ import { isPuzzleDate, puzzleNumberFor } from "./archive";
 import { EPOCH_DATE } from "../../shared/types";
 import { playSfx } from "../audio";
 import { Icon } from "./Icon";
+import { OCCASIONS, occasionOn } from "../../shared/occasions";
+import { useOccasion } from "../occasions/store";
 
 /** Status of a single puzzle date, for the calendar cells. */
 type DayStatus = GameStatus | "unplayed";
@@ -128,6 +130,9 @@ function MonthGrid({
   recoveredFor: (date: string) => RecoveredDay | undefined;
   onPick: (date: string) => void;
 }) {
+  // Which days the diner dressed up. Read off the bookings and the code's
+  // windows, never the `?occasion=` override: this is history, not costume.
+  const { bookings } = useOccasion();
   const firstWeekday = new Date(Date.UTC(year, month, 1)).getUTCDay();
   const total = daysInMonth(year, month);
   const all: (string | null)[] = Array.from({ length: firstWeekday }, () => null);
@@ -165,7 +170,10 @@ function MonthGrid({
             .join(" ");
           const recovered = isToday ? undefined : recoveredFor(date);
           const played = recovered ? ` on the day in ${recovered.guesses} ${recovered.guesses === 1 ? "guess" : "guesses"}` : "";
-          const label = `Special No. ${puzzleNumberFor(date)}${isToday ? " (today)" : ""}, ${status}${played}`;
+          const occasion = occasionOn(date, bookings);
+          const label = `Special No. ${puzzleNumberFor(date)}${isToday ? " (today)" : ""}, ${status}${played}${
+            occasion ? `, ${OCCASIONS[occasion].name}` : ""
+          }`;
           // Stagger by calendar ROW, not by cell: seven cells landing together
           // reads as a sheet unrolling, where 30 individual pops read as noise.
           return (
@@ -181,6 +189,11 @@ function MonthGrid({
               <span className="archive-cal__mark" aria-hidden="true">
                 {STATUS_GLYPH[status]}
               </span>
+              {occasion === "halloween" && (
+                <span className="archive-cal__occasion" aria-hidden="true">
+                  <Icon name="pumpkin" />
+                </span>
+              )}
             </button>
           );
         })}

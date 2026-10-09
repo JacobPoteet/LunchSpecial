@@ -52,7 +52,7 @@ export function devIgnoresBarHours(): boolean {
  * returns the url untouched — every flag here is behind `import.meta.env.DEV`,
  * so the whole body folds away.
  */
-const CARRIED = ["barhours", "handoff", "nightcap"] as const;
+const CARRIED = ["barhours", "handoff", "nightcap", "occasion"] as const;
 
 export function devUrl(url: string): string {
   if (!import.meta.env.DEV) return url;

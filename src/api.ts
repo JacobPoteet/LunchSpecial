@@ -1,5 +1,6 @@
 // Thin fetch wrappers around the public game API.
 
+import type { OccasionBooking } from "../shared/occasions";
 import type {
   Announcement,
   AnnouncementSeenInput,
@@ -154,6 +155,14 @@ export function submitDishRequest(body: DishRequestInput): Promise<{ ok: true }>
  */
 export function fetchAnnouncements(returning: boolean): Promise<Announcement[]> {
   return request(withParams("/api/announcements", { returning: returning ? "1" : undefined }));
+}
+
+/**
+ * The occasion bookings (shared/occasions.ts folds them). Usually an empty list:
+ * the code's own windows cover every season nobody has re-booked.
+ */
+export function fetchOccasions(): Promise<OccasionBooking[]> {
+  return request("/api/occasions");
 }
 
 /**

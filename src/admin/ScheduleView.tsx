@@ -11,6 +11,8 @@ import {
   type BoardRow,
 } from "../../shared/schedule";
 import * as api from "./api";
+import OccasionsPanel from "./OccasionsPanel";
+import { OCCASIONS, occasionOn, type AdminOccasions, type OccasionId } from "../../shared/occasions";
 
 import { Icon } from "../game/Icon";
 /** How far ◀ / ▶ move the window. Roughly a month, so two presses clear the default view. */
@@ -88,6 +90,13 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
   /** The window to ask for. Null leaves the route's own default (today-7 → today+45). */
   const [range, setRange] = useState<{ from: string; to: string } | null>(null);
   const today = gameToday();
+  // The occasions lane. Its own read, so a failure here never blanks the board.
+  const [occasions, setOccasions] = useState<AdminOccasions | null>(null);
+  const [occasionError, setOccasionError] = useState<string | null>(null);
+  const loadOccasions = useCallback(() => {
+    api.getOccasions().then(setOccasions, (e: Error) => setOccasionError(e.message));
+  }, []);
+  useEffect(loadOccasions, [loadOccasions]);
 
   const reload = useCallback(() => {
     api.getSchedule(range?.from, range?.to).then(
@@ -245,6 +254,8 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
   const last = entries[entries.length - 1]?.date;
 
   return (
+    <>
+    <OccasionsPanel data={occasions} error={occasionError} onChanged={loadOccasions} />
     <section className="panel">
       <div className="btn-row" style={{ justifyContent: "space-between", marginBottom: 12 }}>
         <h2 style={{ margin: 0 }}>Specials board</h2>
@@ -321,10 +332,12 @@ export default function ScheduleView({ onOpenDish }: { onOpenDish: (id: number |
             onClear={() => void clearDay(row.date)}
             onOpenDish={onOpenDish}
             onTestPlay={(id) => void testPlay(id)}
+            occasion={occasions ? occasionOn(row.date, occasions.bookings) : null}
           />
         ))}
       </ul>
     </section>
+    </>
   );
 }
 
@@ -382,6 +395,7 @@ function Row({
   onClear,
   onOpenDish,
   onTestPlay,
+  occasion,
 }: {
   row: BoardRow;
   today: string;
@@ -399,6 +413,8 @@ function Row({
   onClear: () => void;
   onOpenDish: (id: number | null) => void;
   onTestPlay: (dishId: number) => void;
+  /** The costume this day's Special is served in, if any. A note, never a lock. */
+  occasion: OccasionId | null;
 }) {
   const [active, setActive] = useState(0);
   const classes = [
@@ -416,7 +432,10 @@ function Row({
   return (
     <>
       <li id={`sched-${row.date}`} className={classes}>
-        <span className="sched-date">{weekday(row.date)}</span>
+        <span className="sched-date">
+          {weekday(row.date)}
+          {occasion && <span className="sched-occasion">{OCCASIONS[occasion].name}</span>}
+        </span>
 
         {row.isPast ? (
           <span className="sched-dish sched-dish--locked">{row.dishName ?? "— fallback pick —"}</span>

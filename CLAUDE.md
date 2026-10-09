@@ -12,6 +12,7 @@ npm run play         # opens /play: a fresh round on a random dish, nothing save
 npm run ramen        # same, pinned to one dish (/play?special=ramen)
 npm run lastcall     # hand-off harness: seeds a finished, won Special so the After Dark band is live
 npm run negroni      # a Nightcap on one named pour, opening hours ignored (?bar=1&nightcap=negroni)
+npm run halloween    # the diner in its Halloween costume (?occasion=halloween; works on any URL, any build)
 npm run admin        # opens /admin at the login
 npm test             # vitest — worker/**/*.test.ts + shared/**/*.test.ts
 npm run check        # tsc -b (3 project refs: app / worker / node)
@@ -105,6 +106,22 @@ A second daily puzzle: one **drink** a night, **4 guesses**, **3 coasters**, bet
 - **Cannot be revoked** (stateless HMAC; rotating `SESSION_SECRET` kills every session and preview). Lifetimes are a closed set (`SHOWCASE_TTL_DAYS`); the mint route 400s rather than clamping.
 - Token format changes in `worker/auth.ts` (128-bit truncated signature, base36 expiry) are shared by every token and invalidate all live ones. Payload is `sc`, no colon; `classifyDrinkPreview` matches it exactly. Don't build a D1 short-code table.
 
+## Occasions
+
+A costume the game wears for a stretch of the calendar (Halloween first). **Handcrafted in code; /admin only decides when.** Never call it an "event" in a URL, path or table (ad blockers; `conventions.test.ts`).
+
+- `shared/occasions.ts` is the only place that decides which occasion a day wears (`occasionOn`). `OCCASION_IDS` is a closed set; each has a yearly window in code, so a season runs with nothing booked.
+- **Bookings override per season:** a booking that overlaps an occasion's default season replaces the whole season; `is_active = 0` switches days off; a booking outside the season just adds days. Never `INSERT INTO occasion_bookings` from a migration or the seed.
+- **The day is the round's own, fixed at entry:** the puzzle date for lunch (a Leftover from Oct 31 replays in costume), the night key at the bar. Pages call `useWearOccasion(day)`; everything else reads `useOccasion()`. `primeOccasion()` dresses the page before mount (capped wait).
+- `?occasion=<id>|none` is cosmetic and honoured in production on purpose. The Worker stamps `analytics_rounds.occasion` on insert from `play_date` and never reads the param.
+- **A costume is `src/occasions/<id>/`**, a lazy chunk that fills the slots in `src/occasions/kit.ts`. A new slot is a deliberate change to `kit.ts` and the page that mounts it. CSS scoped to `:root[data-occasion="<id>"]`; anything that must show off-season (the Leftovers calendar mark) lives in game.css.
+- **Decoration only:** `aria-hidden`, never under text, never recolours text or a fill text sits on. The one pressable slot (Cloche) is a real button with a label and announces its result.
+- **WCAG 2.2.2:** nothing in a costume moves or blinks for over 5s on its own (animate in, then rest). One flash at most (2.3.1). Every keyframe in the costume's own reduced-motion block, same commit.
+- Share: `shareMessage(text, occasion)` adds the occasion's line between grid and url; the grid is untouched. Score card corner art is a pixel map, never emoji. Neither names the dish.
+- Sounds: `OCCASION_SFX` in `shared/audio.ts`, files under `src/assets/sfx/occasions/<id>/`. Missing file = everyday sound.
+- `npm run a11y` scans each room in costume; add states for a new occasion.
+- Dashboard: bookings on the Schedule page (Occasions lane + dashed-ink day tags); `/occasion-report` on Trends compares each run with the same weekdays before it (`baselineFor`), lunch and Nightcap apart, pooled rates, `shareVerdict` as the headline. Costume bands on the growth chart are annotations (dashed ink), never a fifth colour.
+
 ## Game rules
 
 - **6 guesses.** `POST /guess` returns clue N after miss N from `clues.order_index`. Feedback: ingredient set intersection (exact, plus **close**) + 4 tiles. Country: hit = same country, near = same `region`, miss. Course/temperature/protein: hit|miss.
@@ -197,7 +214,7 @@ A second daily puzzle: one **drink** a night, **4 guesses**, **3 coasters**, bet
 - `vitest.config.ts` is separate from `vite.config.ts` on purpose (tests must not load the cloudflare plugin); it covers `worker/` and `shared/`.
 - `tsc -b` is incremental and can report success on a stale graph; use `npx tsc -b --force` after changing a `shared/` type. Three composite projects: worker code uses no DOM libs. `worker-configuration.d.ts` is generated, never hand-edited.
 - Cookies: HttpOnly+Secure+SameSite=Strict, 7-day HMAC token. Routes under `worker/routes/admin/` are mounted in a load-bearing order: `auth.ts` above the session guard, everything else below.
-- Public GETs with a `Cache-Control` header: `/api/dishes` and `/api/night/drinks` only (5 min). Keep it off `/daily` and the beacons.
+- Public GETs with a `Cache-Control` header: `/api/dishes` and `/api/night/drinks` only (5 min). Keep it off `/daily`, `/occasions` and the beacons.
 - Don't add npm deps casually; the only runtime deps are hono, react, react-dom.
 - Art: swap `ai-*.svg` in place (same viewBox ratio, keep the AI-GENERATED header) and update `ASSETS.md`. The neon logo is CSS text.
 - **No emoji in the game's chrome**; draw `Icon` (`src/game/Icon.tsx`, add a path to `PATHS`). Share text keeps emoji.

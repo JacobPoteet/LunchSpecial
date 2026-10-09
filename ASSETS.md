@@ -51,6 +51,33 @@ Golden-age American diner, roughly 1950s: cream + chrome + cherry-red + deep tea
 - **Derived from it**: the installable-app icons below. Re-run `npm run assets -- icons` after
   changing this file, or the home-screen icon and the tab icon drift apart.
 
+## Occasion art (`src/occasions/<id>/art/`)
+
+Each occasion (a costume the game wears for a stretch of the calendar) keeps its
+art beside its code, and the chunk carrying it only downloads while that
+costume is worn. Swap in place like every other placeholder: same path, same
+viewBox proportions, keep a credit comment.
+
+### Halloween (`src/occasions/halloween/art/`)
+
+| File | What | Where | Size |
+|---|---|---|---|
+| `ai-pumpkin.svg` | An uncarved pumpkin | The punch card's holes: a guess still in hand | 24×24 viewBox, drawn at 17px. Must read at that size |
+| `ai-jack.svg` | A carved, candle-lit jack-o'-lantern | A spent guess on the punch card; beside "On the house!" on a win | 24×24, 17px and ~1.15em |
+| `ai-candy-corn.svg` | A candy corn | The pin on each clue ticket; the falling candy on a win | 12×14, drawn at 12px |
+| `ai-bat.svg` | A bat in silhouette, pale and translucent | Printed in the corner of the bar's coasters (dark stock) | 32×16, drawn at 30px |
+
+Drawn inline in `src/occasions/halloween/index.tsx` rather than as files,
+because they take `currentColor` or a theme token: the bat on the neon sign and
+in the walk to the bar, the cobwebs in the menu card's corners, the spider, and
+the ghost (under the cloche, beside a lost check). The score card's
+jack-o'-lantern is a pixel map in `src/occasions/halloween/pixels.ts`, because
+the card is drawn in rects (see `src/game/scorecard.ts`).
+
+**Style intent:** a 1950s B-picture on the late shift, not a party shop. Warm
+orange and candle yellow against the diner's own palette; nothing that recolours
+text or the fills text sits on.
+
 ## App icons (`public/icon-*.png`, `public/apple-touch-icon.png`)
 
 Generated from `public/favicon.svg` by `npm run assets -- icons`

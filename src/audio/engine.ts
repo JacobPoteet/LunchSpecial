@@ -34,12 +34,15 @@ import {
   MUFFLE_HZ,
   MUSIC,
   MUTE_RAMP_MS,
+  OCCASION_SFX,
   OPEN_HZ,
   SFX,
   isDuplicateSchedule,
+  sfxFileFor,
   type ArcStep,
   type SfxName,
 } from "../../shared/audio";
+import type { OccasionId } from "../../shared/occasions";
 
 /**
  * Every audio file actually present in the source tree, as built URLs.
@@ -53,7 +56,9 @@ import {
  * `eager` + `?url` costs nothing at runtime: it resolves to a string per file,
  * and the bytes are only fetched when we ask for them below.
  */
-const SFX_URLS = import.meta.glob<string>("../assets/sfx/*.{wav,m4a,opus,mp3}", {
+// `**` so an occasion's own files (sfx/occasions/<id>/) resolve beside the
+// everyday ones; see OCCASION_SFX.
+const SFX_URLS = import.meta.glob<string>("../assets/sfx/**/*.{wav,m4a,opus,mp3}", {
   eager: true,
   query: "?url",
   import: "default",
@@ -111,6 +116,15 @@ const loading = new Map<string, Promise<AudioBuffer | null>>();
 
 let unlocked = false;
 let muted = false;
+
+/** The costume the page is wearing, for the sounds that have one. src/occasions/store.ts sets it. */
+let occasion: OccasionId | null = null;
+
+export function setSfxOccasion(next: OccasionId | null): void {
+  occasion = next;
+}
+
+const fileFor = (name: SfxName) => sfxFileFor(name, occasion, (file) => sfxUrl(file) !== undefined);
 
 /** Guards overlapping ducks: a second dip must not cut the first one's recovery short. */
 let duckUntil = 0;
@@ -216,6 +230,10 @@ function load(file: string, url: string | undefined): Promise<AudioBuffer | null
 export function preloadSfx(): void {
   if (!ctx) return;
   const files = new Set(Object.values(SFX).map((s) => s.file));
+  // Every occasion's files that actually shipped, which off-season is none.
+  for (const own of Object.values(OCCASION_SFX)) {
+    for (const file of Object.values(own ?? {})) if (sfxUrl(file)) files.add(file);
+  }
   const run = () => {
     for (const file of files) void load(file, sfxUrl(file));
   };
@@ -294,10 +312,11 @@ export function play(name: SfxName, opts: PlayOptions = {}): void {
   if (isDuplicateSchedule(when, lastScheduled.get(name))) return;
   lastScheduled.set(name, when);
 
-  const buffer = buffers.get(spec.file);
+  const file = fileFor(name);
+  const buffer = buffers.get(file);
 
   if (!buffer) {
-    if (!missing.has(spec.file)) void load(spec.file, sfxUrl(spec.file));
+    if (!missing.has(file)) void load(file, sfxUrl(file));
     if (import.meta.env.DEV) devBlip(name, spec.gain, when, opts.rate ?? 1);
     return;
   }

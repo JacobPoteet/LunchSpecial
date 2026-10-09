@@ -4,6 +4,7 @@ import App from "./App";
 import { initDiscord } from "./discord/bootstrap";
 import { applyHandoffHarness } from "./game/devHarness";
 import { applyShowcase } from "./game/showcase";
+import { primeOccasion } from "./occasions/store";
 import "./styles/base.css";
 import "./styles/game.css";
 import "./styles/admin.css";
@@ -26,4 +27,8 @@ function mount() {
 // in a useState initialiser and a board that is already finished at first
 // render opens its check instantly instead of replaying a win nobody watched.
 // See src/game/devHarness.ts and src/game/showcase.ts.
-void Promise.all([initDiscord(), applyHandoffHarness(), applyShowcase()]).then(mount);
+//
+// The occasion is primed alongside them so the first frame is already in
+// costume, and caps its own wait (src/occasions/store.ts): a decoration never
+// holds the board up for long.
+void Promise.all([initDiscord(), applyHandoffHarness(), applyShowcase(), primeOccasion()]).then(mount);
