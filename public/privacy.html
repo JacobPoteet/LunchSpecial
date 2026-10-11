@@ -87,7 +87,7 @@
       <div class="card">
         <p class="eyebrow">Lunch Special</p>
         <h1>Privacy Policy</h1>
-        <p class="meta">Effective date: September 23, 2026</p>
+        <p class="meta">Effective date: October 10, 2026</p>
 
         <p>
           Lunch Special is a free daily word game where you guess the diner's
@@ -117,6 +117,12 @@
           <li>A randomly generated device identifier (a UUID) that is not linked to your identity.</li>
         </ul>
         <p>
+          The device identifier is also kept in one first-party cookie, so the
+          game can find it again if your browser or Discord empties
+          <code>localStorage</code>. The cookie holds nothing else, is never
+          shared with anyone, and our server does not read it.
+        </p>
+        <p>
           You can erase all of this at any time by clearing your browser's site
           data for this site.
         </p>
@@ -126,7 +132,10 @@
           When a round starts, the game sends a small message to our server
           containing the random device identifier described above and the type
           of round played (today's Special, an archive replay, or a random
-          dish). When it ends, it sends whether you solved it and in how many
+          dish). Inside Discord it also says which kind of Discord app you are
+          using (desktop, browser, or mobile), and on any device whether the
+          identifier was found in storage, restored from the cookie, or newly
+          made. When it ends, it sends whether you solved it and in how many
           guesses. Each guess you submit is also recorded: which dish or drink
           you chose, and whether it was the answer. These are picks from the
           game's own menu, never text you type. We use all of this to understand

@@ -15,6 +15,7 @@
 // ever stores or sends who the player is.
 
 import type { DiscordSDK } from "@discord/embedded-app-sdk";
+import { discordClientOf, type DiscordClient } from "../../shared/device";
 import type { Surface } from "../../shared/types";
 import { attachPresence } from "./presence";
 import { attachProgress } from "./progress";
@@ -99,6 +100,15 @@ export function currentSurface(): Surface {
 }
 
 /**
+ * Which Discord client this tab runs in, for the start beacon (#251); null on
+ * the web. Read from the captured params, so it survives a mode switch.
+ */
+export function currentClient(): DiscordClient | null {
+  if (discordParams === "") return null;
+  return discordClientOf(new URLSearchParams(discordParams).get("platform"), navigator.userAgent);
+}
+
+/**
  * Rewrite an in-app URL so it keeps the player on the same surface: inside
  * Discord it re-attaches the Activity params the assignment would otherwise
  * drop (params already on `url` win). A no-op on the open web.
@@ -143,6 +153,21 @@ function lockPortrait(instance: DiscordSDK): void {
 }
 
 /**
+ * Ask the client not to evict this origin's storage (#251). The installed apps
+ * only: neither prompts for it, but Firefox would, on the web and in Discord's
+ * browser client alike. Best-effort; a refusal changes nothing.
+ */
+function keepStorage(): void {
+  const client = currentClient();
+  if (client !== "desktop" && client !== "mobile") return;
+  try {
+    void navigator.storage?.persist?.().catch(() => {});
+  } catch {
+    // Not offered in this context.
+  }
+}
+
+/**
  * When embedded in Discord, download + initialize the Embedded App SDK and
  * complete the `ready()` handshake. Resolves to the live SDK instance, or
  * `null` when running on the open web (or if init fails — we never block the
@@ -157,6 +182,7 @@ function lockPortrait(instance: DiscordSDK): void {
  */
 export async function initDiscord(): Promise<DiscordSDK | null> {
   if (!isDiscordActivity()) return null;
+  keepStorage();
 
   const clientId = import.meta.env.VITE_DISCORD_CLIENT_ID;
   if (!clientId) {
