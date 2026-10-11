@@ -40,6 +40,7 @@ export function Modal({
   onClose,
   label,
   variant,
+  className,
   footer,
   children,
 }: {
@@ -56,6 +57,8 @@ export function Modal({
    * sliding up), so an announcement never reads as the check.
    */
   variant?: "receipt" | "archive" | "notice";
+  /** Extra classes on the card, for a skin that lives outside game.css (the admin's device check). */
+  className?: string;
   /**
    * Actions pinned to the bottom edge of the card. When present the body
    * becomes its own scroll container, so a long body can never push the
@@ -179,6 +182,7 @@ export function Modal({
           "modal" +
           (footer ? " modal--paneled" : "") +
           (variant ? ` modal--${variant}` : "") +
+          (className ? ` ${className}` : "") +
           (closing ? " modal--closing" : "")
         }
         role="dialog"

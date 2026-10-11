@@ -1513,12 +1513,6 @@
    on a timer — see the note at the top of this block. */
 .act-row--fresh td:first-child { box-shadow: inset 3px 0 0 var(--mustard); }
 
-/* Spotlight: following one device dims everything that isn't it. Activated, not
-   a colour code — hue on this dashboard already means game kind, event type and
-   rank, and a per-device palette would collide with all three. */
-.act-row--dim { opacity: 0.35; }
-.act-row--lit td { background: rgba(27, 79, 74, 0.06); }
-
 .act-row--nested td:first-child { padding-left: 22px; }
 
 .act-device {
@@ -1530,16 +1524,6 @@
   text-align: left;
 }
 .act-device:hover .ev-player { text-decoration: underline; }
-.act-device--lit .ev-player { color: var(--teal); font-weight: 700; }
-
-.act-spotlight {
-  margin: 10px 0 0;
-  padding: 6px 10px;
-  border-left: 3px solid var(--teal);
-  background: rgba(27, 79, 74, 0.06);
-  font-size: var(--fs-xs);
-  color: var(--ink);
-}
 
 .act-detail td {
   background: rgba(230, 217, 184, 0.25);
@@ -1632,13 +1616,22 @@
    percentage before this feed learned to show visits at all. */
 .act-group--bounced td { background: rgba(232, 165, 58, 0.12); }
 
+/* The device id and the fold toggle sit side by side: a button can't hold one. */
+.act-group__line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-left: 8px;
+}
+
 .act-group__toggle {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 8px;
-  width: 100%;
-  padding: 7px 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 7px 8px 7px 0;
   background: none;
   border: none;
   font: inherit;
@@ -1648,7 +1641,6 @@
 .act-group__toggle:disabled { cursor: default; }
 
 .act-group__who { font-weight: 700; }
-.act-group__who--lit .ev-player { color: var(--teal); }
 
 .act-group__meta,
 .act-group__tally {
@@ -3853,3 +3845,142 @@
   text-transform: none;
 }
 .regulars-table tbody:first-of-type .regulars-table__section th { padding-top: 8px; }
+
+/* ---- device check (Activity feed → a device id) ----
+
+   A guest check for one device, on receipt stock with the torn edges of
+   .modal--receipt but none of its print-in: nothing on the dashboard animates.
+   Ink only. The device is solid ink, the house a thin mark; no colour is ever
+   assigned to a player. */
+.modal.dcheck {
+  --tooth: 6px;
+  background: var(--paper-bright);
+  border-radius: 0;
+  max-width: 420px;
+  padding-top: calc(22px + var(--tooth));
+  padding-bottom: calc(24px + var(--tooth));
+  font-variant-numeric: tabular-nums;
+  -webkit-mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--tooth)) 51% repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--tooth)) 51% repeat-x;
+  mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--tooth)) 51% repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--tooth)) 51% repeat-x;
+}
+.modal.dcheck .modal__close { top: calc(8px + var(--tooth)); }
+.dcheck .guest-check__no { font-size: var(--fs-lg); }
+.dcheck .receipt__verdict { font-size: var(--fs-xl); }
+
+.dcheck__h {
+  font-family: var(--font-gothic);
+  font-weight: 400;
+  font-size: var(--fs-lg);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 14px 0 6px;
+  padding-top: 12px;
+  border-top: 2px dashed var(--paper-edge);
+}
+
+.dcheck__line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+.dcheck__line--sub { padding-left: 14px; color: var(--ink-soft); font-size: var(--fs-xs); line-height: 1.5; }
+.dcheck__line > span:first-child { white-space: nowrap; }
+.dcheck__dots {
+  flex: 1;
+  min-width: 12px;
+  border-bottom: 1px dotted var(--ink-soft);
+  transform: translateY(-4px);
+}
+.dcheck__val { white-space: nowrap; text-align: right; }
+.dcheck__house { color: var(--ink-soft); }
+.dcheck__val .rate-range { margin-left: 4px; }
+
+.dcheck__fine {
+  margin: 2px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--ink-soft);
+  text-align: center;
+}
+.dcheck__id { margin-top: 10px; word-break: break-all; }
+
+/* Solved-in: the device's bar in ink, the house's share as a tick across it. */
+.dcheck__dist { display: flex; flex-direction: column; gap: 4px; margin: 10px 0 4px; }
+.dcheck__distrow { display: flex; align-items: center; gap: 8px; font-size: var(--fs-xs); }
+.dcheck__distlabel { width: 2.4em; text-align: right; }
+.dcheck__distn { width: 2em; text-align: right; }
+.dcheck__track { position: relative; flex: 1; height: 12px; }
+.dcheck__bar { display: block; height: 100%; min-width: 2px; background: var(--ink); }
+.dcheck__tick {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  border-left: 2px solid var(--ink-soft);
+  transform: translateX(-1px);
+}
+
+/* Against the house: a ruler from behind everyone (left) to ahead of everyone
+   (right), the house median at the centre, the device as a diamond. */
+.dcheck__standing { margin-bottom: 8px; }
+.dcheck__standing .dcheck__fine { text-align: right; }
+.dcheck__ruler {
+  position: relative;
+  height: 10px;
+  margin: 2px 4px 0;
+  border-bottom: 1px solid var(--ink-soft);
+}
+.dcheck__mid {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  height: 6px;
+  border-left: 1px solid var(--ink-soft);
+}
+.dcheck__diamond {
+  position: absolute;
+  bottom: -4px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  background: var(--ink);
+  transform: rotate(45deg);
+}
+
+/* The last weeks: a column per week, Monday at the top. */
+.dcheck__cal {
+  display: grid;
+  grid-template-rows: repeat(7, 14px);
+  grid-auto-flow: column;
+  grid-auto-columns: 14px;
+  gap: 3px;
+  justify-content: center;
+  margin: 6px 0 4px;
+}
+.dcheck__day {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  border: 1px solid var(--paper-edge);
+}
+.dcheck__day--special { background: var(--ink); border-color: var(--ink); }
+.dcheck__day--other {
+  border-color: var(--ink);
+  background: repeating-linear-gradient(45deg, var(--ink-soft) 0 1px, transparent 1px 4px);
+}
+.dcheck__day--off { border-color: var(--ink-soft); }
+.dcheck__day--before { border-style: dotted; }
+.dcheck__legend .dcheck__day {
+  width: 10px;
+  height: 10px;
+  margin: 0 3px 0 8px;
+  vertical-align: -1px;
+}
+
+.dcheck__foot { margin-top: 14px; padding-top: 12px; border-top: 2px dashed var(--paper-edge); }

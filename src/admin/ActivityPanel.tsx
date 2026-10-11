@@ -24,6 +24,7 @@ import * as api from "./api";
 import { Modal } from "../game/components";
 import { peekPlayerId } from "../game/storage";
 import DayPicker from "./DayPicker";
+import DeviceCheck from "./DeviceCheck";
 import Fold from "./Fold";
 import { ago, countryName, kindCls, kindLabel, type SurfaceFilter } from "./analyticsUi";
 
@@ -574,15 +575,13 @@ function GroupHeader({
   open,
   onToggle,
   myId,
-  spotlight,
-  onSpotlight,
+  onOpenDevice,
 }: {
   group: ActivityGroup;
   open: boolean;
   onToggle: () => void;
   myId: string | null;
-  spotlight: string | null;
-  onSpotlight: (id: string | null) => void;
+  onOpenDevice: (id: string) => void;
 }) {
   const inView = group.rounds.length;
   const day = group.totals?.rounds ?? null;
@@ -596,46 +595,48 @@ function GroupHeader({
   return (
     <tr className={`act-group${group.bounced ? " act-group--bounced" : ""}`}>
       <td colSpan={7}>
-        <button
-          type="button"
-          className="act-group__toggle"
-          aria-expanded={open}
-          onClick={onToggle}
-          disabled={inView === 0}
-        >
-          <span className="act-caret" aria-hidden="true">
-            {inView === 0 ? "·" : open ? "▾" : "▸"}
-          </span>
+        {/* Two buttons side by side, never one inside the other: the device id
+            opens its check, the rest of the row folds the group. */}
+        <div className="act-group__line">
           {group.playerId === null ? (
             <span className="act-group__who">Unattributed</span>
           ) : (
-            <span
-              className={`act-group__who${spotlight === group.playerId ? " act-group__who--lit" : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSpotlight(spotlight === group.playerId ? null : group.playerId);
-              }}
-              title="Follow this device"
+            <button
+              type="button"
+              className="act-device act-group__who"
+              onClick={() => onOpenDevice(group.playerId as string)}
+              title="Open this device's check"
             >
               <code className="ev-player">{group.playerId.slice(0, 8)}</code>
               {group.playerId === myId && <span className="ev-you">you</span>}
-            </span>
+            </button>
           )}
-          <span className="act-group__meta">
-            {group.day} · {span} ET
-            {group.surfaces.length > 0 && ` · ${group.surfaces.map(surfaceLabel).join(" + ")}`}
-            {group.countries.length > 0 && ` · ${group.countries.map(countryName).join(", ")}`}
-            {group.visit?.source && ` · via ${group.visit.source}`}
-          </span>
-          <span className="act-group__tally">
-            {group.bounced
-              ? "arrived, never played"
-              : day !== null && day !== inView
-                ? `${inView} of ${day} rounds · ${solved} solved · ${shared} shared`
-                : `${inView} round${inView === 1 ? "" : "s"} · ${solved} solved · ${shared} shared`}
-            {!group.visit && !group.bounced && <span className="act-group__note"> · no arrival recorded</span>}
-          </span>
-        </button>
+          <button
+            type="button"
+            className="act-group__toggle"
+            aria-expanded={open}
+            onClick={onToggle}
+            disabled={inView === 0}
+          >
+            <span className="act-caret" aria-hidden="true">
+              {inView === 0 ? "·" : open ? "▾" : "▸"}
+            </span>
+            <span className="act-group__meta">
+              {group.day} · {span} ET
+              {group.surfaces.length > 0 && ` · ${group.surfaces.map(surfaceLabel).join(" + ")}`}
+              {group.countries.length > 0 && ` · ${group.countries.map(countryName).join(", ")}`}
+              {group.visit?.source && ` · via ${group.visit.source}`}
+            </span>
+            <span className="act-group__tally">
+              {group.bounced
+                ? "arrived, never played"
+                : day !== null && day !== inView
+                  ? `${inView} of ${day} rounds · ${solved} solved · ${shared} shared`
+                  : `${inView} round${inView === 1 ? "" : "s"} · ${solved} solved · ${shared} shared`}
+              {!group.visit && !group.bounced && <span className="act-group__note"> · no arrival recorded</span>}
+            </span>
+          </button>
+        </div>
       </td>
     </tr>
   );
@@ -817,7 +818,8 @@ export default function ActivityPanel({
   const [date, setDate] = useState<string | null>(null);
   const [pickingDay, setPickingDay] = useState(false);
   const [live, setLive] = useState(false);
-  const [spotlight, setSpotlight] = useState<string | null>(null);
+  // The device whose check is open, if any.
+  const [device, setDevice] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set());
   // Rounds whose latest beacon is newer than the last time we looked. Marked
@@ -1029,13 +1031,10 @@ export default function ActivityPanel({
 
   const rowFor = (r: ActivityRoundView, indented: boolean) => {
     const open = expanded.has(r.roundId);
-    const dim = spotlight !== null && r.playerId !== spotlight;
     const cls = [
       "act-row",
       indented ? "act-row--nested" : "",
       fresh.has(r.roundId) ? "act-row--fresh" : "",
-      dim ? "act-row--dim" : "",
-      spotlight !== null && !dim ? "act-row--lit" : "",
     ]
       .filter(Boolean)
       .join(" ");
@@ -1100,9 +1099,9 @@ export default function ActivityPanel({
             {r.playerId ? (
               <button
                 type="button"
-                className={`act-device${spotlight === r.playerId ? " act-device--lit" : ""}`}
-                title={`${r.playerId} — click to follow this device`}
-                onClick={() => setSpotlight(spotlight === r.playerId ? null : r.playerId)}
+                className="act-device"
+                title={`${r.playerId} · open this device's check`}
+                onClick={() => setDevice(r.playerId)}
               >
                 <code className="ev-player">{r.playerId.slice(0, 8)}</code>
                 {/* Flags your own test rounds even in "All" mode — makes the
@@ -1152,8 +1151,7 @@ export default function ActivityPanel({
                 })
               }
               myId={myId}
-              spotlight={spotlight}
-              onSpotlight={setSpotlight}
+              onOpenDevice={setDevice}
             />
           </tbody>,
           ...(collapsedGroups.has(g.key) ? [] : g.rounds.map((r) => rowFor(r, true))),
@@ -1165,17 +1163,6 @@ export default function ActivityPanel({
         {header}
 
         <FilterBar filter={filter} facets={view.facets} onChange={setFilter} />
-
-        {spotlight && (
-          <p className="act-spotlight">
-            Following device <code className="ev-player">{spotlight.slice(0, 8)}</code> —{" "}
-            {view.rows.filter((r) => r.playerId === spotlight).length} round
-            {view.rows.filter((r) => r.playerId === spotlight).length === 1 ? "" : "s"} in view.{" "}
-            <button className="link-btn" onClick={() => setSpotlight(null)}>
-              Clear
-            </button>
-          </p>
-        )}
 
         <div className="day-table-wrap">
           <table className="day-table event-table act-table">
@@ -1223,6 +1210,7 @@ export default function ActivityPanel({
       </section>
       {dayPicker}
       {mineSection}
+      {device && <DeviceCheck playerId={device} onClose={() => setDevice(null)} />}
     </>
   );
 }

@@ -16,6 +16,7 @@ import type {
   AnalyticsSummary,
   AudienceReport,
   AnnouncementInput,
+  DeviceCheck,
   DeviceDataDeleted,
   DeviceDataSummary,
   DishReport,
@@ -136,6 +137,9 @@ export const getPantry = () => request<Pantry>("/pantry");
 /** The most engaged tenth of devices against the rest. Surface-filtered, like the rest of the Players tab. */
 export const getRegulars = (surface?: Surface) =>
   request<RegularsReport>(`/regulars${surface ? `?surface=${surface}` : ""}`);
+/** One device's history against the house. Opened from a device id in the Activity feed. */
+export const getDeviceCheck = (playerId: string) =>
+  request<DeviceCheck>(`/device-check?player=${encodeURIComponent(playerId)}`);
 /** What one round guessed, in order. Fetched when a row in the Activity feed is opened. */
 export const getRoundGuesses = (roundId: string) =>
   request<RoundGuesses>(`/round-guesses?round=${encodeURIComponent(roundId)}`);
