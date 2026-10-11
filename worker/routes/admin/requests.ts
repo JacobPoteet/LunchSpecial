@@ -3,6 +3,8 @@
 import { Hono } from "hono";
 import type { DishRequest, RequestKind, Surface } from "../../../shared/types";
 import { REQUEST_KINDS, SURFACES } from "../../../shared/types";
+import { loadServed, serverToday } from "../../db";
+import { findServed } from "../../requests";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -15,24 +17,32 @@ interface DishRequestDbRow {
   country: string | null;
   note: string | null;
   surface: string;
+  player_id: string | null;
   created_at: string;
 }
 
 app.get("/requests", async (c) => {
   const res = await c.env.DB
     .prepare(
-      "SELECT id, kind, name, country, note, surface, created_at FROM dish_requests ORDER BY created_at DESC, id DESC",
+      "SELECT id, kind, name, country, note, surface, player_id, created_at FROM dish_requests ORDER BY created_at DESC, id DESC",
     )
     .all<DishRequestDbRow>();
-  const requests: DishRequest[] = res.results.map((r) => ({
-    id: r.id,
-    kind: REQUEST_KINDS.includes(r.kind as never) ? (r.kind as RequestKind) : "dish",
-    name: r.name,
-    country: r.country,
-    note: r.note,
-    surface: SURFACES.includes(r.surface as never) ? (r.surface as Surface) : "web",
-    createdAt: r.created_at,
-  }));
+  const today = serverToday();
+  const [servedDishes, servedDrinks] = await Promise.all([loadServed(c.env.DB, "dish"), loadServed(c.env.DB, "drink")]);
+  const requests: DishRequest[] = res.results.map((r) => {
+    const kind: RequestKind = REQUEST_KINDS.includes(r.kind as never) ? (r.kind as RequestKind) : "dish";
+    return {
+      id: r.id,
+      kind,
+      name: r.name,
+      country: r.country,
+      note: r.note,
+      surface: SURFACES.includes(r.surface as never) ? (r.surface as Surface) : "web",
+      createdAt: r.created_at,
+      playerId: r.player_id,
+      servedOn: findServed(r.name, kind === "drink" ? servedDrinks : servedDishes, today)?.date ?? null,
+    };
+  });
   return c.json(requests);
 });
 

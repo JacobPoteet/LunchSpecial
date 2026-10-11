@@ -4,16 +4,19 @@ import type {
   AnnouncementAudience,
   DailyInfo,
   DishPoolEntry,
+  DishRequestResponse,
   GuessFeedback,
+  RequestKind,
   RevealInfo,
 } from "../../shared/types";
 import { DISH_REQUEST_LIMITS, MAX_GUESSES, REQUEST_KINDS, SURFACES } from "../../shared/types";
 import { isEligible } from "../announcements";
 import { verifyToken } from "../auth";
-import { getClues, getDishById, getDishBySlug, getSeededDish, getTargetDish, serverToday } from "../db";
+import { getClues, getDishById, getDishBySlug, getSeededDish, getTargetDish, loadServed, serverToday } from "../db";
 import { computeFeedback, isPlayableDate, puzzleNumber } from "../game";
 import { guessRecord, isAnalyticsId, recordGuess } from "../guesslog";
 import { loadBookings, parseSighting } from "../occasions";
+import { findServed } from "../requests";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -188,7 +191,7 @@ app.post("/requests", async (c) => {
       .prepare("SELECT 1 FROM dish_requests WHERE player_id = ? AND kind = ? AND name = ? COLLATE NOCASE LIMIT 1")
       .bind(playerId, kind, name)
       .first();
-    if (dupe) return c.json({ ok: true, duplicate: true });
+    if (dupe) return c.json({ ok: true, duplicate: true, ...(await alreadyServed(c.env.DB, kind as RequestKind, name)) });
   }
 
   await c.env.DB
@@ -198,8 +201,18 @@ app.post("/requests", async (c) => {
     )
     .bind(kind, name, country, note, surface, playerId)
     .run();
-  return c.json({ ok: true });
+  return c.json({ ok: true, ...(await alreadyServed(c.env.DB, kind as RequestKind, name)) });
 });
+
+/**
+ * `{ served }` when the name has already been on the menu, so the form can
+ * point the player at it the moment they ask. Still lands in the inbox either
+ * way: the admin wants to see who keeps asking.
+ */
+async function alreadyServed(db: D1Database, kind: RequestKind, name: string): Promise<Partial<DishRequestResponse>> {
+  const hit = findServed(name, await loadServed(db, kind), serverToday());
+  return hit ? { served: hit } : {};
+}
 
 // ---- Announcements ----
 //
@@ -218,6 +231,7 @@ interface AnnouncementRow {
   start_date: string;
   end_date: string;
   is_active: number;
+  player_id: string | null;
 }
 
 /**
@@ -262,14 +276,18 @@ app.post("/occasions/seen", async (c) => {
  * The notices this player should see right now. `returning=1` is the client
  * saying it has finished a game on this device before; unverifiable by design
  * (there are no accounts), and the worst a lie buys you is a notice slightly
- * early. The response carries content only — a notice you aren't eligible for
- * never leaves the Worker, so the client can't learn it exists.
+ * early. `player` is the device id, for a note aimed at one player; a note
+ * for someone else is filtered here like any other notice you can't see. The
+ * response carries content only — a notice you aren't eligible for never
+ * leaves the Worker, so the client can't learn it exists.
  */
 app.get("/announcements", async (c) => {
   const today = serverToday();
   const returning = c.req.query("returning") === "1";
+  const player = c.req.query("player");
+  const playerId = isAnalyticsId(player) ? player : null;
   const res = await c.env.DB.prepare(
-    `SELECT id, header, body, audience, start_date, end_date, is_active
+    `SELECT id, header, body, audience, start_date, end_date, is_active, player_id
        FROM announcements
        WHERE is_active = 1 AND start_date <= ? AND end_date >= ?
        ORDER BY start_date, id`,
@@ -283,8 +301,14 @@ app.get("/announcements", async (c) => {
   const list: Announcement[] = res.results
     .filter((r) =>
       isEligible(
-        { startDate: r.start_date, endDate: r.end_date, isActive: r.is_active === 1, audience: r.audience },
-        { today, returning },
+        {
+          startDate: r.start_date,
+          endDate: r.end_date,
+          isActive: r.is_active === 1,
+          audience: r.audience,
+          playerId: r.player_id,
+        },
+        { today, returning, playerId },
       ),
     )
     .map((r) => ({ id: r.id, header: r.header, body: r.body }));

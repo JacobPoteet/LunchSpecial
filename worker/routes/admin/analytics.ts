@@ -80,12 +80,13 @@ app.get("/dashboard", async (c) => {
        FROM dishes d WHERE d.is_active = 1`,
     ),
     // Notices that could still be showing: the kill switch is on and the window
-    // hasn't closed. That leaves `active` and `upcoming`, which announcementStatus
+    // hasn't closed. A note to one player isn't on the board for everyone, so
+    // it stays on the Announcements page. That leaves `active` and `upcoming`, which announcementStatus
     // separates below — the route never re-derives the rule itself.
     c.env.DB
       .prepare(
         `SELECT id, header, audience, start_date, end_date FROM announcements
-           WHERE is_active = 1 AND end_date >= ? ORDER BY start_date, id`,
+           WHERE is_active = 1 AND end_date >= ? AND player_id IS NULL ORDER BY start_date, id`,
       )
       .bind(today),
     // Tonight's pour. Keyed on the ET day, which is the admin's own night —

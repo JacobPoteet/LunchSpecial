@@ -7,10 +7,12 @@
 
 import { useEffect, useState } from "react";
 import { submitDishRequest } from "../api";
-import type { RequestKind } from "../../shared/types";
+import type { DishRequestResponse, RequestKind } from "../../shared/types";
 import { DISH_REQUEST_LIMITS } from "../../shared/types";
-import { currentSurface } from "../discord/bootstrap";
+import { currentSurface, surfaceUrl } from "../discord/bootstrap";
 import { playSfx } from "../audio";
+import { dateLabel } from "./archive";
+import { devUrl } from "./devHarness";
 import { getPlayerId } from "./storage";
 import { Icon } from "./Icon";
 
@@ -26,6 +28,8 @@ const COPY: Record<
     thanks: string;
     stampTitle: string;
     stampBody: (name: string) => string;
+    /** The answer when the name has already been on the menu. */
+    served: (name: string, day: string) => string;
   }
 > = {
   dish: {
@@ -36,6 +40,7 @@ const COPY: Record<
     thanks: "Thanks, hon — the cook's got your request!",
     stampTitle: "Off a customer's ticket",
     stampBody: (name) => `A regular asked for ${name}. Yours could be next.`,
+    served: (name, day) => `Good taste, hon: ${name} was the Special on ${day}.`,
   },
   drink: {
     toggle: "Suggest a drink for the bar",
@@ -45,6 +50,7 @@ const COPY: Record<
     thanks: "Thanks — the bartender's got your request!",
     stampTitle: "Off a regular's tab",
     stampBody: (name) => `Somebody at the bar asked for ${name}. Yours could be next.`,
+    served: (name, day) => `Good taste: ${name} was poured on ${day}.`,
   },
 };
 
@@ -99,10 +105,24 @@ export function RequestForm({ kind, promoted = false }: { kind: RequestKind; pro
   const [country, setCountry] = useState("");
   const [note, setNote] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
+  const [served, setServed] = useState<DishRequestResponse["served"]>(undefined);
   const copy = COPY[kind];
 
   if (status === "done") {
-    return <p className="dish-request__thanks">{copy.thanks}</p>;
+    // Asked for something the menu has already had: say when, and for a dish
+    // hand over the Leftovers day itself. The bar keeps no back nights, so a
+    // drink gets the date alone.
+    return (
+      <div className="dish-request__thanks" role="status">
+        <p>{copy.thanks}</p>
+        {served && (
+          <p className="dish-request__served">
+            {copy.served(served.name, dateLabel(served.date))}{" "}
+            {kind === "dish" && <a href={surfaceUrl(devUrl(`/?date=${served.date}`))}>Order it from Leftovers</a>}
+          </p>
+        )}
+      </div>
+    );
   }
 
   if (!open) {
@@ -121,7 +141,7 @@ export function RequestForm({ kind, promoted = false }: { kind: RequestKind; pro
     if (!name.trim() || status === "sending") return;
     setStatus("sending");
     try {
-      await submitDishRequest({
+      const res = await submitDishRequest({
         name: name.trim(),
         kind,
         country: country.trim() || undefined,
@@ -129,6 +149,7 @@ export function RequestForm({ kind, promoted = false }: { kind: RequestKind; pro
         surface: SURFACE,
         playerId: getPlayerId(),
       });
+      setServed(res.served);
       setStatus("done");
     } catch {
       setStatus("error");

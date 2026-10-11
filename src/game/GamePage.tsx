@@ -724,7 +724,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   useEffect(() => {
     if (!isDaily) return;
     let cancelled = false;
-    fetchAnnouncements(isReturningPlayer()).then(
+    fetchAnnouncements(isReturningPlayer(), getPlayerId()).then(
       (list) => {
         if (cancelled) return;
         const seen = new Set(seenAnnouncements());

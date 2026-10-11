@@ -25,6 +25,8 @@ interface AnnouncementDbRow {
   end_date: string;
   is_active: number;
   created_at: string;
+  player_id: string | null;
+  received_at: string | null;
 }
 
 const zeroBySurface = (): Record<Surface, number> => ({ web: 0, discord: 0 });
@@ -39,8 +41,12 @@ app.get("/announcements", async (c) => {
   const today = serverToday();
   const [rowsRes, totalRes, surfaceRes, dailyRes] = await c.env.DB.batch([
     c.env.DB.prepare(
-      `SELECT id, header, body, audience, start_date, end_date, is_active, created_at
-         FROM announcements ORDER BY start_date DESC, id DESC`,
+      // received_at: when a note's one device saw it. A broadcast has no
+      // player_id, so the subquery is NULL for it.
+      `SELECT a.id, a.header, a.body, a.audience, a.start_date, a.end_date, a.is_active, a.created_at, a.player_id,
+              (SELECT v.seen_at FROM announcement_views v
+                WHERE v.announcement_id = a.id AND v.player_id = a.player_id) AS received_at
+         FROM announcements a ORDER BY a.start_date DESC, a.id DESC`,
     ),
     c.env.DB.prepare("SELECT announcement_id, COUNT(*) AS n FROM announcement_views GROUP BY announcement_id"),
     c.env.DB.prepare(
@@ -98,6 +104,8 @@ app.get("/announcements", async (c) => {
       status: announcementStatus({ startDate: r.start_date, endDate: r.end_date, isActive }, today),
       createdAt: r.created_at,
       reach,
+      playerId: r.player_id,
+      receivedAt: r.received_at,
     };
   });
   return c.json(list);
@@ -108,10 +116,10 @@ app.post("/announcements", async (c) => {
   if ("error" in parsed) return c.json({ error: parsed.error }, 400);
   const a = parsed.input;
   const res = await c.env.DB.prepare(
-    `INSERT INTO announcements (header, body, audience, start_date, end_date, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+    `INSERT INTO announcements (header, body, audience, start_date, end_date, is_active, player_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
   )
-    .bind(a.header, a.body, a.audience, a.startDate, a.endDate, a.isActive ? 1 : 0)
+    .bind(a.header, a.body, a.audience, a.startDate, a.endDate, a.isActive ? 1 : 0, a.playerId ?? null)
     .run();
   return c.json({ id: res.meta.last_row_id });
 });
@@ -126,10 +134,11 @@ app.put("/announcements/:id", async (c) => {
   // record of what happened, not a property of the current wording.
   const res = await c.env.DB.prepare(
     `UPDATE announcements
-        SET header = ?, body = ?, audience = ?, start_date = ?, end_date = ?, is_active = ?, updated_at = datetime('now')
+        SET header = ?, body = ?, audience = ?, start_date = ?, end_date = ?, is_active = ?, player_id = ?,
+            updated_at = datetime('now')
       WHERE id = ?`,
   )
-    .bind(a.header, a.body, a.audience, a.startDate, a.endDate, a.isActive ? 1 : 0, id)
+    .bind(a.header, a.body, a.audience, a.startDate, a.endDate, a.isActive ? 1 : 0, a.playerId ?? null, id)
     .run();
   if (res.meta.changes === 0) return c.json({ error: "Announcement not found" }, 404);
   return c.json({ id });
