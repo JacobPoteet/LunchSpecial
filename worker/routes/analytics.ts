@@ -5,6 +5,7 @@
 
 import { Hono, type Context } from "hono";
 import { normalizeSource, SOURCE_DIRECT } from "../../shared/attribution";
+import { normalizeClient, normalizeDeviceOrigin } from "../../shared/device";
 import { ROUND_KINDS, SURFACES, maxGuessesFor, type RoundKind, type Surface } from "../../shared/types";
 import { getSeededDish, getTargetDish, serverToday } from "../db";
 import { getTargetDrink } from "../drinkdb";
@@ -230,6 +231,10 @@ app.post("/start", async (c) => {
   // clients omit it — so a bad/absent value just stores NULL. Powers the
   // new-vs-returning player split in the admin dashboard.
   const playerId = isAnalyticsId(raw!.playerId) ? raw!.playerId : null;
+  // Which Discord client, and which store the device id came out of (#251).
+  // Closed sets; anything else is NULL, and a web round never has a client.
+  const client = b.surface === "discord" ? normalizeClient((raw as { client?: unknown }).client) : null;
+  const deviceFrom = playerId ? normalizeDeviceOrigin((raw as { deviceFrom?: unknown }).deviceFrom) : null;
   // `occasion` is insert-only like the rest: the costume the round's own day
   // wore, stamped here so the client has nothing to say about it.
   const [dishId, drinkId, occasion] = await Promise.all([
@@ -238,11 +243,11 @@ app.post("/start", async (c) => {
     occasionFor(c.env.DB, b.date),
   ]);
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, player_id, dish_id, drink_id, tz_offset, occasion, started_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, player_id, dish_id, drink_id, tz_offset, occasion, client, device_from, started_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO NOTHING`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), playerId, dishId, drinkId, tzOffsetOf(raw), occasion)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), playerId, dishId, drinkId, tzOffsetOf(raw), occasion, client, deviceFrom)
     .run();
   return c.json({ ok: true });
 });

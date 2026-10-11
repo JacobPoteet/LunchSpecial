@@ -3,6 +3,7 @@
 import type { DrinkGuessFeedback, GuessFeedback, PastRound } from "../../shared/types";
 import { DRINK_MAX_GUESSES, MAX_GUESSES } from "../../shared/types";
 import { addDays } from "../../shared/time";
+import { deviceCookie, readDeviceCookie, type DeviceIdOrigin } from "../../shared/device";
 
 export type GameStatus = "playing" | "won" | "lost";
 
@@ -50,18 +51,69 @@ const RECOVERED_KEY = "lunch-special:recovered";
  * the "start" analytics beacon so the dashboard can tell new players (first-ever
  * play) from returning ones. No accounts, no personal data — same anonymous model
  * as the round id. Generated lazily on first play and reused forever after.
+ *
+ * Mirrored in a first-party cookie (`shared/device.ts`), because Discord clients
+ * were handing back an empty localStorage between sessions (#251). Whichever
+ * store still has the id wins and refills the other; the cookie's lifetime is
+ * renewed on the first read of each page load. The Worker never reads the
+ * cookie.
  */
 export function getPlayerId(): string {
+  if (playerId) return playerId;
+  const stored = readStored();
+  const cookie = stored ? null : readCookie();
+  playerId = stored ?? cookie ?? mint();
+  playerIdOrigin = stored ? "storage" : cookie ? "cookie" : "new";
+  if (!stored) {
+    try {
+      localStorage.setItem(PLAYER_KEY, playerId);
+    } catch {
+      // Storage blocked (e.g. private mode): the cookie may still carry it.
+    }
+  }
+  writeCookie(playerId);
+  return playerId;
+}
+
+/**
+ * Where this page load found its device id, for the start beacon. Asks for the
+ * id first, so it is never read before one exists.
+ */
+export function playerIdSource(): DeviceIdOrigin {
+  getPlayerId();
+  return playerIdOrigin;
+}
+
+let playerId: string | null = null;
+let playerIdOrigin: DeviceIdOrigin = "new";
+
+function mint(): string {
+  return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function readStored(): string | null {
   try {
-    const existing = localStorage.getItem(PLAYER_KEY);
-    if (existing) return existing;
-    const id = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    localStorage.setItem(PLAYER_KEY, id);
-    return id;
+    return localStorage.getItem(PLAYER_KEY);
   } catch {
-    // Storage blocked (e.g. private mode) — fall back to an ephemeral id so the
-    // beacon still has a shape; it just won't persist across sessions.
-    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    return null;
+  }
+}
+
+function readCookie(): string | null {
+  try {
+    return readDeviceCookie(document.cookie);
+  } catch {
+    return null;
+  }
+}
+
+function writeCookie(id: string): void {
+  const cookie = deviceCookie(id);
+  if (!cookie) return;
+  try {
+    document.cookie = cookie;
+  } catch {
+    // Cookies blocked: localStorage alone, as before #251.
   }
 }
 
@@ -72,11 +124,7 @@ export function getPlayerId(): string {
  * would create one that appears in zero rows.
  */
 export function peekPlayerId(): string | null {
-  try {
-    return localStorage.getItem(PLAYER_KEY);
-  } catch {
-    return null;
-  }
+  return readStored() ?? readCookie();
 }
 
 /** sessionStorage key for the ET day this tab has already reported a visit for. */

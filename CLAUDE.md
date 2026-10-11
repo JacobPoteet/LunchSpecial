@@ -60,6 +60,7 @@ Runs as an embedded iframe with **no separate build**: Discord proxies `lunchspe
 - **Social (`social.ts`, no scopes):** only the participant *count* leaves the module (never usernames/avatars); you are subtracted and the bar hides at zero. Invite hidden when `sdk.guildId === null`. PIP layout is scoped to `<html data-discord-layout="pip">`, never a width query.
 - `/privacy`, `/terms`, `/press` are plain same-origin links with no `target="_blank"`. The game has no outbound links.
 - localStorage inside Discord is sandboxed to `discordsays.com`, so Activity players have separate history.
+- **The device id lives in two stores** (#251): `lunch-special:player` and the `ls_device` cookie (`shared/device.ts`, Partitioned + SameSite=None for the browser client's third-party iframe). Whichever survives refills the other. The Worker never reads the cookie. `/start` stamps `client` (desktop/browser/mobile, Discord rounds only) and `device_from` (storage/cookie/new); both NULL before 0059, which is unmeasured. `navigator.storage.persist()` runs in the installed apps only (Firefox prompts).
 - Deliberate holes in hook dependency lists carry `eslint-disable-next-line react-hooks/exhaustive-deps` on the line before the array, reason in the comment above. `react/set-state-in-effect` is off in `.oxlintrc.json` on purpose.
 
 ## After Dark

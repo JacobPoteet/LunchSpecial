@@ -20,6 +20,8 @@ import type {
   Surface,
 } from "../shared/types";
 import { gameToday } from "../shared/time";
+import { currentClient } from "./discord/bootstrap";
+import { playerIdSource } from "./game/storage";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -256,7 +258,10 @@ export function beaconStart(b: {
    */
   tzOffset?: number;
 }): void {
-  beacon("/api/rounds/start", b);
+  // Stamped here rather than at the two call sites: which Discord client this
+  // is, and which store the device id came out of (#251). Both closed sets,
+  // re-checked by the Worker; neither says anything about who is playing.
+  beacon("/api/rounds/start", { ...b, client: currentClient(), deviceFrom: playerIdSource() });
 }
 
 export function beaconComplete(b: {
