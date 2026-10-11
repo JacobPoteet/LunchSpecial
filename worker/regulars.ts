@@ -57,14 +57,14 @@ export interface RegularsVisitRow {
   source: string | null;
 }
 
-interface DayFlags {
+export interface DayFlags {
   finished: boolean;
   solved: boolean;
   shared: boolean;
   extra: boolean;
 }
 
-interface Device {
+export interface Device {
   id: string;
   days: Map<string, DayFlags>;
   rounds: number;
@@ -82,7 +82,8 @@ interface Device {
 const tally = (n: number, of: number): Tally => ({ n, of });
 const zeros = () => Array.from({ length: MAX_GUESSES }, () => 0);
 
-function fold(rows: Iterable<RegularsRoundRow>): Map<string, Device> {
+/** Every device in the rows, keyed by id. Shared with the device check (worker/devicecheck.ts). */
+export function foldDevices(rows: Iterable<RegularsRoundRow>): Map<string, Device> {
   const devices = new Map<string, Device>();
   for (const r of rows) {
     const day = etDayOfHourBucket(r.bucket);
@@ -137,7 +138,7 @@ function fold(rows: Iterable<RegularsRoundRow>): Map<string, Device> {
 }
 
 /** Longest run of back-to-back days in an ascending list. */
-function longestStreak(days: string[]): number {
+export function longestStreak(days: string[]): number {
   let best = 0;
   let run = 0;
   for (let i = 0; i < days.length; i++) {
@@ -147,7 +148,7 @@ function longestStreak(days: string[]): number {
   return best;
 }
 
-const medianOfList = (xs: number[]): number | null => medianOf(xs.map((x) => [x, 1] as const));
+export const medianOfList = (xs: number[]): number | null => medianOf(xs.map((x) => [x, 1] as const));
 
 function groupOf(
   members: Device[],
@@ -242,27 +243,41 @@ function groupOf(
   };
 }
 
+/**
+ * The fewest days a regular has played: the top tenth's line, ties kept in,
+ * never below REGULARS_MIN_DAYS. The one definition, read by both reports.
+ */
+export function regularsCutoff(devices: Device[]): number {
+  const byDays = devices.map((d) => d.days.size).sort((a, b) => b - a);
+  const line = byDays.length === 0 ? 0 : byDays[Math.max(0, Math.ceil(byDays.length * REGULARS_SHARE) - 1)];
+  return Math.max(line, REGULARS_MIN_DAYS);
+}
+
+/** A device's first ET day with a round. */
+export const firstDayOf = (d: Device): string => [...d.days.keys()].reduce((a, b) => (b < a ? b : a));
+
+/** Past its first week: old enough to be compared, as retention counts it. */
+export const isSettled = (d: Device, today: string): boolean =>
+  daysBetween(firstDayOf(d), today) >= RETENTION_WINDOW_DAYS;
+
 export function foldRegulars(
   rows: Iterable<RegularsRoundRow>,
   visits: Iterable<RegularsVisitRow>,
   today: string,
 ): RegularsReport {
-  const devices = [...fold(rows).values()];
+  const devices = [...foldDevices(rows).values()];
   const sourceOf = new Map<string, string>();
   for (const v of visits) if (v.source) sourceOf.set(v.player_id, v.source);
 
-  const byDays = [...devices].sort((a, b) => b.days.size - a.days.size);
-  const line = byDays.length === 0 ? 0 : byDays[Math.max(0, Math.ceil(byDays.length * REGULARS_SHARE) - 1)].days.size;
-  const cutoff = Math.max(line, REGULARS_MIN_DAYS);
+  const cutoff = regularsCutoff(devices);
   const regulars = devices.filter((d) => d.days.size >= cutoff);
-  const firstDay = (d: Device) => [...d.days.keys()].reduce((a, b) => (b < a ? b : a));
-  const settled = (d: Device) => daysBetween(firstDay(d), today) >= RETENTION_WINDOW_DAYS;
+  const settled = (d: Device) => isSettled(d, today);
   const below = devices.filter((d) => d.days.size < cutoff);
   const rest = below.filter(settled);
 
   const allRounds = devices.reduce((n, d) => n + d.rounds, 0);
   const regularRounds = regulars.reduce((n, d) => n + d.rounds, 0);
-  const since = devices.length === 0 ? null : devices.map(firstDay).reduce((a, b) => (b < a ? b : a));
+  const since = devices.length === 0 ? null : devices.map(firstDayOf).reduce((a, b) => (b < a ? b : a));
 
   return {
     devices: devices.length,

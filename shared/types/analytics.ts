@@ -1121,6 +1121,95 @@ export interface RegularsReport {
 }
 
 /**
+ * Where one device sits among the house on one measure. `rank` is 1 for the
+ * best, on the measure's own sense of best: more days, a shorter gap, fewer
+ * guesses. Ties share a rank. A count over a known group, not an estimate, so it
+ * carries no interval.
+ */
+export interface DeviceStanding {
+  /** This device's value; null when it has none (one day played has no gap). */
+  value: number | null;
+  /** The house median. */
+  house: number | null;
+  /**
+   * 1 = best among the house plus this device. Null when this device has no
+   * value, or is inside its own first week: a two-day-old device that came both
+   * days would rank first on attendance against devices that had a month.
+   */
+  rank: number | null;
+  /** Devices ranked: the house devices with a value, plus this one when it has one. */
+  of: number;
+  /**
+   * House devices with exactly this value. A shared rank reads as a placing
+   * otherwise: "4th of 23" for a value twenty devices share at the bottom.
+   */
+  tied: number;
+}
+
+/** One ET day on the device check's calendar. */
+export type DeviceDayState = "special" | "other" | "off" | "before";
+
+/**
+ * One device's whole history, set against the house (GET /device-check). The
+ * house is shown on screen as "Others". Opened
+ * from a device id in the Activity feed.
+ *
+ * The house is every other device past its first week (RETENTION_WINDOW_DAYS
+ * in worker/players.ts), the same "everyone else" the regulars table compares
+ * against: a device seen for three days would drag every median toward one day.
+ * Every surface, always; a device is one device wherever it plays.
+ *
+ * Counts and ranks only. Which dishes it guessed stays one round at a time
+ * (`/round-guesses`), so this never becomes a per-device guess trail.
+ */
+export interface DeviceCheck {
+  playerId: string;
+  today: string;
+  /** First ET day with a round; null for a device that only ever arrived. */
+  firstDay: string | null;
+  /** First ET day it arrived, from the arrivals ledger; null before 0020 or never. */
+  firstVisit: string | null;
+  /** The newest thing it did, as an ISO-8601 UTC instant. */
+  lastAt: string | null;
+  daysPlayed: number;
+  /** Days from the first round to today, inclusive. */
+  span: number | null;
+  /** Countries it played from, most rounds first. Pre-0018 rounds carry none. */
+  countries: string[];
+  surfaces: Surface[];
+  /** First-touch source; null when unmeasured. */
+  source: string | null;
+  /**
+   * "regular" is the regulars table's own line; "settled" is everyone else past
+   * the first week; "new" is inside it; "none" never started a round.
+   */
+  standing: "regular" | "settled" | "new" | "none";
+  /** Regulars played on at least this many days. */
+  cutoffDays: number;
+  /** House size. Shown on screen as "Others". */
+  house: number;
+  kinds: Record<RoundKind, { rounds: number; finished: number; solved: number }>;
+  /** Today's Special only, like every guess count on the dashboard. */
+  special: { finished: number; solved: number; shared: number; solvedIn: number[] };
+  /** The house's Specials, pooled. */
+  houseSpecial: { finished: number; solved: number; shared: number; solvedIn: number[] };
+  /** Activity and skill, each against the house. */
+  standings: {
+    daysPlayed: DeviceStanding;
+    attendance: DeviceStanding;
+    gap: DeviceStanding;
+    roundsPerDay: DeviceStanding;
+    longestRun: DeviceStanding;
+    medianGuesses: DeviceStanding;
+  };
+  /** The last {@link DEVICE_CHECK_WEEKS} weeks, Monday-first, oldest first, ending on today's week. */
+  calendar: { day: string; state: DeviceDayState }[];
+}
+
+/** How many weeks the device check's calendar draws. */
+export const DEVICE_CHECK_WEEKS = 8;
+
+/**
  * Everything one anonymous device has written into the analytics tables — the
  * *review* half of "delete my own play-testing out of the numbers".
  *

@@ -1513,12 +1513,6 @@
    on a timer — see the note at the top of this block. */
 .act-row--fresh td:first-child { box-shadow: inset 3px 0 0 var(--mustard); }
 
-/* Spotlight: following one device dims everything that isn't it. Activated, not
-   a colour code — hue on this dashboard already means game kind, event type and
-   rank, and a per-device palette would collide with all three. */
-.act-row--dim { opacity: 0.35; }
-.act-row--lit td { background: rgba(27, 79, 74, 0.06); }
-
 .act-row--nested td:first-child { padding-left: 22px; }
 
 .act-device {
@@ -1530,16 +1524,6 @@
   text-align: left;
 }
 .act-device:hover .ev-player { text-decoration: underline; }
-.act-device--lit .ev-player { color: var(--teal); font-weight: 700; }
-
-.act-spotlight {
-  margin: 10px 0 0;
-  padding: 6px 10px;
-  border-left: 3px solid var(--teal);
-  background: rgba(27, 79, 74, 0.06);
-  font-size: var(--fs-xs);
-  color: var(--ink);
-}
 
 .act-detail td {
   background: rgba(230, 217, 184, 0.25);
@@ -1632,13 +1616,22 @@
    percentage before this feed learned to show visits at all. */
 .act-group--bounced td { background: rgba(232, 165, 58, 0.12); }
 
+/* The device id and the fold toggle sit side by side: a button can't hold one. */
+.act-group__line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-left: 8px;
+}
+
 .act-group__toggle {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 8px;
-  width: 100%;
-  padding: 7px 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 7px 8px 7px 0;
   background: none;
   border: none;
   font: inherit;
@@ -1648,7 +1641,6 @@
 .act-group__toggle:disabled { cursor: default; }
 
 .act-group__who { font-weight: 700; }
-.act-group__who--lit .ev-player { color: var(--teal); }
 
 .act-group__meta,
 .act-group__tally {
@@ -3853,3 +3845,169 @@
   text-transform: none;
 }
 .regulars-table tbody:first-of-type .regulars-table__section th { padding-top: 8px; }
+
+/* ---- device check (Activity feed → a device id) ----
+
+   A guest check for one device, on receipt stock with the torn edges of
+   .modal--receipt but none of its print-in: nothing on the dashboard animates.
+   Tables with fixed columns, so a value and its range never fight a label for
+   a line. Ink only: the device is solid ink, others a thin line; no colour is
+   ever assigned to a player. */
+.modal.dcheck {
+  --tooth: 6px;
+  background: var(--paper-bright);
+  border-radius: 0;
+  max-width: 460px;
+  padding: calc(20px + var(--tooth)) 22px calc(20px + var(--tooth));
+  font-variant-numeric: tabular-nums;
+  -webkit-mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--tooth)) 51% repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--tooth)) 51% repeat-x;
+  mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--tooth)) 51% repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--tooth)) 51% repeat-x;
+}
+.modal.dcheck .modal__close { top: calc(8px + var(--tooth)); }
+.dcheck .guest-check__no { font-size: var(--fs-lg); }
+.dcheck .receipt__verdict { font-size: var(--fs-xl); margin-top: 10px; }
+.dcheck__head { margin-bottom: 0; }
+
+.dcheck__note {
+  margin: 6px 0 0;
+  font-size: var(--fs-xs);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.dcheck__head .dcheck__note { text-align: center; }
+.dcheck__id { margin-top: 4px; text-align: center; overflow-wrap: anywhere; }
+
+/* One dashed tear between sections; the head's own rule is the first. */
+.dcheck__section { padding: 14px 0; border-bottom: 2px dashed var(--paper-edge); }
+.dcheck__h {
+  margin: 0 0 8px;
+  font-family: var(--font-gothic);
+  font-weight: 400;
+  font-size: var(--fs-lg);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+.dcheck__h4 {
+  margin: 14px 0 6px;
+  font-family: var(--font-gothic);
+  font-weight: 400;
+  font-size: var(--fs-md);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.dcheck__table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+  line-height: 1.3;
+}
+.dcheck__table th,
+.dcheck__table td {
+  padding: 5px 0 5px 8px;
+  vertical-align: top;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.dcheck__table th:first-child,
+.dcheck__table td:first-child { padding-left: 0; }
+.dcheck__table thead th {
+  padding-top: 0;
+  font-family: var(--font-gothic);
+  font-weight: 400;
+  font-size: var(--fs-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  vertical-align: bottom;
+}
+.dcheck__table tbody th {
+  font-weight: 400;
+  text-align: left;
+}
+.dcheck__table tbody tr + tr > * { border-top: 1px dotted var(--paper-edge); }
+.dcheck__table--rounds thead th:first-child { width: 40%; }
+.dcheck__table--vs thead th:first-child { width: 28%; }
+.dcheck__table--measures thead th:first-child { width: 40%; }
+.dcheck__table--measures thead th:last-child { width: 22%; }
+.dcheck__row--none > * { color: var(--ink-soft); }
+.dcheck__sub {
+  display: block;
+  margin-top: 1px;
+  font-size: var(--fs-xs);
+  color: var(--ink-soft);
+}
+
+/* Solved-in: two bars a row on one shared scale, this device solid and
+   others outlined, with both shares printed. */
+.dcheck__dist thead th:first-child { width: 17%; }
+.dcheck__dist thead th:nth-child(3),
+.dcheck__dist thead th:nth-child(4) { width: 22%; }
+.dcheck__dist tbody th { text-align: right; }
+.dcheck__dist tbody td { vertical-align: middle; }
+.dcheck__bars { padding-left: 12px; }
+.dcheck__bar { display: block; height: 7px; min-width: 1px; box-sizing: border-box; }
+.dcheck__bar--mine { background: var(--ink); }
+.dcheck__bar--others { margin-top: 2px; border: 1px solid var(--ink-soft); }
+.dcheck__swatch { display: inline-block; width: 12px; height: 8px; margin-right: 4px; box-sizing: border-box; }
+.dcheck__swatch--mine { background: var(--ink); }
+.dcheck__swatch--others { border: 1px solid var(--ink-soft); }
+
+/* The last weeks: a column per week, Monday at the top. */
+.dcheck__calwrap { display: flex; justify-content: center; gap: 6px; }
+.dcheck__weekdays,
+.dcheck__cal {
+  display: grid;
+  grid-template-rows: repeat(7, 14px);
+  gap: 3px;
+}
+.dcheck__weekdays {
+  font-size: var(--fs-xs);
+  line-height: 14px;
+  color: var(--ink-soft);
+}
+.dcheck__cal { grid-auto-flow: column; grid-auto-columns: 14px; }
+.dcheck__day {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  border: 1px solid var(--paper-edge);
+}
+.dcheck__day--special { background: var(--ink); border-color: var(--ink); }
+.dcheck__day--other {
+  border-color: var(--ink);
+  background: repeating-linear-gradient(45deg, var(--ink-soft) 0 1px, transparent 1px 4px);
+}
+.dcheck__day--off { border-color: var(--ink-soft); }
+.dcheck__day--before { border-style: dotted; }
+.dcheck__legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-xs);
+  color: var(--ink-soft);
+}
+.dcheck__legend li { display: flex; align-items: center; gap: 5px; }
+.dcheck__legend .dcheck__day { width: 11px; height: 11px; }
+
+.dcheck__foot {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
+  margin: 14px 0 0;
+  font-size: var(--fs-sm);
+}
+.dcheck__foot dt { color: var(--ink-soft); }
+.dcheck__foot dd { margin: 0; text-align: right; overflow-wrap: anywhere; }

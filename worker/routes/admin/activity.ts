@@ -14,6 +14,8 @@ import type {
 import { ACTIVITY_MAX, ACTIVITY_PAGE } from "../../../shared/types";
 
 import { foldDeviceData, type DeviceRoundRow, type DeviceVisitRow } from "../../device";
+import { foldDeviceCheck, type DeviceArrivalRow, type DeviceKindRow } from "../../devicecheck";
+import type { RegularsRoundRow } from "../../regulars";
 import { foldRoundGuesses, type RoundGuessRow } from "../../guessstats";
 
 import { serverToday } from "../../db";
@@ -270,6 +272,47 @@ app.get("/round-guesses", async (c) => {
     .bind(round)
     .all();
   return c.json(foldRoundGuesses(round, res.results as unknown as RoundGuessRow[]));
+});
+
+// One device against the house, for the check a device id in the feed opens.
+// Every surface: a device is one device wherever it plays, and the feed's
+// surface toggle filters rows, not people. The all-devices query is the same
+// grouped scan /regulars runs, so the two can't draw the line differently.
+app.get("/device-check", async (c) => {
+  const player = c.req.query("player")?.trim();
+  if (!player) return c.json({ error: "No device id given" }, 400);
+  const [roundsRes, kindsRes, arrivalRes] = await c.env.DB.batch([
+    c.env.DB.prepare(
+      `SELECT player_id, surface, strftime('%Y-%m-%d %H', started_at) AS bucket,
+         kind, completed, solved, shared, guesses, COUNT(*) AS n
+         FROM analytics_rounds
+        WHERE player_id IS NOT NULL AND started_at IS NOT NULL
+        GROUP BY player_id, surface, bucket, kind, completed, solved, shared, guesses`,
+    ),
+    c.env.DB.prepare(
+      `SELECT kind, surface, country, COUNT(*) AS rounds,
+              COALESCE(SUM(completed), 0) AS finished,
+              COALESCE(SUM(solved), 0) AS solved,
+              MAX(COALESCE(shared_at, completed_at, updated_at, started_at)) AS last_at
+         FROM analytics_rounds
+        WHERE player_id = ? AND started_at IS NOT NULL
+        GROUP BY kind, surface, country`,
+    ).bind(player),
+    // First touch wins, as everywhere the source is read.
+    c.env.DB.prepare(
+      `SELECT visit_day AS first_day, source FROM analytics_visits
+        WHERE player_id = ? ORDER BY visit_day, first_seen_at LIMIT 1`,
+    ).bind(player),
+  ]);
+  return c.json(
+    foldDeviceCheck(
+      player,
+      roundsRes.results as unknown as RegularsRoundRow[],
+      kindsRes.results as unknown as DeviceKindRow[],
+      (arrivalRes.results[0] as DeviceArrivalRow | undefined) ?? null,
+      serverToday(),
+    ),
+  );
 });
 
 // ---- This device's own data (review, then delete) ---------------------------
