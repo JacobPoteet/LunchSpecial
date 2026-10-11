@@ -50,6 +50,14 @@ describe("isEligible", () => {
     expect(isEligible(returning, { today: "2026-07-21", returning: true })).toBe(true);
   });
 
+  it("shows a note aimed at one device to that device only, whatever the audience", () => {
+    const note = { ...returning, playerId: "device-aaaa" };
+    expect(isEligible(note, { today: "2026-07-21", returning: false, playerId: "device-aaaa" })).toBe(true);
+    expect(isEligible(note, { today: "2026-07-21", returning: true, playerId: "device-bbbb" })).toBe(false);
+    expect(isEligible(note, { today: "2026-07-21", returning: true })).toBe(false);
+    expect(isEligible(note, { today: "2026-07-23", returning: true, playerId: "device-aaaa" })).toBe(false);
+  });
+
   it("never shows a notice outside its window, whoever is asking", () => {
     expect(isEligible(all, { today: "2026-07-19", returning: true })).toBe(false);
     expect(isEligible(all, { today: "2026-07-23", returning: true })).toBe(false);
@@ -69,13 +77,13 @@ describe("parseAnnouncementInput", () => {
 
   it("accepts a well-formed notice", () => {
     const out = parseAnnouncementInput(valid);
-    expect(out).toEqual({ input: valid });
+    expect(out).toEqual({ input: { ...valid, playerId: null } });
   });
 
   it("trims whitespace and defaults audience + kill switch", () => {
     const out = parseAnnouncementInput({ ...valid, header: "  Hi  ", audience: undefined, isActive: undefined });
     expect(out).toEqual({
-      input: { ...valid, header: "Hi", audience: "all", isActive: true },
+      input: { ...valid, header: "Hi", audience: "all", isActive: true, playerId: null },
     });
   });
 
@@ -104,6 +112,14 @@ describe("parseAnnouncementInput", () => {
 
   it("rejects an audience outside the enum", () => {
     expect(parseAnnouncementInput({ ...valid, audience: "vip" })).toEqual({ error: "Unknown audience" });
+  });
+
+  it("aims a note at one device, and refuses an id that can't be one", () => {
+    const id = "c79a51a8-0000-4000-8000-000000000000";
+    expect(parseAnnouncementInput({ ...valid, playerId: `  ${id} ` })).toEqual({ input: { ...valid, playerId: id } });
+    expect(parseAnnouncementInput({ ...valid, playerId: "" })).toEqual({ input: { ...valid, playerId: null } });
+    expect(parseAnnouncementInput({ ...valid, playerId: "abc" })).toEqual({ error: "That isn't a device id" });
+    expect(parseAnnouncementInput({ ...valid, playerId: 42 })).toEqual({ error: "That isn't a device id" });
   });
 
   it("survives junk input", () => {

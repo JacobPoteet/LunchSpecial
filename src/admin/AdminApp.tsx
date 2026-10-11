@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { buildLabel, buildTitle } from "../../shared/build";
 import type { DishFilter } from "../../shared/dishfilter";
-import type { IssueContext, RequestKind } from "../../shared/types";
+import type { DishRequest, IssueContext, RequestKind } from "../../shared/types";
 import * as api from "./api";
 import AnnouncementsPanel from "./AnnouncementsPanel";
 import BarView from "./BarView";
@@ -25,6 +25,13 @@ export interface RequestDraft {
   /** The request this draft came from; removed from the inbox once the row saves. */
   requestId: number;
 }
+
+/**
+ * A note to the device behind one request, opened from the Requests inbox. The
+ * Announcements editor starts from it: aimed at that device, the request quoted
+ * back, and a pointer to Leftovers when the dish was already served.
+ */
+export type NoteDraft = DishRequest & { playerId: string };
 
 function Login({ onLoggedIn }: { onLoggedIn: () => void }) {
   const [password, setPassword] = useState("");
@@ -71,6 +78,9 @@ export default function AdminApp() {
   // Prefill for a new dish or drink opened from a request. For a dish it only
   // means anything while editing === null; for a drink BarView reads it.
   const [draft, setDraft] = useState<RequestDraft | null>(null);
+  // A note to one player, opened from a request; only means anything on the
+  // Announcements view.
+  const [noteTo, setNoteTo] = useState<NoteDraft | null>(null);
   // Count of pending player requests, shown as a nav badge.
   const [requestCount, setRequestCount] = useState<number | null>(null);
   // A filter handed to the dish list by a link (the dashboard's Menu tab). Null
@@ -122,11 +132,17 @@ export default function AdminApp() {
     setDraft(d);
   }, []);
 
+  const openNote = useCallback((r: NoteDraft) => {
+    setView("announcements");
+    setNoteTo(r);
+  }, []);
+
   const changeView = (v: AdminView) => {
     setView(v);
     setEditing(undefined);
     setDraft(null);
     setDishFilter(null);
+    setNoteTo(null);
   };
 
   return (
@@ -228,9 +244,11 @@ export default function AdminApp() {
               />
             )}
             {view === "occasions" && <OccasionsView />}
-            {view === "announcements" && <AnnouncementsPanel />}
+            {view === "announcements" && (
+              <AnnouncementsPanel noteTo={noteTo} onNoteDone={() => setNoteTo(null)} />
+            )}
             {view === "requests" && (
-              <RequestsView onAddAs={openFromRequest} onCountChange={setRequestCount} />
+              <RequestsView onAddAs={openFromRequest} onNoteTo={openNote} onCountChange={setRequestCount} />
             )}
             {filing && <IssueComposer context={filing} onClose={() => setFiling(null)} />}
           </>

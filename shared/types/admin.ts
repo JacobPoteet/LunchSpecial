@@ -109,6 +109,25 @@ export interface DishRequest {
   note: string | null;
   surface: Surface;
   createdAt: string;
+  /**
+   * The anonymous device that asked, or null for a request sent before the
+   * device id rode along. Admin-only: it is what a note to this player aims at.
+   */
+  playerId: string | null;
+  /** The last ET day (lunch) or night (bar) this was served, if it already has been. */
+  servedOn: string | null;
+}
+
+/**
+ * What the Worker answers a suggestion with. `served` is set when the name
+ * matches a dish (or drink) that has already been on the menu, so the form can
+ * say so on the spot. Only a past booking counts: a dish booked for later never
+ * leaves the Worker.
+ */
+export interface DishRequestResponse {
+  ok: true;
+  duplicate?: true;
+  served?: { name: string; date: string };
 }
 
 /** Field length caps for a dish request, shared by the client form + server. */

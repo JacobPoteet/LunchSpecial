@@ -5,6 +5,7 @@
 import type { AnnouncementAudience, AnnouncementInput, AnnouncementStatus } from "../shared/types";
 import { ANNOUNCEMENT_AUDIENCES, ANNOUNCEMENT_LIMITS } from "../shared/types";
 import { isValidDateString } from "./game";
+import { isAnalyticsId } from "./guesslog";
 
 /** The scheduling fields status depends on. */
 export interface AnnouncementWindow {
@@ -33,17 +34,20 @@ export function announcementStatus(a: AnnouncementWindow, today: string): Announ
 }
 
 /**
- * Whether a given player should be shown this notice right now. `returning` is
+ * Whether a given player should be shown this notice right now. A note aimed at
+ * one device (`playerId` set) goes to that device and nobody else, whatever the
+ * audience says. `returning` is
  * the client's own claim (it has finished at least one game on this device) —
  * there are no accounts to check it against, and the cost of an untruthful
  * client is that someone sees a notice slightly early. That's the same trust
  * model the rest of the game runs on.
  */
 export function isEligible(
-  a: AnnouncementWindow & { audience: AnnouncementAudience },
-  ctx: { today: string; returning: boolean },
+  a: AnnouncementWindow & { audience: AnnouncementAudience; playerId?: string | null },
+  ctx: { today: string; returning: boolean; playerId?: string | null },
 ): boolean {
   if (announcementStatus(a, ctx.today) !== "active") return false;
+  if (a.playerId) return a.playerId === ctx.playerId;
   return a.audience === "all" || ctx.returning;
 }
 
@@ -76,5 +80,14 @@ export function parseAnnouncementInput(raw: unknown): { input: AnnouncementInput
   // Absent means on — a notice you just wrote is one you meant to run.
   const isActive = b.isActive === undefined ? true : b.isActive === true;
 
-  return { input: { header, body, audience, startDate, endDate, isActive } };
+  // Blank or absent is a broadcast. Anything else must look like a device id;
+  // a typo'd one would be a note nobody can ever receive.
+  let playerId: string | null = null;
+  if (b.playerId !== undefined && b.playerId !== null && b.playerId !== "") {
+    const raw = typeof b.playerId === "string" ? b.playerId.trim() : b.playerId;
+    if (!isAnalyticsId(raw)) return { error: "That isn't a device id" };
+    playerId = raw;
+  }
+
+  return { input: { header, body, audience, startDate, endDate, isActive, playerId } };
 }

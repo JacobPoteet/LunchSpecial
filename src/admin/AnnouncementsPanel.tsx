@@ -14,6 +14,8 @@ import { gameToday } from "../../shared/time";
 import { NoticeCard } from "../game/AnnouncementModal";
 import Markdown from "../game/Markdown";
 import { Modal } from "../game/components";
+import { dateLabel } from "../game/archive";
+import type { NoteDraft } from "./AdminApp";
 import { shortDate } from "./analyticsUi";
 import * as api from "./api";
 
@@ -46,6 +48,54 @@ function blankInput(): AnnouncementInput {
     endDate: etDay(6),
     isActive: true,
   };
+}
+
+/**
+ * The first draft of a note to the device behind one request. Two weeks, since
+ * a player who asks from the check may not be back tomorrow. When the dish
+ * already ran, the note carries the Leftovers link to that day.
+ */
+function noteInput(r: NoteDraft): AnnouncementInput {
+  const thanks = `Thanks for asking for **${r.name}**. The kitchen loves your suggestions.`;
+  const body =
+    r.servedOn && r.kind === "dish"
+      ? `${thanks} It was the Special on ${dateLabel(r.servedOn)}: [play it in Leftovers](/?date=${r.servedOn}).`
+      : r.servedOn
+        ? `${thanks} It was poured on ${dateLabel(r.servedOn)}.`
+        : thanks;
+  return {
+    header: "A note from the kitchen",
+    body,
+    audience: "all",
+    startDate: etDay(0),
+    endDate: etDay(13),
+    isActive: true,
+    playerId: r.playerId,
+  };
+}
+
+/** The short form of a device id, enough to tell two apart on screen. */
+const shortId = (id: string) => id.slice(0, 8);
+
+/**
+ * Whether a note to one player got there: received when its device has a row
+ * in the reach ledger. Stands in for the reach strip, which says nothing about
+ * an audience of one.
+ */
+function Received({ row }: { row: AdminAnnouncement }) {
+  return (
+    <div className="reach">
+      <p className="reach__total">
+        {row.receivedAt ? (
+          <>
+            <strong>Received</strong> {shortDate(gameToday(new Date(`${row.receivedAt.replace(" ", "T")}Z`)))} ET
+          </>
+        ) : (
+          <strong>Not seen yet</strong>
+        )}
+      </p>
+    </div>
+  );
 }
 
 /**
@@ -93,11 +143,14 @@ export function Reach({ reach }: { reach: AnnouncementReach }) {
  */
 function Editor({
   initial,
+  seed,
   onCancel,
   onSaved,
 }: {
   /** The notice being edited, or null for a new one. */
   initial: AdminAnnouncement | null;
+  /** A new notice's first draft, when it isn't blank (a note to one player). */
+  seed?: AnnouncementInput;
   onCancel: () => void;
   onSaved: () => void;
 }) {
@@ -110,8 +163,9 @@ function Editor({
           startDate: initial.startDate,
           endDate: initial.endDate,
           isActive: initial.isActive,
+          playerId: initial.playerId,
         }
-      : blankInput(),
+      : (seed ?? blankInput()),
   );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -202,14 +256,26 @@ function Editor({
             Both days included (ET).
           </p>
 
-          <div className="field">
-            <label>Show to</label>
-            <select value={form.audience} onChange={(e) => set("audience", e.target.value as AnnouncementAudience)}>
-              <option value="all">Everyone</option>
-              <option value="returning">Returning players only</option>
-            </select>
-            <p className="field-hint">Returning: finished a game before.</p>
-          </div>
+          {form.playerId ? (
+            <div className="field">
+              <label>Show to</label>
+              <p style={{ margin: "4px 0" }}>
+                <span className="badge">One player</span> <code title={form.playerId}>{shortId(form.playerId)}</code>
+              </p>
+              <button className="btn btn--ghost" type="button" onClick={() => set("playerId", null)}>
+                Send to everyone instead
+              </button>
+            </div>
+          ) : (
+            <div className="field">
+              <label>Show to</label>
+              <select value={form.audience} onChange={(e) => set("audience", e.target.value as AnnouncementAudience)}>
+                <option value="all">Everyone</option>
+                <option value="returning">Returning players only</option>
+              </select>
+              <p className="field-hint">Returning: finished a game before.</p>
+            </div>
+          )}
 
           <div className="field">
             <label>
@@ -267,11 +333,20 @@ function Editor({
   );
 }
 
-export default function AnnouncementsPanel() {
+export default function AnnouncementsPanel({
+  noteTo,
+  onNoteDone,
+}: {
+  /** Opened from a request: start on a new note to that one device. */
+  noteTo: NoteDraft | null;
+  onNoteDone: () => void;
+}) {
   const [rows, setRows] = useState<AdminAnnouncement[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   // undefined = list; null = new notice; a row = editing that one.
-  const [editing, setEditing] = useState<AdminAnnouncement | null | undefined>(undefined);
+  const [editing, setEditing] = useState<AdminAnnouncement | null | undefined>(noteTo ? null : undefined);
+  // Read once, when the panel opens on a note: the draft is the editor's from then on.
+  const [seed] = useState(() => (noteTo ? noteInput(noteTo) : undefined));
   const [confirmDelete, setConfirmDelete] = useState<AdminAnnouncement | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
 
@@ -307,9 +382,14 @@ export default function AnnouncementsPanel() {
     return (
       <Editor
         initial={editing}
-        onCancel={() => setEditing(undefined)}
+        seed={editing === null && noteTo ? seed : undefined}
+        onCancel={() => {
+          setEditing(undefined);
+          onNoteDone();
+        }}
         onSaved={() => {
           setEditing(undefined);
+          onNoteDone();
           load();
         }}
       />
@@ -356,7 +436,13 @@ export default function AnnouncementsPanel() {
                       <Markdown source={row.body} />
                     </div>
                     <p className="announce-card__meta">
-                      <span className="badge">{AUDIENCE_LABEL[row.audience]}</span>
+                      {row.playerId ? (
+                        <span className="badge" title={row.playerId}>
+                          One player · {shortId(row.playerId)}
+                        </span>
+                      ) : (
+                        <span className="badge">{AUDIENCE_LABEL[row.audience]}</span>
+                      )}
                       <span>
                         {shortDate(row.startDate)} – {shortDate(row.endDate)}
                       </span>
@@ -374,7 +460,7 @@ export default function AnnouncementsPanel() {
                       </button>
                     </div>
                   </div>
-                  <Reach reach={row.reach} />
+                  {row.playerId ? <Received row={row} /> : <Reach reach={row.reach} />}
                 </article>
               ))}
             </div>

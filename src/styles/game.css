@@ -1613,6 +1613,22 @@ textarea.dish-request__input {
   letter-spacing: 0.02em;
 }
 
+.dish-request__thanks p {
+  margin: 0;
+}
+
+/* The answer to a request for something already served: reading text, so
+   Georgia, not the sign face the thanks line wears. */
+.dish-request__thanks .dish-request__served {
+  margin-top: 8px;
+  font-family: var(--font-body);
+  letter-spacing: normal;
+}
+
+.dish-request__served a {
+  color: inherit;
+}
+
 /* ---- stats ---- */
 
 .stats-grid {

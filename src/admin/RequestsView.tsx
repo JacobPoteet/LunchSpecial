@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { DishRequest, RequestKind } from "../../shared/types";
 import { REQUEST_KINDS } from "../../shared/types";
-import type { RequestDraft } from "./AdminApp";
+import type { NoteDraft, RequestDraft } from "./AdminApp";
+import { shortDate } from "./analyticsUi";
 import { Modal } from "../game/components";
 import * as api from "./api";
 
@@ -54,9 +55,11 @@ const SECTION: Record<
 
 export default function RequestsView({
   onAddAs,
+  onNoteTo,
   onCountChange,
 }: {
   onAddAs: (draft: RequestDraft) => void;
+  onNoteTo: (request: NoteDraft) => void;
   onCountChange: (count: number) => void;
 }) {
   const [rows, setRows] = useState<DishRequest[] | null>(null);
@@ -184,6 +187,12 @@ export default function RequestsView({
                     <tr key={r.id}>
                       <td data-label={kind === "dish" ? "Dish" : "Drink"}>
                         <strong>{r.name}</strong>
+                        {r.servedOn && (
+                          <>
+                            {" "}
+                            <span className="badge badge--off">served {shortDate(r.servedOn)}</span>
+                          </>
+                        )}
                       </td>
                       <td data-label="Country">{r.country ?? "—"}</td>
                       <td data-label="Note">{r.note ?? "—"}</td>
@@ -202,6 +211,15 @@ export default function RequestsView({
                           >
                             {words.addLabel}
                           </button>
+                          {r.playerId && (
+                            <button
+                              className="btn"
+                              disabled={busyId === r.id}
+                              onClick={() => onNoteTo({ ...r, playerId: r.playerId! })}
+                            >
+                              Note to this player
+                            </button>
+                          )}
                           <button
                             className="btn btn--ghost"
                             disabled={busyId === r.id}

@@ -7,6 +7,7 @@
 
 import { Fragment } from "react";
 import { parseMarkdown, type Span } from "../../shared/markdown";
+import { surfaceUrl } from "../discord/bootstrap";
 
 function renderSpan(span: Span, key: number) {
   switch (span.type) {
@@ -15,14 +16,15 @@ function renderSpan(span: Span, key: number) {
     case "em":
       return <em key={key}>{span.text}</em>;
     case "link": {
-      // Same-site paths (/privacy, /?date=…) navigate in place; anything
+      // Same-site paths (/privacy, /?date=…) navigate in place, through
+      // surfaceUrl() so a Discord Activity keeps its iframe params; anything
       // off-site opens in a new tab so a player mid-round doesn't lose the
       // board — and never with a window.opener handle back to us.
       const external = /^https?:/i.test(span.href);
       return (
         <a
           key={key}
-          href={span.href}
+          href={external ? span.href : surfaceUrl(span.href)}
           {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
         >
           {span.text}

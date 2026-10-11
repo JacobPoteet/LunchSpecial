@@ -8,6 +8,7 @@ import type {
   DailyTally,
   DishPoolEntry,
   DishRequestInput,
+  DishRequestResponse,
   DrinkGuessFeedback,
   DrinkPoolEntry,
   GuessFeedback,
@@ -140,7 +141,7 @@ export function fetchPastRounds(playerId: string): Promise<PastRound[]> {
 }
 
 /** Submit a player's dish suggestion for the menu (lands in the admin inbox). */
-export function submitDishRequest(body: DishRequestInput): Promise<{ ok: true }> {
+export function submitDishRequest(body: DishRequestInput): Promise<DishRequestResponse> {
   return request("/api/requests", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -151,10 +152,11 @@ export function submitDishRequest(body: DishRequestInput): Promise<{ ok: true }>
 /**
  * Notices the diner has posted for this player. `returning` is this device's own
  * answer to "have I ever finished a game here" — the server uses it to withhold
- * returning-only notices from first-timers.
+ * returning-only notices from first-timers. `playerId` is how a note the diner
+ * aimed at this one device finds it.
  */
-export function fetchAnnouncements(returning: boolean): Promise<Announcement[]> {
-  return request(withParams("/api/announcements", { returning: returning ? "1" : undefined }));
+export function fetchAnnouncements(returning: boolean, playerId: string): Promise<Announcement[]> {
+  return request(withParams("/api/announcements", { returning: returning ? "1" : undefined, player: playerId }));
 }
 
 /**

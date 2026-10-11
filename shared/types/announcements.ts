@@ -64,6 +64,14 @@ export interface AdminAnnouncement {
   status: AnnouncementStatus;
   createdAt: string;
   reach: AnnouncementReach;
+  /**
+   * The one device this note is for, or null for a notice to everyone the
+   * audience allows. A note to one player is received when that device has a
+   * row in the reach ledger.
+   */
+  playerId: string | null;
+  /** When the targeted device first saw it (UTC), null while unseen or for a broadcast. */
+  receivedAt: string | null;
 }
 
 /** What the admin form submits to create or update a notice. */
@@ -74,6 +82,8 @@ export interface AnnouncementInput {
   startDate: string;
   endDate: string;
   isActive: boolean;
+  /** Aim the notice at one device; null or absent is everyone the audience allows. */
+  playerId?: string | null;
 }
 
 /** What the client posts once a notice has actually been shown to a player. */

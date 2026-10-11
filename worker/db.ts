@@ -1,6 +1,7 @@
-import type { Course, Dish, Protein, Region, Temperature } from "../shared/types";
+import type { Course, Dish, Protein, Region, RequestKind, Temperature } from "../shared/types";
 import { gameToday } from "../shared/time";
 import { fnv1a } from "./game";
+import type { Served } from "./requests";
 
 export interface DishDbRow {
   id: number;
@@ -93,4 +94,19 @@ export async function getClues(db: D1Database, dishId: number): Promise<string[]
 /** The Special's current date (YYYY-MM-DD) — rolls over at midnight ET. */
 export function serverToday(): string {
   return gameToday();
+}
+
+/**
+ * Every booked day a dish (or night a drink) went out, under its current name.
+ * What a suggestion is checked against (worker/requests.ts decides the match
+ * and drops anything from today on). Booked days only: an unbooked day's
+ * fallback pick depends on the size of the pool at the time, so it can't be
+ * re-derived honestly after the pool has grown.
+ */
+export async function loadServed(db: D1Database, kind: RequestKind): Promise<Served[]> {
+  const sql =
+    kind === "drink"
+      ? "SELECT d.name, s.night AS date FROM drink_schedule s JOIN drinks d ON d.id = s.drink_id"
+      : "SELECT d.name, s.date FROM schedule s JOIN dishes d ON d.id = s.dish_id";
+  return (await db.prepare(sql).all<Served>()).results;
 }
