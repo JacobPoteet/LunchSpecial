@@ -1121,19 +1121,19 @@ export interface RegularsReport {
 }
 
 /**
- * Where one device sits among the house on one measure. `ahead` is the share of
- * house devices this one beats (ties count half), on the measure's own sense of
- * "ahead": more days, a shorter gap, fewer guesses. A rank among `of` devices,
- * not an estimate, so it carries no interval.
+ * Where one device sits among the house on one measure. `rank` is 1 for the
+ * best, on the measure's own sense of best: more days, a shorter gap, fewer
+ * guesses. Ties share a rank. A count over a known group, not an estimate, so it
+ * carries no interval.
  */
 export interface DeviceStanding {
   /** This device's value; null when it has none (one day played has no gap). */
   value: number | null;
   /** The house median. */
   house: number | null;
-  /** 0..100, or null when either side has nothing to compare. */
-  ahead: number | null;
-  /** House devices with a value. */
+  /** 1 = best among the house plus this device; null when this device has no value. */
+  rank: number | null;
+  /** Devices ranked: the house devices with a value, plus this one when it has one. */
   of: number;
 }
 

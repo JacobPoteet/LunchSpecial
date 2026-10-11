@@ -9,8 +9,8 @@
 // 2. **The house is settled devices only.** Everyone else past their first week,
 //    this device left out. A device three days old has had three days to play,
 //    and counting it would pull every median toward one.
-// 3. **Ranks, not estimates.** `ahead` is "beats this share of N devices", an
-//    exact count over a known group, so it carries no interval. The rates on the
+// 3. **Ranks, not estimates.** `rank` is "3rd of 23", an exact count over a
+//    known group, so it carries no interval. The rates on the
 //    check are n-of-m and the client puts a Wilson range on a thin one.
 // 4. **Today's Special only for guess counts**, like every other report.
 // 5. **No per-device guess trail.** Counts per kind, never which dishes.
@@ -56,9 +56,9 @@ export interface DeviceArrivalRow {
   source: string | null;
 }
 
-/** The measures a device is ranked on. `lower` means fewer is ahead. */
+/** The measures a device is ranked on, and whether fewer ranks higher. */
 type Measure = keyof DeviceCheck["standings"];
-const LOWER_IS_AHEAD: Record<Measure, boolean> = {
+const LOWER_IS_BETTER: Record<Measure, boolean> = {
   daysPlayed: false,
   attendance: false,
   gap: true,
@@ -80,17 +80,12 @@ function measures(d: Device, today: string): Record<Measure, number | null> {
   };
 }
 
-/** Where `value` sits among `house`, ties counted half. */
-export function standingOf(value: number | null, house: number[], lowerIsAhead: boolean): DeviceStanding {
-  const of = house.length;
+/** Where `value` ranks among `house` plus itself. Ties share the better rank. */
+export function standingOf(value: number | null, house: number[], lowerIsBetter: boolean): DeviceStanding {
   const median = medianOfList(house);
-  if (value === null || of === 0) return { value, house: median, ahead: null, of };
-  let beats = 0;
-  for (const h of house) {
-    if (h === value) beats += 0.5;
-    else if (lowerIsAhead ? value < h : value > h) beats += 1;
-  }
-  return { value, house: median, ahead: Math.round((beats / of) * 100), of };
+  if (value === null) return { value, house: median, rank: null, of: house.length };
+  const better = house.filter((h) => (lowerIsBetter ? h < value : h > value)).length;
+  return { value, house: median, rank: better + 1, of: house.length + 1 };
 }
 
 /** Monday-first weeks ending on today's, cut at today. */
@@ -122,7 +117,7 @@ export function foldDeviceCheck(
     standingOf(
       mine?.[m] ?? null,
       theirs.map((t) => t[m]).filter((v): v is number => v !== null),
-      LOWER_IS_AHEAD[m],
+      LOWER_IS_BETTER[m],
     );
 
   const kinds = Object.fromEntries(

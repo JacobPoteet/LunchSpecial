@@ -1,25 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { DeviceCheck as Check, DeviceDayState, DeviceStanding } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
+import { rangeLabel, rate } from "../../shared/sample";
 import * as api from "./api";
 import { Modal } from "../game/components";
-import { KIND_META, RangeHint, ago, countryName, pct } from "./analyticsUi";
+import { KIND_META, SAMPLE_NOTE, ago, countryName, pct } from "./analyticsUi";
 
 /**
- * One device's history, printed as a guest check: what it ordered, how it
- * solves, where it sits against the house, and the days it came in.
+ * One device's history, printed as a guest check: what it played, how it
+ * solves, how it compares with other devices, and the days it came in.
+ *
+ * Tables with fixed columns, so a value and its range never fight a label for
+ * a line. "Others" is the comparison group everywhere: every other device seen
+ * a week or more (worker/devicecheck.ts). The footnote under each table says
+ * which way it was summed.
  *
  * Ink only. No colour is ever assigned to a player, and the dashboard's four
- * colour meanings are taken, so the device is solid ink and the house is a
- * thin mark. Nothing animates (the receipt's print-in lives on .modal--receipt,
- * which this card doesn't wear).
- *
- * The fold and what "the house" means are in worker/devicecheck.ts.
+ * colour meanings are taken. Nothing animates.
  */
 
 const VERDICT: Record<Check["standing"], string> = {
   regular: "A regular",
-  settled: "Everyone else",
+  settled: "Not a regular",
   new: "New this week",
   none: "Never played",
 };
@@ -37,98 +39,129 @@ const padDate = (date: string) => {
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
-/** A receipt line: label, dotted leader, value. */
-function Line({ label, children, sub }: { label: string; children: React.ReactNode; sub?: boolean }) {
+/** A rate as a big percentage, with "n of m" and its range when thin under it. */
+function RateCell({ n, of }: { n: number; of: number }) {
+  if (of === 0) return <td>—</td>;
+  const range = rangeLabel(rate(n, of));
   return (
-    <div className={`dcheck__line${sub ? " dcheck__line--sub" : ""}`}>
-      <span>{label}</span>
-      <span className="dcheck__dots" aria-hidden="true" />
-      <span className="dcheck__val">{children}</span>
-    </div>
-  );
-}
-
-/** n of m as a percentage, its range when thin. */
-function Pct({ n, of }: { n: number; of: number }) {
-  if (of === 0) return <>—</>;
-  return (
-    <>
-      {n} of {of} · {pct(n, of)}%
-      <RangeHint n={n} of={of} />
-    </>
-  );
-}
-
-/** The house's pooled rate: the percentage alone, its range when thin. */
-function HousePct({ n, of }: { n: number; of: number }) {
-  if (of === 0) return <>—</>;
-  return (
-    <>
+    <td>
       {pct(n, of)}%
-      <RangeHint n={n} of={of} />
-    </>
+      <span className="dcheck__sub" title={range ? SAMPLE_NOTE : undefined}>
+        {n} of {of}
+        {range && ` · ${range}`}
+      </span>
+    </td>
   );
 }
 
-/** Solved-in bars: the device in ink, the house as a tick. Lost rounds get a row. */
+function Section({ title, children, note }: { title: string; children: ReactNode; note?: ReactNode }) {
+  return (
+    <section className="dcheck__section">
+      <h3 className="dcheck__h">{title}</h3>
+      {children}
+      {note && <p className="dcheck__note">{note}</p>}
+    </section>
+  );
+}
+
+function Rounds({ c }: { c: Check }) {
+  return (
+    <table className="dcheck__table dcheck__table--rounds">
+      <thead>
+        <tr>
+          <th scope="col">
+            <span className="sr-only">Game</span>
+          </th>
+          <th scope="col">Played</th>
+          <th scope="col">Finished</th>
+          <th scope="col">Solved</th>
+        </tr>
+      </thead>
+      <tbody>
+        {KIND_META.map(({ key, label }) => {
+          const k = c.kinds[key];
+          return (
+            <tr key={key} className={k.rounds === 0 ? "dcheck__row--none" : undefined}>
+              <th scope="row">{label}</th>
+              <td>{k.rounds || "—"}</td>
+              <td>{k.rounds ? k.finished : "—"}</td>
+              <td>{k.rounds ? k.solved : "—"}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+/**
+ * Solved-in, as shares of finished Specials: this device as a solid bar, others
+ * as an outlined one under it. Both bars share one scale, stretched to the
+ * largest share on the table, so equal lengths mean equal shares.
+ */
 function Guesses({ c }: { c: Check }) {
   const mine = [...c.special.solvedIn, c.special.finished - c.special.solved];
-  const house = [...c.houseSpecial.solvedIn, c.houseSpecial.finished - c.houseSpecial.solved];
-  const share = (n: number, of: number) => (of === 0 ? 0 : (n / of) * 100);
-  // Scaled to the tallest bar on either side, so neither runs off the paper.
+  const others = [...c.houseSpecial.solvedIn, c.houseSpecial.finished - c.houseSpecial.solved];
+  const share = (n: number, of: number) => (of === 0 ? 0 : Math.round((n / of) * 100));
   const top = Math.max(
     1,
     ...mine.map((n) => share(n, c.special.finished)),
-    ...house.map((n) => share(n, c.houseSpecial.finished)),
+    ...others.map((n) => share(n, c.houseSpecial.finished)),
   );
   return (
-    <div className="dcheck__dist">
-      {mine.map((n, i) => {
-        const h = share(house[i], c.houseSpecial.finished);
-        return (
-          <div className="dcheck__distrow" key={i}>
-            <span className="dcheck__distlabel">{i < MAX_GUESSES ? i + 1 : "Lost"}</span>
-            <span className="dcheck__track">
-              <span className="dcheck__bar" style={{ width: `${(share(n, c.special.finished) / top) * 100}%` }} />
-              {c.houseSpecial.finished > 0 && (
-                <span
-                  className="dcheck__tick"
-                  style={{ left: `${(h / top) * 100}%` }}
-                  title={`House: ${Math.round(h)}%`}
-                />
-              )}
-            </span>
-            <span className="dcheck__distn">{n}</span>
-          </div>
-        );
-      })}
-    </div>
+    <table className="dcheck__table dcheck__dist">
+      <thead>
+        <tr>
+          <th scope="col">Guesses</th>
+          <th scope="col">
+            <span className="sr-only">Bars</span>
+          </th>
+          <th scope="col">
+            <span className="dcheck__swatch dcheck__swatch--mine" /> This device
+          </th>
+          <th scope="col">
+            <span className="dcheck__swatch dcheck__swatch--others" /> Others
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {mine.map((n, i) => {
+          const m = share(n, c.special.finished);
+          const o = share(others[i], c.houseSpecial.finished);
+          return (
+            <tr key={i}>
+              <th scope="row">{i < MAX_GUESSES ? i + 1 : "Lost"}</th>
+              <td className="dcheck__bars" aria-hidden="true">
+                <span className="dcheck__bar dcheck__bar--mine" style={{ width: `${(m / top) * 100}%` }} />
+                <span className="dcheck__bar dcheck__bar--others" style={{ width: `${(o / top) * 100}%` }} />
+              </td>
+              <td>{m}%</td>
+              <td>{c.houseSpecial.finished === 0 ? "—" : `${o}%`}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }
 
-const STANDING_ROWS: { key: keyof Check["standings"]; label: string; fmt: (v: number) => string }[] = [
+const MEASURES: { key: keyof Check["standings"]; label: string; fmt: (v: number) => string }[] = [
   { key: "daysPlayed", label: "Days played", fmt: (v) => String(v) },
-  { key: "attendance", label: "Days in since first", fmt: (v) => `${v}%` },
-  { key: "gap", label: "Usual gap", fmt: (v) => plural(v, "day") },
-  { key: "roundsPerDay", label: "Rounds a day", fmt: (v) => v.toFixed(1) },
-  { key: "longestRun", label: "Longest run", fmt: (v) => plural(v, "day") },
-  { key: "medianGuesses", label: "Median guesses", fmt: (v) => String(v) },
+  { key: "attendance", label: "Share of days since first", fmt: (v) => `${v}%` },
+  { key: "gap", label: "Usual days between visits", fmt: (v) => String(v) },
+  { key: "roundsPerDay", label: "Rounds per day played", fmt: (v) => v.toFixed(1) },
+  { key: "longestRun", label: "Longest run of days", fmt: (v) => String(v) },
+  { key: "medianGuesses", label: "Median guesses to solve", fmt: (v) => String(v) },
 ];
 
-/** One measure: the value, the house median, and a diamond where it ranks. */
-function Standing({ label, s, fmt }: { label: string; s: DeviceStanding; fmt: (v: number) => string }) {
+function Measure({ label, s, fmt }: { label: string; s: DeviceStanding; fmt: (v: number) => string }) {
   return (
-    <div className="dcheck__standing">
-      <Line label={label}>
-        {s.value === null ? "—" : fmt(s.value)}
-        <span className="dcheck__house"> · house {s.house === null ? "—" : fmt(s.house)}</span>
-      </Line>
-      <div className="dcheck__ruler" aria-hidden="true">
-        <span className="dcheck__mid" />
-        {s.ahead !== null && <span className="dcheck__diamond" style={{ left: `${s.ahead}%` }} />}
-      </div>
-      <p className="dcheck__fine">{s.ahead === null ? "No rank" : `Ahead of ${s.ahead}% of ${s.of}`}</p>
-    </div>
+    <tr>
+      <th scope="row">{label}</th>
+      <td>{s.value === null ? "—" : fmt(s.value)}</td>
+      <td>{s.house === null ? "—" : fmt(s.house)}</td>
+      <td>{s.rank === null ? "—" : `${ordinal(s.rank)} of ${s.of}`}</td>
+    </tr>
   );
 }
 
@@ -136,7 +169,7 @@ const DAY_LABEL: Record<DeviceDayState, string> = {
   special: "Finished the Special",
   other: "Played, no Special finished",
   off: "Didn't play",
-  before: "Before first round",
+  before: "Before its first round",
 };
 
 function Calendar({ c }: { c: Check }) {
@@ -144,39 +177,44 @@ function Calendar({ c }: { c: Check }) {
   const played = since.filter((d) => d.state === "special" || d.state === "other").length;
   return (
     <>
-      <div
-        className="dcheck__cal"
-        role="img"
-        aria-label={`Played ${played} of the last ${since.length} days`}
-      >
-        {c.calendar.map((d) => (
-          <span
-            key={d.day}
-            className={`dcheck__day dcheck__day--${d.state}`}
-            title={`${d.day} · ${DAY_LABEL[d.state]}`}
-          />
-        ))}
+      <div className="dcheck__calwrap">
+        <div className="dcheck__weekdays" aria-hidden="true">
+          <span>M</span>
+          <span />
+          <span>W</span>
+          <span />
+          <span>F</span>
+          <span />
+          <span>S</span>
+        </div>
+        <div className="dcheck__cal" role="img" aria-label={`Played ${played} of the last ${since.length} days`}>
+          {c.calendar.map((d) => (
+            <span key={d.day} className={`dcheck__day dcheck__day--${d.state}`} title={`${d.day}: ${DAY_LABEL[d.state]}`} />
+          ))}
+        </div>
       </div>
-      <p className="dcheck__fine dcheck__legend">
-        <span className="dcheck__day dcheck__day--special" /> Special
-        <span className="dcheck__day dcheck__day--other" /> Other only
-        <span className="dcheck__day dcheck__day--off" /> Off · Mon at top
-      </p>
+      <ul className="dcheck__legend" aria-hidden="true">
+        <li>
+          <span className="dcheck__day dcheck__day--special" /> Finished the Special
+        </li>
+        <li>
+          <span className="dcheck__day dcheck__day--other" /> Other rounds only
+        </li>
+        <li>
+          <span className="dcheck__day dcheck__day--off" /> Didn't play
+        </li>
+      </ul>
     </>
   );
 }
 
 function Body({ c, now }: { c: Check; now: number }) {
-  const where = [
-    c.countries.length > 0 ? countryName(c.countries[0]) + (c.countries.length > 1 ? ` +${c.countries.length - 1}` : "") : null,
-    c.surfaces.map((s) => (s === "discord" ? "Discord" : "Web")).join(" + ") || null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const playsOn = c.surfaces.map((s) => (s === "discord" ? "Discord" : "Web")).join(" + ");
+  const others = plural(c.house, "other device");
 
   return (
     <>
-      <div className="receipt__head">
+      <div className="receipt__head dcheck__head">
         <div className="guest-check">
           <div className="guest-check__top">
             <p className="guest-check__house">Lunch Special</p>
@@ -195,78 +233,105 @@ function Body({ c, now }: { c: Check; now: number }) {
               <dd>{c.span === null ? "0" : `${c.daysPlayed} of ${c.span}`}</dd>
             </div>
             <div className="guest-check__box">
-              <dt>Where</dt>
-              <dd title={c.countries.map(countryName).join(", ")}>{where || "—"}</dd>
+              <dt>Plays on</dt>
+              <dd>{playsOn || "—"}</dd>
             </div>
           </dl>
         </div>
         <p className="receipt__verdict">{VERDICT[c.standing]}</p>
-        <p className="dcheck__fine">
-          {c.rank !== null && `${ordinal(c.rank)} of ${c.devices} by days played · `}
-          regulars {c.cutoffDays}+ days
+        <p className="dcheck__note">
+          {c.rank !== null && `${ordinal(c.rank)} of ${c.devices} devices for days played. `}
+          Regulars have played {c.cutoffDays}+ days.
         </p>
       </div>
 
       {c.standing === "none" ? (
-        <p className="dcheck__fine">Arrived, never started a round.</p>
+        <p className="dcheck__note">Arrived, never started a round.</p>
       ) : (
         <>
-          <h3 className="dcheck__h">The order</h3>
-          {KIND_META.map(({ key, label }) => {
-            const k = c.kinds[key];
-            return (
-              <div key={key}>
-                <Line label={label}>{k.rounds === 0 ? "—" : plural(k.rounds, "round")}</Line>
-                {k.rounds > 0 && (
-                  <Line label="finished · solved" sub>
-                    {k.finished} · {k.solved}
-                  </Line>
-                )}
-              </div>
-            );
-          })}
+          <Section title="Rounds">
+            <Rounds c={c} />
+          </Section>
 
-          <h3 className="dcheck__h">Today's Special</h3>
-          <Line label="Solved">
-            <Pct n={c.special.solved} of={c.special.finished} />
-          </Line>
-          <Line label="house" sub>
-            <HousePct n={c.houseSpecial.solved} of={c.houseSpecial.finished} />
-          </Line>
-          <Line label="Shared">
-            <Pct n={c.special.shared} of={c.special.finished} />
-          </Line>
-          <Line label="house" sub>
-            <HousePct n={c.houseSpecial.shared} of={c.houseSpecial.finished} />
-          </Line>
-          {c.special.finished > 0 ? (
-            <>
-              <Guesses c={c} />
-              <p className="dcheck__fine">Bar: this device · tick: the house</p>
-            </>
-          ) : (
-            <p className="dcheck__fine">No Special finished.</p>
-          )}
+          <Section title="Today's Special">
+            <table className="dcheck__table dcheck__table--vs">
+              <thead>
+                <tr>
+                  <th scope="col">
+                    <span className="sr-only">Measure</span>
+                  </th>
+                  <th scope="col">This device</th>
+                  <th scope="col">Others</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Solved</th>
+                  <RateCell n={c.special.solved} of={c.special.finished} />
+                  <RateCell n={c.houseSpecial.solved} of={c.houseSpecial.finished} />
+                </tr>
+                <tr>
+                  <th scope="row">Shared</th>
+                  <RateCell n={c.special.shared} of={c.special.finished} />
+                  <RateCell n={c.houseSpecial.shared} of={c.houseSpecial.finished} />
+                </tr>
+              </tbody>
+            </table>
+            <p className="dcheck__note">Others: every Special the {others} seen a week or more finished.</p>
+            {c.special.finished > 0 ? (
+              <>
+                <h4 className="dcheck__h4">Share of finished Specials, by guesses</h4>
+                <Guesses c={c} />
+              </>
+            ) : (
+              <p className="dcheck__note">No Special finished.</p>
+            )}
+          </Section>
 
-          <h3 className="dcheck__h">Against the house</h3>
-          {STANDING_ROWS.map((r) => (
-            <Standing key={r.key} label={r.label} s={c.standings[r.key]} fmt={r.fmt} />
-          ))}
-          <p className="dcheck__fine">House: {plural(c.house, "device")} past their first week.</p>
+          <Section
+            title="Compared with others"
+            note={`Others: the median of the ${others} seen a week or more. Rank includes this device; 1st has the most days, or the fewest gap days or guesses.`}
+          >
+            <table className="dcheck__table dcheck__table--measures">
+              <thead>
+                <tr>
+                  <th scope="col">
+                    <span className="sr-only">Measure</span>
+                  </th>
+                  <th scope="col">This device</th>
+                  <th scope="col">Others</th>
+                  <th scope="col">Rank</th>
+                </tr>
+              </thead>
+              <tbody>
+                {MEASURES.map((m) => (
+                  <Measure key={m.key} label={m.label} s={c.standings[m.key]} fmt={m.fmt} />
+                ))}
+              </tbody>
+            </table>
+          </Section>
 
-          <h3 className="dcheck__h">Last {Math.ceil(c.calendar.length / 7)} weeks</h3>
-          <Calendar c={c} />
+          <Section title={`Last ${Math.ceil(c.calendar.length / 7)} weeks`}>
+            <Calendar c={c} />
+          </Section>
         </>
       )}
 
-      <div className="dcheck__foot">
-        <Line label="Came from">{c.source ?? "—"}</Line>
+      <dl className="dcheck__foot">
+        <dt>Came from</dt>
+        <dd>{c.source ?? "—"}</dd>
         {c.firstVisit && c.firstDay && c.firstVisit !== c.firstDay && (
-          <Line label="First arrived">{padDate(c.firstVisit)}</Line>
+          <>
+            <dt>First arrived</dt>
+            <dd>{padDate(c.firstVisit)}</dd>
+          </>
         )}
-        <Line label="Last round">{c.lastAt ? ago(Date.parse(c.lastAt), now) : "—"}</Line>
-        <p className="dcheck__fine dcheck__id">{c.playerId}</p>
-      </div>
+        <dt>Last round</dt>
+        <dd>{c.lastAt ? ago(Date.parse(c.lastAt), now) : "—"}</dd>
+        <dt>Countries</dt>
+        <dd>{c.countries.length ? c.countries.map(countryName).join(", ") : "—"}</dd>
+      </dl>
+      <p className="dcheck__note dcheck__id">{c.playerId}</p>
     </>
   );
 }
@@ -294,7 +359,7 @@ export default function DeviceCheck({ playerId, onClose }: { playerId: string; o
       {check ? (
         <Body c={check} now={now} />
       ) : (
-        <p className="dcheck__fine">{error ? `Couldn't load this device: ${error}` : "Printing the check…"}</p>
+        <p className="dcheck__note">{error ? `Couldn't load this device: ${error}` : "Printing the check…"}</p>
       )}
     </Modal>
   );

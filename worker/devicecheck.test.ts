@@ -43,14 +43,14 @@ const kindRow = (over: Partial<DeviceKindRow> = {}): DeviceKindRow => ({
 });
 
 describe("standingOf", () => {
-  it("counts ties as half and respects which way is ahead", () => {
-    expect(standingOf(3, [1, 3, 5, 7], false)).toMatchObject({ ahead: 38, of: 4, house: 3 });
-    expect(standingOf(3, [1, 3, 5, 7], true)).toMatchObject({ ahead: 63 });
+  it("shares a rank on a tie and respects which way is better", () => {
+    expect(standingOf(3, [1, 3, 5, 7], false)).toMatchObject({ rank: 3, of: 5, house: 3 });
+    expect(standingOf(3, [1, 3, 5, 7], true)).toMatchObject({ rank: 2, of: 5 });
   });
 
-  it("has no rank without a value or a house", () => {
-    expect(standingOf(null, [1, 2], false).ahead).toBeNull();
-    expect(standingOf(4, [], false)).toMatchObject({ ahead: null, of: 0, house: null });
+  it("has no rank without a value, and ranks first alone", () => {
+    expect(standingOf(null, [1, 2], false)).toMatchObject({ rank: null, of: 2 });
+    expect(standingOf(4, [], false)).toMatchObject({ rank: 1, of: 1, house: null });
   });
 });
 
@@ -78,15 +78,15 @@ describe("foldDeviceCheck", () => {
     const rows = [...onceEach(), ...run("me", "2026-08-19", 3), special("fresh", "2026-08-18")];
     const c = foldDeviceCheck("me", rows, [], null, TODAY);
     expect(c.house).toBe(20);
-    expect(c.standings.daysPlayed).toMatchObject({ value: 3, house: 1, ahead: 100, of: 20 });
+    expect(c.standings.daysPlayed).toMatchObject({ value: 3, house: 1, rank: 1, of: 21 });
     expect(c.houseSpecial.finished).toBe(20);
     expect(c.houseSpecial.solvedIn[4]).toBe(20);
   });
 
-  it("reads fewer guesses as ahead", () => {
+  it("ranks fewer guesses higher", () => {
     const rows = [...onceEach(), ...run("me", "2026-08-19", 3, { guesses: 2 })];
     const c = foldDeviceCheck("me", rows, [], null, TODAY);
-    expect(c.standings.medianGuesses).toMatchObject({ value: 2, house: 5, ahead: 100 });
+    expect(c.standings.medianGuesses).toMatchObject({ value: 2, house: 5, rank: 1 });
   });
 
   it("says new inside the first week and none with no rounds", () => {
@@ -94,13 +94,13 @@ describe("foldDeviceCheck", () => {
     expect(foldDeviceCheck("me", rows, [], null, TODAY).standing).toBe("new");
     const none = foldDeviceCheck("ghost", rows, [], { first_day: "2026-08-19", source: "reddit" }, TODAY);
     expect(none).toMatchObject({ standing: "none", rank: null, daysPlayed: 0, firstVisit: "2026-08-19", source: "reddit" });
-    expect(none.standings.daysPlayed.ahead).toBeNull();
+    expect(none.standings.daysPlayed.rank).toBeNull();
   });
 
   it("has no gap for a device that played one day", () => {
     const c = foldDeviceCheck("once-0", onceEach(), [], null, TODAY);
     expect(c.standings.gap.value).toBeNull();
-    expect(c.standings.gap.ahead).toBeNull();
+    expect(c.standings.gap.rank).toBeNull();
   });
 
   it("marks the calendar by what each day held", () => {
