@@ -1131,17 +1131,27 @@ export interface DeviceStanding {
   value: number | null;
   /** The house median. */
   house: number | null;
-  /** 1 = best among the house plus this device; null when this device has no value. */
+  /**
+   * 1 = best among the house plus this device. Null when this device has no
+   * value, or is inside its own first week: a two-day-old device that came both
+   * days would rank first on attendance against devices that had a month.
+   */
   rank: number | null;
   /** Devices ranked: the house devices with a value, plus this one when it has one. */
   of: number;
+  /**
+   * House devices with exactly this value. A shared rank reads as a placing
+   * otherwise: "4th of 23" for a value twenty devices share at the bottom.
+   */
+  tied: number;
 }
 
 /** One ET day on the device check's calendar. */
 export type DeviceDayState = "special" | "other" | "off" | "before";
 
 /**
- * One device's whole history, set against the house (GET /device-check). Opened
+ * One device's whole history, set against the house (GET /device-check). The
+ * house is shown on screen as "Others". Opened
  * from a device id in the Activity feed.
  *
  * The house is every other device past its first week (RETENTION_WINDOW_DAYS
@@ -1176,11 +1186,7 @@ export interface DeviceCheck {
   standing: "regular" | "settled" | "new" | "none";
   /** Regulars played on at least this many days. */
   cutoffDays: number;
-  /** 1 = most days played. Ties share a rank. Null with no rounds. */
-  rank: number | null;
-  /** Devices with a round: what `rank` is out of. */
-  devices: number;
-  /** House size. */
+  /** House size. Shown on screen as "Others". */
   house: number;
   kinds: Record<RoundKind, { rounds: number; finished: number; solved: number }>;
   /** Today's Special only, like every guess count on the dashboard. */

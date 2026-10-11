@@ -80,12 +80,22 @@ function measures(d: Device, today: string): Record<Measure, number | null> {
   };
 }
 
-/** Where `value` ranks among `house` plus itself. Ties share the better rank. */
-export function standingOf(value: number | null, house: number[], lowerIsBetter: boolean): DeviceStanding {
+/**
+ * Where `value` ranks among `house` plus itself. Ties share the better rank.
+ * `rankable` is false inside the device's own first week, the same reason the
+ * house leaves those devices out.
+ */
+export function standingOf(
+  value: number | null,
+  house: number[],
+  lowerIsBetter: boolean,
+  rankable = true,
+): DeviceStanding {
   const median = medianOfList(house);
-  if (value === null) return { value, house: median, rank: null, of: house.length };
+  if (value === null || !rankable) return { value, house: median, rank: null, of: house.length, tied: 0 };
   const better = house.filter((h) => (lowerIsBetter ? h < value : h > value)).length;
-  return { value, house: median, rank: better + 1, of: house.length + 1 };
+  const tied = house.filter((h) => h === value).length;
+  return { value, house: median, rank: better + 1, of: house.length + 1, tied };
 }
 
 /** Monday-first weeks ending on today's, cut at today. */
@@ -112,12 +122,14 @@ export function foldDeviceCheck(
   const house = devices.filter((d) => d.id !== playerId && isSettled(d, today));
 
   const mine = me ? measures(me, today) : null;
+  const rankable = me !== null && isSettled(me, today);
   const theirs = house.map((d) => measures(d, today));
   const standing = (m: Measure) =>
     standingOf(
       mine?.[m] ?? null,
       theirs.map((t) => t[m]).filter((v): v is number => v !== null),
       LOWER_IS_BETTER[m],
+      rankable,
     );
 
   const kinds = Object.fromEntries(
@@ -165,8 +177,6 @@ export function foldDeviceCheck(
     source: arrival?.source ?? null,
     standing: me === null ? "none" : me.days.size >= cutoff ? "regular" : isSettled(me, today) ? "settled" : "new",
     cutoffDays: cutoff,
-    rank: me === null ? null : 1 + devices.filter((d) => d.days.size > me.days.size).length,
-    devices: devices.length,
     house: house.length,
     kinds,
     special: {

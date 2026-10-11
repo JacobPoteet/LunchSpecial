@@ -160,7 +160,10 @@ function Measure({ label, s, fmt }: { label: string; s: DeviceStanding; fmt: (v:
       <th scope="row">{label}</th>
       <td>{s.value === null ? "—" : fmt(s.value)}</td>
       <td>{s.house === null ? "—" : fmt(s.house)}</td>
-      <td>{s.rank === null ? "—" : `${ordinal(s.rank)} of ${s.of}`}</td>
+      <td>
+        {s.rank === null ? "—" : `${ordinal(s.rank)} of ${s.of}`}
+        {s.rank !== null && s.tied > 0 && <span className="dcheck__sub">tied with {s.tied}</span>}
+      </td>
     </tr>
   );
 }
@@ -198,7 +201,7 @@ function Calendar({ c }: { c: Check }) {
           <span className="dcheck__day dcheck__day--special" /> Finished the Special
         </li>
         <li>
-          <span className="dcheck__day dcheck__day--other" /> Other rounds only
+          <span className="dcheck__day dcheck__day--other" /> Played, no Special finished
         </li>
         <li>
           <span className="dcheck__day dcheck__day--off" /> Didn't play
@@ -211,6 +214,9 @@ function Calendar({ c }: { c: Check }) {
 function Body({ c, now }: { c: Check; now: number }) {
   const playsOn = c.surfaces.map((s) => (s === "discord" ? "Discord" : "Web")).join(" + ");
   const others = plural(c.house, "other device");
+  // Arrived before it ever played: the box takes the earlier day, the footer the round.
+  const arrivedFirst = c.firstVisit !== null && c.firstDay !== null && c.firstVisit < c.firstDay;
+  const firstSeen = arrivedFirst ? c.firstVisit : (c.firstDay ?? c.firstVisit);
 
   return (
     <>
@@ -226,7 +232,7 @@ function Body({ c, now }: { c: Check; now: number }) {
           <dl className="guest-check__boxes">
             <div className="guest-check__box">
               <dt>First seen</dt>
-              <dd>{c.firstDay ? padDate(c.firstDay) : c.firstVisit ? padDate(c.firstVisit) : "—"}</dd>
+              <dd>{firstSeen ? padDate(firstSeen) : "—"}</dd>
             </div>
             <div className="guest-check__box">
               <dt>Days played</dt>
@@ -239,10 +245,7 @@ function Body({ c, now }: { c: Check; now: number }) {
           </dl>
         </div>
         <p className="receipt__verdict">{VERDICT[c.standing]}</p>
-        <p className="dcheck__note">
-          {c.rank !== null && `${ordinal(c.rank)} of ${c.devices} devices for days played. `}
-          Regulars have played {c.cutoffDays}+ days.
-        </p>
+        {c.standing !== "none" && <p className="dcheck__note">Regulars have played {c.cutoffDays}+ days.</p>}
       </div>
 
       {c.standing === "none" ? (
@@ -277,7 +280,7 @@ function Body({ c, now }: { c: Check; now: number }) {
                 </tr>
               </tbody>
             </table>
-            <p className="dcheck__note">Others: every Special the {others} seen a week or more finished.</p>
+            <p className="dcheck__note">Others: {others} seen a week or more, all their Specials together.</p>
             {c.special.finished > 0 ? (
               <>
                 <h4 className="dcheck__h4">Share of finished Specials, by guesses</h4>
@@ -290,7 +293,11 @@ function Body({ c, now }: { c: Check; now: number }) {
 
           <Section
             title="Compared with others"
-            note={`Others: the median of the ${others} seen a week or more. Rank includes this device; 1st has the most days, or the fewest gap days or guesses.`}
+            note={
+              c.standing === "new"
+                ? `Others: median of ${others} seen a week or more. Ranked after its first week.`
+                : `Others: median of ${others} seen a week or more. 1st is best: most days, fewest gap days or guesses.`
+            }
           >
             <table className="dcheck__table dcheck__table--measures">
               <thead>
@@ -320,10 +327,12 @@ function Body({ c, now }: { c: Check; now: number }) {
       <dl className="dcheck__foot">
         <dt>Came from</dt>
         <dd>{c.source ?? "—"}</dd>
-        {c.firstVisit && c.firstDay && c.firstVisit !== c.firstDay && (
+        {/* Only when it arrived before its first round. Arrivals were recorded
+            from 0020 on, so a later first arrival is the ledger starting. */}
+        {arrivedFirst && (
           <>
-            <dt>First arrived</dt>
-            <dd>{padDate(c.firstVisit)}</dd>
+            <dt>First round</dt>
+            <dd>{padDate(c.firstDay as string)}</dd>
           </>
         )}
         <dt>Last round</dt>
