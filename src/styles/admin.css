@@ -3,7 +3,7 @@
 .admin {
   min-height: 100dvh;
   background: var(--teal-dark);
-  padding: 18px 14px 60px;
+  padding: 18px var(--space-14) 60px;
 }
 
 .admin__shell {
@@ -15,15 +15,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-12);
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-16);
 }
 
 .admin__title {
   font-family: var(--font-script);
   color: #ffd9e0;
-  text-shadow: 0 0 10px rgba(255, 95, 122, 0.8);
+  text-shadow: 0 0 10px rgb(var(--neon-pink-rgb) / 0.8);
   font-size: var(--fs-xxl);
   margin: 0;
   font-weight: 400;
@@ -34,7 +34,7 @@
    eyebrow label the game's sign also lost. */
 .admin__title small {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--space-4);
   font-family: var(--font-gothic);
   font-size: var(--fs-md);
   line-height: 1;
@@ -42,9 +42,9 @@
   text-transform: uppercase;
   color: #eef8ff;
   text-shadow:
-    0 0 3px rgba(124, 200, 255, 0.95),
-    0 0 10px rgba(124, 200, 255, 0.7),
-    0 0 22px rgba(124, 200, 255, 0.45);
+    0 0 3px rgb(var(--neon-blue-rgb) / 0.95),
+    0 0 10px rgb(var(--neon-blue-rgb) / 0.7),
+    0 0 22px rgb(var(--neon-blue-rgb) / 0.45);
 }
 
 /* Two groups: the places you go, then the two things you do from anywhere
@@ -53,19 +53,19 @@
 .admin-nav {
   display: flex;
   align-items: center;
-  gap: 6px 18px;
+  gap: var(--space-6) 18px;
   flex-wrap: wrap;
 }
 
 .admin-nav__group {
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   flex-wrap: wrap;
 }
 
 .admin-nav__group--actions {
   padding-left: 18px;
-  border-left: 1px solid color-mix(in srgb, var(--cream) 30%, transparent);
+  border-left: var(--border-hair) solid color-mix(in srgb, var(--cream) 30%, transparent);
 }
 
 .admin-nav button {
@@ -73,13 +73,13 @@
   font-size: var(--fs-lg);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  border: 1.5px solid color-mix(in srgb, var(--cream) 55%, transparent);
+  border: var(--border-thin) solid color-mix(in srgb, var(--cream) 55%, transparent);
   background: transparent;
   color: var(--cream);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   line-height: 1;
   min-height: 32px;
-  padding: 0 14px;
+  padding: 0 var(--space-14);
 }
 
 .admin-nav button.active,
@@ -103,10 +103,10 @@
 
 .nav-badge {
   display: inline-block;
-  margin-left: 7px;
+  margin-left: var(--space-8);
   min-width: 1.4em;
-  padding: 1px 6px;
-  border-radius: 999px;
+  padding: 1px var(--space-6);
+  border-radius: var(--radius-pill);
   background: var(--cream);
   color: var(--cherry);
   font-size: var(--fs-xs);
@@ -128,18 +128,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-10);
   flex-wrap: wrap;
   background: var(--paper);
   border-radius: var(--radius-paper);
-  padding: 4px 10px 0;
+  padding: var(--space-4) var(--space-10) 0;
   box-shadow: var(--shadow-sheet);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-16);
 }
 
 .admin-tabs__list {
   display: flex;
-  gap: 2px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
@@ -150,15 +150,15 @@
   text-transform: uppercase;
   white-space: nowrap;
   border: none;
-  border-bottom: 3px solid transparent;
+  border-bottom: var(--border-thick) solid transparent;
   border-radius: 0;
   background: transparent;
   color: var(--teal);
-  padding: 10px 14px 8px;
+  padding: var(--space-10) var(--space-14) var(--space-8);
   cursor: pointer;
 }
 
-.admin-tabs__btn:hover { background: rgba(27, 79, 74, 0.09); }
+.admin-tabs__btn:hover { background: rgb(var(--teal-rgb) / 0.09); }
 
 .admin-tabs__btn--active,
 .admin-tabs__btn--active:hover {
@@ -167,7 +167,7 @@
   background: transparent;
 }
 
-.admin-tabs__tools { padding: 2px 0; }
+.admin-tabs__tools { padding: var(--space-2) 0; }
 
 @media (max-width: 640px) {
   /* Five tabs won't fit at 375px — swipe them instead of stacking three rows.
@@ -184,7 +184,7 @@
     scrollbar-width: none;
   }
   .admin-tabs__list::-webkit-scrollbar { display: none; }
-  .admin-tabs__btn { padding-left: 11px; padding-right: 11px; }
+  .admin-tabs__btn { padding-left: var(--space-12); padding-right: var(--space-12); }
 }
 
 /* A sheet of paper on the desk, not a card floating over a photo. The game's
@@ -193,9 +193,9 @@
 .panel {
   background: var(--paper);
   border-radius: var(--radius-paper);
-  padding: 18px 20px 20px;
+  padding: 18px var(--space-20) var(--space-20);
   box-shadow: var(--shadow-sheet);
-  margin-bottom: 16px;
+  margin-bottom: var(--space-16);
 }
 
 /* Every panel heading is a question ("Where players drop off", "Did anyone
@@ -210,7 +210,7 @@
   letter-spacing: 0;
   text-transform: none;
   color: var(--teal);
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-12);
 }
 
 .panel--warn {
@@ -226,9 +226,9 @@
      ghost variant's 2px border makes it. They stand side by side in most rows
      on this dashboard, and 4px of difference reads as one of them sitting
      wrong. */
-  border: 2px solid transparent;
+  border: var(--border-medium) solid transparent;
   border-radius: var(--radius);
-  padding: 9px 16px;
+  padding: var(--space-10) var(--space-16);
   line-height: 1.1;
   background: var(--teal);
   color: var(--cream);
@@ -243,14 +243,14 @@
 .btn--ghost {
   background: transparent;
   color: var(--teal);
-  border: 2px solid var(--teal);
+  border: var(--border-medium) solid var(--teal);
 }
-.btn--ghost:hover { background: rgba(27, 79, 74, 0.1); }
+.btn--ghost:hover { background: var(--teal-wash-hover); }
 .btn:disabled { background: var(--miss); cursor: not-allowed; }
 
 .btn-row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-8);
   flex-wrap: wrap;
   align-items: center;
 }
@@ -264,10 +264,10 @@
 
 .login input {
   width: 100%;
-  border: 2px solid var(--ink);
+  border: var(--border-medium) solid var(--ink);
   border-radius: var(--radius);
-  padding: 11px 14px;
-  margin-bottom: 10px;
+  padding: var(--space-12) var(--space-14);
+  margin-bottom: var(--space-10);
 }
 
 /* dashboard */
@@ -275,7 +275,7 @@
 .dash-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 14px;
+  gap: var(--space-14);
 }
 
 /* The three cards on the Today tab's top row say different amounts above their
@@ -292,13 +292,13 @@
 
 .dash-grid > .panel > .btn-row {
   margin-top: auto;
-  padding-top: 10px;
+  padding-top: var(--space-10);
 }
 
 .dash-big {
   font-family: var(--font-display);
   font-size: var(--fs-xl);
-  margin: 2px 0 4px;
+  margin: var(--space-2) 0 var(--space-4);
   color: var(--ink);
 }
 
@@ -310,7 +310,7 @@
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: var(--space-4) var(--space-12);
   max-width: 100%;
 }
 
@@ -323,7 +323,7 @@
 }
 
 .veil__eye {
-  padding: 4px 9px;
+  padding: var(--space-4) var(--space-10);
   line-height: 1;
 }
 .veil__eye .icon { font-size: var(--fs-lg); }
@@ -336,12 +336,12 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-8);
 }
 
 /* Count riding alongside a panel title ("On the board — 2 live notices"). */
 .dash-count {
-  margin-left: 10px;
+  margin-left: var(--space-10);
   font-family: var(--font-body);
   font-size: var(--fs-xs);
   letter-spacing: 0;
@@ -353,18 +353,18 @@
    full-width row fills out instead of leaving a hole to its right. */
 .dash-list {
   list-style: none;
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-10);
   padding: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 8px 16px;
+  gap: var(--space-8) var(--space-16);
 }
 
 .dash-list li {
   font-size: var(--fs-md);
   line-height: 1.35;
-  padding-left: 10px;
-  border-left: 3px solid var(--hit);
+  padding-left: var(--space-10);
+  border-left: var(--border-thick) solid var(--hit);
 }
 
 .dash-list__meta {
@@ -378,14 +378,14 @@
 .metric-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: var(--space-12);
+  margin-bottom: var(--space-16);
 }
 
 .metric {
-  background: rgba(27, 79, 74, 0.06);
+  background: var(--teal-wash);
   border-radius: var(--radius-paper);
-  padding: 10px 12px;
+  padding: var(--space-10) var(--space-12);
   text-align: center;
 }
 
@@ -409,10 +409,10 @@
 
 /* Games-started split by kind. Each tile carries a top stripe in its bar colour;
    the daily (Today's Special) tile is emphasised as the priority metric. */
-.metric-row--kinds { margin-bottom: 10px; }
+.metric-row--kinds { margin-bottom: var(--space-10); }
 
 .metric--kind {
-  border-top: 3px solid transparent;
+  border-top: var(--border-thick) solid transparent;
   text-align: left;
 }
 
@@ -421,7 +421,7 @@
 .metric--kind-random { border-top-color: var(--cherry); }
 
 .metric--primary {
-  background: rgba(232, 165, 58, 0.14);
+  background: rgb(var(--mustard-rgb) / 0.14);
 }
 
 .metric--primary .metric__num {
@@ -436,18 +436,18 @@
 .kind-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 14px;
-  margin-bottom: 8px;
+  gap: var(--space-4) var(--space-14);
+  margin-bottom: var(--space-8);
   font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
-.kind-legend__item { display: inline-flex; align-items: center; gap: 5px; }
+.kind-legend__item { display: inline-flex; align-items: center; gap: var(--space-6); }
 
 .kind-legend__dot {
   width: 10px;
   height: 10px;
-  border-radius: 2px;
+  border-radius: var(--radius-xxs);
   display: inline-block;
 }
 
@@ -459,7 +459,7 @@
 .analytics-split {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 20px;
+  gap: var(--space-20);
 }
 
 @media (max-width: 640px) {
@@ -471,16 +471,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-12);
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-12);
 }
 .analytics-head h2 { margin: 0; }
 
 /* Web / Discord / All segmented control. */
 .surface-toggle {
   display: inline-flex;
-  border: 2px solid var(--teal);
+  border: var(--border-medium) solid var(--teal);
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -492,11 +492,11 @@
   border: none;
   background: transparent;
   color: var(--teal);
-  padding: 6px 14px;
+  padding: var(--space-6) var(--space-14);
   cursor: pointer;
 }
-.surface-toggle__btn + .surface-toggle__btn { border-left: 2px solid var(--teal); }
-.surface-toggle__btn:hover { background: rgba(27, 79, 74, 0.1); }
+.surface-toggle__btn + .surface-toggle__btn { border-left: var(--border-medium) solid var(--teal); }
+.surface-toggle__btn:hover { background: var(--teal-wash-hover); }
 .surface-toggle__btn--active,
 .surface-toggle__btn--active:hover { background: var(--teal); color: var(--cream); }
 /* No player id on this device yet — nothing to match, so the mine options are inert. */
@@ -512,12 +512,12 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-8);
 }
 
-.gd { display: flex; flex-direction: column; gap: 4px; }
+.gd { display: flex; flex-direction: column; gap: var(--space-4); }
 
-.gd__row { display: flex; align-items: center; gap: 8px; }
+.gd__row { display: flex; align-items: center; gap: var(--space-8); }
 
 .gd__key {
   font-family: var(--font-gothic);
@@ -535,8 +535,8 @@
   background: var(--teal);
   color: var(--cream);
   font-size: var(--fs-xs);
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-xs);
 }
 
 .spark {
@@ -544,8 +544,8 @@
   align-items: flex-end;
   gap: 3px;
   height: 90px;
-  padding-top: 4px;
-  padding-bottom: 14px;
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-14);
 }
 
 .spark__col {
@@ -564,7 +564,7 @@
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
   line-height: 1;
-  margin-bottom: 2px;
+  margin-bottom: var(--space-2);
 }
 
 .spark__bar {
@@ -572,7 +572,7 @@
   /* Stacks the per-kind segments from the bottom up; the mustard fallback shows
      if a bar somehow has no segments. */
   background: var(--mustard);
-  border-radius: 2px 2px 0 0;
+  border-radius: var(--radius-xxs) var(--radius-xxs) 0 0;
   display: flex;
   flex-direction: column-reverse;
   overflow: hidden;
@@ -595,7 +595,7 @@
 
 /* New vs returning player tiles: a left stripe in each series' line colour. */
 .metric--player {
-  border-left: 3px solid transparent;
+  border-left: var(--border-thick) solid transparent;
   text-align: left;
 }
 .metric--player-new { border-left-color: var(--cherry); }
@@ -605,7 +605,7 @@
 .gchart { width: 100%; }
 
 .gchart__headline {
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-10);
   font-size: var(--fs-md);
   color: var(--ink);
 }
@@ -615,24 +615,24 @@
   font-family: var(--font-display);
   font-size: var(--fs-lg);
   color: var(--teal);
-  margin-right: 2px;
+  margin-right: var(--space-2);
 }
 
 .gchart__legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 14px;
-  margin-bottom: 8px;
+  gap: var(--space-4) var(--space-14);
+  margin-bottom: var(--space-8);
   font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
-.gchart__legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.gchart__legend-item { display: inline-flex; align-items: center; gap: var(--space-6); }
 
 .gchart__swatch {
   width: 14px;
   height: 3px;
-  border-radius: 2px;
+  border-radius: var(--radius-xxs);
   display: inline-block;
 }
 .gchart__swatch--played { background: var(--teal); }
@@ -641,7 +641,7 @@
    the data, not another series measured alongside it. */
 .gchart__swatch--trend {
   height: 0;
-  border-top: 2px dashed var(--ink-soft);
+  border-top: var(--border-medium) dashed var(--ink-soft);
   border-radius: 0;
 }
 
@@ -651,7 +651,7 @@
   display: block;
 }
 
-.gchart__grid { stroke: rgba(27, 79, 74, 0.18); stroke-width: 1; }
+.gchart__grid { stroke: rgb(var(--teal-rgb) / 0.18); stroke-width: 1; }
 
 .gchart__axis {
   fill: var(--ink-soft);
@@ -668,7 +668,7 @@
 
 /* Same hue as the line — mass under the curve, not a second value. */
 .gchart__area {
-  fill: rgba(27, 79, 74, 0.12);
+  fill: rgb(var(--teal-rgb) / 0.12);
   stroke: none;
 }
 
@@ -681,20 +681,20 @@
   opacity: 0.85;
 }
 
-.analytics-block { margin-top: 20px; }
+.analytics-block { margin-top: var(--space-20); }
 
 .analytics-rule {
   border: 0;
-  border-top: 1px dashed rgba(27, 79, 74, 0.25);
-  margin: 22px 0 16px;
+  border-top: var(--border-hair) dashed rgb(var(--teal-rgb) / 0.25);
+  margin: 22px 0 var(--space-16);
 }
 
 .hourly {
   display: flex;
   align-items: flex-end;
-  gap: 2px;
+  gap: var(--space-2);
   height: 90px;
-  padding: 12px 0 14px;
+  padding: var(--space-12) 0 var(--space-14);
   position: relative;
 }
 
@@ -724,7 +724,7 @@
 .hourly__bar {
   width: 100%;
   background: var(--teal);
-  border-radius: 2px 2px 0 0;
+  border-radius: var(--radius-xxs) var(--radius-xxs) 0 0;
   min-height: 0;
 }
 
@@ -763,19 +763,19 @@
    and each hangs off a rule like a note pinned beside the tape. */
 .dash-reads {
   list-style: none;
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-4);
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-10);
   color: var(--ink);
   font-size: var(--fs-md);
   line-height: 1.45;
 }
 
 .ztape-row .dash-reads li {
-  padding-left: 12px;
-  border-left: 3px solid var(--paper-edge);
+  padding-left: var(--space-12);
+  border-left: var(--border-thick) solid var(--paper-edge);
 }
 
 /* ---- the day's tape (Today tab) ----
@@ -788,9 +788,9 @@
 .ztape-row {
   display: grid;
   grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
-  gap: 16px 28px;
+  gap: var(--space-16) 28px;
   align-items: start;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-4);
 }
 
 @media (max-width: 640px) {
@@ -798,7 +798,7 @@
 }
 
 .ztape {
-  filter: drop-shadow(0 1px 1.5px rgba(43, 35, 32, 0.28));
+  filter: drop-shadow(0 1px 1.5px rgb(var(--ink-rgb) / 0.28));
 }
 
 .ztape__paper {
@@ -814,9 +814,9 @@
 }
 
 .ztape__head {
-  margin: 0 0 8px;
-  padding-bottom: 8px;
-  border-bottom: 1.5px dashed var(--paper-edge);
+  margin: 0 0 var(--space-8);
+  padding-bottom: var(--space-8);
+  border-bottom: var(--border-thin) dashed var(--paper-edge);
   text-align: center;
 }
 
@@ -832,7 +832,7 @@
 
 .ztape__dish {
   display: block;
-  margin-top: 2px;
+  margin-top: var(--space-2);
   font-style: italic;
   font-size: var(--fs-md);
   color: var(--ink-soft);
@@ -845,7 +845,7 @@
 .ztape__line {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-6);
   padding: 3px 0;
 }
 
@@ -857,7 +857,7 @@
   min-width: 0;
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-6);
   font-family: var(--font-gothic);
   font-size: var(--fs-lg);
   letter-spacing: 0.06em;
@@ -870,7 +870,7 @@
   content: "";
   flex: 1;
   min-width: 12px;
-  border-bottom: 2px dotted rgba(91, 79, 69, 0.45);
+  border-bottom: var(--border-medium) dotted rgba(91, 79, 69, 0.45);
 }
 
 .ztape__line dd {
@@ -895,7 +895,7 @@
 
 /* A subset of the line above it: indented, and a step quieter. */
 .ztape__line--sub dt {
-  padding-left: 16px;
+  padding-left: var(--space-16);
   font-size: var(--fs-md);
 }
 
@@ -905,7 +905,7 @@
 }
 
 .ztape__line .rate-range {
-  margin-top: 2px;
+  margin-top: var(--space-2);
   font-family: var(--font-body);
 }
 
@@ -921,15 +921,15 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px 22px;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px dashed rgba(27, 79, 74, 0.22);
+  gap: var(--space-10) 22px;
+  margin-top: var(--space-20);
+  padding-top: var(--space-16);
+  border-top: var(--border-hair) dashed rgb(var(--teal-rgb) / 0.22);
 }
 
 .alltime__stat {
-  border-left: 3px solid var(--mustard);
-  padding-left: 12px;
+  border-left: var(--border-thick) solid var(--mustard);
+  padding-left: var(--space-12);
   /* Enough that a long "3d 4h · 604 rounds timed" footnote doesn't set the
      column width and starve the sentence beside it. */
   flex: 0 1 auto;
@@ -946,7 +946,7 @@
 .alltime__label {
   font-family: var(--font-gothic);
   display: block;
-  margin-top: 4px;
+  margin-top: var(--space-4);
   font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -955,7 +955,7 @@
 
 .alltime__foot {
   display: block;
-  margin-top: 2px;
+  margin-top: var(--space-2);
   font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
@@ -964,7 +964,7 @@
 .alltime__note { flex: 1 1 260px; margin-bottom: 0; }
 
 @media (max-width: 520px) {
-  .alltime { gap: 14px; }
+  .alltime { gap: var(--space-14); }
   .alltime__note { flex-basis: 100%; }
 }
 
@@ -972,19 +972,19 @@
    finished) and the fill is the answer — so neither row is the always-full first
    bar of a funnel. Fills use the Activity feed's EVENT colours (complete =
    cherry, share = mustard), never the kind palette, which means game mode. */
-.finish { display: flex; flex-direction: column; gap: 12px; }
+.finish { display: flex; flex-direction: column; gap: var(--space-12); }
 
 .finish__track {
   height: 14px;
-  border-radius: 3px;
-  background: rgba(27, 79, 74, 0.12);
+  border-radius: var(--radius-paper);
+  background: rgb(var(--teal-rgb) / 0.12);
   overflow: hidden;
 }
 
 .finish__fill {
   display: block;
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--radius-paper);
 }
 
 .finish__fill--done { background: var(--cherry); }
@@ -994,8 +994,8 @@
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 4px 8px;
-  margin: 5px 0 0;
+  gap: var(--space-4) var(--space-8);
+  margin: var(--space-6) 0 0;
   font-size: var(--fs-sm);
   color: var(--ink);
 }
@@ -1005,7 +1005,7 @@
 .finish__dot {
   width: 9px;
   height: 9px;
-  border-radius: 2px;
+  border-radius: var(--radius-xxs);
   align-self: center;
 }
 
@@ -1035,21 +1035,21 @@
    teal because teal already means "returning player" on the line chart and the
    player tiles — the kind palette means game mode and the event palette means
    start/finish/share, and a third meaning on either would break both. */
-.retention { display: flex; flex-direction: column; gap: 12px; }
+.retention { display: flex; flex-direction: column; gap: var(--space-12); }
 
 .retention__headline {
-  margin: 0 0 14px;
+  margin: 0 0 var(--space-14);
   font-size: var(--fs-md);
   color: var(--ink);
-  border-left: 3px solid var(--teal);
-  padding-left: 10px;
+  border-left: var(--border-thick) solid var(--teal);
+  padding-left: var(--space-10);
 }
 
 .retention__row {
   display: grid;
   grid-template-columns: 108px 1fr;
   align-items: start;
-  gap: 10px;
+  gap: var(--space-10);
 }
 
 .retention__key {
@@ -1064,15 +1064,15 @@
 
 .retention__track {
   height: 14px;
-  border-radius: 3px;
-  background: rgba(27, 79, 74, 0.12);
+  border-radius: var(--radius-paper);
+  background: rgb(var(--teal-rgb) / 0.12);
   overflow: hidden;
 }
 
 .retention__fill {
   display: block;
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--radius-paper);
   background: var(--teal);
 }
 
@@ -1080,8 +1080,8 @@
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 4px 8px;
-  margin: 5px 0 0;
+  gap: var(--space-4) var(--space-8);
+  margin: var(--space-6) 0 0;
   font-size: var(--fs-sm);
   color: var(--ink);
 }
@@ -1089,7 +1089,7 @@
 .retention__dot {
   width: 9px;
   height: 9px;
-  border-radius: 2px;
+  border-radius: var(--radius-xxs);
   align-self: center;
   background: var(--teal);
 }
@@ -1125,19 +1125,19 @@
 .funnel { display: flex; flex-direction: column; }
 
 .funnel__headline {
-  margin: 0 0 14px;
+  margin: 0 0 var(--space-14);
   font-size: var(--fs-md);
   color: var(--ink);
-  border-left: 3px solid var(--teal);
-  padding-left: 10px;
+  border-left: var(--border-thick) solid var(--teal);
+  padding-left: var(--space-10);
 }
 
-.funnel__step { display: flex; flex-direction: column; gap: 4px; }
+.funnel__step { display: flex; flex-direction: column; gap: var(--space-4); }
 
 .funnel__head {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-8);
   margin: 0;
 }
 
@@ -1160,15 +1160,15 @@
 
 .funnel__track {
   height: 18px;
-  border-radius: 3px;
-  background: rgba(27, 79, 74, 0.1);
+  border-radius: var(--radius-paper);
+  background: var(--teal-wash-hover);
   overflow: hidden;
 }
 
 .funnel__fill {
   display: block;
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--radius-paper);
   /* The bars are read against each other top to bottom, so a width change should
      look like the same crowd shrinking rather than four separate bars. */
   transition: width 220ms ease-out;
@@ -1184,7 +1184,7 @@
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 2px 8px;
+  gap: var(--space-2) var(--space-8);
   margin: 0;
   font-size: var(--fs-sm);
 }
@@ -1205,8 +1205,8 @@
 /* The gap between two rungs, which is the number the panel exists to show. Set
    in from the left so it reads as a branch off the funnel rather than a rung. */
 .funnel__drop {
-  margin: 6px 0 10px;
-  padding-left: 14px;
+  margin: var(--space-6) 0 var(--space-10);
+  padding-left: var(--space-14);
   font-size: var(--fs-xs);
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
@@ -1224,11 +1224,11 @@
 }
 
 .cpie__headline {
-  margin: 0 0 14px;
+  margin: 0 0 var(--space-14);
   font-size: var(--fs-md);
   color: var(--ink);
-  border-left: 3px solid var(--teal);
-  padding-left: 10px;
+  border-left: var(--border-thick) solid var(--teal);
+  padding-left: var(--space-10);
 }
 
 .cpie__svg {
@@ -1243,14 +1243,14 @@
    rather than inventing a fourth colour meaning. Paper-coloured borders keep
    neighbouring steps apart where the ramp alone is too close to read. */
 .cpie__slice { stroke: var(--paper); stroke-width: 1.5; }
-.cpie__slice--0 { fill: #1b4f4a; }
-.cpie__slice--1 { fill: #2f6a63; }
-.cpie__slice--2 { fill: #45857c; }
-.cpie__slice--3 { fill: #5d9f95; }
-.cpie__slice--4 { fill: #79b7ad; }
-.cpie__slice--5 { fill: #98cec5; }
-.cpie__slice--6 { fill: #b7e0d9; }
-.cpie__slice--7 { fill: #d5efea; }
+.cpie__slice--0 { fill: var(--rank-1); }
+.cpie__slice--1 { fill: var(--rank-2); }
+.cpie__slice--2 { fill: var(--rank-3); }
+.cpie__slice--3 { fill: var(--rank-4); }
+.cpie__slice--4 { fill: var(--rank-5); }
+.cpie__slice--5 { fill: var(--rank-6); }
+.cpie__slice--6 { fill: var(--rank-7); }
+.cpie__slice--7 { fill: var(--rank-8); }
 /* "Everyone else" is a pool, not a rank — off the ramp entirely. */
 .cpie__slice--rest { fill: var(--miss); }
 
@@ -1262,14 +1262,14 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-6);
 }
 
 .cpie__row {
   display: grid;
   grid-template-columns: 11px minmax(0, 1fr) auto;
   align-items: baseline;
-  gap: 2px 8px;
+  gap: var(--space-2) var(--space-8);
   font-size: var(--fs-sm);
   color: var(--ink);
 }
@@ -1277,17 +1277,17 @@
 .cpie__dot {
   width: 11px;
   height: 11px;
-  border-radius: 2px;
+  border-radius: var(--radius-xxs);
   align-self: center;
 }
-.cpie__dot--0 { background: #1b4f4a; }
-.cpie__dot--1 { background: #2f6a63; }
-.cpie__dot--2 { background: #45857c; }
-.cpie__dot--3 { background: #5d9f95; }
-.cpie__dot--4 { background: #79b7ad; }
-.cpie__dot--5 { background: #98cec5; }
-.cpie__dot--6 { background: #b7e0d9; }
-.cpie__dot--7 { background: #d5efea; }
+.cpie__dot--0 { background: var(--rank-1); }
+.cpie__dot--1 { background: var(--rank-2); }
+.cpie__dot--2 { background: var(--rank-3); }
+.cpie__dot--3 { background: var(--rank-4); }
+.cpie__dot--4 { background: var(--rank-5); }
+.cpie__dot--5 { background: var(--rank-6); }
+.cpie__dot--6 { background: var(--rank-7); }
+.cpie__dot--7 { background: var(--rank-8); }
 .cpie__dot--rest { background: var(--miss); }
 
 .cpie__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1315,7 +1315,7 @@
 .cpie__expand-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-4);
   border: none;
   background: none;
   padding: 0;
@@ -1333,9 +1333,9 @@
 .cpie__sublist {
   grid-column: 1 / -1;
   list-style: none;
-  margin: 4px 0 2px;
-  padding: 6px 0 0 19px;
-  border-top: 1px dashed var(--paper-edge);
+  margin: var(--space-4) 0 var(--space-2);
+  padding: var(--space-6) 0 0 19px;
+  border-top: var(--border-hair) dashed var(--paper-edge);
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -1346,7 +1346,7 @@
 .cpie__subrow {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-10);
   font-size: var(--fs-xs);
 }
 .cpie__subrow .cpie__name { color: var(--ink); flex: 1 1 auto; }
@@ -1382,8 +1382,8 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  padding: 4px 8px;
-  border-bottom: 1px solid var(--paper-edge);
+  padding: var(--space-4) var(--space-8);
+  border-bottom: var(--border-hair) solid var(--paper-edge);
 }
 
 .day-table th:first-child,
@@ -1391,8 +1391,8 @@
 
 .day-table td {
   text-align: right;
-  padding: 5px 8px;
-  border-bottom: 1px dashed var(--paper-edge);
+  padding: var(--space-6) var(--space-8);
+  border-bottom: var(--border-hair) dashed var(--paper-edge);
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
@@ -1420,8 +1420,8 @@
   font-size: var(--fs-md);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 2px 8px;
-  border-radius: 999px;
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-pill);
   color: var(--cream);
 }
 
@@ -1436,10 +1436,10 @@
 
 /* Marks a row as this browser's own play-testing. */
 .ev-you {
-  margin-left: 6px;
-  padding: 1px 6px;
-  border: 1px solid var(--teal);
-  border-radius: 999px;
+  margin-left: var(--space-6);
+  padding: 1px var(--space-6);
+  border: var(--border-hair) solid var(--teal);
+  border-radius: var(--radius-pill);
   font-family: var(--font-gothic);
   font-size: var(--fs-sm);
   letter-spacing: 0.06em;
@@ -1458,13 +1458,13 @@
 /* Each round is its own <tbody> so an expanded row can add a second <tr>. That
    makes `.day-table tr:last-child` match the last row of *every* tbody, which
    would strip the separator off every collapsed round — restate it here. */
-.act-table tbody td { border-bottom: 1px dashed var(--paper-edge); }
+.act-table tbody td { border-bottom: var(--border-hair) dashed var(--paper-edge); }
 .act-table tbody:last-child tr:last-child td { border-bottom: none; }
 
 .act-when {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: var(--space-6);
   background: none;
   border: none;
   padding: 0;
@@ -1485,7 +1485,7 @@
 
 /* The three beacons as pips: lit = it happened. The Result column beside them
    says the same thing in words, so nothing rides on the colour alone. */
-.arc { display: inline-flex; gap: 4px; align-items: center; }
+.arc { display: inline-flex; gap: var(--space-4); align-items: center; }
 
 .arc__pip {
   width: 10px;
@@ -1539,7 +1539,7 @@
   --tl-rail: 22px;
   --tl-node: 11px;
   --tl-mid: 0.85em;
-  margin: 8px 0;
+  margin: var(--space-8) 0;
   padding: 0;
   list-style: none;
   font-size: var(--fs-xs);
@@ -1547,7 +1547,7 @@
 .act-tl__step {
   display: grid;
   grid-template-columns: var(--tl-rail) minmax(0, 1fr) auto 5.2em;
-  column-gap: 10px;
+  column-gap: var(--space-10);
   align-items: start;
   min-height: 1.7em;
 }
@@ -1558,7 +1558,7 @@
   top: 0;
   bottom: 0;
   left: 50%;
-  border-left: 2px solid var(--ink-soft);
+  border-left: var(--border-medium) solid var(--ink-soft);
   transform: translateX(-1px);
 }
 .act-tl__step:first-child .act-tl__rail::before { top: var(--tl-mid); }
@@ -1573,7 +1573,7 @@
   height: var(--tl-node);
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  border: 2px solid var(--ink);
+  border: var(--border-medium) solid var(--ink);
   background: var(--cream);
   box-sizing: border-box;
 }
@@ -1585,11 +1585,11 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 8px;
+  gap: var(--space-4) var(--space-8);
   padding: 3px 0;
   min-width: 0;
 }
-.act-tl__body .ev-badge { font-size: var(--fs-xs); padding: 1px 7px; }
+.act-tl__body .ev-badge { font-size: var(--fs-xs); padding: 1px var(--space-8); }
 .act-tl__body .ev-sub { display: inline; }
 .act-tl__step--missing .act-tl__body,
 .act-tl__step--open .act-tl__body { color: var(--ink-soft); }
@@ -1608,30 +1608,30 @@
 /* ---- visit headers ---- */
 
 .act-group td {
-  border-bottom: 1px solid var(--paper-edge);
+  border-bottom: var(--border-hair) solid var(--paper-edge);
   padding: 0;
-  background: rgba(27, 79, 74, 0.05);
+  background: rgb(var(--teal-rgb) / 0.05);
 }
 /* An arrival that never played — the funnel's bounce, which existed only as a
    percentage before this feed learned to show visits at all. */
-.act-group--bounced td { background: rgba(232, 165, 58, 0.12); }
+.act-group--bounced td { background: var(--mustard-wash); }
 
 /* The device id and the fold toggle sit side by side: a button can't hold one. */
 .act-group__line {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  padding-left: 8px;
+  gap: var(--space-8);
+  padding-left: var(--space-8);
 }
 
 .act-group__toggle {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-8);
   flex: 1;
   min-width: 0;
-  padding: 7px 8px 7px 0;
+  padding: var(--space-8) var(--space-8) var(--space-8) 0;
   background: none;
   border: none;
   font: inherit;
@@ -1655,8 +1655,8 @@
 .act-filters {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin: 12px 0 4px;
+  gap: var(--space-6);
+  margin: var(--space-12) 0 var(--space-4);
 }
 
 /* Rows on a fixed label column, not an auto-fit grid: the two facets hold four
@@ -1664,7 +1664,7 @@
 .act-filters__row {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--space-10);
 }
 
 .act-filters__label {
@@ -1677,16 +1677,16 @@
   color: var(--ink-soft);
 }
 
-.act-filters__chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
-.act-filters__clear { font-size: var(--fs-xs); margin-left: 4px; }
+.act-filters__chips { display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: baseline; }
+.act-filters__clear { font-size: var(--fs-xs); margin-left: var(--space-4); }
 
 .act-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 9px;
-  border: 1px solid var(--paper-edge);
-  border-radius: 999px;
+  gap: var(--space-6);
+  padding: var(--space-2) var(--space-10);
+  border: var(--border-hair) solid var(--paper-edge);
+  border-radius: var(--radius-pill);
   background: var(--paper);
   font-family: var(--font-body);
   font-size: var(--fs-xs);
@@ -1721,7 +1721,7 @@
 
 @media (max-width: 560px) {
   /* The label column costs more than it gives once the chips wrap anyway. */
-  .act-filters__row { flex-direction: column; gap: 4px; }
+  .act-filters__row { flex-direction: column; gap: var(--space-4); }
   .act-filters__label { width: auto; }
   .act-group__tally { margin-left: 0; }
 }
@@ -1737,13 +1737,13 @@
   gap: 18px 28px;
 }
 
-.mix { display: flex; flex-direction: column; gap: 5px; }
+.mix { display: flex; flex-direction: column; gap: var(--space-6); }
 
 .mix__row {
   display: grid;
   grid-template-columns: 92px minmax(0, 1fr) 46px 52px;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   font-size: var(--fs-xs);
 }
 
@@ -1758,14 +1758,14 @@
   text-align: left;
   border: none;
   background: none;
-  padding: 2px 4px;
+  padding: var(--space-2) var(--space-4);
   margin: -2px -4px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   cursor: pointer;
   width: calc(100% + 8px);
 }
 
-.mix__row--pick:hover { background: rgba(232, 165, 58, 0.16); }
+.mix__row--pick:hover { background: rgb(var(--mustard-rgb) / 0.16); }
 .mix__row--pick:hover .mix__label { text-decoration: underline; }
 
 .mix__label {
@@ -1781,8 +1781,8 @@
 .mix__track {
   position: relative;
   height: 10px;
-  border-radius: 2px;
-  background: rgba(27, 79, 74, 0.08);
+  border-radius: var(--radius-xxs);
+  background: rgb(var(--teal-rgb) / 0.08);
 }
 
 .mix__bar {
@@ -1790,7 +1790,7 @@
   height: 100%;
   background: var(--teal);
   /* Square where it leaves the baseline, rounded at the data end. */
-  border-radius: 2px 4px 4px 2px;
+  border-radius: var(--radius-xxs) var(--radius-xs) var(--radius-xs) var(--radius-xxs);
 }
 
 /* Where the category would sit if the slice matched the active pool. */
@@ -1828,7 +1828,7 @@
 .mix__delta--over { color: var(--teal); }
 
 @media (max-width: 640px) {
-  .mix__row { grid-template-columns: 78px minmax(0, 1fr) 42px 46px; gap: 6px; }
+  .mix__row { grid-template-columns: 78px minmax(0, 1fr) 42px 46px; gap: var(--space-6); }
   .mix__row--plain { grid-template-columns: 78px minmax(0, 1fr) 26px; }
 }
 
@@ -1837,7 +1837,7 @@
 .cadence {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
   /* Scrolls inside .day-table-wrap rather than squashing the cells to nothing. */
   min-width: 440px;
 }
@@ -1846,7 +1846,7 @@
   display: grid;
   grid-template-columns: 96px minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 }
 
 .cadence__label {
@@ -1856,18 +1856,18 @@
 }
 
 /* 2px of surface between cells is what separates them — no borders. */
-.cadence__cells { display: flex; gap: 2px; }
+.cadence__cells { display: flex; gap: var(--space-2); }
 
 .cadence__cell {
   flex: 1;
   height: 12px;
-  border-radius: 2px;
-  background: rgba(27, 79, 74, 0.07);
+  border-radius: var(--radius-xxs);
+  background: rgb(var(--teal-rgb) / 0.07);
 }
 
 .cadence__cell--on { background: var(--teal); }
 
-.cadence__row--axis { margin-top: 4px; }
+.cadence__row--axis { margin-top: var(--space-4); }
 
 .cadence__tick {
   font-size: var(--fs-xs);
@@ -1878,18 +1878,18 @@
 .cadence__tick--end { margin-left: auto; }
 
 /* Sub-heading row inside a panel: title left, its own control right. */
-.analytics-head--sub { margin-bottom: 8px; }
+.analytics-head--sub { margin-bottom: var(--space-8); }
 /* Right-hand cluster of that row (filter + Refresh); wraps together at 375px. */
 .analytics-head__tools {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-10);
   flex-wrap: wrap;
 }
 
 .btn--small {
   font-size: var(--fs-xs);
-  padding: 4px 12px;
+  padding: var(--space-4) var(--space-12);
 }
 
 .link-btn {
@@ -1912,9 +1912,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  padding: 8px 0;
-  border-bottom: 1px dashed var(--paper-edge);
+  gap: var(--space-10);
+  padding: var(--space-8) 0;
+  border-bottom: var(--border-hair) dashed var(--paper-edge);
   font-size: var(--fs-md);
 }
 
@@ -1931,50 +1931,50 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  padding: 8px 10px;
-  border-bottom: 2px solid var(--paper-edge);
+  padding: var(--space-8) var(--space-10);
+  border-bottom: var(--border-medium) solid var(--paper-edge);
 }
 
 .admin-table td {
-  padding: 9px 10px;
-  border-bottom: 1px solid var(--paper-edge);
+  padding: var(--space-10) var(--space-10);
+  border-bottom: var(--border-hair) solid var(--paper-edge);
   vertical-align: middle;
 }
 
-.admin-table tr:hover td { background: rgba(232, 165, 58, 0.12); cursor: pointer; }
+.admin-table tr:hover td { background: var(--mustard-wash); cursor: pointer; }
 
 .badge {
   display: inline-block;
   font-size: var(--fs-xs);
-  border-radius: 999px;
-  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  padding: var(--space-2) var(--space-10);
   background: var(--hit-soft);
   color: var(--hit);
-  border: 1px solid var(--hit);
+  border: var(--border-hair) solid var(--hit);
 }
 
-.badge--warn { background: var(--near-soft); color: #9a6516; border-color: var(--near); }
+.badge--warn { background: var(--near-soft); color: var(--mustard-ink); border-color: var(--near); }
 .badge--off { background: var(--miss-soft); color: var(--ink-soft); border-color: var(--miss); }
 /* Alcohol-free. Teal rather than the near/warn mustard: it is a fact about the
    drink, not a problem with it. */
 .badge--soft { background: var(--hit-soft); color: var(--hit-ink); border-color: var(--hit); }
 /* Sits beside the dish name, not in the Status column — a dish's origin is not
    a state it can fail, and the ready/incomplete read must stay unambiguous. */
-.badge--fan { margin-left: 8px; background: var(--near-soft); color: #9a6516; border-color: var(--near); }
+.badge--fan { margin-left: var(--space-8); background: var(--near-soft); color: var(--mustard-ink); border-color: var(--near); }
 
 .filter-row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-8);
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-12);
 }
 
 .filter-row input,
 .filter-row select {
-  border: 1.5px solid var(--ink-soft);
+  border: var(--border-thin) solid var(--ink-soft);
   border-radius: var(--radius);
-  padding: 8px 12px;
-  background: #fffdf6;
+  padding: var(--space-8) var(--space-12);
+  background: var(--paper-bright);
 }
 
 .filter-row input { flex: 1; min-width: 160px; }
@@ -1988,12 +1988,12 @@
    that, and they give the nine labels a single left edge. */
 
 .dish-filters {
-  border-bottom: 1.5px dashed var(--paper-edge);
-  padding-bottom: 12px;
-  margin-bottom: 14px;
+  border-bottom: var(--border-thin) dashed var(--paper-edge);
+  padding-bottom: var(--space-12);
+  margin-bottom: var(--space-14);
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: var(--space-8);
 }
 
 /* Grid, not flex: the search box takes the slack and the two controls to its
@@ -2002,15 +2002,15 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   margin-bottom: 3px;
 }
 
 .dish-filters__search {
-  border: 1.5px solid var(--ink-soft);
+  border: var(--border-thin) solid var(--ink-soft);
   border-radius: var(--radius);
-  padding: 7px 12px;
-  background: #fffdf6;
+  padding: var(--space-8) var(--space-12);
+  background: var(--paper-bright);
   font-family: var(--font-body);
   font-size: var(--fs-md);
 }
@@ -2018,7 +2018,7 @@
 .sort-picker {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
 }
 
 .sort-picker span {
@@ -2030,10 +2030,10 @@
 }
 
 .sort-picker select {
-  border: 1.5px solid var(--ink-soft);
+  border: var(--border-thin) solid var(--ink-soft);
   border-radius: var(--radius);
-  padding: 6px 10px;
-  background: #fffdf6;
+  padding: var(--space-6) var(--space-10);
+  background: var(--paper-bright);
   font-family: var(--font-body);
   font-size: var(--fs-sm);
 }
@@ -2042,7 +2042,7 @@
 .facet {
   display: grid;
   grid-template-columns: 92px minmax(0, 1fr);
-  gap: 10px;
+  gap: var(--space-10);
   align-items: start;
 }
 
@@ -2053,13 +2053,13 @@
   text-transform: uppercase;
   color: var(--ink-soft);
   /* Optically centres the label on the first row of chips. */
-  padding-top: 8px;
+  padding-top: var(--space-8);
 }
 
 .facet__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: var(--space-6);
   align-items: center;
 }
 
@@ -2067,14 +2067,14 @@
   display: inline-flex;
   align-items: center;
   height: 26px;
-  padding: 0 9px;
-  gap: 5px;
+  padding: 0 var(--space-10);
+  gap: var(--space-6);
   font-family: var(--font-body);
   font-size: var(--fs-xs);
   line-height: 1;
-  border: 1.5px solid var(--paper-edge);
-  border-radius: 999px;
-  background: #fffdf6;
+  border: var(--border-thin) solid var(--paper-edge);
+  border-radius: var(--radius-pill);
+  background: var(--paper-bright);
   color: var(--ink);
   cursor: pointer;
   white-space: nowrap;
@@ -2115,10 +2115,10 @@
 
 .country-picker {
   height: 26px;
-  border: 1.5px dashed var(--ink-soft);
-  border-radius: 999px;
-  padding: 0 11px;
-  background: #fffdf6;
+  border: var(--border-thin) dashed var(--ink-soft);
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-12);
+  background: var(--paper-bright);
   font-family: var(--font-body);
   font-size: var(--fs-xs);
   width: 150px;
@@ -2128,11 +2128,11 @@
 .facet-more {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   height: 26px;
-  padding: 0 10px;
-  border: 1.5px dashed var(--paper-edge);
-  border-radius: 999px;
+  padding: 0 var(--space-10);
+  border: var(--border-thin) dashed var(--paper-edge);
+  border-radius: var(--radius-pill);
   background: none;
   font-family: var(--font-body);
   font-size: var(--fs-xs);
@@ -2152,7 +2152,7 @@
 /* Every cell on this table is one line: mixing one- and two-line cells down a
    column makes even a well-aligned table look lumpy. */
 .admin-table--dishes td,
-.admin-table--dishes th { padding: 7px 8px; }
+.admin-table--dishes th { padding: var(--space-8) var(--space-8); }
 
 .admin-table--dishes td { white-space: nowrap; }
 
@@ -2162,16 +2162,16 @@
 .cell-dim { color: var(--ink-soft); }
 
 .badge--booked {
-  margin-left: 5px;
+  margin-left: var(--space-6);
   background: var(--near-soft);
-  color: #9a6516;
+  color: var(--mustard-ink);
   border-color: var(--near);
 }
 
 @media (max-width: 640px) {
   .dish-filters__bar { grid-template-columns: 1fr; }
-  .facet { grid-template-columns: 1fr; gap: 2px; }
-  .facet__label { padding-top: 4px; }
+  .facet { grid-template-columns: 1fr; gap: var(--space-2); }
+  .facet__label { padding-top: var(--space-4); }
   .facet-count { margin-left: 0; }
   .admin-table--dishes td { white-space: normal; }
 }
@@ -2188,7 +2188,7 @@
   .editor-grid { grid-template-columns: 1fr; }
 }
 
-.field { margin-bottom: 12px; }
+.field { margin-bottom: var(--space-12); }
 
 .field label {
   display: block;
@@ -2197,17 +2197,17 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-4);
 }
 
 .field input,
 .field select,
 .field textarea {
   width: 100%;
-  border: 1.5px solid var(--ink-soft);
-  border-radius: 8px;
-  padding: 8px 11px;
-  background: #fffdf6;
+  border: var(--border-thin) solid var(--ink-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-8) var(--space-12);
+  background: var(--paper-bright);
 }
 
 .field textarea { resize: vertical; min-height: 52px; line-height: 1.4; }
@@ -2231,7 +2231,7 @@
 .attr-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 10px;
+  gap: var(--space-10);
 }
 
 /* ingredient tag input */
@@ -2239,18 +2239,18 @@
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  border: 1.5px solid var(--ink-soft);
-  border-radius: 8px;
-  padding: 6px;
-  background: #fffdf6;
+  gap: var(--space-6);
+  border: var(--border-thin) solid var(--ink-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  background: var(--paper-bright);
 }
 
 .tags input {
   border: none;
   flex: 1;
   min-width: 120px;
-  padding: 4px 6px;
+  padding: var(--space-4) var(--space-6);
   background: transparent;
 }
 
@@ -2259,12 +2259,12 @@
 .tag {
   background: var(--teal);
   color: var(--cream);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: var(--fs-xs);
-  padding: 3px 4px 3px 10px;
+  padding: 3px var(--space-4) 3px var(--space-10);
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-4);
 }
 
 .tag button {
@@ -2288,27 +2288,27 @@
   top: calc(100% + 2px);
   left: 0;
   right: 0;
-  background: #fffdf6;
-  border: 1.5px solid var(--ink-soft);
-  border-radius: 8px;
+  background: var(--paper-bright);
+  border: var(--border-thin) solid var(--ink-soft);
+  border-radius: var(--radius-md);
   list-style: none;
   margin: 0;
-  padding: 4px;
+  padding: var(--space-4);
   z-index: 20;
   max-height: 180px;
   overflow-y: auto;
-  box-shadow: 0 10px 24px rgba(20, 17, 16, 0.2);
+  box-shadow: var(--shadow-flyout);
 }
 
-.tag-suggest__list li { padding: 6px 10px; border-radius: 6px; font-size: var(--fs-md); }
+.tag-suggest__list li { padding: var(--space-6) var(--space-10); border-radius: var(--radius-sm); font-size: var(--fs-md); }
 .tag-suggest__list li:hover, .tag-suggest__list li.hl { background: var(--mustard); cursor: pointer; }
 .tag-suggest__new { font-style: italic; color: var(--ink-soft); }
 
 .preview-pane {
-  background: rgba(27, 79, 74, 0.06);
-  border: 1.5px dashed var(--teal);
+  background: var(--teal-wash);
+  border: var(--border-thin) dashed var(--teal);
   border-radius: var(--radius);
-  padding: 12px;
+  padding: var(--space-12);
 }
 
 .preview-pane h3 {
@@ -2317,7 +2317,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--teal);
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-10);
 }
 
 /* schedule */
@@ -2327,16 +2327,16 @@
 .sched-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 6px;
-  border-bottom: 1px solid var(--paper-edge);
+  gap: var(--space-10);
+  padding: var(--space-8) var(--space-6);
+  border-bottom: var(--border-hair) solid var(--paper-edge);
   flex-wrap: wrap;
 }
 
 /* A served day is settled, so it recedes — but not out of reach: its Edit and
    Test buttons still work, and 0.5 opacity took them below readable. */
 .sched-row--past { opacity: 0.68; }
-.sched-row--today { background: rgba(232, 165, 58, 0.18); border-radius: var(--radius-paper); }
+.sched-row--today { background: rgb(var(--mustard-rgb) / 0.18); border-radius: var(--radius-paper); }
 .sched-row--empty .sched-dish::placeholder { color: var(--cherry); font-style: italic; opacity: 1; }
 
 .sched-date {
@@ -2355,7 +2355,7 @@
 .sched-meta {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-6);
   flex: 1 1 200px;
   flex-wrap: wrap;
   font-size: var(--fs-xs);
@@ -2363,8 +2363,8 @@
 }
 
 .sched-tag {
-  border-radius: 999px;
-  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  padding: 1px var(--space-8);
   background: var(--miss-soft);
   color: var(--ink-soft);
   white-space: nowrap;
@@ -2378,11 +2378,11 @@
    border carries it as well as the colour, since a tint alone at this size is
    easy to miss on a scan. */
 .sched-rest--soon {
-  color: #9a6516;
+  color: var(--mustard-ink);
   background: var(--near-soft);
-  border: 1px solid var(--near);
-  border-radius: 999px;
-  padding: 1px 8px;
+  border: var(--border-hair) solid var(--near);
+  border-radius: var(--radius-pill);
+  padding: 1px var(--space-8);
 }
 
 /* The dish picker: an input with a list this stylesheet draws, not a native
@@ -2404,12 +2404,12 @@
   z-index: 20;
   list-style: none;
   margin: 0;
-  padding: 4px;
+  padding: var(--space-4);
   max-height: 280px;
   overflow-y: auto;
   background: var(--paper);
-  border: 2px solid var(--teal);
-  border-radius: 8px;
+  border: var(--border-medium) solid var(--teal);
+  border-radius: var(--radius-md);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
 }
 
@@ -2421,8 +2421,8 @@
   text-align: left;
   background: none;
   border: none;
-  border-radius: 6px;
-  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-6) var(--space-8);
   cursor: pointer;
   font: inherit;
 }
@@ -2438,7 +2438,7 @@
 .sched-flash {
   flex-basis: 100%;
   font-size: var(--fs-xs);
-  padding: 4px 6px 0;
+  padding: var(--space-4) var(--space-6) 0;
   color: var(--cherry);
 }
 
@@ -2456,7 +2456,7 @@
 .sched-row > .btn-row { justify-content: flex-end; }
 
 .sched-summary {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-8);
   font-size: var(--fs-sm);
   color: var(--ink);
 }
@@ -2465,7 +2465,7 @@
    is a reading rather than a to-do: the gap above is something to fill, this
    is something to know before you fill it. */
 .sched-balance {
-  margin: -4px 0 8px;
+  margin: -4px 0 var(--space-8);
   font-size: var(--fs-sm);
   color: var(--ink-soft);
 }
@@ -2474,7 +2474,7 @@
    that was missing, so the board can page past its own six weeks. */
 .sched-window {
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-10);
 }
 
 .sched-window__span {
@@ -2502,8 +2502,8 @@
   background: var(--cherry);
   color: #fff;
   border-radius: var(--radius-paper);
-  padding: 8px 12px;
-  margin-bottom: 10px;
+  padding: var(--space-8) var(--space-12);
+  margin-bottom: var(--space-10);
   font-size: var(--fs-md);
 }
 
@@ -2511,10 +2511,10 @@
   font-family: var(--font-gothic);
   background: var(--hit-soft);
   color: var(--hit);
-  border: 1px solid var(--hit);
+  border: var(--border-hair) solid var(--hit);
   border-radius: var(--radius-paper);
-  padding: 8px 12px;
-  margin-bottom: 10px;
+  padding: var(--space-8) var(--space-12);
+  margin-bottom: var(--space-10);
   font-size: var(--fs-sm);
 }
 
@@ -2522,13 +2522,13 @@
   .admin-table thead { display: none; }
   .admin-table, .admin-table tbody, .admin-table tr, .admin-table td { display: block; width: 100%; }
   .admin-table tr {
-    border: 1.5px solid var(--paper-edge);
+    border: var(--border-thin) solid var(--paper-edge);
     border-radius: var(--radius-paper);
-    margin-bottom: 10px;
-    padding: 6px 4px;
-    background: #fffdf6;
+    margin-bottom: var(--space-10);
+    padding: var(--space-6) var(--space-4);
+    background: var(--paper-bright);
   }
-  .admin-table td { border: none; padding: 4px 10px; }
+  .admin-table td { border: none; padding: var(--space-4) var(--space-10); }
   .admin-table td[data-label]::before {
     content: attr(data-label) ": ";
     font-family: var(--font-display);
@@ -2546,7 +2546,7 @@
 .modal .daypick__title {
   font-family: var(--font-gothic);
   color: var(--teal);
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-4);
   font-size: var(--fs-xl);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -2557,34 +2557,34 @@
   text-align: center;
   color: var(--ink-soft);
   font-size: var(--fs-md);
-  margin: 0 0 14px;
+  margin: 0 0 var(--space-14);
 }
 
 .daypick__legend {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px 14px;
+  gap: var(--space-6) var(--space-14);
   font-size: var(--fs-xs);
   color: var(--ink-soft);
-  margin-bottom: 14px;
+  margin-bottom: var(--space-14);
 }
-.daypick__legend span { display: inline-flex; align-items: center; gap: 5px; }
+.daypick__legend span { display: inline-flex; align-items: center; gap: var(--space-6); }
 
 .daypick__swatch {
   width: 12px;
   height: 12px;
-  border-radius: 3px;
-  border: 1px solid var(--paper-edge);
+  border-radius: var(--radius-paper);
+  border: var(--border-hair) solid var(--paper-edge);
 }
 .daypick__swatch--active { background: var(--hit-soft); border-color: var(--hit); }
 .daypick__swatch--selected { background: var(--teal); border-color: var(--teal); }
 .daypick__swatch--quiet { background: var(--miss-soft); }
 
 /* "Jump to today" shortcut, so a far-back month doesn't need scrolling back. */
-.daypick__jump { display: block; margin: 0 auto 16px; }
+.daypick__jump { display: block; margin: 0 auto var(--space-16); }
 
-.daypick__month { margin-bottom: 16px; }
+.daypick__month { margin-bottom: var(--space-16); }
 
 .daypick__month-name {
   font-family: var(--font-gothic);
@@ -2593,13 +2593,13 @@
   text-transform: uppercase;
   color: var(--ink);
   text-align: center;
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-8);
 }
 
 .daypick__grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 5px;
+  gap: var(--space-6);
 }
 
 .daypick__dow {
@@ -2608,7 +2608,7 @@
   font-family: var(--font-gothic);
   letter-spacing: 0.06em;
   color: var(--ink-soft);
-  padding-bottom: 2px;
+  padding-bottom: var(--space-2);
 }
 
 .daypick__day {
@@ -2616,9 +2616,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid var(--paper-edge);
-  border-radius: 7px;
-  background: #fffdf6;
+  border: var(--border-thin) solid var(--paper-edge);
+  border-radius: var(--radius-sm);
+  background: var(--paper-bright);
   color: var(--ink);
   font-family: var(--font-body);
   font-size: var(--fs-xs);
@@ -2676,7 +2676,7 @@
 .announce-editor__row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: var(--space-10);
 }
 
 @media (max-width: 860px) {
@@ -2690,13 +2690,13 @@
    overflow — must stay inherited, or the preview drifts. */
 .announce-preview {
   max-height: none;
-  box-shadow: 0 6px 18px rgba(10, 20, 18, 0.18);
+  box-shadow: var(--shadow-raise);
 }
 
 .announce-group { margin-top: 22px; }
 
 .announce-group__title {
-  margin: 0 0 2px;
+  margin: 0 0 var(--space-2);
   font-family: var(--font-gothic);
   font-size: var(--fs-lg);
   letter-spacing: 0.06em;
@@ -2706,9 +2706,9 @@
 
 .announce-group__count {
   display: inline-block;
-  margin-left: 6px;
-  padding: 0 7px;
-  border-radius: 10px;
+  margin-left: var(--space-6);
+  padding: 0 var(--space-8);
+  border-radius: var(--radius);
   background: var(--miss-soft);
   color: var(--ink-soft);
   font-size: var(--fs-xs);
@@ -2716,8 +2716,8 @@
 
 .announce-list {
   display: grid;
-  gap: 12px;
-  margin-top: 10px;
+  gap: var(--space-12);
+  margin-top: var(--space-10);
 }
 
 /* Content on the left, reach on the right — the numbers are the answer to
@@ -2725,12 +2725,12 @@
 .announce-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 170px;
-  gap: 16px;
-  padding: 14px 16px;
-  border: 1.5px solid var(--paper-edge);
+  gap: var(--space-16);
+  padding: var(--space-14) var(--space-16);
+  border: var(--border-thin) solid var(--paper-edge);
   border-left: 5px solid var(--miss);
   border-radius: var(--radius-paper);
-  background: #fffdf6;
+  background: var(--paper-bright);
 }
 
 @media (max-width: 720px) {
@@ -2744,7 +2744,7 @@
 .announce-card--retired { border-left-color: var(--cherry); }
 
 .announce-card__header {
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-6);
   font-family: var(--font-display);
   font-size: var(--fs-lg);
   line-height: 1.25;
@@ -2756,29 +2756,29 @@
   font-size: var(--fs-md);
   line-height: 1.5;
 }
-.announce-card__body p { margin: 0 0 8px; }
+.announce-card__body p { margin: 0 0 var(--space-8); }
 .announce-card__body a { color: var(--cherry-dark); }
 
 .announce-card__meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin: 8px 0 10px;
+  gap: var(--space-8);
+  margin: var(--space-8) 0 var(--space-10);
   font-size: var(--fs-sm);
   color: var(--ink-soft);
 }
 
 .reach {
-  border-left: 1.5px dashed var(--paper-edge);
-  padding-left: 14px;
+  border-left: var(--border-thin) dashed var(--paper-edge);
+  padding-left: var(--space-14);
 }
 
 @media (max-width: 720px) {
   .reach {
     border-left: none;
-    border-top: 1.5px dashed var(--paper-edge);
-    padding: 10px 0 0;
+    border-top: var(--border-thin) dashed var(--paper-edge);
+    padding: var(--space-10) 0 0;
   }
 }
 
@@ -2799,8 +2799,8 @@
 .reach__surfaces {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin: 8px 0 0;
+  gap: var(--space-6);
+  margin: var(--space-8) 0 0;
 }
 
 /* Reach per ET day. One hue for every bar on purpose: the days are a sequence,
@@ -2808,16 +2808,16 @@
 .reach__spark {
   display: flex;
   align-items: flex-end;
-  gap: 2px;
+  gap: var(--space-2);
   height: 38px;
-  margin-top: 10px;
+  margin-top: var(--space-10);
 }
 
 .reach__bar {
   flex: 1 1 0;
   min-width: 3px;
   max-width: 14px;
-  border-radius: 2px 2px 0 0;
+  border-radius: var(--radius-xxs) var(--radius-xxs) 0 0;
   background: var(--teal);
 }
 
@@ -2840,7 +2840,7 @@
 .finish__of .rate-range,
 .dish-table .rate-range {
   display: inline;
-  margin-left: 5px;
+  margin-left: var(--space-6);
 }
 
 .finish__of .rate-range::before,
@@ -2853,7 +2853,7 @@
 /* The dashboard's explanations are load-bearing but they don't all need to be on
    screen at once — the long ones fold away, so the charts keep the vertical
    space and the reasoning is still one click from the thing it explains. */
-.dash-details { margin-top: 10px; }
+.dash-details { margin-top: var(--space-10); }
 
 .dash-details > summary {
   font-family: var(--font-gothic);
@@ -2870,26 +2870,26 @@
 .dash-details > summary::before {
   content: "▸ ";
   display: inline-block;
-  transition: transform 0.15s ease;
+  transition: transform var(--dur-fast) ease;
 }
 
 .dash-details[open] > summary::before { content: "▾ "; }
 .dash-details > summary:hover { color: var(--cherry); }
-.dash-details > .dash-note { margin-top: 8px; }
+.dash-details > .dash-note { margin-top: var(--space-8); }
 
 /* A folded table keeps its heading looking like a heading, not like a link. */
 .dash-details--table > summary { text-transform: none; letter-spacing: 0; }
 .dash-details--table > summary h2 { display: inline; font-size: var(--fs-lg); }
-.dash-details--table > .day-table-wrap { margin-top: 12px; }
+.dash-details--table > .day-table-wrap { margin-top: var(--space-12); }
 
 /* ---- Dish report --------------------------------------------------------- */
 
 .dish-report__headline {
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-12);
   font-size: var(--fs-md);
   color: var(--ink);
   border-left: 4px solid var(--mustard);
-  padding-left: 10px;
+  padding-left: var(--space-10);
 }
 
 .dish-table td { vertical-align: middle; }
@@ -2904,9 +2904,9 @@
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 14px;
+  gap: var(--space-4) var(--space-14);
   width: 100%;
-  padding: 14px 20px;
+  padding: var(--space-14) var(--space-20);
   font: inherit;
   color: inherit;
   text-align: left;
@@ -2924,7 +2924,7 @@
 }
 .fold__title::before { content: "▸ "; }
 .fold__hint { font-size: var(--fs-sm); color: var(--ink-soft); }
-.fold__hide { margin: -8px 0 16px; }
+.fold__hide { margin: -8px 0 var(--space-16); }
 
 /* A dish with too few finishes to have a record. Dimmed rather than dropped —
    "how did Wednesday's dish go" is a real question, and a missing row answers it
@@ -2934,7 +2934,7 @@
 /* The Direct row in the arrivals table. It is the baseline every tagged source
    is read against, not another campaign, so it's ruled off rather than coloured
    — a hue here would put it in the running with the rows it's the yardstick for. */
-.src-table__row--base td { border-bottom: 1px solid var(--ink-soft); }
+.src-table__row--base td { border-bottom: var(--border-hair) solid var(--ink-soft); }
 .src-table__row--base .ev-when { font-style: italic; }
 
 /* One dish's guess spread, inline: six win buckets then the losses. Small enough
@@ -2943,7 +2943,7 @@
 .minidist {
   display: inline-flex;
   align-items: flex-end;
-  gap: 2px;
+  gap: var(--space-2);
   height: 22px;
   min-width: 56px;
 }
@@ -2960,13 +2960,13 @@
 
 /* One hue for every bar, like the menu-mix charts: these are nominal categories,
    so bar length already carries the value and seven colours would re-encode it. */
-.wprofile { display: flex; flex-direction: column; gap: 5px; }
+.wprofile { display: flex; flex-direction: column; gap: var(--space-6); }
 
 .wprofile__row {
   display: grid;
   grid-template-columns: 34px 1fr 40px auto;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   font-size: var(--fs-sm);
 }
 
@@ -2979,8 +2979,8 @@
 }
 
 .wprofile__track {
-  background: rgba(27, 79, 74, 0.08);
-  border-radius: 3px;
+  background: rgb(var(--teal-rgb) / 0.08);
+  border-radius: var(--radius-paper);
   height: 14px;
   overflow: hidden;
 }
@@ -2989,7 +2989,7 @@
   display: block;
   height: 100%;
   background: var(--teal);
-  border-radius: 3px;
+  border-radius: var(--radius-paper);
 }
 
 /* A weekday that hasn't come around enough times for its average to mean much.
@@ -2998,7 +2998,7 @@
   background: repeating-linear-gradient(
     45deg,
     var(--teal) 0 4px,
-    rgba(27, 79, 74, 0.35) 4px 8px
+    rgb(var(--teal-rgb) / 0.35) 4px 8px
   );
 }
 
@@ -3027,7 +3027,7 @@
 .heat__grid {
   display: grid;
   grid-template-columns: 30px repeat(24, minmax(11px, 1fr)) 34px;
-  gap: 2px;
+  gap: var(--space-2);
   min-width: 420px;
   align-items: stretch;
 }
@@ -3045,7 +3045,7 @@
 
 .heat__wtick {
   text-align: right;
-  padding-right: 4px;
+  padding-right: var(--space-4);
   align-self: center;
   text-transform: uppercase;
 }
@@ -3056,7 +3056,7 @@
   display: block;
   aspect-ratio: 1;
   min-height: 11px;
-  border-radius: 2px;
+  border-radius: var(--radius-xxs);
   background: var(--teal);
 }
 
@@ -3064,7 +3064,7 @@
    cells are 0 or 1, and a ramp starting at "faint" makes an empty 4am look like
    a measurement — the grid's texture should be where play actually is. */
 .heat__cell--none {
-  background: rgba(27, 79, 74, 0.07);
+  background: rgb(var(--teal-rgb) / 0.07);
 }
 
 /* The two marginals: the same grid summed each way, drawn as bars so the whole
@@ -3079,7 +3079,7 @@
   display: block;
   height: 8px;
   min-width: 1px;
-  border-radius: 2px;
+  border-radius: var(--radius-xxs);
   background: var(--mustard);
 }
 
@@ -3097,7 +3097,7 @@
   background: var(--mustard);
 }
 
-.heat__caption { margin-top: 10px; }
+.heat__caption { margin-top: var(--space-10); }
 
 /* ---- Experiments --------------------------------------------------------- */
 
@@ -3110,19 +3110,19 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-4);
 }
 
 .xp__hypothesis {
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-12);
   font-size: var(--fs-md);
   color: var(--ink);
   border-left: 4px solid var(--teal);
-  padding-left: 10px;
+  padding-left: var(--space-10);
   font-style: italic;
 }
 
-.xp__controls { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+.xp__controls { display: flex; flex-wrap: wrap; gap: var(--space-12); margin-bottom: var(--space-12); }
 .xp__control { flex: 0 1 auto; }
 
 .xp__control > span {
@@ -3136,20 +3136,20 @@
 }
 
 .xp__control select {
-  border: 1.5px solid var(--ink-soft);
-  border-radius: 8px;
-  padding: 5px 9px;
-  background: #fffdf6;
+  border: var(--border-thin) solid var(--ink-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-6) var(--space-10);
+  background: var(--paper-bright);
   font-family: inherit;
 }
 
 /* Reading a metric you didn't predict is a different kind of evidence, and the
    panel says so rather than presenting both at the same weight. */
 .xp__offplan {
-  margin: 0 0 12px;
-  padding: 8px 11px;
+  margin: 0 0 var(--space-12);
+  padding: var(--space-8) var(--space-12);
   border-radius: var(--radius-paper);
-  background: rgba(232, 165, 58, 0.16);
+  background: rgb(var(--mustard-rgb) / 0.16);
   font-size: var(--fs-sm);
   color: var(--ink);
 }
@@ -3158,12 +3158,12 @@
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 9px 12px;
+  gap: var(--space-10);
+  padding: var(--space-10) var(--space-12);
   border-radius: var(--radius-paper);
   border-left: 5px solid var(--miss);
-  background: rgba(27, 79, 74, 0.06);
-  margin-bottom: 12px;
+  background: var(--teal-wash);
+  margin-bottom: var(--space-12);
 }
 
 .xp__verdict strong { font-family: var(--font-display); font-size: var(--fs-md); }
@@ -3197,17 +3197,17 @@
 .xp__sides {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-14);
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-12);
 }
 
 .xp__side {
   min-width: 84px;
   text-align: center;
-  background: rgba(27, 79, 74, 0.06);
+  background: var(--teal-wash);
   border-radius: var(--radius-paper);
-  padding: 9px 12px;
+  padding: var(--space-10) var(--space-12);
 }
 
 .xp__side-num {
@@ -3235,9 +3235,9 @@
   margin: 0;
   font-size: var(--fs-sm);
   color: var(--ink);
-  padding: 8px 11px;
+  padding: var(--space-8) var(--space-12);
   border-radius: var(--radius-paper);
-  background: rgba(27, 79, 74, 0.06);
+  background: var(--teal-wash);
 }
 
 /* The daily bars either side of the ship date. Deliberately shown next to the
@@ -3246,11 +3246,11 @@
 .ba {
   display: flex;
   align-items: flex-end;
-  gap: 2px;
+  gap: var(--space-2);
   height: 46px;
   flex: 1 1 220px;
   min-width: 180px;
-  border-bottom: 1px solid var(--paper-edge);
+  border-bottom: var(--border-hair) solid var(--paper-edge);
 }
 
 .ba__col { flex: 1 1 0; height: 100%; display: flex; align-items: flex-end; min-width: 2px; }
@@ -3270,7 +3270,7 @@
 .ba__bar--none { background: transparent; }
 
 /* The ship date itself, which belongs to the after period. */
-.ba__col--ship { border-left: 2px solid var(--cherry); }
+.ba__col--ship { border-left: var(--border-medium) solid var(--cherry); }
 
 /* ---- Experiment markers on the time series -------------------------------- */
 
@@ -3294,7 +3294,7 @@
 }
 
 /* On the spark there's no room for a rule, so the column marks its own base. */
-.spark__col--ship { border-bottom: 3px solid var(--cherry); }
+.spark__col--ship { border-bottom: var(--border-thick) solid var(--cherry); }
 
 /* ---- The funnel's top ----------------------------------------------------- */
 
@@ -3311,7 +3311,7 @@
    captions for the row above, not items you'd act on individually. */
 .device-data__facts {
   list-style: none;
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-10);
   padding: 0;
   color: var(--ink-soft);
   font-size: var(--fs-md);
@@ -3323,8 +3323,8 @@
    note is allowed to shout. Cherry because it's the delete's colour, not because
    anything is wrong. */
 .dash-note--warn {
-  margin-top: 12px;
-  padding: 8px 12px;
+  margin-top: var(--space-12);
+  padding: var(--space-8) var(--space-12);
   border-left: 4px solid var(--cherry);
   background: rgba(201, 53, 74, 0.08);
   color: var(--ink);
@@ -3353,7 +3353,7 @@
   font-size: var(--fs-lg);
   line-height: 1.25;
   color: var(--teal);
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-6);
 }
 
 /* GitHub's own label colour. Decorative — the name beside it is the label, and
@@ -3362,7 +3362,7 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  border: 1px solid rgba(43, 35, 32, 0.25);
+  border: var(--border-hair) solid rgb(var(--ink-rgb) / 0.25);
   flex: none;
 }
 
@@ -3371,7 +3371,7 @@
 .issue-context__toggle {
   display: flex !important;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-8);
   font-family: var(--font-body) !important;
   font-size: var(--fs-md) !important;
   letter-spacing: 0 !important;
@@ -3387,14 +3387,14 @@
 
 .issue-context {
   list-style: none;
-  margin: 6px 0 0;
-  padding: 7px 10px;
-  border-left: 3px solid var(--paper-edge);
+  margin: var(--space-6) 0 0;
+  padding: var(--space-8) var(--space-10);
+  border-left: var(--border-thick) solid var(--paper-edge);
   font-size: var(--fs-sm);
   color: var(--ink-soft);
 }
 
-.issue-context li + li { margin-top: 2px; }
+.issue-context li + li { margin-top: var(--space-2); }
 
 /* The user agent is the one line that can run long enough to widen the card. */
 .issue-context__ua {
@@ -3403,9 +3403,9 @@
 }
 
 .issue-open {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--paper-edge);
+  margin-top: var(--space-14);
+  padding-top: var(--space-12);
+  border-top: var(--border-hair) dashed var(--paper-edge);
 }
 
 .issue-list {
@@ -3416,17 +3416,17 @@
 }
 
 .issue-list__row {
-  padding: 6px 0;
-  border-bottom: 1px solid var(--paper-edge);
+  padding: var(--space-6) 0;
+  border-bottom: var(--border-hair) solid var(--paper-edge);
   line-height: 1.35;
 }
 
 .issue-list__row:last-child { border-bottom: none; }
 
-.issue-list__label { margin-left: 6px; font-size: var(--fs-xs); }
+.issue-list__label { margin-left: var(--space-6); font-size: var(--fs-xs); }
 
 .issue-list__when {
-  margin-left: 6px;
+  margin-left: var(--space-6);
   color: var(--ink-soft);
   font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
@@ -3441,8 +3441,8 @@
 .night-board {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 14px;
-  margin-bottom: 10px;
+  gap: var(--space-14);
+  margin-bottom: var(--space-10);
 }
 
 .night-board__label {
@@ -3455,7 +3455,7 @@
 }
 
 .night-board__drink {
-  margin: 2px 0 0;
+  margin: var(--space-2) 0 0;
   font-family: var(--font-display);
   font-size: var(--fs-lg);
 }
@@ -3463,14 +3463,14 @@
 .night-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 14px;
-  margin-bottom: 10px;
+  gap: var(--space-14);
+  margin-bottom: var(--space-10);
 }
 
 .night-stat {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-2);
 }
 
 .night-stat__num {
@@ -3508,10 +3508,10 @@
 .night-hours {
   display: flex;
   align-items: flex-end;
-  gap: 2px;
+  gap: var(--space-2);
   height: 110px;
-  padding: 12px 0 14px;
-  margin-bottom: 6px;
+  padding: var(--space-12) 0 var(--space-14);
+  margin-bottom: var(--space-6);
 }
 
 .night-hours__col {
@@ -3532,13 +3532,13 @@
   content: "";
   position: absolute;
   inset: -12px 0 -14px;
-  background: rgba(27, 79, 74, 0.06);
+  background: var(--teal-wash);
 }
 
 .night-hours__bar {
   width: 100%;
   background: var(--plum);
-  border-radius: 2px 2px 0 0;
+  border-radius: var(--radius-xxs) var(--radius-xxs) 0 0;
   position: relative;
 }
 
@@ -3576,20 +3576,20 @@
 .wkpi {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: var(--space-12);
+  margin-bottom: var(--space-12);
 }
 
 .wkpi__col {
-  background: rgba(27, 79, 74, 0.06);
+  background: var(--teal-wash);
   border-radius: var(--radius-paper);
-  padding: 10px 12px;
+  padding: var(--space-10) var(--space-12);
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
 
-.wkpi__col--lead { background: rgba(232, 165, 58, 0.14); }
+.wkpi__col--lead { background: rgb(var(--mustard-rgb) / 0.14); }
 
 .wkpi__label {
   font-family: var(--font-gothic);
@@ -3622,10 +3622,10 @@
 
 .wau-legend {
   display: flex;
-  gap: 14px;
+  gap: var(--space-14);
   font-size: var(--fs-sm);
   color: var(--ink-soft);
-  margin-bottom: 6px;
+  margin-bottom: var(--space-6);
 }
 
 /* Value labels and ticks are absolutely placed, with the track's padding
@@ -3633,9 +3633,9 @@
 .wau {
   display: flex;
   align-items: stretch;
-  gap: 6px;
+  gap: var(--space-6);
   height: 150px;
-  padding: 16px 0 18px;
+  padding: var(--space-16) 0 18px;
 }
 
 .wau__col {
@@ -3652,7 +3652,7 @@
   bottom: 0;
   display: flex;
   flex-direction: column;
-  border-radius: 2px 2px 0 0;
+  border-radius: var(--radius-xxs) var(--radius-xxs) 0 0;
   overflow: hidden;
 }
 
@@ -3664,7 +3664,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  margin-bottom: 2px;
+  margin-bottom: var(--space-2);
   text-align: center;
   font-size: var(--fs-xs);
   font-variant-numeric: tabular-nums;
@@ -3684,7 +3684,7 @@
 .cohort td,
 .cohort th { text-align: center; }
 .cohort__cell { font-size: var(--fs-xs); }
-.cohort__cell--open { background: repeating-linear-gradient(135deg, transparent 0 4px, rgba(27, 79, 74, 0.07) 4px 6px); }
+.cohort__cell--open { background: repeating-linear-gradient(135deg, transparent 0 4px, rgb(var(--teal-rgb) / 0.07) 4px 6px); }
 .cohort__row--small td { color: var(--ink-soft); }
 
 .arrivals td { position: relative; }
@@ -3695,18 +3695,18 @@
   bottom: 2px;
   height: 3px;
   background: var(--teal);
-  border-radius: 2px;
+  border-radius: var(--radius-xxs);
   opacity: 0.55;
 }
 .arrivals__pct { font-weight: 700; }
 .arrivals__na { color: var(--ink-soft); font-size: var(--fs-xs); }
-.arrivals .rate-range { display: inline; margin-left: 4px; }
+.arrivals .rate-range { display: inline; margin-left: var(--space-4); }
 
 /* ---- ingredient families (Menu tab) ----
    One hue for every dot: the dashboard's four colour meanings are taken, and a
    family's identity is its ring and its label. Selection is ink, a ring nobody
    has placed yet is dashed. No transitions, like the rest of this file. */
-.iw-map { border: 1px solid var(--paper-edge); border-radius: 6px; background: var(--paper); padding: 6px; }
+.iw-map { border: var(--border-hair) solid var(--paper-edge); border-radius: var(--radius-sm); background: var(--paper); padding: var(--space-6); }
 .iw-map svg { display: block; width: 100%; height: auto; max-height: 760px; }
 .iw-ring { fill: var(--paper); fill-opacity: 0.55; stroke: var(--ink-soft); stroke-width: 1.2; cursor: pointer; }
 .iw-ring--odd { stroke-dasharray: 5 4; fill-opacity: 0.2; }
@@ -3716,36 +3716,36 @@
 .iw-dot--odd { fill: var(--miss); }
 .iw--dim { opacity: 0.2; }
 .iw-label { fill: var(--ink); pointer-events: none; font-family: var(--font-gothic, inherit); letter-spacing: 0.05em; text-transform: uppercase; paint-order: stroke; stroke: var(--paper); stroke-width: 3.5px; stroke-linejoin: round; }
-.iw-detail { margin: 12px 0 8px; max-width: 74ch; min-height: 3.2em; }
-.iw-detail p { margin: 0 0 6px; }
-.iw-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.iw-chip { font: inherit; font-size: var(--fs-xs); font-weight: 700; padding: 3px 10px; border: 1.5px solid var(--ink-soft); background: var(--paper); color: var(--ink); border-radius: 999px; cursor: pointer; }
+.iw-detail { margin: var(--space-12) 0 var(--space-8); max-width: 74ch; min-height: 3.2em; }
+.iw-detail p { margin: 0 0 var(--space-6); }
+.iw-chips { display: flex; flex-wrap: wrap; gap: var(--space-6); }
+.iw-chip { font: inherit; font-size: var(--fs-xs); font-weight: 700; padding: 3px var(--space-10); border: var(--border-thin) solid var(--ink-soft); background: var(--paper); color: var(--ink); border-radius: var(--radius-pill); cursor: pointer; }
 .iw-chip--on { background: var(--ink); color: var(--paper); }
 .iw-chip--warn { border-color: var(--cherry); color: var(--cherry); }
 .iw-chip--warn.iw-chip--on { background: var(--cherry); color: var(--on-cherry); }
 .iw-warn { color: var(--ink); }
-.iw-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-.iw-pair label { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-xs); color: var(--ink-soft); min-width: 0; }
-.iw-pair input { font: inherit; font-size: var(--fs-md); padding: 7px 9px; border: 1.5px solid var(--ink-soft); border-radius: 6px; background: #fff; color: var(--ink); min-width: 0; width: 100%; }
-.iw-result p { margin: 0 0 8px; }
-.iw-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-.iw-tag { font-size: var(--fs-sm); border-radius: 999px; padding: 3px 11px; border: 1px solid var(--miss); color: var(--ink-soft); background: transparent; }
-.iw-tag small { font-size: var(--fs-xs); margin-left: 4px; opacity: 0.85; }
+.iw-pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-12); margin-bottom: var(--space-12); }
+.iw-pair label { display: flex; flex-direction: column; gap: var(--space-4); font-size: var(--fs-xs); color: var(--ink-soft); min-width: 0; }
+.iw-pair input { font: inherit; font-size: var(--fs-md); padding: var(--space-8) var(--space-10); border: var(--border-thin) solid var(--ink-soft); border-radius: var(--radius-sm); background: #fff; color: var(--ink); min-width: 0; width: 100%; }
+.iw-result p { margin: 0 0 var(--space-8); }
+.iw-tags { display: flex; flex-wrap: wrap; gap: var(--space-6); margin-bottom: var(--space-8); }
+.iw-tag { font-size: var(--fs-sm); border-radius: var(--radius-pill); padding: 3px var(--space-12); border: var(--border-hair) solid var(--miss); color: var(--ink-soft); background: transparent; }
+.iw-tag small { font-size: var(--fs-xs); margin-left: var(--space-4); opacity: 0.85; }
 .iw-tag--hit { background: var(--hit-soft); border-color: var(--hit); color: var(--hit-ink); font-weight: 700; }
-.iw-tag--near { background: var(--near-soft); border: 1px dashed var(--near); color: var(--ink); font-weight: 700; }
+.iw-tag--near { background: var(--near-soft); border: var(--border-hair) dashed var(--near); color: var(--ink); font-weight: 700; }
 @media (max-width: 560px) { .iw-pair { grid-template-columns: 1fr; } }
 
 /* Today's housekeeping when there is nothing to fix: one line, not two cards. */
-.panel--calm { padding-top: 12px; padding-bottom: 12px; }
+.panel--calm { padding-top: var(--space-12); padding-bottom: var(--space-12); }
 
 /* The tag on a Specials board day. Beside the weekday, in the annotation
    style, so it reads as a note about the day and never as the day's state. */
 .sched-occasion {
   display: inline-block;
-  margin-left: 8px;
-  padding: 0 6px;
-  border: 1px dashed var(--ink);
-  border-radius: 999px;
+  margin-left: var(--space-8);
+  padding: 0 var(--space-6);
+  border: var(--border-hair) dashed var(--ink);
+  border-radius: var(--radius-pill);
   font-family: var(--font-body);
   font-size: var(--fs-xs);
   line-height: 1.5;
@@ -3771,11 +3771,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-12);
   flex-wrap: wrap;
-  margin: 12px 0 0;
-  padding: 10px 12px;
-  border: 1px dashed var(--ink);
+  margin: var(--space-12) 0 0;
+  padding: var(--space-10) var(--space-12);
+  border: var(--border-hair) dashed var(--ink);
   border-radius: var(--radius-paper);
 }
 
@@ -3787,18 +3787,18 @@
 /* The folded detail spans the whole card, under the main column and the strip. */
 .occasion-details {
   grid-column: 1 / -1;
-  margin-top: 4px;
+  margin-top: var(--space-4);
 }
 
 .occasion-metric__sub {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--space-4);
   font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
 .occasion-first {
-  margin: 10px 0 0;
+  margin: var(--space-10) 0 0;
   font-size: var(--fs-md);
   color: var(--ink);
 }
@@ -3814,7 +3814,7 @@
 }
 
 .gchart__swatch--occasion {
-  border: 1px dashed var(--ink);
+  border: var(--border-hair) dashed var(--ink);
   background: color-mix(in srgb, var(--ink) 6%, transparent);
 }
 
@@ -3829,22 +3829,22 @@
   text-transform: none;
   color: var(--ink);
   font-weight: normal;
-  padding: 5px 8px;
-  border-bottom: 1px dashed var(--paper-edge);
+  padding: var(--space-6) var(--space-8);
+  border-bottom: var(--border-hair) dashed var(--paper-edge);
 }
 .regulars-table td { vertical-align: top; }
 .regulars-table__section th {
-  padding: 16px 8px 4px;
+  padding: var(--space-16) var(--space-8) var(--space-4);
   text-align: left;
   color: var(--ink);
-  border-bottom: 1px solid var(--ink-soft);
+  border-bottom: var(--border-hair) solid var(--ink-soft);
 }
 .regulars-table__section .ev-sub {
   font-family: var(--font-body);
   letter-spacing: normal;
   text-transform: none;
 }
-.regulars-table tbody:first-of-type .regulars-table__section th { padding-top: 8px; }
+.regulars-table tbody:first-of-type .regulars-table__section th { padding-top: var(--space-8); }
 
 /* ---- device check (Activity feed → a device id) ----
 
@@ -3869,22 +3869,22 @@
 }
 .modal.dcheck .modal__close { top: calc(8px + var(--tooth)); }
 .dcheck .guest-check__no { font-size: var(--fs-lg); }
-.dcheck .receipt__verdict { font-size: var(--fs-xl); margin-top: 10px; }
+.dcheck .receipt__verdict { font-size: var(--fs-xl); margin-top: var(--space-10); }
 .dcheck__head { margin-bottom: 0; }
 
 .dcheck__note {
-  margin: 6px 0 0;
+  margin: var(--space-6) 0 0;
   font-size: var(--fs-xs);
   line-height: 1.45;
   color: var(--ink-soft);
 }
 .dcheck__head .dcheck__note { text-align: center; }
-.dcheck__id { margin-top: 4px; text-align: center; overflow-wrap: anywhere; }
+.dcheck__id { margin-top: var(--space-4); text-align: center; overflow-wrap: anywhere; }
 
 /* One dashed tear between sections; the head's own rule is the first. */
-.dcheck__section { padding: 14px 0; border-bottom: 2px dashed var(--paper-edge); }
+.dcheck__section { padding: var(--space-14) 0; border-bottom: var(--border-medium) dashed var(--paper-edge); }
 .dcheck__h {
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-8);
   font-family: var(--font-gothic);
   font-weight: 400;
   font-size: var(--fs-lg);
@@ -3893,7 +3893,7 @@
   line-height: 1.1;
 }
 .dcheck__h4 {
-  margin: 14px 0 6px;
+  margin: var(--space-14) 0 var(--space-6);
   font-family: var(--font-gothic);
   font-weight: 400;
   font-size: var(--fs-md);
@@ -3911,7 +3911,7 @@
 }
 .dcheck__table th,
 .dcheck__table td {
-  padding: 5px 0 5px 8px;
+  padding: var(--space-6) 0 var(--space-6) var(--space-8);
   vertical-align: top;
   text-align: right;
   overflow-wrap: anywhere;
@@ -3932,7 +3932,7 @@
   font-weight: 400;
   text-align: left;
 }
-.dcheck__table tbody tr + tr > * { border-top: 1px dotted var(--paper-edge); }
+.dcheck__table tbody tr + tr > * { border-top: var(--border-hair) dotted var(--paper-edge); }
 .dcheck__table--rounds thead th:first-child { width: 40%; }
 .dcheck__table--vs thead th:first-child { width: 28%; }
 .dcheck__table--measures thead th:first-child { width: 40%; }
@@ -3952,16 +3952,16 @@
 .dcheck__dist thead th:nth-child(4) { width: 22%; }
 .dcheck__dist tbody th { text-align: right; }
 .dcheck__dist tbody td { vertical-align: middle; }
-.dcheck__bars { padding-left: 12px; }
+.dcheck__bars { padding-left: var(--space-12); }
 .dcheck__bar { display: block; height: 7px; min-width: 1px; box-sizing: border-box; }
 .dcheck__bar--mine { background: var(--ink); }
-.dcheck__bar--others { margin-top: 2px; border: 1px solid var(--ink-soft); }
-.dcheck__swatch { display: inline-block; width: 12px; height: 8px; margin-right: 4px; box-sizing: border-box; }
+.dcheck__bar--others { margin-top: var(--space-2); border: var(--border-hair) solid var(--ink-soft); }
+.dcheck__swatch { display: inline-block; width: 12px; height: 8px; margin-right: var(--space-4); box-sizing: border-box; }
 .dcheck__swatch--mine { background: var(--ink); }
-.dcheck__swatch--others { border: 1px solid var(--ink-soft); }
+.dcheck__swatch--others { border: var(--border-hair) solid var(--ink-soft); }
 
 /* The last weeks: a column per week, Monday at the top. */
-.dcheck__calwrap { display: flex; justify-content: center; gap: 6px; }
+.dcheck__calwrap { display: flex; justify-content: center; gap: var(--space-6); }
 .dcheck__weekdays,
 .dcheck__cal {
   display: grid;
@@ -3979,7 +3979,7 @@
   width: 14px;
   height: 14px;
   box-sizing: border-box;
-  border: 1px solid var(--paper-edge);
+  border: var(--border-hair) solid var(--paper-edge);
 }
 .dcheck__day--special { background: var(--ink); border-color: var(--ink); }
 .dcheck__day--other {
@@ -3992,21 +3992,21 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 4px 14px;
-  margin: 10px 0 0;
+  gap: var(--space-4) var(--space-14);
+  margin: var(--space-10) 0 0;
   padding: 0;
   list-style: none;
   font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
-.dcheck__legend li { display: flex; align-items: center; gap: 5px; }
+.dcheck__legend li { display: flex; align-items: center; gap: var(--space-6); }
 .dcheck__legend .dcheck__day { width: 11px; height: 11px; }
 
 .dcheck__foot {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 4px 12px;
-  margin: 14px 0 0;
+  gap: var(--space-4) var(--space-12);
+  margin: var(--space-14) 0 0;
   font-size: var(--fs-sm);
 }
 .dcheck__foot dt { color: var(--ink-soft); }

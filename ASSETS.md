@@ -172,7 +172,7 @@ already links one by one, plus a hand-rolled ZIP writer to maintain.
 | `public/press/app-icon.png` | Cloche mark on cherry ground | 1024×1024 |
 | `public/press/key-art.png` + `.jpg` | The social card, fitted to 16:9 (= Discord cover art) | 1280×720 |
 | `public/press/backdrop.png` + `.jpg` | Diner backdrop (= Discord embedded background) | 1280×720 |
-| `public/press/fonts/*.ttf` | Alfa Slab One + Yellowtail, for press use | OFL 1.1 |
+| `public/press/fonts/*.ttf` | Alfa Slab One + Yellowtail + League Gothic, for press use | OFL 1.1 |
 
 The mark is **not** copied here — `/favicon.svg` is already served unhashed at a stable URL,
 so the press page links that one.
