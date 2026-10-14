@@ -255,26 +255,6 @@ export function minutesLabel(minutes: number): string {
 }
 
 /**
- * The same, for a total that accumulates forever — "18h 32m", then "3d 4h".
- *
- * Rolls to days past two of them rather than printing a three-digit hour count,
- * and drops to one unit of precision when it does: nobody reads "4d 7h 12m", and
- * the minutes stopped being a measurement of anything at that scale anyway.
- */
-export function totalTimeLabel(minutes: number): string {
-  const DAY = 60 * 24;
-  if (minutes < DAY * 2) return minutesLabel(minutes);
-  let d = Math.floor(minutes / DAY);
-  let h = Math.round((minutes % DAY) / 60);
-  if (h === 24) {
-    // Rounding the remainder can carry: 3d 23h 45m must not print as "3d 24h".
-    d += 1;
-    h = 0;
-  }
-  return h === 0 ? `${d}d` : `${d}d ${h}h`;
-}
-
-/**
  * What the total is and isn't, for the hover on it.
  *
  * Both caveats are stated rather than buried: the cap (and how many rounds it

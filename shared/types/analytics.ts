@@ -423,8 +423,8 @@ export const PLAYTIME_CAP_MINUTES = 15;
  * doesn't. `capped` travels with it so the trim is stated rather than hidden.
  */
 export interface PlayTime {
-  /** Total minutes played, every round clamped to {@link PLAYTIME_CAP_MINUTES}. */
-  minutes: number;
+  /** Total seconds played, every round clamped to {@link PLAYTIME_CAP_MINUTES}. */
+  seconds: number;
   /** Rounds counted — finished, with both timestamps. */
   rounds: number;
   /** How many of those ran past the cap and were counted at it. */

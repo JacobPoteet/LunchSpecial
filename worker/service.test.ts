@@ -185,7 +185,11 @@ describe("foldDayService", () => {
 
 describe("foldSolveTimes", () => {
   /** A group of solved rounds that each took `minutes` — the fold's own subject. */
-  const won = (minutes: number | null, n: number): SolveTimeRow => ({ minutes, solved: 1, n });
+  const won = (minutes: number | null, n: number): SolveTimeRow => ({
+    seconds: minutes === null ? null : minutes * 60,
+    solved: 1,
+    n,
+  });
 
   it("reports nothing when no round has been timed", () => {
     expect(foldSolveTimes([])).toEqual({ count: 0, medianMinutes: null, p90Minutes: null });
@@ -215,7 +219,7 @@ describe("foldSolveTimes", () => {
   // The query behind this now returns every finished round so total play time
   // can share it. A loss is not a solve, so it must not reach this distribution.
   it("ignores rounds that ran out of guesses", () => {
-    const s = foldSolveTimes([won(2, 3), { minutes: 40, solved: 0, n: 9 }]);
+    const s = foldSolveTimes([won(2, 3), { seconds: 40 * 60, solved: 0, n: 9 }]);
     expect(s.count).toBe(3);
     expect(s.medianMinutes).toBe(2);
     expect(s.p90Minutes).toBe(2);
@@ -223,15 +227,19 @@ describe("foldSolveTimes", () => {
 });
 
 describe("foldPlayTime", () => {
-  const round = (minutes: number | null, n: number, solved = 1): SolveTimeRow => ({ minutes, solved, n });
+  const round = (minutes: number | null, n: number, solved = 1): SolveTimeRow => ({
+    seconds: minutes === null ? null : minutes * 60,
+    solved,
+    n,
+  });
 
   it("reports nothing when no round has been timed", () => {
-    expect(foldPlayTime([])).toEqual({ minutes: 0, rounds: 0, capped: 0 });
+    expect(foldPlayTime([])).toEqual({ seconds: 0, rounds: 0, capped: 0 });
   });
 
   it("sums durations across the rounds in each group", () => {
     const t = foldPlayTime([round(2, 3), round(5, 1)]);
-    expect(t.minutes).toBe(11);
+    expect(t.seconds).toBe(11 * 60);
     expect(t.rounds).toBe(4);
     expect(t.capped).toBe(0);
   });
@@ -240,13 +248,13 @@ describe("foldPlayTime", () => {
   // a day of real games.
   it("counts a round left open all afternoon at the cap", () => {
     const t = foldPlayTime([round(240, 1)], 15);
-    expect(t.minutes).toBe(15);
+    expect(t.seconds).toBe(15 * 60);
     expect(t.capped).toBe(1);
   });
 
   it("counts every round in an over-cap group as capped", () => {
     const t = foldPlayTime([round(60, 4), round(3, 2)], 15);
-    expect(t.minutes).toBe(66); // 4 × 15 + 2 × 3
+    expect(t.seconds).toBe(66 * 60); // 4 × 15 + 2 × 3
     expect(t.rounds).toBe(6);
     expect(t.capped).toBe(4);
   });
@@ -254,7 +262,7 @@ describe("foldPlayTime", () => {
   // Exactly at the cap is a measurement that happens to equal it, not a trim.
   it("does not call a round at the cap capped", () => {
     const t = foldPlayTime([round(15, 2)], 15);
-    expect(t.minutes).toBe(30);
+    expect(t.seconds).toBe(30 * 60);
     expect(t.capped).toBe(0);
   });
 
@@ -262,13 +270,26 @@ describe("foldPlayTime", () => {
   // read, this one wants the losses.
   it("counts lost rounds too", () => {
     const t = foldPlayTime([round(4, 1, 1), round(6, 1, 0)]);
-    expect(t.minutes).toBe(10);
+    expect(t.seconds).toBe(10 * 60);
     expect(t.rounds).toBe(2);
+  });
+
+  // The whole point of measuring in seconds: 2m 59s must not become 2m.
+  it("keeps the seconds of a round", () => {
+    const t = foldPlayTime([{ seconds: 179, solved: 1, n: 2 }, { seconds: 5, solved: 0, n: 1 }]);
+    expect(t.seconds).toBe(363);
+  });
+
+  it("counts a 44 minute round at the 15 minute cap", () => {
+    const t = foldPlayTime([{ seconds: 44 * 60, solved: 1, n: 1 }]);
+    expect(t.seconds).toBe(900);
+    expect(t.rounds).toBe(1);
+    expect(t.capped).toBe(1);
   });
 
   it("drops rows that aren't a measurement", () => {
     const t = foldPlayTime([round(null, 4), round(-3, 2), round(5, 1)]);
-    expect(t.minutes).toBe(5);
+    expect(t.seconds).toBe(5 * 60);
     expect(t.rounds).toBe(1);
   });
 });

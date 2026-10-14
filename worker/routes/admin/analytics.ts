@@ -342,7 +342,7 @@ app.get("/analytics", async (c) => {
            FROM analytics_rounds WHERE started_at IS NOT NULL${surfAnd}
            GROUP BY country, player_id`,
       ),
-      // How long a finished round took, in whole minutes (migrations/0011 gave
+      // How long a finished round took, in whole seconds (migrations/0011 gave
       // completions their own timestamp; nothing had read it until the solve-time
       // read). Grouped rather than returned per row, and folded to a median/p90
       // in JS — SQLite has no percentile function, and a mean here would follow
@@ -353,11 +353,11 @@ app.get("/analytics", async (c) => {
       // solve), and total play time wants both (six wrong guesses is still time
       // spent playing). One query, since the grouping is the same shape.
       c.env.DB.prepare(
-        `SELECT CAST((julianday(completed_at) - julianday(started_at)) * 1440 AS INTEGER) AS minutes,
+        `SELECT CAST(ROUND((julianday(completed_at) - julianday(started_at)) * 86400) AS INTEGER) AS seconds,
            solved, COUNT(*) AS n
            FROM analytics_rounds
            WHERE completed = 1 AND completed_at IS NOT NULL AND started_at IS NOT NULL${surfAnd}
-           GROUP BY minutes, solved`,
+           GROUP BY seconds, solved`,
       ),
       // The funnel's top (migrations/0020). visit_day is already an ET day —
       // the beacon handler stamps it — so unlike everything else here it needs
