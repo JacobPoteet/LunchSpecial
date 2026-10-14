@@ -3,6 +3,7 @@ import * as api from "./api";
 import type { AdminDashboard, AnalyticsSummary, DashboardSpecial, NightEntry } from "../../shared/types";
 import { PLAYTIME_CAP_MINUTES } from "../../shared/types";
 import { gameHour, hms, msUntilGameMidnight } from "../../shared/time";
+import { playTimeLabel, playTimeSteps } from "../../shared/playtime";
 import type { AdminView } from "./AdminApp";
 import { AUDIENCE_LABEL } from "./AnnouncementsPanel";
 import type { DashboardTab } from "./Dashboard";
@@ -21,12 +22,30 @@ import {
   playTimeNote,
   shortDate,
   sumKinds,
-  totalTimeLabel,
   type SurfaceFilter,
 } from "./analyticsUi";
 
 import { Icon } from "../game/Icon";
 import { Veiled, useVeil } from "./Veil";
+/**
+ * The total at the counter. Press it to convert the largest unit into the next
+ * one down (days to hours, hours to minutes, minutes to seconds); after seconds
+ * it wraps back to the full reading. Display only, so it isn't stored.
+ */
+function PlayTimeNumber({ seconds }: { seconds: number }) {
+  const [step, setStep] = useState(0);
+  const steps = playTimeSteps(seconds);
+  return (
+    <button
+      type="button"
+      className="alltime__num alltime__num--button"
+      onClick={() => setStep((n) => (n + 1) % steps)}
+    >
+      {playTimeLabel(seconds, step)}
+    </button>
+  );
+}
+
 /** Live countdown to the next midnight-ET rollover, when today's Special switches. */
 function SwitchCountdown() {
   const [ms, setMs] = useState(() => msUntilGameMidnight());
@@ -313,7 +332,7 @@ function AtAGlance({
           <div className="alltime">
             {playTime.rounds > 0 && (
               <div className="alltime__stat" title={playTimeNote(playTime)}>
-                <span className="alltime__num">{totalTimeLabel(playTime.minutes)}</span>
+                <PlayTimeNumber seconds={playTime.seconds} />
                 <span className="alltime__label">Time at the counter</span>
                 {/* The cap is the reason a *sum* is allowed here at all, so it's
                     on the face of it rather than only in the hover — but small,

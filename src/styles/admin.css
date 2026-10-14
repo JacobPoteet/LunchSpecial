@@ -943,6 +943,14 @@
   color: var(--teal);
 }
 
+.alltime__num--button {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
 .alltime__label {
   font-family: var(--font-gothic);
   display: block;

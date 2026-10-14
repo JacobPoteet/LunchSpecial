@@ -128,7 +128,7 @@ export function foldDayService(rows: Iterable<DayHourRow>, day: string, now: Dat
 }
 
 /**
- * One grouped row of round durations: how many finished rounds took `minutes`.
+ * One grouped row of round durations: how many finished rounds took `seconds`.
  *
  * Covers every finished round, won or lost — `solved` is what narrows it back to
  * the solve-time read. One query, two folds: how long a *solve* takes is a
@@ -136,7 +136,7 @@ export function foldDayService(rows: Iterable<DayHourRow>, day: string, now: Dat
  * spent at the counter and six wrong guesses is exactly that.
  */
 export interface SolveTimeRow {
-  minutes: number | null;
+  seconds: number | null;
   solved: number;
   n: number;
 }
@@ -159,7 +159,8 @@ export function foldSolveTimes(rows: Iterable<SolveTimeRow>): SolveTimes {
   let count = 0;
   for (const r of rows) {
     if (!timed(r) || r.solved !== 1) continue;
-    pairs.push([r.minutes as number, r.n]);
+    // Whole minutes, as the read always was: the median is a coarse figure.
+    pairs.push([Math.floor((r.seconds as number) / 60), r.n]);
     count += r.n;
   }
   return {
@@ -171,7 +172,7 @@ export function foldSolveTimes(rows: Iterable<SolveTimeRow>): SolveTimes {
 
 /** A row that measured something: a real, non-negative duration over ≥1 round. */
 function timed(r: SolveTimeRow): boolean {
-  return r.minutes !== null && Number.isFinite(r.minutes) && r.minutes >= 0 && r.n > 0;
+  return r.seconds !== null && Number.isFinite(r.seconds) && r.seconds >= 0 && r.n > 0;
 }
 
 /**
@@ -189,17 +190,18 @@ function timed(r: SolveTimeRow): boolean {
  * writes the second timestamp, so this is a floor on time played, never a ceiling.
  */
 export function foldPlayTime(rows: Iterable<SolveTimeRow>, cap: number = PLAYTIME_CAP_MINUTES): PlayTime {
-  let minutes = 0;
+  const capSeconds = cap * 60;
+  let seconds = 0;
   let rounds = 0;
   let capped = 0;
   for (const r of rows) {
     if (!timed(r)) continue;
-    const m = r.minutes as number;
+    const s = r.seconds as number;
     rounds += r.n;
-    minutes += Math.min(m, cap) * r.n;
-    if (m > cap) capped += r.n;
+    seconds += Math.min(s, capSeconds) * r.n;
+    if (s > capSeconds) capped += r.n;
   }
-  return { minutes, rounds, capped };
+  return { seconds, rounds, capped };
 }
 
 /**
