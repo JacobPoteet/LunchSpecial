@@ -131,9 +131,97 @@
      is cut stock and near-square; a control is --radius. */
   --radius-paper: 3px;
   --radius: 10px;
-  --shadow-card: 0 18px 50px rgba(10, 20, 18, 0.45);
+  /* Smaller corners, named by size. These were literals in game.css and
+     admin.css; naming them is what lets a pass say "no raw radius". */
+  --radius-md: 8px;
+  --radius-sm: 6px;
+  --radius-xs: 4px;
+  --radius-xxs: 2px;
+  --radius-pill: 999px;
+
+  /* Spacing, named by its pixel value. The rules had drifted to 27 values, many
+     of them one pixel apart; odd ones were snapped to the nearest step here.
+     18 and up are the roomier layout steps, kept at the values the rules
+     already used. 1, 3, 19, 26 and 60px stay literal one-offs. */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-14: 14px;
+  --space-16: 16px;
+  --space-18: 18px;
+  --space-20: 20px;
+  --space-22: 22px;
+  --space-24: 24px;
+  --space-28: 28px;
+  --space-32: 32px;
+  --space-34: 34px;
+  --space-40: 40px;
+  --space-48: 48px;
+
+  /* Transition speeds. Animation timing is choreography, mirrored in
+     shared/audio.ts, and is not tokenised here. */
+  --dur-fast: 0.15s;
+  --dur-base: 0.3s;
+
+  /* The dashboard's rank ramp: one teal, eight steps, darkest first. Used for
+     ordered data (pie slices, legend dots). It is the "rank" meaning in the
+     dashboard's colour rules; do not reuse it for kind or event. */
+  --rank-1: #1b4f4a;
+  --rank-2: #2f6a63;
+  --rank-3: #45857c;
+  --rank-4: #5d9f95;
+  --rank-5: #79b7ad;
+  --rank-6: #98cec5;
+  --rank-7: #b7e0d9;
+  --rank-8: #d5efea;
+  /* Colour channels, for the glows, washes and shadows that need an alpha the
+     palette tokens can't carry: rgb(var(--teal-rgb) / 0.12). A literal
+     rgba(27, 79, 74, ...) is the same colour with no name; this keeps one place
+     to change it. Each is the daytime value of the token it is named for. */
+  --neon-pink-rgb: 255 95 122;
+  --neon-blue-rgb: 124 200 255;
+  --mustard-rgb: 232 165 58;
+  --teal-rgb: 27 79 74;
+  --ink-rgb: 43 35 32;
+  /* The near-black the card, ticket and menu shadows are cast in. */
+  --shade-rgb: 20 17 16;
+  --deep-rgb: 10 20 18;
+
+  /* Tints laid over paper for hover and zebra rows. */
+  --teal-wash: rgb(var(--teal-rgb) / 0.06);
+  --teal-wash-hover: rgb(var(--teal-rgb) / 0.1);
+  --mustard-wash: rgb(var(--mustard-rgb) / 0.12);
+
+  /* Border widths. 1px is a hairline, 1.5px the working line of a tile or
+     input, 2px a frame, 3px a rule that has to read at a glance. */
+  --border-hair: 1px;
+  --border-thin: 1.5px;
+  --border-medium: 2px;
+  --border-thick: 3px;
+
+  /* The stacking order of the game's fixed layers. The numbers are load-bearing:
+     the guess input's dropdown (40) must outrank the coach dim (35) and the lit
+     line (36); the notes at .guess-input and .coach-spotlight explain why. */
+  --z-sticky: 30;
+  --z-spotlight: 35;
+  --z-spotlight-lit: 36;
+  --z-input: 40;
+  --z-overlay: 100;
+  --z-modal: 120;
+  --z-lights-out: 300;
+  --shadow-card: 0 18px 50px rgb(var(--deep-rgb) / 0.45);
+  /* The rest of the lifted surfaces, named by what they lift. */
+  --shadow-dropdown: 0 12px 30px rgb(var(--shade-rgb) / 0.25);
+  --shadow-ticket: 0 3px 10px rgb(var(--shade-rgb) / 0.18);
+  --shadow-dialog: 0 10px 30px rgb(var(--deep-rgb) / 0.45);
+  --shadow-popover: 0 6px 18px rgb(var(--shade-rgb) / 0.14);
+  --shadow-flyout: 0 10px 24px rgb(var(--shade-rgb) / 0.2);
+  --shadow-raise: 0 6px 18px rgb(var(--deep-rgb) / 0.18);
   /* The back office's panels: paper lying on the desk, not lifted off it. */
-  --shadow-sheet: 0 1px 0 rgba(10, 20, 18, 0.25), 0 4px 14px rgba(10, 20, 18, 0.28);
+  --shadow-sheet: 0 1px 0 rgb(var(--deep-rgb) / 0.25), 0 4px 14px rgb(var(--deep-rgb) / 0.28);
 }
 
 * {

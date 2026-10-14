@@ -19,6 +19,7 @@
     <style>
       @font-face { font-family: "Alfa Slab One"; src: url("/press/fonts/alfa-slab-one.ttf") format("truetype"); font-display: swap; }
       @font-face { font-family: "Yellowtail"; src: url("/press/fonts/yellowtail.ttf") format("truetype"); font-display: swap; }
+      @font-face { font-family: "League Gothic"; src: url("/press/fonts/league-gothic.ttf") format("truetype"); font-display: swap; }
 
       :root {
         --cream: #f6edd9; --paper: #fbf4e0; --paper-edge: #e6d9b8;
@@ -84,6 +85,8 @@
         margin: 0 0 4px; letter-spacing: 0.01em;
       }
       .card > h2 + p.lede { margin-top: 2px; color: var(--ink-soft); }
+      .card > .swatches + p.lede { margin: 18px 0 0; color: var(--ink-soft); }
+      .card > .swatches + p.note { font-size: 0.82rem; color: var(--ink-soft); }
       .card p { font-size: 1rem; }
 
       /* fact sheet */
@@ -260,7 +263,23 @@
           <div class="sw"><div class="chip" style="background:#e8a53a"></div><div class="lbl"><b>Mustard</b><span>#E8A53A</span></div></div>
           <div class="sw"><div class="chip" style="background:#cfd8dc"></div><div class="lbl"><b>Chrome</b><span>#CFD8DC</span></div></div>
           <div class="sw"><div class="chip" style="background:#ff5f7a"></div><div class="lbl"><b>Neon Pink</b><span>#FF5F7A</span></div></div>
+          <div class="sw"><div class="chip" style="background:#7cc8ff"></div><div class="lbl"><b>Neon Blue</b><span>#7CC8FF</span></div></div>
+          <div class="sw"><div class="chip" style="background:#7d2f5c"></div><div class="lbl"><b>Plum</b><span>#7D2F5C</span></div></div>
         </div>
+        <p class="lede">Paper and ink: the menu card and its type.</p>
+        <div class="swatches">
+          <div class="sw"><div class="chip" style="background:#fbf4e0"></div><div class="lbl"><b>Paper</b><span>#FBF4E0</span></div></div>
+          <div class="sw"><div class="chip" style="background:#e6d9b8"></div><div class="lbl"><b>Paper Edge</b><span>#E6D9B8</span></div></div>
+          <div class="sw"><div class="chip" style="background:#2b2320"></div><div class="lbl"><b>Ink</b><span>#2B2320</span></div></div>
+          <div class="sw"><div class="chip" style="background:#5b4f45"></div><div class="lbl"><b>Ink Soft</b><span>#5B4F45</span></div></div>
+        </div>
+        <p class="lede">Feedback: right, close, and wrong. These three stay the same in the daytime diner and at the bar.</p>
+        <div class="swatches">
+          <div class="sw"><div class="chip" style="background:#2e7d4f"></div><div class="lbl"><b>Hit</b><span>#2E7D4F</span></div></div>
+          <div class="sw"><div class="chip" style="background:#e8a53a"></div><div class="lbl"><b>Near</b><span>#E8A53A</span></div></div>
+          <div class="sw"><div class="chip" style="background:#a99e8f"></div><div class="lbl"><b>Miss</b><span>#A99E8F</span></div></div>
+        </div>
+        <p class="note" style="margin-top:14px">After Dark, the late-night bar, swaps the paper for a dark board: Cream becomes #14100E, Paper #1D1714, Ink #F0E6D4, Teal #57BDAE, and Cherry becomes the neon, #FF5F7A.</p>
       </section>
 
       <!-- BRAND: TYPE -->
@@ -276,6 +295,11 @@
             <div class="ki">Script: Yellowtail</div>
             <div class="big-script">Lunch Special</div>
             <p class="note">The neon logo wordmark. SIL Open Font License 1.1 · <a href="/press/fonts/yellowtail.ttf" download>download .ttf</a></p>
+          </div>
+          <div class="spec">
+            <div class="ki">Labels: League Gothic</div>
+            <div class="big-display" style="font-family:'League Gothic','Arial Narrow',sans-serif;letter-spacing:0.1em">CLUE 2 &middot; THE CHECK</div>
+            <p class="note">Tabs, labels and small print. SIL Open Font License 1.1 · <a href="/press/fonts/league-gothic.ttf" download>download .ttf</a></p>
           </div>
           <div class="spec">
             <div class="ki">Body: Georgia</div>

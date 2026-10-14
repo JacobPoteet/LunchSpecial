@@ -105,3 +105,45 @@ describe("the wiki's location stays out of the repo", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe("the stylesheets spend the spacing scale through tokens", () => {
+  // base.css names the scale (--space-N). A raw 12px in a padding, margin or gap
+  // is how the rules drifted to 27 values a pixel apart. Values off the scale
+  // (1, 3, 19, 26, 60) stay literal; negatives and calc() are skipped.
+  const ON_SCALE = new Set([2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 34, 40, 48]);
+  const SNAPPED = new Set([5, 7, 9, 11, 13]);
+
+  it("padding, margin and gap use --space-N on the scale", () => {
+    const offenders: string[] = [];
+    for (const file of ["src/styles/game.css", "src/styles/admin.css"]) {
+      const css = readFileSync(join(ROOT, file), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      for (const [, prop, value] of css.matchAll(/(?:^|[;{}\s])((?:padding|margin|gap|row-gap|column-gap)[a-z-]*)\s*:\s*([^;{}]+);/g)) {
+        if (value.includes("calc(")) continue;
+        for (const px of value.matchAll(/(?<![\w.-])(\d+)px/g)) {
+          const n = Number(px[1]);
+          if (ON_SCALE.has(n) || SNAPPED.has(n)) offenders.push(`${file}: ${prop}: ${value.trim()}`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe("the stylesheets spend colour channels and border widths through tokens", () => {
+  // base.css names the channels (--teal-rgb...) and the widths (--border-*).
+  const CHANNELS = ["255, 95, 122", "124, 200, 255", "232, 165, 58", "27, 79, 74", "43, 35, 32", "20, 17, 16", "10, 20, 18"];
+
+  it("no rgba() of a named channel, and no raw 1/1.5/2/3px border width", () => {
+    const offenders: string[] = [];
+    for (const file of ["src/styles/game.css", "src/styles/admin.css"]) {
+      const css = readFileSync(join(ROOT, file), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+      for (const [, c] of css.matchAll(/rgba\(\s*(\d+\s*,\s*\d+\s*,\s*\d+)\s*,/g)) {
+        if (CHANNELS.includes(c.replace(/\s+/g, " ").replace(/,(?=\S)/g, ", "))) offenders.push(`${file}: rgba(${c}`);
+      }
+      for (const [, prop, value] of css.matchAll(/(?:^|[;{}\s])(border(?:-top|-bottom|-left|-right)?|border-width)\s*:\s*([^;{}]+);/g)) {
+        if (/(?<![\w.-])(1|1\.5|2|3)px(?![\w.])/.test(value)) offenders.push(`${file}: ${prop}: ${value.trim()}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+});

@@ -5,7 +5,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px 12px 48px;
+  padding: var(--space-16) var(--space-12) var(--space-48);
 }
 
 /* The diner backdrop lives on a viewport-locked layer, not on .scene itself.
@@ -54,7 +54,7 @@
 
 .marquee {
   text-align: center;
-  margin: 8px 0 14px;
+  margin: var(--space-8) 0 var(--space-14);
   user-select: none;
 }
 
@@ -64,9 +64,9 @@
   line-height: 1;
   color: #ffd9e0;
   text-shadow:
-    0 0 6px rgba(255, 95, 122, 0.9),
-    0 0 18px rgba(255, 95, 122, 0.75),
-    0 0 42px rgba(255, 95, 122, 0.6);
+    0 0 6px rgb(var(--neon-pink-rgb) / 0.9),
+    0 0 18px rgb(var(--neon-pink-rgb) / 0.75),
+    0 0 42px rgb(var(--neon-pink-rgb) / 0.6);
   margin: 0;
   font-weight: 400;
 }
@@ -86,10 +86,10 @@
   line-height: 1.1;
   color: #eef8ff;
   text-shadow:
-    0 0 3px rgba(124, 200, 255, 0.95),
-    0 0 10px rgba(124, 200, 255, 0.75),
-    0 0 24px rgba(124, 200, 255, 0.5);
-  margin: 8px 0 0;
+    0 0 3px rgb(var(--neon-blue-rgb) / 0.95),
+    0 0 10px rgb(var(--neon-blue-rgb) / 0.75),
+    0 0 24px rgb(var(--neon-blue-rgb) / 0.5);
+  margin: var(--space-8) 0 0;
 }
 
 /* ---- menu card ---- */
@@ -104,10 +104,10 @@
     radial-gradient(var(--paper-stipple) 1px, transparent 1.4px) 0 0 / 7px 7px,
     var(--paper-sheen),
     var(--paper);
-  border: 2px solid var(--cherry-dark);
+  border: var(--border-medium) solid var(--cherry-dark);
   border-radius: var(--radius-paper);
   box-shadow: var(--shadow-card);
-  padding: 24px 22px 22px;
+  padding: var(--space-24) var(--space-22) var(--space-22);
 }
 
 /* Thin inner rule of the double frame. Absolutely positioned, so it paints
@@ -117,7 +117,7 @@
   content: "";
   position: absolute;
   inset: 5px;
-  border: 1px solid var(--cherry-dark);
+  border: var(--border-hair) solid var(--cherry-dark);
   border-radius: 1px;
   opacity: 0.45;
   pointer-events: none;
@@ -125,8 +125,8 @@
 
 .menu-card__header {
   text-align: center;
-  border-bottom: 3px double var(--cherry-dark);
-  padding-bottom: 12px;
+  border-bottom: var(--border-thick) double var(--cherry-dark);
+  padding-bottom: var(--space-12);
   margin-bottom: 0;
 }
 
@@ -164,7 +164,7 @@
   font-size: var(--fs-md);
   font-style: italic;
   color: var(--ink-soft);
-  margin: 6px 0 0;
+  margin: var(--space-6) 0 0;
 }
 
 /* The streak beside the date (GitHub #185). Same line, same size; the colour
@@ -186,8 +186,8 @@
 .menu-card__toolbar {
   display: flex;
   justify-content: center;
-  gap: 6px;
-  margin-top: 10px;
+  gap: var(--space-6);
+  margin-top: var(--space-10);
   /* A finished daily shows four controls (stats, archive, check, after dark)
      and at 375px that's already a tight fit. Wrapping between the pills is
      the graceful version of running out of room: without it the row stays put
@@ -204,8 +204,8 @@
 .menu-card__utility {
   display: flex;
   justify-content: center;
-  gap: 6px;
-  margin-top: 12px;
+  gap: var(--space-6);
+  margin-top: var(--space-12);
 }
 
 /* The toolbar's tabs. Ink, not cherry: they are the card's chrome, and cherry
@@ -215,19 +215,19 @@
 .icon-btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-6);
   min-height: 30px;
   font-family: var(--font-gothic);
   /* Paired with the toolbar's flex-wrap: a pill is an atom, so the row breaks
      between buttons and never through a label. */
   white-space: nowrap;
-  border: 1.5px solid color-mix(in srgb, var(--ink) 30%, transparent);
+  border: var(--border-thin) solid color-mix(in srgb, var(--ink) 30%, transparent);
   background: transparent;
   color: var(--ink);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: var(--fs-md);
   line-height: 1;
-  padding: 0 11px;
+  padding: 0 var(--space-12);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -265,10 +265,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid color-mix(in srgb, var(--ink) 30%, transparent);
+  border: var(--border-thin) solid color-mix(in srgb, var(--ink) 30%, transparent);
   background: transparent;
   color: var(--ink);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0;
   width: 30px;
   height: 30px;
@@ -308,7 +308,7 @@
 .leader {
   flex: 1;
   min-width: 16px;
-  border-bottom: 2px dotted rgba(91, 79, 69, 0.5);
+  border-bottom: var(--border-medium) dotted rgba(91, 79, 69, 0.5);
 }
 
 /* The featured section of the menu: today's Special as a proper menu entry
@@ -316,10 +316,10 @@
 .special-line {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 4px;
-  margin-bottom: 14px;
-  border-bottom: 1px solid rgba(143, 31, 46, 0.3);
+  gap: var(--space-14);
+  padding: var(--space-14) var(--space-4);
+  margin-bottom: var(--space-14);
+  border-bottom: var(--border-hair) solid rgba(143, 31, 46, 0.3);
 }
 
 .special-line img {
@@ -337,7 +337,7 @@
 .special-line__label {
   display: flex;
   align-items: baseline;
-  gap: 7px;
+  gap: var(--space-8);
   font-family: var(--font-gothic);
   font-size: var(--fs-lg2);
   line-height: 1.1;
@@ -361,7 +361,7 @@
 }
 
 .special-line__hint {
-  margin: 4px 0 0;
+  margin: var(--space-4) 0 0;
   font-size: var(--fs-md);
   font-style: italic;
   color: var(--ink-soft);
@@ -377,21 +377,21 @@
    two containers here settles it once, whatever their descendants animate. */
 .guess-input {
   position: relative;
-  z-index: 40;
-  margin-bottom: 6px;
+  z-index: var(--z-input);
+  margin-bottom: var(--space-6);
 }
 
 .guess-input__row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-8);
 }
 
 .guess-input input {
   flex: 1;
-  border: 2px solid var(--ink);
+  border: var(--border-medium) solid var(--ink);
   border-radius: var(--radius);
   background: var(--paper-bright);
-  padding: 11px 14px;
+  padding: var(--space-12) var(--space-14);
   font-size: var(--fs-lg);
   color: var(--ink);
   min-width: 0;
@@ -402,16 +402,21 @@
   outline-offset: 1px;
 }
 
+/* The diner's button: slab type, uppercase, a control corner. The teal share
+   button and the cherry order button are both this; each adds only its fill
+   and size below. */
+.share-btn,
 .guess-input__submit {
   font-family: var(--font-display);
-  background: var(--cherry);
-  color: var(--on-cherry);
   border: none;
   border-radius: var(--radius);
-  padding: 0 18px;
   font-size: var(--fs-md);
-  letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.guess-input__submit {
+  padding: 0 var(--space-18);
+  letter-spacing: 0.06em;
 }
 
 .guess-input__submit:disabled {
@@ -425,25 +430,25 @@
   left: 0;
   right: 0;
   background: var(--paper-bright);
-  border: 2px solid var(--ink);
+  border: var(--border-medium) solid var(--ink);
   border-radius: var(--radius);
   max-height: 264px;
   overflow-y: auto;
-  z-index: 30;
+  z-index: var(--z-sticky);
   margin: 0;
-  padding: 4px;
+  padding: var(--space-4);
   list-style: none;
-  box-shadow: 0 12px 30px rgba(20, 17, 16, 0.25);
+  box-shadow: var(--shadow-dropdown);
 }
 
 .guess-input__option {
-  padding: 9px 12px;
-  border-radius: 6px;
+  padding: var(--space-10) var(--space-12);
+  border-radius: var(--radius-sm);
   font-size: var(--fs-md);
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--space-10);
 }
 
 /* The country beside a dish's name in the list (GitHub #187): a handle for
@@ -471,7 +476,7 @@
 }
 
 .guess-input__empty {
-  padding: 9px 12px;
+  padding: var(--space-10) var(--space-12);
   color: var(--ink-soft);
   font-style: italic;
 }
@@ -483,20 +488,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  margin: 8px 0 14px;
+  gap: var(--space-10);
+  margin: var(--space-8) 0 var(--space-14);
 }
 
 .tally__holes {
   display: inline-flex;
-  gap: 6px;
+  gap: var(--space-6);
 }
 
 .tally__hole {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 1.5px solid color-mix(in srgb, var(--ink-soft) 60%, transparent);
+  border: var(--border-thin) solid color-mix(in srgb, var(--ink-soft) 60%, transparent);
 }
 
 /* Punched through: the dark of the card's backing shows, with the lip of the
@@ -556,15 +561,15 @@
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: var(--space-12);
+  margin-bottom: var(--space-14);
 }
 
 .guess-row {
-  border: 1px solid var(--paper-edge);
+  border: var(--border-hair) solid var(--paper-edge);
   background: var(--row-fill);
   border-radius: var(--radius-paper);
-  padding: 10px 12px;
+  padding: var(--space-10) var(--space-12);
 }
 
 .guess-row--correct {
@@ -600,11 +605,11 @@
 .guess-row__name {
   font-family: var(--font-display);
   font-size: var(--fs-md);
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-8);
   color: var(--ink);
   display: flex;
   align-items: baseline;
-  gap: 7px;
+  gap: var(--space-8);
 }
 
 .guess-row__dish {
@@ -622,15 +627,15 @@
 .attr-tiles {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
 }
 
 .attr-tile {
-  border-radius: 4px;
-  padding: 5px 4px 6px;
+  border-radius: var(--radius-xs);
+  padding: var(--space-6) var(--space-4) var(--space-6);
   text-align: center;
-  border: 1.5px solid transparent;
+  border: var(--border-thin) solid transparent;
 }
 
 .attr-tile--hit {
@@ -720,14 +725,14 @@
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: var(--space-6);
 }
 
 .chip {
   font-size: var(--fs-xs);
-  border-radius: 999px;
-  padding: 2.5px 10px;
-  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  padding: 2.5px var(--space-10);
+  border: var(--border-hair) solid transparent;
 }
 
 /* Chips are the payload of a guess, and both of these read the ingredient name
@@ -756,7 +761,7 @@
    stays --ink (on the solid mustard it would have to be --on-near). */
 .chip--close {
   background: var(--near-soft);
-  border: 1px dashed var(--near);
+  border: var(--border-hair) dashed var(--near);
   color: var(--ink);
 }
 
@@ -765,16 +770,16 @@
 .tickets {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin: 4px 0 14px;
+  gap: var(--space-10);
+  margin: var(--space-4) 0 var(--space-14);
 }
 
 .ticket {
   position: relative;
   background: var(--paper-bright);
-  border-radius: 2px;
-  box-shadow: 0 3px 10px rgba(20, 17, 16, 0.18);
-  padding: 10px 14px 12px;
+  border-radius: var(--radius-xxs);
+  box-shadow: var(--shadow-ticket);
+  padding: var(--space-10) var(--space-14) var(--space-12);
   border-top: 8px solid var(--cherry);
 }
 
@@ -785,7 +790,7 @@
   letter-spacing: 0.1em;
   color: var(--cherry);
   text-transform: uppercase;
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-4);
 }
 
 .ticket__text {
@@ -797,9 +802,9 @@
 /* Card footer: script sign-off + fine print, closed off with a double rule
    mirroring the masthead. */
 .menu-card__thanks {
-  margin-top: 18px;
-  padding-top: 10px;
-  border-top: 3px double var(--cherry-dark);
+  margin-top: var(--space-18);
+  padding-top: var(--space-10);
+  border-top: var(--border-thick) double var(--cherry-dark);
   text-align: center;
 }
 
@@ -819,7 +824,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-soft);
-  margin: 5px 0 0;
+  margin: var(--space-6) 0 0;
 }
 
 /* ---- modal / receipt ---- */
@@ -831,19 +836,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  z-index: 100;
+  padding: var(--space-16);
+  z-index: var(--z-overlay);
   overflow-y: auto;
 }
 
 .modal {
   background: var(--paper);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   max-width: 460px;
   width: 100%;
   max-height: calc(100dvh - 48px);
   overflow-y: auto;
-  padding: 22px 22px 24px;
+  padding: var(--space-22) var(--space-22) var(--space-24);
   box-shadow: var(--shadow-card);
   position: relative;
 }
@@ -891,7 +896,7 @@
 .modal--notice {
   background: var(--paper);
   border-top: 7px solid var(--mustard);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   transform-origin: top center;
   max-width: 420px;
 }
@@ -899,7 +904,7 @@
 /* The footer defaults to receipt paper; the notice is on menu stock. */
 .modal--notice .modal__footer {
   background: var(--paper);
-  border-top: 2px dashed var(--paper-edge);
+  border-top: var(--border-medium) dashed var(--paper-edge);
 }
 
 /* Both parts sit together on the LEFT. The queue count used to be pushed to the
@@ -907,9 +912,9 @@
 .notice__eyebrow {
   display: flex;
   align-items: baseline;
-  gap: 8px;
-  margin: 0 0 6px;
-  padding-right: 40px; /* clears .modal__close */
+  gap: var(--space-8);
+  margin: 0 0 var(--space-6);
+  padding-right: var(--space-40); /* clears .modal__close */
   font-family: var(--font-gothic);
   font-size: var(--fs-md);
   letter-spacing: 0.08em;
@@ -925,7 +930,7 @@
 
 .notice__count::before {
   content: "·";
-  margin-right: 8px;
+  margin-right: var(--space-8);
 }
 
 /* Body serif, not the display face. Alfa Slab One is built for three words on a
@@ -936,7 +941,7 @@
    bare `.notice__title` (0,1,0) — which silently put the preview's header in
    uppercase Alfa Slab at 1.05rem while players saw serif at 1.4rem. */
 .modal--notice .notice__title {
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-12);
   font-family: var(--font-body);
   font-size: var(--fs-lg2);
   font-weight: 700;
@@ -945,7 +950,7 @@
 }
 
 .notice__body p {
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-10);
   line-height: 1.6;
   color: var(--ink);
 }
@@ -968,17 +973,17 @@
   min-height: 0; /* without this the flex child refuses to shrink and scroll */
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 22px 22px 12px;
+  padding: var(--space-22) var(--space-22) var(--space-12);
 }
 
 /* The upward shadow is the scroll affordance: content visibly slides under the
    bar, which the old dashed "end of paper" border actively hid. */
 .modal__footer {
   flex: 0 0 auto;
-  padding: 12px 20px 16px;
+  padding: var(--space-12) var(--space-20) var(--space-16);
   background: var(--paper-bright);
-  border-top: 2px dashed var(--paper-edge);
-  box-shadow: 0 -12px 20px -14px rgba(43, 35, 32, 0.5);
+  border-top: var(--border-medium) dashed var(--paper-edge);
+  box-shadow: 0 -12px 20px -14px rgb(var(--ink-rgb) / 0.5);
 }
 
 /* Win banner shown over the board for the beat before the check prints, so the
@@ -991,18 +996,18 @@
   /* Base centering must live here, not only in the keyframes — with reduced
      motion the animation is off and the toast would sit off-centre. */
   transform: translateX(-50%);
-  z-index: 120;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 11px 20px;
+  gap: var(--space-10);
+  padding: var(--space-12) var(--space-20);
   border-radius: var(--radius);
   background: var(--ink);
   color: var(--cream);
   font-family: var(--font-display);
   font-size: var(--fs-md);
   letter-spacing: 0.03em;
-  box-shadow: 0 10px 30px rgba(10, 20, 18, 0.45);
+  box-shadow: var(--shadow-dialog);
   pointer-events: none;
   max-width: calc(100vw - 32px);
 }
@@ -1037,9 +1042,9 @@
 
 .receipt__head {
   text-align: center;
-  border-bottom: 2px dashed var(--paper-edge);
-  padding-bottom: 12px;
-  margin-bottom: 12px;
+  border-bottom: var(--border-medium) dashed var(--paper-edge);
+  padding-bottom: var(--space-12);
+  margin-bottom: var(--space-12);
 }
 
 .receipt__title {
@@ -1055,7 +1060,7 @@
   font-family: var(--font-script);
   font-size: var(--fs-xxl);
   line-height: 1.15;
-  margin: 6px 0 0;
+  margin: var(--space-6) 0 0;
   color: var(--cherry);
 }
 
@@ -1064,7 +1069,7 @@
    below the reaction to it. */
 .receipt__dish {
   text-align: center;
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-6);
   font-family: var(--font-display);
   font-weight: 400;
   font-size: var(--fs-xl);
@@ -1082,17 +1087,17 @@
    Receipt stock rather than the pale green real ones were printed on: green
    means a match everywhere else in this game. */
 .guest-check {
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-4);
 }
 
 .guest-check__top {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-12);
   /* Clears .modal__close, which sits over this row's right end. */
-  padding-right: 34px;
-  margin-bottom: 8px;
+  padding-right: var(--space-34);
+  margin-bottom: var(--space-8);
 }
 
 .guest-check__house {
@@ -1125,17 +1130,17 @@
   display: grid;
   grid-template-columns: 1fr 1fr 1.3fr;
   margin: 0;
-  border: 1.5px solid color-mix(in srgb, var(--cherry-dark) 55%, transparent);
+  border: var(--border-thin) solid color-mix(in srgb, var(--cherry-dark) 55%, transparent);
   text-align: left;
 }
 
 .guest-check__box {
-  padding: 3px 7px 5px;
+  padding: 3px var(--space-8) var(--space-6);
   min-width: 0;
 }
 
 .guest-check__box + .guest-check__box {
-  border-left: 1.5px solid color-mix(in srgb, var(--cherry-dark) 55%, transparent);
+  border-left: var(--border-thin) solid color-mix(in srgb, var(--cherry-dark) 55%, transparent);
 }
 
 .guest-check__box dt {
@@ -1159,7 +1164,7 @@
   text-align: center;
   color: var(--ink-soft);
   font-size: var(--fs-md);
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-12);
   text-transform: capitalize;
 }
 
@@ -1168,17 +1173,17 @@
   color: var(--ink-soft);
   font-size: var(--fs-sm);
   line-height: 1.5;
-  margin: -6px 0 12px;
+  margin: -6px 0 var(--space-12);
   text-transform: capitalize;
 }
 
 /* Clue 5 sits here as a one-line "definition" of the answer — the compact
    payoff, borrowed from the dictionary line in Wordle's post-game. */
 .receipt__definition {
-  border-top: 2px dashed var(--paper-edge);
-  border-bottom: 2px dashed var(--paper-edge);
-  padding: 12px 2px;
-  margin: 0 0 12px;
+  border-top: var(--border-medium) dashed var(--paper-edge);
+  border-bottom: var(--border-medium) dashed var(--paper-edge);
+  padding: var(--space-12) var(--space-2);
+  margin: 0 0 var(--space-12);
   font-size: var(--fs-md);
   line-height: 1.5;
   text-align: center;
@@ -1201,11 +1206,11 @@
 .fan-stamp {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 16px auto 0;
-  padding: 7px 11px;
+  gap: var(--space-10);
+  margin: var(--space-16) auto 0;
+  padding: var(--space-8) var(--space-12);
   max-width: 22rem;
-  border: 2px solid var(--mustard);
+  border: var(--border-medium) solid var(--mustard);
   border-radius: var(--radius);
   background: var(--near-soft);
   /* Two rings out of one shadow: paper gap, then the outer rule. */
@@ -1246,18 +1251,18 @@
 /* ---- the rest of the clues, collapsed ---- */
 
 .story {
-  margin-bottom: 4px;
+  margin-bottom: var(--space-4);
 }
 
 .story__toggle {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-8);
   width: 100%;
-  padding: 9px 6px;
+  padding: var(--space-10) var(--space-6);
   background: transparent;
-  border: 1.5px solid rgba(43, 35, 32, 0.22);
+  border: var(--border-thin) solid rgb(var(--ink-rgb) / 0.22);
   border-radius: var(--radius);
   color: var(--ink-soft);
   font-family: var(--font-gothic);
@@ -1266,7 +1271,7 @@
   letter-spacing: 0.07em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: color var(--dur-fast) ease, border-color var(--dur-fast) ease;
 }
 
 .story__toggle:hover {
@@ -1302,16 +1307,16 @@
 
 .story__list {
   list-style: none;
-  margin: 10px 0 0;
+  margin: var(--space-10) 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: var(--space-10);
 }
 
 .story__item {
   display: flex;
-  gap: 10px;
+  gap: var(--space-10);
   align-items: baseline;
   font-size: var(--fs-md);
   line-height: 1.45;
@@ -1337,16 +1342,11 @@
 .share-btn {
   display: block;
   width: 100%;
-  font-family: var(--font-display);
   background: var(--teal);
   color: var(--cream);
-  border: none;
-  border-radius: var(--radius);
-  font-size: var(--fs-md);
   letter-spacing: 0.08em;
-  padding: 12px;
-  text-transform: uppercase;
-  margin-bottom: 12px;
+  padding: var(--space-12);
+  margin-bottom: var(--space-12);
 }
 
 .share-btn:hover {
@@ -1355,15 +1355,20 @@
 
 /* The share button is the headline action once the check is settled: bigger,
    brighter (cherry), and lifted off the receipt so it's the obvious next tap. */
+/* The cherry treatment: the order button and the headline share action. */
+.guess-input__submit,
 .share-btn--primary {
   background: var(--cherry);
   color: var(--on-cherry);
+}
+
+.share-btn--primary {
   font-size: var(--fs-lg2);
-  padding: 16px;
-  margin-top: 4px;
-  margin-bottom: 14px;
+  padding: var(--space-16);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-14);
   box-shadow: 0 4px 0 var(--cherry-dark);
-  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background var(--dur-fast) ease;
 }
 
 .share-btn--primary:hover {
@@ -1392,7 +1397,7 @@
 .check-actions {
   display: flex;
   align-items: stretch;
-  gap: 12px;
+  gap: var(--space-12);
 }
 
 .check-actions .share-btn--primary {
@@ -1400,7 +1405,7 @@
   min-width: 0;
   margin: 0;
   font-size: var(--fs-md);
-  padding: 13px 10px;
+  padding: var(--space-14) var(--space-10);
 }
 
 .countdown--compact {
@@ -1409,10 +1414,10 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 2px;
+  gap: var(--space-2);
   text-align: center;
-  border-right: 2px dashed var(--paper-edge);
-  padding-right: 12px;
+  border-right: var(--border-medium) dashed var(--paper-edge);
+  padding-right: var(--space-12);
 }
 
 .countdown__label {
@@ -1436,14 +1441,14 @@
 .replay-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 14px;
+  gap: var(--space-8);
+  margin-bottom: var(--space-14);
 }
 
 /* Inside the check's pinned footer the replay row is the last thing in the
    card, so it trades its bottom margin for a gap under the action band. */
 .modal__footer .replay-actions {
-  margin: 10px 0 0;
+  margin: var(--space-10) 0 0;
 }
 
 .replay-btn {
@@ -1452,19 +1457,19 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: var(--space-6);
   font-family: var(--font-gothic);
   background: transparent;
   color: var(--ink-soft);
-  border: 1.5px solid color-mix(in srgb, var(--ink) 25%, transparent);
+  border: var(--border-thin) solid color-mix(in srgb, var(--ink) 25%, transparent);
   border-radius: var(--radius);
   font-size: var(--fs-lg);
   line-height: 1.1;
   letter-spacing: 0.06em;
-  padding: 8px 6px;
+  padding: var(--space-8) var(--space-6);
   text-transform: uppercase;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition: background var(--dur-fast) ease, color var(--dur-fast) ease, border-color var(--dur-fast) ease;
 }
 
 .replay-btn:hover {
@@ -1488,21 +1493,21 @@
 /* ---- suggest a dish (receipt) ---- */
 
 .dish-request {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 2px dashed var(--paper-edge);
+  margin-top: var(--space-14);
+  padding-top: var(--space-14);
+  border-top: var(--border-medium) dashed var(--paper-edge);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-8);
 }
 
 .dish-request__toggle {
   display: block;
   width: 100%;
-  margin-top: 14px;
-  padding-top: 14px;
+  margin-top: var(--space-14);
+  padding-top: var(--space-14);
   border: none;
-  border-top: 2px dashed var(--paper-edge);
+  border-top: var(--border-medium) dashed var(--paper-edge);
   background: transparent;
   color: var(--ink-soft);
   font-family: var(--font-gothic);
@@ -1511,7 +1516,7 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: color 0.15s ease;
+  transition: color var(--dur-fast) ease;
 }
 
 .dish-request__toggle:hover {
@@ -1524,9 +1529,9 @@
    above has already made the separation and paying for it twice is height this
    modal doesn't have. */
 .dish-request__toggle--promoted {
-  margin-top: 8px;
-  padding: 9px 12px;
-  border: 2px solid var(--mustard);
+  margin-top: var(--space-8);
+  padding: var(--space-10) var(--space-12);
+  border: var(--border-medium) solid var(--mustard);
   border-radius: var(--radius);
   background: var(--mustard);
   color: var(--on-near);
@@ -1541,7 +1546,7 @@
    themselves rather than stacking two breaks a few pixels apart. */
 .fan-stamp + .dish-request,
 .fan-stamp + .dish-request__thanks {
-  margin-top: 8px;
+  margin-top: var(--space-8);
   padding-top: 0;
   border-top: none;
 }
@@ -1561,9 +1566,9 @@
   font: inherit;
   color: var(--ink);
   background: var(--paper);
-  border: 1.5px solid var(--paper-edge);
+  border: var(--border-thin) solid var(--paper-edge);
   border-radius: var(--radius);
-  padding: 8px 10px;
+  padding: var(--space-8) var(--space-10);
   box-sizing: border-box;
 }
 
@@ -1578,7 +1583,7 @@ textarea.dish-request__input {
 
 .dish-request__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-8);
   align-items: center;
 }
 
@@ -1604,9 +1609,9 @@ textarea.dish-request__input {
 }
 
 .dish-request__thanks {
-  margin: 14px 0 0;
-  padding-top: 14px;
-  border-top: 2px dashed var(--paper-edge);
+  margin: var(--space-14) 0 0;
+  padding-top: var(--space-14);
+  border-top: var(--border-medium) dashed var(--paper-edge);
   text-align: center;
   color: var(--ink);
   font-family: var(--font-display);
@@ -1620,7 +1625,7 @@ textarea.dish-request__input {
 /* The answer to a request for something already served: reading text, so
    Georgia, not the sign face the thanks line wears. */
 .dish-request__thanks .dish-request__served {
-  margin-top: 8px;
+  margin-top: var(--space-8);
   font-family: var(--font-body);
   letter-spacing: normal;
 }
@@ -1634,9 +1639,9 @@ textarea.dish-request__input {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  gap: var(--space-8);
   text-align: center;
-  margin: 14px 0;
+  margin: var(--space-14) 0;
 }
 
 .stat__num {
@@ -1656,8 +1661,8 @@ textarea.dish-request__input {
 .dist {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 6px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
 }
 
 /* The reason to come back, under the stats: one quiet centred line in the
@@ -1670,13 +1675,13 @@ textarea.dish-request__input {
   color: var(--ink-soft);
   font-size: var(--fs-sm);
   line-height: 1.5;
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-12);
 }
 
 .dist__row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
   font-size: var(--fs-sm);
 }
 
@@ -1685,8 +1690,8 @@ textarea.dish-request__input {
 .dist__bar {
   background: var(--teal);
   color: var(--cream);
-  border-radius: 4px;
-  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  padding: var(--space-2) var(--space-8);
   min-width: 22px;
   width: var(--w, 8%);
   box-sizing: border-box;
@@ -1707,13 +1712,13 @@ textarea.dish-request__input {
 
 .howto p {
   line-height: 1.55;
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-10);
 }
 
 .howto h2 {
   font-family: var(--font-display);
   color: var(--cherry);
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-12);
   font-size: var(--fs-lg2);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1721,9 +1726,9 @@ textarea.dish-request__input {
 
 .legend {
   display: flex;
-  gap: 8px;
+  gap: var(--space-8);
   flex-wrap: wrap;
-  margin: 10px 0;
+  margin: var(--space-10) 0;
 }
 
 /* The three verdicts as chips, for the how-to and the coach mark. Classes
@@ -1754,11 +1759,11 @@ textarea.dish-request__input {
 .coach {
   position: relative;
   background: var(--paper-bright);
-  border: 2px solid var(--mustard);
+  border: var(--border-medium) solid var(--mustard);
   border-radius: var(--radius);
-  padding: 10px 34px 10px 14px;
-  margin: 0 0 12px;
-  box-shadow: 0 6px 18px rgba(20, 17, 16, 0.14);
+  padding: var(--space-10) var(--space-34) var(--space-10) var(--space-14);
+  margin: 0 0 var(--space-12);
+  box-shadow: var(--shadow-popover);
 }
 
 /* The caret. Two triangles, the outer one the border and the inner one the
@@ -1801,9 +1806,9 @@ textarea.dish-request__input {
 
 .coach__legend {
   display: flex;
-  gap: 6px;
+  gap: var(--space-6);
   flex-wrap: wrap;
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-8);
 }
 
 .coach__dismiss {
@@ -1828,7 +1833,7 @@ textarea.dish-request__input {
 
 /* Beat three sits at the top of the guess column, above the row it explains. */
 .guesses > .coach {
-  margin-bottom: 4px;
+  margin-bottom: var(--space-4);
 }
 
 /* The dim behind the order bar. No cut-out: .guess-input already sits at
@@ -1839,14 +1844,14 @@ textarea.dish-request__input {
 .coach-spotlight {
   position: fixed;
   inset: 0;
-  z-index: 35;
-  background: rgba(10, 20, 18, 0.58);
+  z-index: var(--z-spotlight);
+  background: rgb(var(--deep-rgb) / 0.58);
   animation: coach-dim 0.4s ease calc(var(--enter-dur) + var(--enter-step) * 4) backwards;
 }
 
 .special-line--lit {
   position: relative;
-  z-index: 36;
+  z-index: var(--z-spotlight-lit);
 }
 
 /* The ring on the order bar, and then on the Order button once there is
@@ -1863,9 +1868,9 @@ textarea.dish-request__input {
 }
 
 @keyframes coach-ring {
-  0% { box-shadow: 0 0 0 0 rgba(232, 165, 58, 0.85); }
-  70% { box-shadow: 0 0 0 12px rgba(232, 165, 58, 0); }
-  100% { box-shadow: 0 0 0 12px rgba(232, 165, 58, 0); }
+  0% { box-shadow: 0 0 0 0 rgb(var(--mustard-rgb) / 0.85); }
+  70% { box-shadow: 0 0 0 12px rgb(var(--mustard-rgb) / 0); }
+  100% { box-shadow: 0 0 0 12px rgb(var(--mustard-rgb) / 0); }
 }
 
 @keyframes coach-in {
@@ -1893,7 +1898,7 @@ textarea.dish-request__input {
   background: var(--cherry);
   color: var(--on-cherry);
   border-radius: var(--radius);
-  padding: 10px 14px;
+  padding: var(--space-10) var(--space-14);
   text-align: center;
 }
 
@@ -1904,7 +1909,7 @@ textarea.dish-request__input {
    text on a colour fill is a contrast cut most of the time it's tried. */
 .error-note__detail {
   display: block;
-  margin-top: 4px;
+  margin-top: var(--space-4);
   font-size: var(--fs-sm);
 }
 
@@ -1919,9 +1924,9 @@ textarea.dish-request__input {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   text-align: center;
-  border-radius: 999px;
-  padding: 6px 14px;
-  margin-bottom: 12px;
+  border-radius: var(--radius-pill);
+  padding: var(--space-6) var(--space-14);
+  margin-bottom: var(--space-12);
 }
 
 /* ---- the slips ----
@@ -1952,13 +1957,13 @@ textarea.dish-request__input {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 6px 12px;
+  gap: var(--space-6) var(--space-12);
   background: var(--paper-bright);
-  border: 1px solid var(--paper-edge);
+  border: var(--border-hair) solid var(--paper-edge);
   border-left: 5px solid var(--slip);
   border-radius: var(--radius-paper);
-  padding: 6px 7px 6px 12px;
-  margin-bottom: 12px;
+  padding: var(--space-6) var(--space-8) var(--space-6) var(--space-12);
+  margin-bottom: var(--space-12);
   box-shadow: 0 1px 2px color-mix(in srgb, var(--ink) 12%, transparent);
 }
 
@@ -1980,7 +1985,7 @@ textarea.dish-request__input {
 .lastcall-bar__tag {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-8);
   font-family: var(--font-gothic);
   font-size: var(--fs-lg);
   line-height: 1.2;
@@ -2001,8 +2006,8 @@ textarea.dish-request__input {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   border: none;
-  border-radius: 999px;
-  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-14);
   background: var(--ink);
   color: var(--paper);
 }
@@ -2046,10 +2051,10 @@ textarea.dish-request__input {
 
 .closed {
   text-align: center;
-  border: 2px dashed var(--paper-edge);
+  border: var(--border-medium) dashed var(--paper-edge);
   border-radius: var(--radius);
-  padding: 26px 20px 22px;
-  margin: 14px 0;
+  padding: 26px var(--space-20) var(--space-22);
+  margin: var(--space-14) 0;
 }
 
 .closed__sign {
@@ -2058,12 +2063,12 @@ textarea.dish-request__input {
   font-size: var(--fs-lg2);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-8);
 }
 
 .closed__body {
   color: var(--ink-soft);
-  margin: 0 auto 12px;
+  margin: 0 auto var(--space-12);
   max-width: 34ch;
   line-height: 1.45;
 }
@@ -2074,7 +2079,7 @@ textarea.dish-request__input {
 .closed__detail {
   font-size: var(--fs-sm);
   color: var(--ink-soft);
-  margin: 0 0 14px;
+  margin: 0 0 var(--space-14);
 }
 
 /* ---- archive calendar ---- */
@@ -2089,7 +2094,7 @@ textarea.dish-request__input {
 .archive-cal__title {
   font-family: var(--font-display);
   color: var(--cherry);
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-4);
   font-size: var(--fs-lg2);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -2100,30 +2105,30 @@ textarea.dish-request__input {
   text-align: center;
   color: var(--ink-soft);
   font-size: var(--fs-md);
-  margin: 0 0 14px;
+  margin: 0 0 var(--space-14);
 }
 
 .archive-cal__legend {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px 14px;
+  gap: var(--space-6) var(--space-14);
   font-size: var(--fs-xs);
   color: var(--ink-soft);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-8);
 }
 
 .archive-cal__legend span {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: var(--space-6);
 }
 
 .archive-cal__swatch {
   width: 12px;
   height: 12px;
-  border-radius: 3px;
-  border: 1px solid var(--paper-edge);
+  border-radius: var(--radius-paper);
+  border: var(--border-hair) solid var(--paper-edge);
 }
 
 .archive-cal__swatch--won {
@@ -2155,8 +2160,8 @@ textarea.dish-request__input {
   display: grid;
   grid-template-columns: 32px 1fr 32px;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: var(--space-8);
+  margin-bottom: var(--space-8);
 }
 
 .archive-cal__month-name {
@@ -2173,8 +2178,8 @@ textarea.dish-request__input {
 .archive-cal__nav-btn {
   width: 32px;
   height: 32px;
-  border: 1.5px solid var(--paper-edge);
-  border-radius: 7px;
+  border: var(--border-thin) solid var(--paper-edge);
+  border-radius: var(--radius-sm);
   background: var(--paper-bright);
   color: var(--ink);
   font-family: var(--font-display);
@@ -2197,7 +2202,7 @@ textarea.dish-request__input {
 .archive-cal__grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 5px;
+  gap: var(--space-6);
 }
 
 .archive-cal__dow {
@@ -2206,7 +2211,7 @@ textarea.dish-request__input {
   font-family: var(--font-gothic);
   letter-spacing: 0.04em;
   color: var(--ink-soft);
-  padding-bottom: 2px;
+  padding-bottom: var(--space-2);
 }
 
 /* Height is fixed, NOT `aspect-ratio: 1`. Square cells made the grid grow with
@@ -2218,8 +2223,8 @@ textarea.dish-request__input {
 .archive-cal__day {
   position: relative;
   height: 34px;
-  border: 1.5px solid var(--paper-edge);
-  border-radius: 7px;
+  border: var(--border-thin) solid var(--paper-edge);
+  border-radius: var(--radius-sm);
   background: var(--paper-bright);
   color: var(--ink);
   display: flex;
@@ -2342,7 +2347,7 @@ textarea.dish-request__input {
   font-size: var(--fs-xs);
   line-height: 1.4;
   color: var(--ink-soft);
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-10);
 }
 
 /* Slightly heavier than a stock .share-btn to carry the band, but still the
@@ -2353,7 +2358,7 @@ textarea.dish-request__input {
   font-size: var(--fs-lg);
   /* Narrow side padding so the label holds one line at 320px — the footer's own
      20px gutters already keep it off the card edge. */
-  padding: 14px 8px;
+  padding: var(--space-14) var(--space-8);
   margin-bottom: 0;
 }
 
@@ -2362,7 +2367,7 @@ textarea.dish-request__input {
    by measuring the *rendered* pixel — npm run a11y did, a hand pass over the
    tokens didn't. 0.62 reads 5.23 and is a shade nobody will notice moved. */
 .footer-note {
-  margin-top: 22px;
+  margin-top: var(--space-22);
   color: rgba(246, 237, 217, 0.62);
   font-size: var(--fs-xs);
   text-align: center;
@@ -2373,7 +2378,7 @@ textarea.dish-request__input {
 }
 
 .footer-note__links {
-  margin-top: 4px;
+  margin-top: var(--space-4);
 }
 
 .footer-note a {
@@ -2389,7 +2394,7 @@ textarea.dish-request__input {
    a fixed badge above the modals, which on a phone covered the bottom of the
    check. */
 .footer-note__build {
-  margin-top: 6px;
+  margin-top: var(--space-6);
   font-family: var(--font-gothic);
   font-size: var(--fs-xs);
   letter-spacing: 0.06em;
@@ -2742,9 +2747,9 @@ textarea.dish-request__input {
 .modal__close {
   transition:
     transform var(--press-dur) ease,
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease;
+    background var(--dur-fast) ease,
+    color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease;
 }
 .icon-btn:active,
 .replay-btn:active,
@@ -2918,9 +2923,9 @@ textarea.dish-request__input {
    the tallest card in the game at 375px and that row already holds three. */
 .bar-band {
   position: relative;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--paper-edge);
+  margin-top: var(--space-10);
+  padding-top: var(--space-10);
+  border-top: var(--border-hair) dashed var(--paper-edge);
   /* Fades in a BEAT after the check has settled, not with it. Someone reading
      their result gets to finish reading it; that delay is the difference
      between an offer and an interruption. */
@@ -2941,14 +2946,14 @@ textarea.dish-request__input {
   top: 11px;
   bottom: 0;
   border-radius: var(--radius);
-  box-shadow: 0 0 26px 4px rgba(255, 95, 122, 0.55);
+  box-shadow: 0 0 26px 4px rgb(var(--neon-pink-rgb) / 0.55);
   pointer-events: none;
   animation: bar-band-halo 2.6s ease-in-out 1.7s infinite backwards;
 }
 
 .bar-band--soon {
-  margin: 10px 0 0;
-  padding-top: 10px;
+  margin: var(--space-10) 0 0;
+  padding-top: var(--space-10);
   font-size: var(--fs-xs);
   color: var(--ink-soft);
   text-align: center;
@@ -2968,19 +2973,19 @@ textarea.dish-request__input {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-12);
   width: 100%;
   border: none;
   border-radius: var(--radius);
   background: linear-gradient(var(--cherry), var(--cherry-dark));
   color: var(--on-cherry);
-  padding: 11px 14px;
+  padding: var(--space-12) var(--space-14);
   text-align: left;
   box-shadow:
     0 0 0 1px var(--cherry-dark),
     0 2px 0 var(--cherry-dark),
-    0 6px 22px rgba(255, 95, 122, 0.45);
-  transition: transform 0.12s ease, box-shadow 0.15s ease;
+    0 6px 22px rgb(var(--neon-pink-rgb) / 0.45);
+  transition: transform 0.12s ease, box-shadow var(--dur-fast) ease;
 }
 
 /* Touch never fires :hover, and this is the game's main surface — so the press
@@ -2990,7 +2995,7 @@ textarea.dish-request__input {
   box-shadow:
     0 0 0 1px var(--cherry-dark),
     0 2px 0 var(--cherry-dark),
-    0 8px 30px rgba(255, 95, 122, 0.6);
+    0 8px 30px rgb(var(--neon-pink-rgb) / 0.6);
 }
 
 .bar-band__btn:active {
@@ -2998,7 +3003,7 @@ textarea.dish-request__input {
   box-shadow:
     0 0 0 1px var(--cherry-dark),
     0 0 0 var(--cherry-dark),
-    0 3px 14px rgba(255, 95, 122, 0.4);
+    0 3px 14px rgb(var(--neon-pink-rgb) / 0.4);
 }
 
 /* The tube. A hot hairline just inside the dark outer ring, brightening on the
@@ -3012,7 +3017,7 @@ textarea.dish-request__input {
   content: "";
   position: absolute;
   inset: 0;
-  border: 1.5px solid var(--paper-bright);
+  border: var(--border-thin) solid var(--paper-bright);
   border-radius: inherit;
   opacity: 0.2;
   pointer-events: none;
@@ -3117,7 +3122,7 @@ textarea.dish-request__input {
 .lights-out {
   position: fixed;
   inset: 0;
-  z-index: 300;
+  z-index: var(--z-lights-out);
   pointer-events: none;
   display: grid;
   place-items: center;
@@ -3140,9 +3145,9 @@ textarea.dish-request__input {
   font-size: clamp(2.2rem, 11vw, 4rem);
   color: #ff5f7a;
   text-shadow:
-    0 0 8px rgba(255, 95, 122, 0.9),
-    0 0 26px rgba(255, 95, 122, 0.6),
-    0 0 60px rgba(255, 95, 122, 0.35);
+    0 0 8px rgb(var(--neon-pink-rgb) / 0.9),
+    0 0 26px rgb(var(--neon-pink-rgb) / 0.6),
+    0 0 60px rgb(var(--neon-pink-rgb) / 0.35);
   animation: neon-buzz 1.4s ease-out both;
 }
 
@@ -3223,10 +3228,10 @@ textarea.dish-request__input {
   color: #fff2f5;
   text-shadow:
     0 0 4px #ffffff,
-    0 0 11px rgba(255, 95, 122, 1),
-    0 0 26px rgba(255, 95, 122, 0.9),
-    0 0 56px rgba(255, 95, 122, 0.75),
-    0 0 104px rgba(255, 95, 122, 0.45);
+    0 0 11px rgb(var(--neon-pink-rgb) / 1),
+    0 0 26px rgb(var(--neon-pink-rgb) / 0.9),
+    0 0 56px rgb(var(--neon-pink-rgb) / 0.75),
+    0 0 104px rgb(var(--neon-pink-rgb) / 0.45);
 }
 
 .menu-card--bar {
@@ -3267,7 +3272,7 @@ textarea.dish-request__input {
   font-family: var(--font-display);
   font-size: var(--fs-lg2);
   color: var(--cherry);
-  margin: 6px 0 14px;
+  margin: var(--space-6) 0 var(--space-14);
   font-variant-numeric: tabular-nums;
 }
 
@@ -3341,7 +3346,7 @@ textarea.dish-request__input {
      point of it is to say where to look. */
   .guess-input--coach-order input:not(:focus),
   .guess-input--coach-pick .guess-input__submit:not(:disabled) {
-    box-shadow: 0 0 0 4px rgba(232, 165, 58, 0.85);
+    box-shadow: 0 0 0 4px rgb(var(--mustard-rgb) / 0.85);
   }
 
   .tally--final .tally__hole:not(.tally__hole--punched) {
@@ -3390,7 +3395,7 @@ textarea.dish-request__input {
 
 @media (max-width: 520px) {
   .scene {
-    padding: 10px 8px 32px;
+    padding: var(--space-10) var(--space-8) var(--space-32);
   }
 
   /* The art layer moved off .scene onto this fixed pseudo-element, so the
@@ -3400,7 +3405,7 @@ textarea.dish-request__input {
   }
 
   .menu-card {
-    padding: 18px 14px 18px;
+    padding: var(--space-18) var(--space-14) var(--space-18);
   }
 
   .attr-tile__value {
@@ -3410,20 +3415,20 @@ textarea.dish-request__input {
   /* Tighter gutters buy the check ~16px of width, which keeps the countdown
      and share button on one line down to 320px. */
   .modal__scroll {
-    padding: 20px 16px 10px;
+    padding: var(--space-20) var(--space-16) var(--space-10);
   }
 
   .modal__footer {
-    padding: 10px 14px 14px;
+    padding: var(--space-10) var(--space-14) var(--space-14);
   }
 
   .check-actions {
-    gap: 10px;
+    gap: var(--space-10);
   }
 
   .check-actions .share-btn--primary {
     font-size: var(--fs-md);
-    padding: 12px 6px;
+    padding: var(--space-12) var(--space-6);
     letter-spacing: 0.04em;
   }
 
@@ -3435,7 +3440,7 @@ textarea.dish-request__input {
   }
 
   .countdown--compact {
-    padding-right: 10px;
+    padding-right: var(--space-10);
   }
 
   .countdown__time {
@@ -3444,7 +3449,7 @@ textarea.dish-request__input {
 
   .win-toast {
     font-size: var(--fs-md);
-    padding: 10px 16px;
+    padding: var(--space-10) var(--space-16);
   }
 }
 
@@ -3489,7 +3494,7 @@ textarea.dish-request__input {
 
 :root[data-discord-layout="pip"] .scene {
   min-height: 0;
-  padding: 6px;
+  padding: var(--space-6);
   /* The card is the whole surface now, so the teal that the backdrop layer was
      painting has to come from somewhere. */
   background: var(--teal-dark);
@@ -3500,9 +3505,9 @@ textarea.dish-request__input {
 :root[data-discord-layout="pip"] .menu-card {
   max-width: none;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   box-shadow: none;
-  padding: 8px 10px;
+  padding: var(--space-8) var(--space-10);
 }
 
 :root[data-discord-layout="pip"] .menu-card::before {
@@ -3512,14 +3517,14 @@ textarea.dish-request__input {
 /* Tightened rather than shrunk: the type stays legible and the air between
    rows is what gives way, because a tile is short before it is narrow. */
 :root[data-discord-layout="pip"] .guess-input {
-  margin-bottom: 4px;
+  margin-bottom: var(--space-4);
 }
 
 :root[data-discord-layout="pip"] .guesses {
-  gap: 6px;
+  gap: var(--space-6);
   margin-bottom: 0;
 }
 
 :root[data-discord-layout="pip"] .guess-row {
-  padding: 6px 8px;
+  padding: var(--space-6) var(--space-8);
 }
