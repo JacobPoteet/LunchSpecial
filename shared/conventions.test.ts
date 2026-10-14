@@ -108,9 +108,9 @@ describe("the wiki's location stays out of the repo", () => {
 
 describe("the stylesheets spend the spacing scale through tokens", () => {
   // base.css names the scale (--space-N). A raw 12px in a padding, margin or gap
-  // is how the rules drifted to 27 values a pixel apart. Off-scale layout values
-  // (18, 22, 28, 34...) stay literal on purpose; negatives and calc() are skipped.
-  const ON_SCALE = new Set([2, 4, 6, 8, 10, 12, 14, 16, 20, 24]);
+  // is how the rules drifted to 27 values a pixel apart. Values off the scale
+  // (1, 3, 19, 26, 60) stay literal; negatives and calc() are skipped.
+  const ON_SCALE = new Set([2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 34, 40, 48]);
   const SNAPPED = new Set([5, 7, 9, 11, 13]);
 
   it("padding, margin and gap use --space-N on the scale", () => {

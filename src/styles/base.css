@@ -141,8 +141,8 @@
 
   /* Spacing, named by its pixel value. The rules had drifted to 27 values, many
      of them one pixel apart; odd ones were snapped to the nearest step here.
-     18, 22, 28, 34 and a few others remain literal on purpose: they are
-     layout, not rhythm, and wait for a design decision. */
+     18 and up are the roomier layout steps, kept at the values the rules
+     already used. 1, 3, 19, 26 and 60px stay literal one-offs. */
   --space-2: 2px;
   --space-4: 4px;
   --space-6: 6px;
@@ -151,8 +151,15 @@
   --space-12: 12px;
   --space-14: 14px;
   --space-16: 16px;
+  --space-18: 18px;
   --space-20: 20px;
+  --space-22: 22px;
   --space-24: 24px;
+  --space-28: 28px;
+  --space-32: 32px;
+  --space-34: 34px;
+  --space-40: 40px;
+  --space-48: 48px;
 
   /* Transition speeds. Animation timing is choreography, mirrored in
      shared/audio.ts, and is not tokenised here. */

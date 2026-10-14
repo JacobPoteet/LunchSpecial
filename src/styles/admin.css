@@ -3,7 +3,7 @@
 .admin {
   min-height: 100dvh;
   background: var(--teal-dark);
-  padding: 18px var(--space-14) 60px;
+  padding: var(--space-18) var(--space-14) 60px;
 }
 
 .admin__shell {
@@ -53,7 +53,7 @@
 .admin-nav {
   display: flex;
   align-items: center;
-  gap: var(--space-6) 18px;
+  gap: var(--space-6) var(--space-18);
   flex-wrap: wrap;
 }
 
@@ -64,7 +64,7 @@
 }
 
 .admin-nav__group--actions {
-  padding-left: 18px;
+  padding-left: var(--space-18);
   border-left: var(--border-hair) solid color-mix(in srgb, var(--cream) 30%, transparent);
 }
 
@@ -93,7 +93,7 @@
    takes the muted weight that says so. */
 /* The build line, last thing on every admin screen (AdminApp.tsx). */
 .admin__build {
-  margin-top: 28px;
+  margin-top: var(--space-28);
   color: rgba(246, 237, 217, 0.66);
   font-family: var(--font-gothic);
   font-size: var(--fs-xs);
@@ -193,7 +193,7 @@
 .panel {
   background: var(--paper);
   border-radius: var(--radius-paper);
-  padding: 18px var(--space-20) var(--space-20);
+  padding: var(--space-18) var(--space-20) var(--space-20);
   box-shadow: var(--shadow-sheet);
   margin-bottom: var(--space-16);
 }
@@ -686,7 +686,7 @@
 .analytics-rule {
   border: 0;
   border-top: var(--border-hair) dashed rgb(var(--teal-rgb) / 0.25);
-  margin: 22px 0 var(--space-16);
+  margin: var(--space-22) 0 var(--space-16);
 }
 
 .hourly {
@@ -756,7 +756,7 @@
 .hourly__col--future { opacity: 0.32; }
 .hourly__col--future .hourly__tick { opacity: 0.6; }
 
-.hourly__caption { margin-top: 18px; font-size: var(--fs-xs); }
+.hourly__caption { margin-top: var(--space-18); font-size: var(--fs-xs); }
 
 /* The three sentences beside the day's tape: pace, difficulty, liveness. Each
    is a full read on its own, so they're a list rather than a run-on paragraph,
@@ -788,7 +788,7 @@
 .ztape-row {
   display: grid;
   grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
-  gap: var(--space-16) 28px;
+  gap: var(--space-16) var(--space-28);
   align-items: start;
   margin-bottom: var(--space-4);
 }
@@ -921,7 +921,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-10) 22px;
+  gap: var(--space-10) var(--space-22);
   margin-top: var(--space-20);
   padding-top: var(--space-16);
   border-top: var(--border-hair) dashed rgb(var(--teal-rgb) / 0.22);
@@ -1220,7 +1220,7 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 18px 26px;
+  gap: var(--space-18) 26px;
 }
 
 .cpie__headline {
@@ -1353,7 +1353,7 @@
 .cpie__subrow .cpie__detail { color: var(--ink-soft); font-size: var(--fs-xs); flex: none; }
 
 /* The all-time strip trails a full day's worth of charts now — give it air. */
-.analytics-block + .dash-subhead { margin-top: 22px; }
+.analytics-block + .dash-subhead { margin-top: var(--space-22); }
 
 @media (max-width: 520px) {
   /* Let the DNF figure wrap onto its own line rather than being pushed off the
@@ -1513,7 +1513,7 @@
    on a timer — see the note at the top of this block. */
 .act-row--fresh td:first-child { box-shadow: inset 3px 0 0 var(--mustard); }
 
-.act-row--nested td:first-child { padding-left: 22px; }
+.act-row--nested td:first-child { padding-left: var(--space-22); }
 
 .act-device {
   background: none;
@@ -1734,7 +1734,7 @@
 .mix-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 18px 28px;
+  gap: var(--space-18) var(--space-28);
 }
 
 .mix { display: flex; flex-direction: column; gap: var(--space-6); }
@@ -2181,7 +2181,7 @@
 .editor-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 18px;
+  gap: var(--space-18);
 }
 
 @media (max-width: 860px) {
@@ -2669,7 +2669,7 @@
   /* 420px = .modal--notice's max-width, so the preview wraps its lines exactly
      where the player's card does. */
   grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
-  gap: 22px;
+  gap: var(--space-22);
   align-items: start;
 }
 
@@ -2693,7 +2693,7 @@
   box-shadow: var(--shadow-raise);
 }
 
-.announce-group { margin-top: 22px; }
+.announce-group { margin-top: var(--space-22); }
 
 .announce-group__title {
   margin: 0 0 var(--space-2);
@@ -3635,7 +3635,7 @@
   align-items: stretch;
   gap: var(--space-6);
   height: 150px;
-  padding: var(--space-16) 0 18px;
+  padding: var(--space-16) 0 var(--space-18);
 }
 
 .wau__col {

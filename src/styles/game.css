@@ -5,7 +5,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--space-16) var(--space-12) 48px;
+  padding: var(--space-16) var(--space-12) var(--space-48);
 }
 
 /* The diner backdrop lives on a viewport-locked layer, not on .scene itself.
@@ -107,7 +107,7 @@
   border: var(--border-medium) solid var(--cherry-dark);
   border-radius: var(--radius-paper);
   box-shadow: var(--shadow-card);
-  padding: var(--space-24) 22px 22px;
+  padding: var(--space-24) var(--space-22) var(--space-22);
 }
 
 /* Thin inner rule of the double frame. Absolutely positioned, so it paints
@@ -402,16 +402,21 @@
   outline-offset: 1px;
 }
 
+/* The diner's button: slab type, uppercase, a control corner. The teal share
+   button and the cherry order button are both this; each adds only its fill
+   and size below. */
+.share-btn,
 .guess-input__submit {
   font-family: var(--font-display);
-  background: var(--cherry);
-  color: var(--on-cherry);
   border: none;
   border-radius: var(--radius);
-  padding: 0 18px;
   font-size: var(--fs-md);
-  letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.guess-input__submit {
+  padding: 0 var(--space-18);
+  letter-spacing: 0.06em;
 }
 
 .guess-input__submit:disabled {
@@ -797,7 +802,7 @@
 /* Card footer: script sign-off + fine print, closed off with a double rule
    mirroring the masthead. */
 .menu-card__thanks {
-  margin-top: 18px;
+  margin-top: var(--space-18);
   padding-top: var(--space-10);
   border-top: var(--border-thick) double var(--cherry-dark);
   text-align: center;
@@ -843,7 +848,7 @@
   width: 100%;
   max-height: calc(100dvh - 48px);
   overflow-y: auto;
-  padding: 22px 22px var(--space-24);
+  padding: var(--space-22) var(--space-22) var(--space-24);
   box-shadow: var(--shadow-card);
   position: relative;
 }
@@ -909,7 +914,7 @@
   align-items: baseline;
   gap: var(--space-8);
   margin: 0 0 var(--space-6);
-  padding-right: 40px; /* clears .modal__close */
+  padding-right: var(--space-40); /* clears .modal__close */
   font-family: var(--font-gothic);
   font-size: var(--fs-md);
   letter-spacing: 0.08em;
@@ -968,7 +973,7 @@
   min-height: 0; /* without this the flex child refuses to shrink and scroll */
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 22px 22px var(--space-12);
+  padding: var(--space-22) var(--space-22) var(--space-12);
 }
 
 /* The upward shadow is the scroll affordance: content visibly slides under the
@@ -1091,7 +1096,7 @@
   justify-content: space-between;
   gap: var(--space-12);
   /* Clears .modal__close, which sits over this row's right end. */
-  padding-right: 34px;
+  padding-right: var(--space-34);
   margin-bottom: var(--space-8);
 }
 
@@ -1337,15 +1342,10 @@
 .share-btn {
   display: block;
   width: 100%;
-  font-family: var(--font-display);
   background: var(--teal);
   color: var(--cream);
-  border: none;
-  border-radius: var(--radius);
-  font-size: var(--fs-md);
   letter-spacing: 0.08em;
   padding: var(--space-12);
-  text-transform: uppercase;
   margin-bottom: var(--space-12);
 }
 
@@ -1355,9 +1355,14 @@
 
 /* The share button is the headline action once the check is settled: bigger,
    brighter (cherry), and lifted off the receipt so it's the obvious next tap. */
+/* The cherry treatment: the order button and the headline share action. */
+.guess-input__submit,
 .share-btn--primary {
   background: var(--cherry);
   color: var(--on-cherry);
+}
+
+.share-btn--primary {
   font-size: var(--fs-lg2);
   padding: var(--space-16);
   margin-top: var(--space-4);
@@ -1756,7 +1761,7 @@ textarea.dish-request__input {
   background: var(--paper-bright);
   border: var(--border-medium) solid var(--mustard);
   border-radius: var(--radius);
-  padding: var(--space-10) 34px var(--space-10) var(--space-14);
+  padding: var(--space-10) var(--space-34) var(--space-10) var(--space-14);
   margin: 0 0 var(--space-12);
   box-shadow: var(--shadow-popover);
 }
@@ -2048,7 +2053,7 @@ textarea.dish-request__input {
   text-align: center;
   border: var(--border-medium) dashed var(--paper-edge);
   border-radius: var(--radius);
-  padding: 26px var(--space-20) 22px;
+  padding: 26px var(--space-20) var(--space-22);
   margin: var(--space-14) 0;
 }
 
@@ -2362,7 +2367,7 @@ textarea.dish-request__input {
    by measuring the *rendered* pixel — npm run a11y did, a hand pass over the
    tokens didn't. 0.62 reads 5.23 and is a shade nobody will notice moved. */
 .footer-note {
-  margin-top: 22px;
+  margin-top: var(--space-22);
   color: rgba(246, 237, 217, 0.62);
   font-size: var(--fs-xs);
   text-align: center;
@@ -3390,7 +3395,7 @@ textarea.dish-request__input {
 
 @media (max-width: 520px) {
   .scene {
-    padding: var(--space-10) var(--space-8) 32px;
+    padding: var(--space-10) var(--space-8) var(--space-32);
   }
 
   /* The art layer moved off .scene onto this fixed pseudo-element, so the
@@ -3400,7 +3405,7 @@ textarea.dish-request__input {
   }
 
   .menu-card {
-    padding: 18px var(--space-14) 18px;
+    padding: var(--space-18) var(--space-14) var(--space-18);
   }
 
   .attr-tile__value {
