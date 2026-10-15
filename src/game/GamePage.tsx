@@ -776,6 +776,15 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // goes through surfaceUrl() so a Discord Activity keeps its iframe params —
   // otherwise the new URL loses `frame_id` and the round logs as a web play.
   const goToday = useCallback(() => window.location.assign(surfaceUrl(devUrl("/"))), []);
+
+  // The daily board keyed to a day that has ended. Guesses against it would be
+  // scored on yesterday's Special and recorded as today's daily, so it stops
+  // taking them; the banner's "Serve it" is the way forward. A board with no
+  // guess on it has nothing to lose, so it swaps without asking.
+  const staleDaily = rolledOver && isDaily && round.status === "playing";
+  useEffect(() => {
+    if (staleDaily && round.guesses.length === 0) goToday();
+  }, [staleDaily, round.guesses.length, goToday]);
   const goRandom = useCallback(() => window.location.assign(surfaceUrl(devUrl("/?random"))), []);
   const openArchiveDate = useCallback(
     (d: string) => window.location.assign(surfaceUrl(devUrl(d === today ? "/" : `/?date=${d}`))),
@@ -867,7 +876,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
 
   const submitGuess = useCallback(
     async (dish: DishSummary) => {
-      if (!daily || busy || round.status !== "playing") return;
+      if (!daily || busy || staleDaily || round.status !== "playing") return;
       setBusy(true);
       setError(null);
       // Drop the guess row in right away (and sound the order) so the animation
@@ -973,7 +982,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         setBusy(false);
       }
     },
-    [daily, busy, round, date, preview, random, playtest, ephemeral, tracked, isDaily, analyticsKind, persist],
+    [daily, busy, staleDaily, round, date, preview, random, playtest, ephemeral, tracked, isDaily, analyticsKind, persist],
   );
 
   const guessedIds = useMemo(() => new Set(round.guesses.map((g) => g.dish.id)), [round.guesses]);
@@ -1123,7 +1132,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
                 <GuessInput
                   dishes={dishes}
                   excludeIds={guessedIds}
-                  disabled={!daily || busy}
+                  disabled={!daily || busy || staleDaily}
                   onGuess={submitGuess}
                   coach={coachBeat === "order" || coachBeat === "pick" ? coachBeat : undefined}
                   describedBy={coachBeat === "order" || coachBeat === "pick" ? coachId : undefined}
