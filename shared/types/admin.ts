@@ -114,6 +114,12 @@ export interface DishRequest {
    * device id rode along. Admin-only: it is what a note to this player aims at.
    */
   playerId: string | null;
+  /**
+   * Where the requester was, as Cloudflare's edge resolved it (alpha-2, `T1`,
+   * `XX`). Not the dish's `country`. Null for a request sent before 0061 or
+   * from local dev: unmeasured, never an unknown place.
+   */
+  fromCountry: string | null;
   /** The last ET day (lunch) or night (bar) this was served, if it already has been. */
   servedOn: string | null;
 }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { DishRequest, RequestKind } from "../../shared/types";
 import { REQUEST_KINDS } from "../../shared/types";
 import type { NoteDraft, RequestDraft } from "./AdminApp";
-import { shortDate } from "./analyticsUi";
+import { countryName, shortDate } from "./analyticsUi";
 import { Modal } from "../game/components";
 import * as api from "./api";
 
@@ -177,6 +177,7 @@ export default function RequestsView({
                     <th>{kind === "dish" ? "Dish" : "Drink"}</th>
                     <th>Country</th>
                     <th>Note</th>
+                    <th>Via</th>
                     <th>From</th>
                     <th>When</th>
                     <th>Actions</th>
@@ -196,9 +197,10 @@ export default function RequestsView({
                       </td>
                       <td data-label="Country">{r.country ?? "—"}</td>
                       <td data-label="Note">{r.note ?? "—"}</td>
-                      <td data-label="From">
+                      <td data-label="Via">
                         <span className={`badge${r.surface === "discord" ? " badge--off" : ""}`}>{r.surface}</span>
                       </td>
+                      <td data-label="From">{r.fromCountry ? countryName(r.fromCountry) : "—"}</td>
                       <td data-label="When">{r.createdAt.slice(0, 10)}</td>
                       <td data-label="Actions">
                         <div className="btn-row">
