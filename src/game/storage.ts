@@ -76,6 +76,22 @@ export function getPlayerId(): string {
 }
 
 /**
+ * Replace the device id with the one the Worker derived for an authorized
+ * Discord player (#251), so every store and every beacon after this uses it.
+ */
+export function adoptPlayerId(id: string): void {
+  if (!id) return;
+  playerId = id;
+  playerIdOrigin = "discord";
+  try {
+    localStorage.setItem(PLAYER_KEY, id);
+  } catch {
+    // Storage blocked: the id lives for this page load, and the next launch derives it again.
+  }
+  writeCookie(id);
+}
+
+/**
  * Where this page load found its device id, for the start beacon. Asks for the
  * id first, so it is never read before one exists.
  */

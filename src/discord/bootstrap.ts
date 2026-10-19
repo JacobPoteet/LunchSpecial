@@ -8,17 +8,19 @@
 // the Embedded App SDK is never even downloaded (it's behind a dynamic import).
 //
 // Scope: still anonymous — the game runs inside Discord exactly as it does on
-// the web (localStorage state, no accounts). Two things use the SDK: Rich
-// Presence (src/discord/presence.ts) and the portrait lock below. Only the
-// first takes OAuth, including the `identify` scope its handshake turned out to
-// require, and even there the user object is discarded on arrival: nothing here
-// ever stores or sends who the player is.
+// the web (localStorage state, no accounts). Things that use the SDK: Rich
+// Presence (src/discord/presence.ts), the portrait lock below, and restoring
+// a player's progress (src/discord/restore.ts). The OAuth ones take the
+// `identify` scope the handshake requires; the browser discards the user object
+// on arrival and never stores or sends who the player is. The Worker alone
+// turns the Discord id into an opaque keyed hash (worker/playerid.ts).
 
 import type { DiscordSDK } from "@discord/embedded-app-sdk";
 import { discordClientOf, type DiscordClient } from "../../shared/device";
 import type { Surface } from "../../shared/types";
 import { attachPresence } from "./presence";
 import { attachProgress } from "./progress";
+import { restoreProgress } from "./restore";
 import { attachShare } from "./share";
 import { attachSocial } from "./social";
 
@@ -229,6 +231,10 @@ export async function initDiscord(): Promise<DiscordSDK | null> {
       console.warn(`[discord] SDK ready() didn't resolve in ${READY_TIMEOUT_MS}ms — mounting the game anyway.`);
       return null;
     }
+    // A player who authorizes gets their saved progress back before the board
+    // reads storage (#251). Capped on its own, so it never adds more than a
+    // moment to the mount; see src/discord/restore.ts.
+    if (result) await restoreProgress(result);
     return result;
   } catch (err) {
     // A failed handshake shouldn't white-screen the game. Log and let the

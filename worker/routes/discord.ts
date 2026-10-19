@@ -20,6 +20,9 @@ import { Hono } from "hono";
 import { progressLine, type ScorecardTheme } from "../../shared/scorecard";
 import { avatarUrl, displayName } from "../avatar";
 import { verifyDiscordSignature } from "../discordsig";
+import { createToken, verifyToken } from "../auth";
+import { PLAYER_CLAIM, PLAYER_TOKEN_TTL_MS, derivePlayerId } from "../playerid";
+import { hasProgress, mergeProgress, normalizeProgress, type Progress } from "../../shared/progress";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -61,9 +64,86 @@ app.post("/token", async (c) => {
   const accessToken = typeof data?.access_token === "string" ? data.access_token : "";
   if (!accessToken) return c.json({ error: "Discord returned no access token" }, 502);
 
-  // Only the token goes back — not the refresh token, scope echo or expiry,
-  // none of which the Activity's `authenticate()` call has any use for.
-  return c.json({ accessToken });
+  // The token goes back, not the refresh token, scope echo or expiry, none of
+  // which the Activity's `authenticate()` call has any use for. Alongside it
+  // goes the one thing the Activity uses to remember a player across launches
+  // (#251): an opaque id and a signed proof of it. See worker/playerid.ts.
+  const player = await playerFor(accessToken, c.env);
+  return c.json({ accessToken, ...player });
+});
+
+/**
+ * Who this token belongs to, as an opaque id plus the signed claim `/progress`
+ * takes. Empty when the Worker has no PLAYER_ID_SECRET or Discord won't say:
+ * the player then keeps playing on whatever their device stores, as before.
+ * Only the `id` field of Discord's answer is read.
+ */
+async function playerFor(accessToken: string, env: Env): Promise<{ playerId?: string; progressToken?: string }> {
+  if (!env.PLAYER_ID_SECRET || !env.SESSION_SECRET) return {};
+  try {
+    const res = await fetch("https://discord.com/api/v10/users/@me", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return {};
+    const user = (await res.json().catch(() => null)) as { id?: unknown } | null;
+    const playerId = await derivePlayerId(user?.id, env.PLAYER_ID_SECRET);
+    if (!playerId) return {};
+    const progressToken = await createToken(`${PLAYER_CLAIM}${playerId}`, PLAYER_TOKEN_TTL_MS, env.SESSION_SECRET);
+    return { playerId, progressToken };
+  } catch {
+    return {};
+  }
+}
+
+/** The player id a request proves, off its bearer token; null when it proves none. */
+async function provenPlayer(authorization: string | undefined, env: Env): Promise<string | null> {
+  const match = /^Bearer (\S+)$/.exec(authorization ?? "");
+  if (!match || !env.SESSION_SECRET) return null;
+  const payload = await verifyToken(match[1], env.SESSION_SECRET);
+  return payload?.startsWith(PLAYER_CLAIM) ? payload.slice(PLAYER_CLAIM.length) : null;
+}
+
+async function storedProgress(db: D1Database, playerId: string): Promise<Progress> {
+  const row = await db
+    .prepare("SELECT progress FROM player_progress WHERE player_id = ?")
+    .bind(playerId)
+    .first<{ progress: string }>();
+  if (!row) return {};
+  try {
+    return normalizeProgress(JSON.parse(row.progress)) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+/** The player's saved progress. 401 without a valid claim; an empty object for a player with none. */
+app.get("/progress", async (c) => {
+  const playerId = await provenPlayer(c.req.header("Authorization"), c.env);
+  if (!playerId) return c.json({ error: "Unauthorized" }, 401);
+  return c.json({ progress: await storedProgress(c.env.DB, playerId) });
+});
+
+/**
+ * Fold the phone's copy into the saved one and answer with the result. Merged
+ * rather than replaced, so a phone that just woke up empty can never erase a
+ * streak by writing first.
+ */
+app.put("/progress", async (c) => {
+  const playerId = await provenPlayer(c.req.header("Authorization"), c.env);
+  if (!playerId) return c.json({ error: "Unauthorized" }, 401);
+  const body = (await c.req.json().catch(() => null)) as { progress?: unknown } | null;
+  const incoming = normalizeProgress(body?.progress);
+  if (!incoming) return c.json({ error: "Invalid progress" }, 400);
+  const merged = mergeProgress(incoming, await storedProgress(c.env.DB, playerId));
+  if (hasProgress(merged)) {
+    await c.env.DB.prepare(
+      `INSERT INTO player_progress (player_id, progress, updated_at) VALUES (?, ?, datetime('now'))
+       ON CONFLICT(player_id) DO UPDATE SET progress = excluded.progress, updated_at = excluded.updated_at`,
+    )
+      .bind(playerId, JSON.stringify(merged))
+      .run();
+  }
+  return c.json({ progress: merged });
 });
 
 /**
