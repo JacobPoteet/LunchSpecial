@@ -474,11 +474,6 @@
   transform: rotate(8deg);
 }
 
-/* The candy corn is the pin, so the default clip stays off. */
-:root[data-occasion="halloween"] .ticket-feed--print .ticket::before {
-  display: none;
-}
-
 /* ---- the bar's coasters ----
    A bat printed in the corner, and the third coaster (Last call) cut as a
    headstone. The head keeps clear of the bat at 320px. */

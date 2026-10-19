@@ -1020,7 +1020,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // ticks it up on the board behind the check.
   const streakMark = isDaily ? boardStreakMark({ ...stats, today }) : null;
   const remaining = MAX_GUESSES - round.guesses.length;
-  const tickets = useTicketStack(round.clues, round.status === "playing");
+  const tickets = useTicketStack(round.clues);
 
   return (
     <div className="scene">
@@ -1195,7 +1195,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
             earns one, and on a phone four guess rows pushed every ticket two
             screens below the order bar. Older tickets stay under the guesses,
             where they are looked back at rather than read. See TicketSlot. */}
-        <TicketSlot stack={tickets} Piece={ClueTicket} stubText="Clue ticket · prints after a miss" />
+        <TicketSlot stack={tickets} Piece={ClueTicket} />
 
         <div className="guesses">
           {coachBeat === "read" && !pending && <CoachMark beat="read" onDismiss={endCoaching} />}

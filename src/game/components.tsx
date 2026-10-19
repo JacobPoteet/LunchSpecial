@@ -471,14 +471,13 @@ export function ClueTicket({ index, text, ring }: TicketPieceProps) {
 // The newest clue prints into a slot under the punch card, above the guesses.
 // Three things keep that slot from reading as a loading bug:
 //
-// 1. It is never empty and never a hole. Before the first miss a dashed stub
-//    holds the place ("prints after a miss"); after, the previous ticket stays
-//    where it is through the 1.14s hold, and the new one takes no space at all
-//    until it starts to print.
+// 1. It is never a hole. The previous ticket stays where it is through the
+//    1.14s hold, and the new one takes no space at all until it starts to
+//    print. Before the first miss the slot is simply not there.
 // 2. It prints by growing, pushing the rows under it down as the paper feeds
 //    out, rather than being unveiled in a box that was already there.
-// 3. The ticket it replaces is spiked once the new one has printed: it slides
-//    down and out of the slot and joins the older stack under the guesses.
+// 3. The ticket it replaces folds away as the new one prints, and joins the
+//    older stack under the guesses.
 //
 // `leaving` is the piece being replaced, held in the slot until its own
 // animation ends. Reduced motion skips it: the swap is immediate.
@@ -490,13 +489,12 @@ interface TicketItem {
 
 interface Leaving {
   key: string;
-  item: TicketItem | null;
+  item: TicketItem;
 }
 
 export interface TicketStack {
   newest: TicketItem | undefined;
   leaving: Leaving | null;
-  showStub: boolean;
   earlier: TicketItem[];
   done: () => void;
 }
@@ -505,9 +503,9 @@ export interface TicketStack {
 // (tab hidden, animation cancelled), the stack settles anyway.
 const LEAVE_FALLBACK_MS = 4000;
 
-export function useTicketStack(items: TicketItem[], playing: boolean): TicketStack {
+export function useTicketStack(items: TicketItem[]): TicketStack {
   const newest = items[items.length - 1];
-  const key = newest ? `c${newest.index}` : playing ? "stub" : "none";
+  const key = newest ? `c${newest.index}` : "none";
   const [prev, setPrev] = useState<{ key: string; item: TicketItem | null }>({
     key,
     item: newest ?? null,
@@ -515,11 +513,11 @@ export function useTicketStack(items: TicketItem[], playing: boolean): TicketSta
   const [leaving, setLeaving] = useState<Leaving | null>(null);
 
   // Derived during render, the way React documents it: the slot changed, so
-  // what was in it is now on its way out. Only a clue replacing something does
-  // this; a fresh round (a stub replacing a ticket) just resets.
+  // what was in it is now on its way out. Only a clue replacing a clue does
+  // this; a fresh round (the slot emptying) just resets.
   if (prev.key !== key) {
     setPrev({ key, item: newest ?? null });
-    if (newest && prev.key !== "none" && !prefersReducedMotion()) {
+    if (newest && prev.item && !prefersReducedMotion()) {
       setLeaving({ key: prev.key, item: prev.item });
     } else {
       setLeaving(null);
@@ -540,41 +538,21 @@ export function useTicketStack(items: TicketItem[], playing: boolean): TicketSta
   return {
     newest,
     leaving,
-    showStub: !newest && playing,
     earlier,
     done: () => setLeaving(null),
   };
 }
 
-function TicketStub({ text }: { text: string }) {
-  return <p className="ticket-stub">{text}</p>;
-}
-
-/** The slot itself. Renders nothing once a round ends with no clue to show. */
-export function TicketSlot({
-  stack,
-  Piece,
-  stubText,
-}: {
-  stack: TicketStack;
-  Piece: ComponentType<TicketPieceProps>;
-  stubText: string;
-}) {
-  const { newest, leaving, showStub, done } = stack;
-  if (!newest && !leaving && !showStub) return null;
+/** The slot itself. Renders nothing until the first clue. */
+export function TicketSlot({ stack, Piece }: { stack: TicketStack; Piece: ComponentType<TicketPieceProps> }) {
+  const { newest, leaving, done } = stack;
+  if (!newest && !leaving) return null;
   return (
     <div className="tickets tickets--slot">
       {newest && (
         <div className="ticket-feed ticket-feed--print" key={`c${newest.index}`}>
           <div className="ticket-feed__inner">
             <Piece index={newest.index} text={newest.text} ring />
-          </div>
-        </div>
-      )}
-      {!newest && showStub && (
-        <div className="ticket-feed" key="stub">
-          <div className="ticket-feed__inner">
-            <TicketStub text={stubText} />
           </div>
         </div>
       )}
@@ -587,11 +565,7 @@ export function TicketSlot({
           }}
         >
           <div className="ticket-feed__inner">
-            {leaving.item ? (
-              <Piece index={leaving.item.index} text={leaving.item.text} />
-            ) : (
-              <TicketStub text={stubText} />
-            )}
+            <Piece index={leaving.item.index} text={leaving.item.text} />
           </div>
         </div>
       )}
@@ -703,14 +677,27 @@ export function GuessInput<T extends { id: number; name: string }>({
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
-  // Submitting a guess flips `disabled` on (parent goes busy) then off again,
-  // which drops the input's focus. On desktop, put the cursor back so you can
-  // keep typing your next order without re-clicking the bar.
+  // On desktop the cursor is already in the bar, so you can start typing the
+  // moment the page is up, and it comes back after each guess. Two cases:
+  //
+  // - After a guess: submitting flips `disabled` on (parent goes busy) then off
+  //   again, which drops the input's focus, so it is put back.
+  // - On arrival: `disabled` is true until the puzzle loads and false after, and
+  //   that is the first moment there is anything to type into. Only taken when
+  //   nothing else has focus and no dialog is up, so a notice, the how-to or a
+  //   returning player's own click is never pulled away from.
+  //
+  // Touch never takes it: focusing would raise the on-screen keyboard before the
+  // player has looked at the board.
   useEffect(() => {
-    if (disabled || !interacted.current) return;
-    if (window.matchMedia?.("(hover: hover) and (pointer: fine)").matches) {
-      inputRef.current?.focus();
+    if (disabled) return;
+    if (!window.matchMedia?.("(hover: hover) and (pointer: fine)").matches) return;
+    if (!interacted.current) {
+      const held = document.activeElement;
+      if (held && held !== document.body) return;
+      if (document.querySelector('[role="dialog"]')) return;
     }
+    inputRef.current?.focus();
   }, [disabled]);
 
   const pick = (dish: T) => {

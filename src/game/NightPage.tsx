@@ -471,7 +471,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
 
   const guessedIds = useMemo(() => new Set(round.guesses.map((g) => g.drink.id)), [round.guesses]);
   const remaining = DRINK_MAX_GUESSES - round.guesses.length;
-  const coasters = useTicketStack(round.coasters, round.status === "playing");
+  const coasters = useTicketStack(round.coasters);
 
   if (!barOpen) return <BarScene><ClosedSign onLeave={onLeave} /></BarScene>;
   if (!lunchDone) return <BarScene><DoorSign onLeave={onLeave} /></BarScene>;
@@ -601,7 +601,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
 
         {/* The newest coaster slides into the same slot the diner's ticket prints
             into, above the guesses. See TicketSlot. */}
-        <TicketSlot stack={coasters} Piece={Coaster} stubText="Coaster · slid over after a miss" />
+        <TicketSlot stack={coasters} Piece={Coaster} />
 
         <div className="guesses">
           {showNightIntro && !pending && <NightIntro onDismiss={dismissNightIntro} />}
