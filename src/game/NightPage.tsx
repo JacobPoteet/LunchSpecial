@@ -571,7 +571,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
                   excludeIds={guessedIds}
                   disabled={!info || busy}
                   onGuess={submitGuess}
-                  placeholder="Order a drink… (type to search)"
+                  placeholder="Order a drink…"
                   label="Guess a drink"
                   hint={(d) => d.country}
                 />
@@ -588,6 +588,17 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
           </p>
         )}
 
+        {/* The newest coaster above the guesses, for the same reason the diner's ticket is. */}
+        {round.coasters.length > 0 && (
+          <div className="tickets">
+            <Coaster
+              key={round.coasters[round.coasters.length - 1].index}
+              index={round.coasters[round.coasters.length - 1].index}
+              text={round.coasters[round.coasters.length - 1].text}
+            />
+          </div>
+        )}
+
         <div className="guesses">
           {showNightIntro && !pending && <NightIntro onDismiss={dismissNightIntro} />}
           {[
@@ -602,9 +613,9 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
           ]}
         </div>
 
-        {round.coasters.length > 0 && (
-          <div className="tickets">
-            {[...round.coasters].reverse().map((c) => (
+        {round.coasters.length > 1 && (
+          <div className="tickets tickets--earlier">
+            {[...round.coasters].slice(0, -1).reverse().map((c) => (
               <Coaster key={c.index} index={c.index} text={c.text} />
             ))}
           </div>

@@ -467,7 +467,7 @@ export function GuessInput<T extends { id: number; name: string }>({
   excludeIds,
   disabled,
   onGuess,
-  placeholder = "Order a dish… (type to search)",
+  placeholder = "Order a dish…",
   label = "Guess a dish",
   coach,
   describedBy,

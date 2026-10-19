@@ -186,7 +186,9 @@
 .menu-card__toolbar {
   display: flex;
   justify-content: center;
-  gap: var(--space-6);
+  /* 8px, not 6: each pill's hit area reaches 4px past its edge (see the
+     "tap targets" rule below), so a smaller gap would make neighbours overlap. */
+  gap: var(--space-8);
   margin-top: var(--space-10);
   /* A finished daily shows four controls (stats, archive, check, after dark)
      and at 375px that's already a tight fit. Wrapping between the pills is
@@ -216,7 +218,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-6);
-  min-height: 30px;
+  min-height: 36px;
   font-family: var(--font-gothic);
   /* Paired with the toolbar's flex-wrap: a pill is an atom, so the row breaks
      between buttons and never through a label. */
@@ -241,7 +243,7 @@
    circle needs no word beside it, and the word cost the row its fit at 375px.
    Its name is the aria-label. */
 .icon-btn--solo {
-  width: 30px;
+  width: 36px;
   padding: 0;
   justify-content: center;
 }
@@ -270,8 +272,8 @@
   color: var(--ink);
   border-radius: var(--radius-pill);
   padding: 0;
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   align-self: center;
   cursor: pointer;
 }
@@ -419,8 +421,14 @@
   letter-spacing: 0.06em;
 }
 
+/* Disabled is an empty slot, not a dull button: transparent with a dashed edge
+   and quiet ink. The old flat --miss fill was grey-brown on cream and a darker
+   grey-brown at the bar, where it read as a muddy button rather than as one
+   waiting for a name. */
 .guess-input__submit:disabled {
-  background: var(--miss);
+  background: transparent;
+  color: var(--ink-soft);
+  border: var(--border-thin) dashed var(--miss);
   cursor: not-allowed;
 }
 
@@ -625,17 +633,43 @@
 }
 
 .attr-tiles {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* Flex, content-weighted: four equal columns cannot hold "Vegetarian" or
+     "United States" at 375px, and a grid column sized by its longest word
+     overflowed the row on a winning guess. A tile starts at its content's
+     width, grows into what is left, and shrinks no further than its longest
+     word, so nothing clips and nothing hangs past the row's border. */
+  display: flex;
   gap: var(--space-6);
   margin-bottom: var(--space-8);
 }
 
 .attr-tile {
+  flex: 1 1 auto;
   border-radius: var(--radius-xs);
   padding: var(--space-6) var(--space-4) var(--space-6);
   text-align: center;
   border: var(--border-thin) solid transparent;
+}
+
+/* The nowrap label is each tile's floor, and at 0.07em tracking four of them
+   plus "Vegetarian" came to 303px of a 301px row at 375. Closer tracking and
+   less side padding give back ~16px; at 360 the widest country wraps. */
+@media (max-width: 400px) {
+  .attr-tile {
+    padding-inline: var(--space-2);
+  }
+  .attr-tile__label {
+    letter-spacing: 0.03em;
+  }
+}
+
+/* Four tiles are ~57px each at 320px, which truncated "Course" to "Cour…".
+   Two by two keeps every word whole. */
+@media (max-width: 340px) {
+  .attr-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .attr-tile--hit {
@@ -653,8 +687,12 @@
 
 .attr-tile--miss {
   background: var(--miss-soft);
-  color: var(--ink-soft);
-  border-color: var(--paper-edge);
+  color: var(--ink);
+  /* Dashed and in --miss rather than a paper-edge hairline: a miss used to be
+     a beige slab whose only difference from the card was its fill, so on a
+     phone the row read as three bright tiles and a hole. The dash is the
+     second channel, the same one the close chip uses. */
+  border: var(--border-thin) dashed var(--miss);
 }
 
 /* Flex rather than block so the verdict glyph and the label can't wrap onto
@@ -701,14 +739,14 @@
   font-weight: 700;
 }
 
+/* A two-word value ("United States") wraps rather than ellipsizing when the
+   row runs out of room: a clipped country is the one tile the player cannot
+   afford to lose. A single word never breaks. */
 .attr-tile__value {
   display: block;
   font-size: var(--fs-xs);
   font-weight: 700;
   text-transform: capitalize;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* The region on a near country tile (GitHub #187) takes the label's line:
@@ -763,6 +801,26 @@
   background: var(--near-soft);
   border: var(--border-hair) dashed var(--near);
   color: var(--ink);
+}
+
+/* The nudge for a player two guesses in with nothing to show (shared/stuck.ts).
+   Quiet italic under the punch card, the same voice as the hint above the
+   order bar, so it reads as the kitchen leaning over and not as an alert. */
+.stuck-note {
+  margin: 0 0 var(--space-12);
+  text-align: center;
+  font-size: var(--fs-md);
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+/* The distribution before there is one: six empty bars said "0" six times. */
+.dist-empty {
+  margin: 0 0 var(--space-12);
+  font-size: var(--fs-md);
+  font-style: italic;
+  color: var(--ink-soft);
+  text-align: center;
 }
 
 /* ---- clue tickets ---- */
@@ -1160,6 +1218,24 @@
   text-overflow: ellipsis;
 }
 
+/* At 320px the three boxes are ~85px wide and "10/18/26" and "Daily Special"
+   were cut to "10/18/…" and "Daily Spec…": the check's one job is to say which
+   round this was. Let the value wrap there instead of ellipsizing. */
+@media (max-width: 340px) {
+  .guest-check__boxes {
+    grid-template-columns: auto auto 1fr;
+  }
+  .guest-check__box {
+    padding-inline: var(--space-6);
+  }
+  .guest-check__box dd {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.15;
+  }
+}
+
 .receipt__facts {
   text-align: center;
   color: var(--ink-soft);
@@ -1467,6 +1543,7 @@
   line-height: 1.1;
   letter-spacing: 0.06em;
   padding: var(--space-8) var(--space-6);
+  min-height: 44px;
   text-transform: uppercase;
   cursor: pointer;
   transition: background var(--dur-fast) ease, color var(--dur-fast) ease, border-color var(--dur-fast) ease;
@@ -1703,6 +1780,14 @@ textarea.dish-request__input {
 .dist__row--current .dist__bar {
   background: var(--cherry);
   color: var(--on-cherry);
+}
+
+/* The row label is a figure too: old-style 3, 4 and 5 sat lower than 1 and 2
+   down the column. */
+.dist__row > span:first-child {
+  font-family: var(--font-gothic);
+  font-size: var(--fs-md);
+  min-width: 1ch;
 }
 
 .dist__row--current > span:first-child {
@@ -1999,7 +2084,8 @@ textarea.dish-request__input {
 .archive-bar__btn,
 .freeplay-bar__btn,
 .bar-return__btn {
-  min-height: 30px;
+  position: relative;
+  min-height: 36px;
   font-family: var(--font-gothic);
   font-size: var(--fs-md);
   line-height: 1;
@@ -2158,7 +2244,7 @@ textarea.dish-request__input {
 
 .archive-cal__nav {
   display: grid;
-  grid-template-columns: 32px 1fr 32px;
+  grid-template-columns: 44px 1fr 44px;
   align-items: center;
   gap: var(--space-8);
   margin-bottom: var(--space-8);
@@ -2176,8 +2262,8 @@ textarea.dish-request__input {
 }
 
 .archive-cal__nav-btn {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border: var(--border-thin) solid var(--paper-edge);
   border-radius: var(--radius-sm);
   background: var(--paper-bright);
@@ -2222,7 +2308,7 @@ textarea.dish-request__input {
    WCAG 2.5.8 minimum, and the row gap isn't dead space either. */
 .archive-cal__day {
   position: relative;
-  height: 34px;
+  height: 44px;
   border: var(--border-thin) solid var(--paper-edge);
   border-radius: var(--radius-sm);
   background: var(--paper-bright);
@@ -2243,7 +2329,12 @@ textarea.dish-request__input {
 }
 
 .archive-cal__num {
-  font-size: var(--fs-xs);
+  /* Georgia's figures are old-style, so 3, 4, 5, 7 and 9 drop below the line
+     and 6 and 8 rise: across a month the dates bounced. The gothic's are
+     lining, and a date is a label. */
+  font-family: var(--font-gothic);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.04em;
   line-height: 1;
 }
 
@@ -2384,6 +2475,34 @@ textarea.dish-request__input {
 .footer-note a {
   color: inherit;
   text-decoration: underline;
+}
+
+/* Tap targets. The pills, the round icon buttons and the footer links are
+   drawn small on purpose, but a thumb needs 44px. The pseudo-element grows the
+   press area without growing the drawing: 36px pills get 4px a side, and a
+   15px link line gets 15px above and below. Gaps around them are wider than the
+   reach, so no two areas overlap. */
+.icon-btn,
+.sound-btn,
+.footer-note a {
+  position: relative;
+}
+
+.icon-btn::after,
+.sound-btn::after,
+.newday-bar__btn::after,
+.archive-bar__btn::after,
+.freeplay-bar__btn::after,
+.bar-return__btn::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+
+.footer-note a::after {
+  content: "";
+  position: absolute;
+  inset: -15px -7px;
 }
 
 /* The build marker (src/game/BuildTag.tsx), the footer's last line, under the
@@ -2677,7 +2796,7 @@ textarea.dish-request__input {
   25% { transform: translateX(-0.6px); }
   75% { transform: translateX(0.6px); }
 }
-.tickets > .ticket:first-child {
+.tickets:not(.tickets--earlier) > .ticket:first-child {
   animation:
     ticket-print 0.5s steps(10, end) var(--ticket-start) backwards,
     ticket-chatter 0.1s steps(2) var(--ticket-start) 5;
@@ -2878,7 +2997,7 @@ textarea.dish-request__input {
    seconds must render normally when the animation isn't running, and this one
    remounts every second, so a held `from` state would strobe. */
 @keyframes sec-tick {
-  0% { opacity: 0.45; transform: translateY(-1px); }
+  0% { opacity: 0.75; transform: translateY(-1px); }
   100% { opacity: 1; transform: none; }
 }
 .countdown__sec {
@@ -3236,6 +3355,29 @@ textarea.dish-request__input {
 
 .menu-card--bar {
   border-color: var(--paper-edge);
+}
+
+/* "Tonight's Nightcap ..... on the house" is wider than the 375px card's
+   label column, so the title broke across two lines with a stub of leader
+   between. Below that width the price drops to its own line instead. */
+@media (max-width: 420px) {
+  .special-line__label {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+  .special-line__price {
+    margin-left: auto;
+  }
+  .special-line--bar .special-line__label {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+  .special-line--bar .special-line__label .leader {
+    display: none;
+  }
+  .special-line--bar .special-line__price {
+    margin-left: auto;
+  }
 }
 
 /* A glass instead of the cloche. Same slot, same size, so the header's rhythm

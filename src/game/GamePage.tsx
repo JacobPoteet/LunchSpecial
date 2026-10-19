@@ -25,6 +25,7 @@ import { CoachMark, CoachSpotlight } from "./Coach";
 import { coachBeat as pickCoachBeat, coachingDone } from "../../shared/coach";
 import { boardStreakMark, checkStreakLine, liveStreak } from "../../shared/streak";
 import { tallyLine } from "../../shared/tally";
+import { isStuck, STUCK_NOTE } from "../../shared/stuck";
 import { dateLabel } from "./archive";
 import { resolveMode } from "../../shared/mode";
 import { useRoundTelemetry } from "./useRoundTelemetry";
@@ -182,19 +183,23 @@ function StatsPanel({ stats, today, highlight }: { stats: Stats; today: string; 
         <div><span className="stat__num">{streak}</span><span className="stat__label">Streak</span></div>
         <div><span className="stat__num">{stats.maxStreak}</span><span className="stat__label">Best</span></div>
       </div>
-      <div className="dist">
-        {stats.dist.map((n, i) => (
-          <div
-            className={highlight === i + 1 ? "dist__row dist__row--current" : "dist__row"}
-            key={i}
-            // Drives both the bar's grown width and its stagger delay in CSS.
-            style={{ "--i": i, "--w": `${8 + (n / maxDist) * 80}%` } as React.CSSProperties}
-          >
-            <span>{i + 1}</span>
-            <span className="dist__bar">{n}</span>
-          </div>
-        ))}
-      </div>
+      {stats.played === 0 && highlight === undefined ? (
+        <p className="dist-empty">No orders yet.</p>
+      ) : (
+        <div className="dist">
+          {stats.dist.map((n, i) => (
+            <div
+              className={highlight === i + 1 ? "dist__row dist__row--current" : "dist__row"}
+              key={i}
+              // Drives both the bar's grown width and its stagger delay in CSS.
+              style={{ "--i": i, "--w": `${8 + (n / maxDist) * 80}%` } as React.CSSProperties}
+            >
+              <span>{i + 1}</span>
+              <span className="dist__bar">{n}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </>
   );
 }
@@ -429,6 +434,38 @@ function ResultModal({
   // seeing the trail run 1 -> 5 is the part players actually come back for.
   const definition = reveal?.clues.at(-1);
 
+  // The replay row pins under the share row only when nothing else is pinned
+  // with it. On a finished daily the bar's band takes that slot, and with the
+  // countdown, Share, Play again and the band the footer ran to ~290px of an
+  // 812px phone, which left the receipt 40% hidden when it opened. So there the
+  // row scrolls with the body, last before the suggestion form; Leftovers are
+  // also one tap from the toolbar. A Chef's Choice has no band, so "New random
+  // dish" stays pinned where the loop is.
+  const pinReplay = barInvite === "none";
+  const replayRow = (isRandom || canArchive || showInvite) && (
+    <div className="replay-actions">
+      {isRandom && (
+        <button className="replay-btn" onClick={() => { playSfx("ui-click"); onNewGame(); }}>
+          <Icon name="dice" /> New random dish
+        </button>
+      )}
+      {canArchive && (
+        <button className="replay-btn" onClick={() => { playSfx("ui-click"); onArchive(); }}>
+          <Icon name="calendar" /> Play again
+        </button>
+      )}
+      {/* The check is where an invite belongs — Discord's own guidance is
+          that it goes at the moment the experience wants company, not on
+          the start screen where nobody has anything to invite anyone to
+          yet. You've just finished; who else should be doing this? */}
+      {showInvite && (
+        <button className="replay-btn" onClick={openInvite}>
+          <Icon name="cutlery" /> Invite the table
+        </button>
+      )}
+    </div>
+  );
+
   // Actions live in the card's pinned footer so they stay on screen no matter
   // how far the body scrolls. Countdown + share share one row (Wordle's shape).
   const actions = (
@@ -447,29 +484,7 @@ function ResultModal({
           )}
         </div>
       )}
-      {(isRandom || canArchive || showInvite) && (
-        <div className="replay-actions">
-          {isRandom && (
-            <button className="replay-btn" onClick={() => { playSfx("ui-click"); onNewGame(); }}>
-              <Icon name="dice" /> New random dish
-            </button>
-          )}
-          {canArchive && (
-            <button className="replay-btn" onClick={() => { playSfx("ui-click"); onArchive(); }}>
-              <Icon name="calendar" /> Play again
-            </button>
-          )}
-          {/* The check is where an invite belongs — Discord's own guidance is
-              that it goes at the moment the experience wants company, not on
-              the start screen where nobody has anything to invite anyone to
-              yet. You've just finished; who else should be doing this? */}
-          {showInvite && (
-            <button className="replay-btn" onClick={openInvite}>
-              <Icon name="cutlery" /> Invite the table
-            </button>
-          )}
-        </div>
-      )}
+      {pinReplay && replayRow}
       <BarBand invite={barInvite} onEnter={onEnterBar} />
     </>
   );
@@ -530,6 +545,7 @@ function ResultModal({
           </p>
         </>
       )}
+      {!pinReplay && replayRow}
       {reveal?.isFanSubmission && <FanStamp name={reveal.name} kind="dish" />}
       <RequestForm kind="dish" promoted={reveal?.isFanSubmission === true} />
     </Modal>
@@ -1116,7 +1132,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
                 <p className="special-line__label">
                   <span>{isRandom ? "Chef's choice" : "Daily Special"}</span>
                   <span className="leader" aria-hidden="true" />
-                  <span className="special-line__price">mp</span>
+                  <span className="special-line__price">on the house</span>
                 </p>
                 <p className="special-line__hint">
                   {daily ? <>A mystery dish with <strong>{daily.ingredientCount} ingredients</strong>. What'll it be?</> : "Firing up the grill…"}
@@ -1145,6 +1161,11 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
                   }
                 />
                 <PunchCard used={MAX_GUESSES - remaining} total={MAX_GUESSES} />
+                {isStuck(round.guesses) && !pending && (
+                  <p className="stuck-note" role="status" aria-live="polite">
+                    {STUCK_NOTE}
+                  </p>
+                )}
               </>
             )}
           </>
@@ -1155,6 +1176,20 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
             The kitchen didn't catch that order. Check your connection and try again.
             <span className="error-note__detail">{error}</span>
           </p>
+        )}
+
+        {/* The newest clue sits above the guesses: a miss is what earns one,
+            and on a phone four guess rows pushed every ticket two screens
+            below the order bar. Older tickets stay under the guesses, where
+            they are looked back at rather than read. */}
+        {round.clues.length > 0 && (
+          <div className="tickets">
+            <ClueTicket
+              key={round.clues[round.clues.length - 1].index}
+              index={round.clues[round.clues.length - 1].index}
+              text={round.clues[round.clues.length - 1].text}
+            />
+          </div>
         )}
 
         <div className="guesses">
@@ -1172,9 +1207,9 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           ]}
         </div>
 
-        {round.clues.length > 0 && (
-          <div className="tickets">
-            {[...round.clues].reverse().map((c) => (
+        {round.clues.length > 1 && (
+          <div className="tickets tickets--earlier">
+            {[...round.clues].slice(0, -1).reverse().map((c) => (
               <ClueTicket key={c.index} index={c.index} text={c.text} />
             ))}
           </div>
