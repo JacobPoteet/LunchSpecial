@@ -1,7 +1,7 @@
 // Presentational pieces of the game screen: guess rows, clue tickets,
 // autocomplete input, modal shell, countdown.
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ComponentType } from "react";
 import type {
   DishSummary,
   DrinkGuessFeedback,
@@ -447,11 +447,172 @@ export function PunchCard({ used, total }: { used: number; total: number }) {
   );
 }
 
-export function ClueTicket({ index, text }: { index: number; text: string }) {
+export interface TicketPieceProps {
+  index: number;
+  text: string;
+  /** The newest piece rings its bell (or clinks its glass) as it finishes printing. */
+  ring?: boolean;
+}
+
+export function ClueTicket({ index, text, ring }: TicketPieceProps) {
   return (
     <div className="ticket">
-      <p className="ticket__head">Order up — clue #{index}</p>
+      <p className="ticket__head">
+        {ring && <Icon name="bell" className="ticket__bell" />}
+        Order up — clue #{index}
+      </p>
       <p className="ticket__text">{text}</p>
+    </div>
+  );
+}
+
+// ---- the ticket slot ----
+//
+// The newest clue prints into a slot under the punch card, above the guesses.
+// Three things keep that slot from reading as a loading bug:
+//
+// 1. It is never empty and never a hole. Before the first miss a dashed stub
+//    holds the place ("prints after a miss"); after, the previous ticket stays
+//    where it is through the 1.14s hold, and the new one takes no space at all
+//    until it starts to print.
+// 2. It prints by growing, pushing the rows under it down as the paper feeds
+//    out, rather than being unveiled in a box that was already there.
+// 3. The ticket it replaces is spiked once the new one has printed: it slides
+//    down and out of the slot and joins the older stack under the guesses.
+//
+// `leaving` is the piece being replaced, held in the slot until its own
+// animation ends. Reduced motion skips it: the swap is immediate.
+
+interface TicketItem {
+  index: number;
+  text: string;
+}
+
+interface Leaving {
+  key: string;
+  item: TicketItem | null;
+}
+
+export interface TicketStack {
+  newest: TicketItem | undefined;
+  leaving: Leaving | null;
+  showStub: boolean;
+  earlier: TicketItem[];
+  done: () => void;
+}
+
+// Belt for the animationend that clears `leaving`: if the event never fires
+// (tab hidden, animation cancelled), the stack settles anyway.
+const LEAVE_FALLBACK_MS = 4000;
+
+export function useTicketStack(items: TicketItem[], playing: boolean): TicketStack {
+  const newest = items[items.length - 1];
+  const key = newest ? `c${newest.index}` : playing ? "stub" : "none";
+  const [prev, setPrev] = useState<{ key: string; item: TicketItem | null }>({
+    key,
+    item: newest ?? null,
+  });
+  const [leaving, setLeaving] = useState<Leaving | null>(null);
+
+  // Derived during render, the way React documents it: the slot changed, so
+  // what was in it is now on its way out. Only a clue replacing something does
+  // this; a fresh round (a stub replacing a ticket) just resets.
+  if (prev.key !== key) {
+    setPrev({ key, item: newest ?? null });
+    if (newest && prev.key !== "none" && !prefersReducedMotion()) {
+      setLeaving({ key: prev.key, item: prev.item });
+    } else {
+      setLeaving(null);
+    }
+  }
+
+  useEffect(() => {
+    if (!leaving) return;
+    const t = setTimeout(() => setLeaving(null), LEAVE_FALLBACK_MS);
+    return () => clearTimeout(t);
+  }, [leaving]);
+
+  const gone = leaving?.item?.index;
+  const earlier = items
+    .slice(0, -1)
+    .filter((i) => i.index !== gone)
+    .reverse();
+  return {
+    newest,
+    leaving,
+    showStub: !newest && playing,
+    earlier,
+    done: () => setLeaving(null),
+  };
+}
+
+function TicketStub({ text }: { text: string }) {
+  return <p className="ticket-stub">{text}</p>;
+}
+
+/** The slot itself. Renders nothing once a round ends with no clue to show. */
+export function TicketSlot({
+  stack,
+  Piece,
+  stubText,
+}: {
+  stack: TicketStack;
+  Piece: ComponentType<TicketPieceProps>;
+  stubText: string;
+}) {
+  const { newest, leaving, showStub, done } = stack;
+  if (!newest && !leaving && !showStub) return null;
+  return (
+    <div className="tickets tickets--slot">
+      {newest && (
+        <div className="ticket-feed ticket-feed--print" key={`c${newest.index}`}>
+          <div className="ticket-feed__inner">
+            <Piece index={newest.index} text={newest.text} ring />
+          </div>
+        </div>
+      )}
+      {!newest && showStub && (
+        <div className="ticket-feed" key="stub">
+          <div className="ticket-feed__inner">
+            <TicketStub text={stubText} />
+          </div>
+        </div>
+      )}
+      {leaving && (
+        <div
+          className="ticket-feed ticket-feed--leaving"
+          key={leaving.key}
+          onAnimationEnd={(e) => {
+            if (e.target === e.currentTarget) done();
+          }}
+        >
+          <div className="ticket-feed__inner">
+            {leaving.item ? (
+              <Piece index={leaving.item.index} text={leaving.item.text} />
+            ) : (
+              <TicketStub text={stubText} />
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The older tickets, newest first, under the guesses. */
+export function EarlierTickets({
+  stack,
+  Piece,
+}: {
+  stack: TicketStack;
+  Piece: ComponentType<TicketPieceProps>;
+}) {
+  if (stack.earlier.length === 0) return null;
+  return (
+    <div className="tickets tickets--earlier">
+      {stack.earlier.map((c) => (
+        <Piece key={c.index} index={c.index} text={c.text} />
+      ))}
     </div>
   );
 }
@@ -808,12 +969,15 @@ export function DrinkGuessRow({
 }
 
 /** A coaster slid across the bar. The bar's clue ticket. */
-export function Coaster({ index, text }: { index: number; text: string }) {
+export function Coaster({ index, text, ring }: TicketPieceProps) {
   return (
     // data-index lets a costume tell the three apart (Halloween cuts the third,
     // Last call, as a headstone).
     <div className="ticket ticket--coaster" data-index={index}>
-      <p className="ticket__head">On the house — coaster #{index}</p>
+      <p className="ticket__head">
+        {ring && <Icon name="glass" className="ticket__bell" />}
+        On the house — coaster #{index}
+      </p>
       <p className="ticket__text">{text}</p>
     </div>
   );

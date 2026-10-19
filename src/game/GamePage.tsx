@@ -15,7 +15,19 @@ import {
 } from "../api";
 import type { Announcement, DailyInfo, DishPoolEntry, DishSummary, RevealInfo, RoundKind } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
-import { ClueTicket, Countdown, GuessInput, GuessRow, Modal, PunchCard, StoryDetails, useNewDayAvailable } from "./components";
+import {
+  ClueTicket,
+  Countdown,
+  EarlierTickets,
+  GuessInput,
+  GuessRow,
+  Modal,
+  PunchCard,
+  StoryDetails,
+  TicketSlot,
+  useNewDayAvailable,
+  useTicketStack,
+} from "./components";
 import { Icon } from "./Icon";
 import AnnouncementModal from "./AnnouncementModal";
 import ArchiveModal from "./ArchiveModal";
@@ -1008,6 +1020,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // ticks it up on the board behind the check.
   const streakMark = isDaily ? boardStreakMark({ ...stats, today }) : null;
   const remaining = MAX_GUESSES - round.guesses.length;
+  const tickets = useTicketStack(round.clues, round.status === "playing");
 
   return (
     <div className="scene">
@@ -1178,19 +1191,11 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           </p>
         )}
 
-        {/* The newest clue sits above the guesses: a miss is what earns one,
-            and on a phone four guess rows pushed every ticket two screens
-            below the order bar. Older tickets stay under the guesses, where
-            they are looked back at rather than read. */}
-        {round.clues.length > 0 && (
-          <div className="tickets">
-            <ClueTicket
-              key={round.clues[round.clues.length - 1].index}
-              index={round.clues[round.clues.length - 1].index}
-              text={round.clues[round.clues.length - 1].text}
-            />
-          </div>
-        )}
+        {/* The newest clue prints into a slot above the guesses: a miss is what
+            earns one, and on a phone four guess rows pushed every ticket two
+            screens below the order bar. Older tickets stay under the guesses,
+            where they are looked back at rather than read. See TicketSlot. */}
+        <TicketSlot stack={tickets} Piece={ClueTicket} stubText="Clue ticket · prints after a miss" />
 
         <div className="guesses">
           {coachBeat === "read" && !pending && <CoachMark beat="read" onDismiss={endCoaching} />}
@@ -1207,13 +1212,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           ]}
         </div>
 
-        {round.clues.length > 1 && (
-          <div className="tickets tickets--earlier">
-            {[...round.clues].slice(0, -1).reverse().map((c) => (
-              <ClueTicket key={c.index} index={c.index} text={c.text} />
-            ))}
-          </div>
-        )}
+        <EarlierTickets stack={tickets} Piece={ClueTicket} />
 
         <footer className="menu-card__thanks">
           <p className="menu-card__thanks-script">{kit?.copy?.thanks ?? "Best food in town!"}</p>

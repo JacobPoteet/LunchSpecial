@@ -832,6 +832,13 @@
   margin: var(--space-4) 0 var(--space-14);
 }
 
+/* The slot: each row carries its own bottom margin (see .ticket-feed), so the
+   container adds only what the 14px under the old stack did. */
+.tickets--slot {
+  display: block;
+  margin: var(--space-4) 0 var(--space-4);
+}
+
 .ticket {
   position: relative;
   background: var(--paper-bright);
@@ -2778,28 +2785,126 @@ textarea.dish-request__input {
   animation: guess-drop 0.34s cubic-bezier(0.2, 0.85, 0.3, 1) backwards;
 }
 
-/* Clue ticket feeds out of the order-ticket printer: revealed top-down in
-   mechanical steps, with a little paper chatter. Only the newest ticket runs.
+/* Clue ticket feeds out of the order-ticket printer: the slot grows in
+   mechanical steps, pushing the rows under it down as the paper comes out,
+   with a little chatter. Only the newest ticket runs.
 
-   It waits for the ENTIRE guess sequence — drop, tile flips, chip pops — to
+   It waits for the ENTIRE guess sequence (drop, tile flips, chip pops) to
    finish, then holds a beat of stillness before printing (--ticket-start,
    mirrored by TICKET_MS in shared/audio.ts). Overlapping the two made the
    clue read as part of the guess landing; the gap is what makes it read as the
-   kitchen answering back. `backwards` holds the ticket clipped through the
-   delay without leaving a transform behind afterwards. */
-@keyframes ticket-print {
-  0% { clip-path: inset(0 0 100% 0); transform: translateY(-6px); }
-  100% { clip-path: inset(0 0 0 0); transform: translateY(0); }
+   kitchen answering back.
+
+   It grows rather than being unveiled. A clip-path reveal keeps the ticket's
+   full box in the layout from the moment the clue arrives, so with the slot
+   above the guesses there was a blank hole under the order bar for the whole
+   hold, and the print looked like a loading bug. Here the new ticket takes no
+   space until it starts, the one it replaces stays visible through the hold,
+   and `backwards` keeps the row at zero height through the delay. */
+@keyframes ticket-feed {
+  0% { grid-template-rows: 0fr; margin-bottom: 0; overflow: hidden; }
+  99% { overflow: hidden; }
+  100% { grid-template-rows: 1fr; margin-bottom: var(--space-10); }
 }
 @keyframes ticket-chatter {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-0.6px); }
   75% { transform: translateX(0.6px); }
 }
-.tickets:not(.tickets--earlier) > .ticket:first-child {
+/* Hangs from its clip: a small swing from the top centre as it settles, a beat
+   after the print ends (0.5s of feed, then this). The chatter finishes first,
+   so the two never fight over transform. */
+@keyframes ticket-swing {
+  0% { transform: rotate(0); }
+  25% { transform: rotate(1.4deg); }
+  55% { transform: rotate(-0.9deg); }
+  80% { transform: rotate(0.4deg); }
+  100% { transform: rotate(0); }
+}
+/* The bell on the head rings as the paper stops. */
+@keyframes ticket-bell {
+  0% { transform: rotate(0); }
+  20% { transform: rotate(16deg); }
+  40% { transform: rotate(-13deg); }
+  60% { transform: rotate(9deg); }
+  80% { transform: rotate(-4deg); }
+  100% { transform: rotate(0); }
+}
+/* The ticket it replaces is spiked: it slides down and out of the slot once the
+   new one has finished printing, and joins the older stack under the guesses. */
+@keyframes ticket-spike {
+  from { grid-template-rows: 1fr; margin-bottom: var(--space-10); opacity: 1; transform: none; overflow: hidden; }
+  to { grid-template-rows: 0fr; margin-bottom: 0; opacity: 0; transform: translateY(18px); overflow: hidden; }
+}
+
+/* One row per ticket. A grid whose single row animates 0fr -> 1fr is how a box
+   grows from nothing to its own height without knowing it. The clip is on the
+   row only while it animates (the keyframes set overflow), so a settled ticket
+   keeps its shadow, and a row at 0fr shows nothing at all. */
+.ticket-feed {
+  display: grid;
+  grid-template-rows: 1fr;
+  margin-bottom: var(--space-10);
+}
+
+.ticket-feed__inner {
+  min-height: 0;
+}
+
+.ticket-feed--print {
+  animation: ticket-feed 0.5s steps(10, end) var(--ticket-start) backwards;
+}
+
+.ticket-feed--print .ticket {
+  transform-origin: 50% 0;
   animation:
-    ticket-print 0.5s steps(10, end) var(--ticket-start) backwards,
-    ticket-chatter 0.1s steps(2) var(--ticket-start) 5;
+    ticket-chatter 0.1s steps(2) var(--ticket-start) 5,
+    ticket-swing 0.8s ease-out calc(var(--ticket-start) + 0.5s) backwards;
+}
+
+.ticket-feed--leaving {
+  /* Held through the hold, then it leaves as the new one feeds out: the two
+     run on the same clock so the rows underneath move by the difference and
+     not by the sum (they bounced 84px down and 22px back when this waited). */
+  animation: ticket-spike 0.5s ease-in var(--ticket-start) forwards;
+}
+
+/* The clip it hangs from. The coaster is a coaster, not a ticket, so it has no
+   clip, and a costume that pins its own ticket (Halloween's candy corn) turns
+   this one off rather than doubling up. */
+.ticket-feed--print .ticket:not(.ticket--coaster)::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  width: 24px;
+  height: 9px;
+  margin-left: -12px;
+  border-radius: var(--radius-xxs);
+  background: var(--ink);
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.25);
+}
+
+.ticket__bell {
+  display: inline-block;
+  margin-right: var(--space-6);
+  transform-origin: 50% 0;
+  vertical-align: -0.12em;
+  animation: ticket-bell 0.6s ease-out calc(var(--ticket-start) + 0.5s) backwards;
+}
+
+/* The place the next clue prints, before there is one. A dashed ticket
+   outline in the margin's voice: it says what the slot is for and teaches that
+   a miss earns a clue, and it is never empty space. */
+.ticket-stub {
+  margin: 0;
+  padding: var(--space-8) var(--space-14);
+  border: var(--border-thin) dashed var(--paper-edge);
+  border-radius: var(--radius-xxs);
+  text-align: center;
+  font-size: var(--fs-sm);
+  font-style: italic;
+  color: var(--ink-soft);
 }
 
 /* The four attribute tiles flip over one at a time, left to right, instead of
@@ -3435,7 +3540,10 @@ textarea.dish-request__input {
   .modal-backdrop--closing,
   .modal--closing,
   .guesses > .guess-row:first-child,
-  .tickets > .ticket:first-child,
+  .ticket-feed--print,
+  .ticket-feed--print .ticket,
+  .ticket-feed--leaving,
+  .ticket__bell,
   .modal--receipt .receipt__head,
   .modal--receipt .receipt__dish,
   .modal--receipt .receipt__facts,
