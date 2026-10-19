@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { foldCountries, type CountryRow } from "./countries";
+import { edgeCountry, foldCountries, type CountryRow } from "./countries";
 
 const row = (country: string | null, player: string | null, n = 1): CountryRow => ({
   country,
@@ -100,5 +100,25 @@ describe("foldCountries", () => {
       ...["p1", "p2", "p3"].map((p) => row("MX", p, 1)),
     ]);
     expect(mix.entries.map((e) => e.code)).toEqual(["MX", "JP"]);
+  });
+});
+
+describe("edgeCountry", () => {
+  const withCf = (country: unknown, headers?: HeadersInit) =>
+    Object.assign(new Request("https://x.test/", { headers }), { cf: { country } });
+
+  it("reads Cloudflare's resolved country, upper-cased", () => {
+    expect(edgeCountry(withCf("ca"))).toBe("CA");
+    expect(edgeCountry(withCf("T1"))).toBe("T1");
+  });
+
+  it("falls back to the CF-IPCountry header", () => {
+    expect(edgeCountry(new Request("https://x.test/", { headers: { "CF-IPCountry": "jp" } }))).toBe("JP");
+  });
+
+  it("is null when unmeasured or malformed, never a made-up place", () => {
+    expect(edgeCountry(new Request("https://x.test/"))).toBeNull();
+    expect(edgeCountry(withCf("Canada"))).toBeNull();
+    expect(edgeCountry(withCf(42))).toBeNull();
   });
 });

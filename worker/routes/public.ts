@@ -11,6 +11,7 @@ import type {
 } from "../../shared/types";
 import { DISH_REQUEST_LIMITS, MAX_GUESSES, REQUEST_KINDS, SURFACES } from "../../shared/types";
 import { isEligible } from "../announcements";
+import { edgeCountry } from "../countries";
 import { verifyToken } from "../auth";
 import { getClues, getDishById, getDishBySlug, getSeededDish, getTargetDish, loadServed, serverToday } from "../db";
 import { computeFeedback, isPlayableDate, puzzleNumber } from "../game";
@@ -168,7 +169,9 @@ function cleanField(value: unknown, max: number): string | null {
 
 // A player-submitted dish or drink suggestion. Public + anonymous (same
 // client-trust model as the analytics beacons); lands in the admin review inbox
-// (dish_requests table, with `kind` telling the two catalogues apart).
+// (dish_requests table, with `kind` telling the two catalogues apart). The
+// requester's country is the edge's, never the body's: `country` in the body is
+// the dish's, as the player typed it.
 app.post("/requests", async (c) => {
   const body = (await c.req.json().catch(() => null)) as
     | { name?: unknown; kind?: unknown; country?: unknown; note?: unknown; surface?: unknown; playerId?: unknown }
@@ -196,10 +199,10 @@ app.post("/requests", async (c) => {
 
   await c.env.DB
     .prepare(
-      `INSERT INTO dish_requests (kind, name, country, note, surface, player_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+      `INSERT INTO dish_requests (kind, name, country, note, surface, player_id, from_country, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
     )
-    .bind(kind, name, country, note, surface, playerId)
+    .bind(kind, name, country, note, surface, playerId, edgeCountry(c.req.raw))
     .run();
   return c.json({ ok: true, ...(await alreadyServed(c.env.DB, kind as RequestKind, name)) });
 });

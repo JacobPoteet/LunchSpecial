@@ -18,13 +18,14 @@ interface DishRequestDbRow {
   note: string | null;
   surface: string;
   player_id: string | null;
+  from_country: string | null;
   created_at: string;
 }
 
 app.get("/requests", async (c) => {
   const res = await c.env.DB
     .prepare(
-      "SELECT id, kind, name, country, note, surface, player_id, created_at FROM dish_requests ORDER BY created_at DESC, id DESC",
+      "SELECT id, kind, name, country, note, surface, player_id, from_country, created_at FROM dish_requests ORDER BY created_at DESC, id DESC",
     )
     .all<DishRequestDbRow>();
   const today = serverToday();
@@ -40,6 +41,7 @@ app.get("/requests", async (c) => {
       surface: SURFACES.includes(r.surface as never) ? (r.surface as Surface) : "web",
       createdAt: r.created_at,
       playerId: r.player_id,
+      fromCountry: r.from_country,
       servedOn: findServed(r.name, kind === "drink" ? servedDrinks : servedDishes, today)?.date ?? null,
     };
   });

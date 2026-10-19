@@ -125,3 +125,22 @@ export function foldCountries(rows: Iterable<CountryRow>): CountryMix {
 
   return { entries, rounds, players: roundsByPlayer.size, untracked };
 }
+
+/**
+ * The country a request came from (GitHub #92), as Cloudflare's edge resolved
+ * it: ISO 3166-1 alpha-2, or one of its two non-country answers — `T1` (Tor exit)
+ * and `XX` (couldn't be determined). Stamped on beacons and on suggestions.
+ *
+ * Read from the request rather than the payload on purpose. The client has no
+ * say in it (nothing to spoof, no extra bytes on a fire-and-forget beacon), and
+ * `request.cf` is populated for every request that reaches the Worker. Local dev
+ * and any unexpected value fall through to null, which the dashboard reports as
+ * untracked rather than as an unknown country — the same "unmeasured, not zero"
+ * rule the player split follows.
+ */
+export function edgeCountry(req: Request): string | null {
+  const cf = (req as { cf?: { country?: unknown } }).cf;
+  const raw = typeof cf?.country === "string" ? cf.country : req.headers.get("CF-IPCountry");
+  const code = raw?.trim().toUpperCase();
+  return code && /^[A-Z0-9]{2}$/.test(code) ? code : null;
+}

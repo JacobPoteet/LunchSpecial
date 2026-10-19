@@ -3,13 +3,14 @@
 // by a client-generated round_id. What was guessed is not here: the guess routes
 // write it themselves (worker/guesslog.ts), so no beacon carries it.
 
-import { Hono, type Context } from "hono";
+import { Hono } from "hono";
 import { normalizeSource, SOURCE_DIRECT } from "../../shared/attribution";
 import { normalizeClient, normalizeDeviceOrigin } from "../../shared/device";
 import { ROUND_KINDS, SURFACES, maxGuessesFor, type RoundKind, type Surface } from "../../shared/types";
 import { getSeededDish, getTargetDish, serverToday } from "../db";
 import { getTargetDrink } from "../drinkdb";
 import { isValidDateString } from "../game";
+import { edgeCountry } from "../countries";
 import { isAnalyticsId } from "../guesslog";
 import { occasionFor } from "../occasions";
 import { RECOVER_THROUGH, foldPastRounds, type PastRoundRow } from "../pastrounds";
@@ -82,25 +83,6 @@ function tzOffsetOf(body: unknown): number | null {
   return mins >= -720 && mins <= 840 ? mins : null;
 }
 
-/**
- * The country this beacon came from (GitHub #92), as Cloudflare's edge resolved
- * it: ISO 3166-1 alpha-2, or one of its two non-country answers — `T1` (Tor exit)
- * and `XX` (couldn't be determined).
- *
- * Read from the request rather than the payload on purpose. The client has no
- * say in it (nothing to spoof, no extra bytes on a fire-and-forget beacon), and
- * `request.cf` is populated for every request that reaches the Worker. Local dev
- * and any unexpected value fall through to null, which the dashboard reports as
- * untracked rather than as an unknown country — the same "unmeasured, not zero"
- * rule the player split follows.
- */
-function countryOf(c: Context<{ Bindings: Env }>): string | null {
-  const cf = (c.req.raw as { cf?: { country?: unknown } }).cf;
-  const raw = typeof cf?.country === "string" ? cf.country : c.req.header("CF-IPCountry");
-  const code = raw?.trim().toUpperCase();
-  return code && /^[A-Z0-9]{2}$/.test(code) ? code : null;
-}
-
 /** The `?random=<seed>` a random round was played on, if the client sent it. */
 function seedOf(body: unknown): string | null {
   const s = (body as { seed?: unknown } | null)?.seed;
@@ -171,7 +153,7 @@ app.post("/seated", async (c) => {
      VALUES (?, ?, ?, ?, ?, datetime('now'))
      ON CONFLICT(visit_day, player_id) DO NOTHING`,
   )
-    .bind(serverToday(), playerId, surface, countryOf(c), source)
+    .bind(serverToday(), playerId, surface, edgeCountry(c.req.raw), source)
     .run();
   return c.json({ ok: true });
 });
@@ -247,7 +229,7 @@ app.post("/start", async (c) => {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO NOTHING`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), playerId, dishId, drinkId, tzOffsetOf(raw), occasion, client, deviceFrom)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, edgeCountry(c.req.raw), playerId, dishId, drinkId, tzOffsetOf(raw), occasion, client, deviceFrom)
     .run();
   return c.json({ ok: true });
 });
@@ -286,7 +268,7 @@ app.post("/complete", async (c) => {
        completed_at = COALESCE(analytics_rounds.completed_at, excluded.completed_at),
        updated_at = excluded.updated_at`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), dishId, drinkId, tzOffsetOf(raw), occasion, guesses, solved)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, edgeCountry(c.req.raw), dishId, drinkId, tzOffsetOf(raw), occasion, guesses, solved)
     .run();
   return c.json({ ok: true });
 });
@@ -313,7 +295,7 @@ app.post("/share", async (c) => {
        shared_at = COALESCE(analytics_rounds.shared_at, excluded.shared_at),
        updated_at = excluded.updated_at`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, countryOf(c), dishId, drinkId, occasion)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, edgeCountry(c.req.raw), dishId, drinkId, occasion)
     .run();
   return c.json({ ok: true });
 });
