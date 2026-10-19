@@ -22,7 +22,17 @@ import { useCheckOpening } from "./roundLifecycle";
 import { useRoundTelemetry } from "./useRoundTelemetry";
 import { useShare } from "./useShare";
 import { DRINK_CLUE_COUNT, DRINK_MAX_GUESSES } from "../../shared/types";
-import { Coaster, DrinkGuessRow, GuessInput, Modal, PunchCard, StoryDetails } from "./components";
+import {
+  Coaster,
+  DrinkGuessRow,
+  EarlierTickets,
+  GuessInput,
+  Modal,
+  PunchCard,
+  StoryDetails,
+  TicketSlot,
+  useTicketStack,
+} from "./components";
 import { Icon } from "./Icon";
 import { FanStamp, RequestForm } from "./RequestForm";
 import { BuildTag } from "./BuildTag";
@@ -461,6 +471,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
 
   const guessedIds = useMemo(() => new Set(round.guesses.map((g) => g.drink.id)), [round.guesses]);
   const remaining = DRINK_MAX_GUESSES - round.guesses.length;
+  const coasters = useTicketStack(round.coasters);
 
   if (!barOpen) return <BarScene><ClosedSign onLeave={onLeave} /></BarScene>;
   if (!lunchDone) return <BarScene><DoorSign onLeave={onLeave} /></BarScene>;
@@ -571,7 +582,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
                   excludeIds={guessedIds}
                   disabled={!info || busy}
                   onGuess={submitGuess}
-                  placeholder="Order a drink… (type to search)"
+                  placeholder="Order a drink…"
                   label="Guess a drink"
                   hint={(d) => d.country}
                 />
@@ -588,6 +599,10 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
           </p>
         )}
 
+        {/* The newest coaster slides into the same slot the diner's ticket prints
+            into, above the guesses. See TicketSlot. */}
+        <TicketSlot stack={coasters} Piece={Coaster} />
+
         <div className="guesses">
           {showNightIntro && !pending && <NightIntro onDismiss={dismissNightIntro} />}
           {[
@@ -602,13 +617,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
           ]}
         </div>
 
-        {round.coasters.length > 0 && (
-          <div className="tickets">
-            {[...round.coasters].reverse().map((c) => (
-              <Coaster key={c.index} index={c.index} text={c.text} />
-            ))}
-          </div>
-        )}
+        <EarlierTickets stack={coasters} Piece={Coaster} />
 
         <footer className="menu-card__thanks">
           <p className="menu-card__thanks-script">Last call at three</p>

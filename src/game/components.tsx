@@ -1,7 +1,7 @@
 // Presentational pieces of the game screen: guess rows, clue tickets,
 // autocomplete input, modal shell, countdown.
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ComponentType } from "react";
 import type {
   DishSummary,
   DrinkGuessFeedback,
@@ -447,11 +447,146 @@ export function PunchCard({ used, total }: { used: number; total: number }) {
   );
 }
 
-export function ClueTicket({ index, text }: { index: number; text: string }) {
+export interface TicketPieceProps {
+  index: number;
+  text: string;
+  /** The newest piece rings its bell (or clinks its glass) as it finishes printing. */
+  ring?: boolean;
+}
+
+export function ClueTicket({ index, text, ring }: TicketPieceProps) {
   return (
     <div className="ticket">
-      <p className="ticket__head">Order up — clue #{index}</p>
+      <p className="ticket__head">
+        {ring && <Icon name="bell" className="ticket__bell" />}
+        Order up — clue #{index}
+      </p>
       <p className="ticket__text">{text}</p>
+    </div>
+  );
+}
+
+// ---- the ticket slot ----
+//
+// The newest clue prints into a slot under the punch card, above the guesses.
+// Three things keep that slot from reading as a loading bug:
+//
+// 1. It is never a hole. The previous ticket stays where it is through the
+//    1.14s hold, and the new one takes no space at all until it starts to
+//    print. Before the first miss the slot is simply not there.
+// 2. It prints by growing, pushing the rows under it down as the paper feeds
+//    out, rather than being unveiled in a box that was already there.
+// 3. The ticket it replaces folds away as the new one prints, and joins the
+//    older stack under the guesses.
+//
+// `leaving` is the piece being replaced, held in the slot until its own
+// animation ends. Reduced motion skips it: the swap is immediate.
+
+interface TicketItem {
+  index: number;
+  text: string;
+}
+
+interface Leaving {
+  key: string;
+  item: TicketItem;
+}
+
+export interface TicketStack {
+  newest: TicketItem | undefined;
+  leaving: Leaving | null;
+  earlier: TicketItem[];
+  done: () => void;
+}
+
+// Belt for the animationend that clears `leaving`: if the event never fires
+// (tab hidden, animation cancelled), the stack settles anyway.
+const LEAVE_FALLBACK_MS = 4000;
+
+export function useTicketStack(items: TicketItem[]): TicketStack {
+  const newest = items[items.length - 1];
+  const key = newest ? `c${newest.index}` : "none";
+  const [prev, setPrev] = useState<{ key: string; item: TicketItem | null }>({
+    key,
+    item: newest ?? null,
+  });
+  const [leaving, setLeaving] = useState<Leaving | null>(null);
+
+  // Derived during render, the way React documents it: the slot changed, so
+  // what was in it is now on its way out. Only a clue replacing a clue does
+  // this; a fresh round (the slot emptying) just resets.
+  if (prev.key !== key) {
+    setPrev({ key, item: newest ?? null });
+    if (newest && prev.item && !prefersReducedMotion()) {
+      setLeaving({ key: prev.key, item: prev.item });
+    } else {
+      setLeaving(null);
+    }
+  }
+
+  useEffect(() => {
+    if (!leaving) return;
+    const t = setTimeout(() => setLeaving(null), LEAVE_FALLBACK_MS);
+    return () => clearTimeout(t);
+  }, [leaving]);
+
+  const gone = leaving?.item?.index;
+  const earlier = items
+    .slice(0, -1)
+    .filter((i) => i.index !== gone)
+    .reverse();
+  return {
+    newest,
+    leaving,
+    earlier,
+    done: () => setLeaving(null),
+  };
+}
+
+/** The slot itself. Renders nothing until the first clue. */
+export function TicketSlot({ stack, Piece }: { stack: TicketStack; Piece: ComponentType<TicketPieceProps> }) {
+  const { newest, leaving, done } = stack;
+  if (!newest && !leaving) return null;
+  return (
+    <div className="tickets tickets--slot">
+      {newest && (
+        <div className="ticket-feed ticket-feed--print" key={`c${newest.index}`}>
+          <div className="ticket-feed__inner">
+            <Piece index={newest.index} text={newest.text} ring />
+          </div>
+        </div>
+      )}
+      {leaving && (
+        <div
+          className="ticket-feed ticket-feed--leaving"
+          key={leaving.key}
+          onAnimationEnd={(e) => {
+            if (e.target === e.currentTarget) done();
+          }}
+        >
+          <div className="ticket-feed__inner">
+            <Piece index={leaving.item.index} text={leaving.item.text} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The older tickets, newest first, under the guesses. */
+export function EarlierTickets({
+  stack,
+  Piece,
+}: {
+  stack: TicketStack;
+  Piece: ComponentType<TicketPieceProps>;
+}) {
+  if (stack.earlier.length === 0) return null;
+  return (
+    <div className="tickets tickets--earlier">
+      {stack.earlier.map((c) => (
+        <Piece key={c.index} index={c.index} text={c.text} />
+      ))}
     </div>
   );
 }
@@ -467,7 +602,7 @@ export function GuessInput<T extends { id: number; name: string }>({
   excludeIds,
   disabled,
   onGuess,
-  placeholder = "Order a dish… (type to search)",
+  placeholder = "Order a dish…",
   label = "Guess a dish",
   coach,
   describedBy,
@@ -542,14 +677,27 @@ export function GuessInput<T extends { id: number; name: string }>({
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
-  // Submitting a guess flips `disabled` on (parent goes busy) then off again,
-  // which drops the input's focus. On desktop, put the cursor back so you can
-  // keep typing your next order without re-clicking the bar.
+  // On desktop the cursor is already in the bar, so you can start typing the
+  // moment the page is up, and it comes back after each guess. Two cases:
+  //
+  // - After a guess: submitting flips `disabled` on (parent goes busy) then off
+  //   again, which drops the input's focus, so it is put back.
+  // - On arrival: `disabled` is true until the puzzle loads and false after, and
+  //   that is the first moment there is anything to type into. Only taken when
+  //   nothing else has focus and no dialog is up, so a notice, the how-to or a
+  //   returning player's own click is never pulled away from.
+  //
+  // Touch never takes it: focusing would raise the on-screen keyboard before the
+  // player has looked at the board.
   useEffect(() => {
-    if (disabled || !interacted.current) return;
-    if (window.matchMedia?.("(hover: hover) and (pointer: fine)").matches) {
-      inputRef.current?.focus();
+    if (disabled) return;
+    if (!window.matchMedia?.("(hover: hover) and (pointer: fine)").matches) return;
+    if (!interacted.current) {
+      const held = document.activeElement;
+      if (held && held !== document.body) return;
+      if (document.querySelector('[role="dialog"]')) return;
     }
+    inputRef.current?.focus();
   }, [disabled]);
 
   const pick = (dish: T) => {
@@ -808,12 +956,15 @@ export function DrinkGuessRow({
 }
 
 /** A coaster slid across the bar. The bar's clue ticket. */
-export function Coaster({ index, text }: { index: number; text: string }) {
+export function Coaster({ index, text, ring }: TicketPieceProps) {
   return (
     // data-index lets a costume tell the three apart (Halloween cuts the third,
     // Last call, as a headstone).
     <div className="ticket ticket--coaster" data-index={index}>
-      <p className="ticket__head">On the house — coaster #{index}</p>
+      <p className="ticket__head">
+        {ring && <Icon name="glass" className="ticket__bell" />}
+        On the house — coaster #{index}
+      </p>
       <p className="ticket__text">{text}</p>
     </div>
   );
