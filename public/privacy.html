@@ -161,9 +161,15 @@
         <p>
           Lunch Special can be launched as a Discord Activity inside a Discord
           voice channel. In that mode the game runs in a sandboxed frame served
-          through Discord's proxy. This is a minimal embed: we do not request
-          your Discord account, username, email, or identity, and none of that
-          information is sent to us. Your use of Discord itself is governed by
+          through Discord's proxy. This is a minimal embed: we never receive or
+          keep your Discord username, avatar, or email. If you allow the
+          Activity's Discord authorization, our server uses your Discord account
+          number once to compute a one-way scrambled code that we cannot turn
+          back into the number. That code stands in for the device identifier and
+          lets us keep your streaks, past rounds, and walkthrough progress, which
+          Discord's mobile app would otherwise lose each time it is closed.
+          Decline, and the game works as before on your device alone. Your use of
+          Discord itself is governed by
           <a href="https://discord.com/privacy" target="_blank" rel="noopener">Discord's Privacy Policy</a>.
         </p>
         <div class="callout">

@@ -38,6 +38,10 @@
   //                           (/api/discord/interactions). Optional: without it
   //                           the endpoint answers 503 and the Activity's live
   //                           progress message simply doesn't post.
+  //   PLAYER_ID_SECRET      — random string keying the one-way hash of a Discord
+  //                           player's id, so their progress survives the mobile
+  //                           app dropping storage (#251). Optional: without it
+  //                           Discord players are remembered by their device only.
   //   GITHUB_TOKEN          — fine-grained PAT, Issues: Read and write on the
   //                           repo in "vars" above and nothing else. Optional:
   //                           without it the back office's issue composer says

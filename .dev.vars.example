@@ -12,3 +12,7 @@ DISCORD_PUBLIC_KEY=
 # with Issues: Read and write on the repo named in wrangler.jsonc's "vars", and
 # nothing else. Leave blank and the composer says it isn't configured.
 GITHUB_TOKEN=
+
+# Optional — remembers Discord players across launches (#251). A one-way hash of their
+# Discord id keys their saved progress. Rotating it resets every Discord player.
+PLAYER_ID_SECRET=

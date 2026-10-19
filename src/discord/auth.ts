@@ -30,16 +30,25 @@ import type { DiscordSDK } from "@discord/embedded-app-sdk";
  * be worth one round trip to confirm we were paying it for a reason. We were.
  * Don't spend a third: leave this list alone.
  *
- * What that cost buys is Discord's handshake and nothing else. **The user object
- * is dropped on the floor** — never read, stored, sent to the Worker, or written
- * to localStorage. The game stays anonymous: no accounts, per-device state, no
- * identity in any table. Sharing doesn't change that; the attachment endpoint
- * takes this token because it takes any bearer, not because it identifies
- * anyone. Don't start reading the scope we're forced to take.
+ * What that cost buys is Discord's handshake, and since #251 one more thing: the
+ * Worker asks Discord for the user's id once, at the token exchange, turns it
+ * into a keyed hash and keeps only that (worker/playerid.ts), so a streak
+ * survives the mobile app dropping storage. **The browser still never sees the
+ * user object**: `authenticate()` discards it, and the client holds only the
+ * opaque id. Still no accounts and no name, avatar or Discord id in any table.
+ * Sharing doesn't change that; the attachment endpoint takes this token because
+ * it takes any bearer, not because it identifies anyone.
  */
 const SCOPES = ["identify", "rpc.activities.write"] as const;
 
 let authorizing: Promise<string | null> | null = null;
+/**
+ * The opaque id and signed proof the Worker returned with the token (#251).
+ * Neither says who the player is: the id is a keyed hash, and the proof is a
+ * short-lived claim for /api/discord/progress. Null when the Worker has no
+ * PLAYER_ID_SECRET or Discord would not say.
+ */
+let session: { playerId: string; progressToken: string } | null = null;
 /** The access token, kept for the share upload. Null until authorized, and after a refusal. */
 let token: string | null = null;
 
@@ -75,8 +84,12 @@ async function authorize(instance: DiscordSDK): Promise<string | null> {
       body: JSON.stringify({ code }),
     });
     if (!res.ok) throw new Error(`/api/discord/token answered ${res.status}`);
-    const { accessToken } = (await res.json()) as { accessToken?: string };
+    const body = (await res.json()) as { accessToken?: string; playerId?: string; progressToken?: string };
+    const { accessToken } = body;
     if (!accessToken) throw new Error("/api/discord/token returned no access token");
+    if (typeof body.playerId === "string" && typeof body.progressToken === "string") {
+      session = { playerId: body.playerId, progressToken: body.progressToken };
+    }
 
     step = "authenticate";
     await instance.commands.authenticate({ access_token: accessToken });
@@ -105,6 +118,11 @@ export function ensureAuthorized(instance: DiscordSDK): Promise<string | null> {
     return result;
   });
   return authorizing;
+}
+
+/** The remembered-player session, once authorized and only if the Worker issued one. */
+export function playerSession(): { playerId: string; progressToken: string } | null {
+  return session;
 }
 
 /**

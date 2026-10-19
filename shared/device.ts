@@ -20,10 +20,12 @@ export type DiscordClient = (typeof DISCORD_CLIENTS)[number];
 /**
  * Where this page load found its device id: `storage` (localStorage had it),
  * `cookie` (localStorage came back empty and the cookie mirror restored it), or
- * `new` (neither had one, so it was minted). A Discord device that keeps showing
- * `new` is one whose client keeps neither store.
+ * `new` (neither had one, so it was minted), or `discord` (the player authorized
+ * and the Worker's keyed hash of their Discord id replaced it, #251). A Discord
+ * device that keeps showing `new` is one whose client keeps neither store and
+ * never authorized.
  */
-export const DEVICE_ID_ORIGINS = ["storage", "cookie", "new"] as const;
+export const DEVICE_ID_ORIGINS = ["storage", "cookie", "new", "discord"] as const;
 export type DeviceIdOrigin = (typeof DEVICE_ID_ORIGINS)[number];
 
 /** The installed desktop app's user agent carries `discord/<version>` and `Electron/<version>`. */
