@@ -32,6 +32,7 @@ import { Icon } from "./Icon";
 import AnnouncementModal from "./AnnouncementModal";
 import ArchiveModal from "./ArchiveModal";
 import { BuildTag } from "./BuildTag";
+import { Byline } from "./Byline";
 import { FanStamp, RequestForm } from "./RequestForm";
 import { CoachMark, CoachSpotlight } from "./Coach";
 import { coachBeat as pickCoachBeat, coachingDone } from "../../shared/coach";
@@ -1238,7 +1239,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
       </main>
 
       <footer className="footer-note">
-        <p>Created by <b>Jacob Poteet</b></p>
+        <Byline />
         <p className="footer-note__links">
           <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/press">Press</a>
         </p>

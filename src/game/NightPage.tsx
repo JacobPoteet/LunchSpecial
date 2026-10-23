@@ -36,6 +36,7 @@ import {
 import { Icon } from "./Icon";
 import { FanStamp, RequestForm } from "./RequestForm";
 import { BuildTag } from "./BuildTag";
+import { Byline } from "./Byline";
 import { SoundToggle } from "./SoundToggle";
 import { currentSurface } from "../discord/bootstrap";
 import { coasterAnnouncement, drinkGuessAnnouncement } from "../../shared/announce";
@@ -664,7 +665,7 @@ function BarScene({ children }: { children: React.ReactNode }) {
           in this place, not a second product, so the credit under it doesn't
           change when the lights do. */}
       <footer className="footer-note">
-        <p>Created by <b>Jacob Poteet</b></p>
+        <Byline />
         <p className="footer-note__links">
           <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/press">Press</a>
         </p>
