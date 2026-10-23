@@ -2487,6 +2487,14 @@ textarea.dish-request__input {
   text-decoration: underline;
 }
 
+/* The byline's name (src/game/Byline.tsx) reads as it did before it was a
+   link: bold, no underline. The weight is what sets it apart from the words
+   around it, so it is never colour alone. */
+.footer-note a.footer-note__author {
+  font-weight: bold;
+  text-decoration: none;
+}
+
 /* Tap targets. The pills, the round icon buttons and the footer links are
    drawn small on purpose, but a thumb needs 44px. The pseudo-element grows the
    press area without growing the drawing: 36px pills get 4px a side, and a
