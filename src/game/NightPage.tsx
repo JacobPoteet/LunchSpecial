@@ -102,8 +102,7 @@ function ClosedSign({ onLeave }: { onLeave: () => void }) {
     <div className="closed closed--bar" role="status">
       <p className="closed__sign">The bar's closed</p>
       <p className="closed__body">
-        After Dark runs from 8pm to 3am, your time. One drink a night, four guesses, and it's gone in
-        the morning.
+        Open 8pm to 3am, your time. One drink a night, four guesses.
       </p>
       <p className="bar-countdown">
         Opens in <b>{h}</b>:<b>{m}</b>:<b>{s}</b>
@@ -127,8 +126,7 @@ function DoorSign({ onLeave }: { onLeave: () => void }) {
     <div className="closed closed--bar" role="status">
       <p className="closed__sign">Kitchen first</p>
       <p className="closed__body">
-        The bar's open, but you'll want to settle today's Special before you start a tab. Finish
-        lunch and the door's yours.
+        Finish today's Special to open the bar.
       </p>
       <button className="replay-btn" onClick={() => { playSfx("ui-click"); onLeave(); }}>
         ← Take me to today's Special
@@ -150,8 +148,7 @@ function NightIntro({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div className="coach coach--night">
       <p className="coach__text">
-        <strong>Two tiles change after dark.</strong> Spirit and Profile stand in for Course and
-        Protein. No spirit is its own match, not a miss.
+        <strong>Same game, two new tiles.</strong> Spirit and Profile replace Course and Protein.
       </p>
       <button className="coach__dismiss" onClick={onDismiss} aria-label="Close">
         ×

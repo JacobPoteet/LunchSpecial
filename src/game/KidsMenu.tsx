@@ -100,8 +100,7 @@ export function KidsMenuCoach({
       style={caret === null ? undefined : ({ "--caret-x": `${caret}px` } as React.CSSProperties)}
     >
       <p className="coach__text">
-        <strong>Two orders left?</strong> Ask for the Kids Menu. Same kitchen, smaller menu: every dish that still
-        fits your board. Ordering off it still takes a guess.
+        <strong>Stuck?</strong> Open the Kids Menu to see every dish that could still be the answer.
       </p>
       {/* The card unmounts with its own × in it, which would drop keyboard
           focus to the page; the pill it described is where focus belongs. */}

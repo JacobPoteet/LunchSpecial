@@ -104,11 +104,9 @@ describe("confirmedFacts", () => {
 });
 
 describe("menuBlurb", () => {
-  it("says what the list is and what an order off it costs", () => {
-    expect(menuBlurb(41)).toBe(
-      "These 41 dishes fit every tile on your board. Circle one to order it. It uses a guess, like any order.",
-    );
-    expect(menuBlurb(1)).toMatch(/^Only one dish fits every tile on your board\./);
+  it("says what the list is in one sentence", () => {
+    expect(menuBlurb(41)).toBe("41 dishes could still be the answer.");
+    expect(menuBlurb(1)).toBe("Only 1 dish could still be the answer.");
   });
 });
 
