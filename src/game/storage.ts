@@ -41,6 +41,7 @@ export interface Stats {
 const STATE_KEY = "lunch-special:round";
 const STATS_KEY = "lunch-special:stats";
 const HOWTO_KEY = "lunch-special:howto-seen";
+const KIDS_MENU_KEY = "lunch-special:kids-menu-seen";
 const ARCHIVE_KEY = "lunch-special:archive";
 const PLAYER_KEY = "lunch-special:player";
 const ANNOUNCEMENTS_KEY = "lunch-special:announcements";
@@ -420,6 +421,25 @@ export function markHowToSeen(): void {
     localStorage.setItem(HOWTO_KEY, "1");
   } catch {
     // Storage blocked — the coach marks may show again next visit.
+  }
+}
+
+// The Kids Menu's one coach card, shown the first round a device could open
+// the menu. Its own key: a player can know the board by heart and still never
+// have reached a fourth miss. Guarded like the how-to's, for the same reason.
+export function hasSeenKidsMenuIntro(): boolean {
+  try {
+    return localStorage.getItem(KIDS_MENU_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markKidsMenuIntroSeen(): void {
+  try {
+    localStorage.setItem(KIDS_MENU_KEY, "1");
+  } catch {
+    // Storage blocked: the card may show again on a later round.
   }
 }
 

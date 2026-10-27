@@ -12,6 +12,7 @@ import type {
   DrinkGuessFeedback,
   DrinkPoolEntry,
   GuessFeedback,
+  KidsMenuInfo,
   NightcapInfo,
   NightcapReveal,
   PastRound,
@@ -73,8 +74,31 @@ export function postGuess(body: {
   roundId?: string;
   /** The anonymous device id, sent beside `roundId` so a device wipe reaches the guess. */
   playerId?: string;
+  /** Ordered off the Kids Menu card rather than the order bar (migrations/0062). */
+  fromKidsMenu?: boolean;
 }): Promise<GuessFeedback> {
   return request("/api/guess", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+/** What a Kids Menu request carries: the round's target and its board. */
+export interface KidsMenuBoard {
+  date: string;
+  preview?: string;
+  random?: string;
+  special?: string;
+  /** The dish ids on the board; the Worker works the facts out from these. */
+  guessed: number[];
+  /** Tracked rounds only, as on /api/guess. */
+  roundId?: string;
+  playerId?: string;
+}
+
+export function fetchKidsMenu(body: KidsMenuBoard): Promise<KidsMenuInfo> {
+  return request("/api/kids-menu", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

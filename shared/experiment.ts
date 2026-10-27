@@ -107,6 +107,12 @@ function ratioOf(metric: ExperimentMetric, days: ExperimentDay[]): { hits: numbe
     } else if (metric === "winRate") {
       hits += d.solved;
       of += d.completed;
+    } else if (metric === "fourthMissReturn") {
+      // Devices on both sides, and unmeasured days (before the ledger, or still
+      // inside their return window) contribute to neither, like playRate.
+      if (d.fourthMiss === null || d.fourthMissBack === null) continue;
+      hits += d.fourthMissBack;
+      of += d.fourthMiss;
     } else {
       hits += d.shared;
       of += d.completed;

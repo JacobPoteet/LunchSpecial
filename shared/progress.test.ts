@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_PROGRESS_BYTES, mergeProgress, normalizeProgress, type Progress } from "./progress";
+import { MAX_PROGRESS_BYTES, mergeProgress, normalizeProgress, PROGRESS_KEYS, type Progress } from "./progress";
 
 const STATS = "lunch-special:stats";
 const ROUND = "lunch-special:round";
@@ -52,6 +52,13 @@ describe("mergeProgress", () => {
 
   it("sets a seen-flag when either side has it", () => {
     expect(mergeProgress({}, { "lunch-special:howto-seen": "1" })["lunch-special:howto-seen"]).toBe("1");
+  });
+
+  it("carries the Kids Menu's coach card flag, so a phone that lost it isn't coached twice", () => {
+    expect(PROGRESS_KEYS).toContain("lunch-special:kids-menu-seen");
+    expect(mergeProgress({}, { "lunch-special:kids-menu-seen": "1" })["lunch-special:kids-menu-seen"]).toBe("1");
+    expect(mergeProgress({ "lunch-special:kids-menu-seen": "1" }, {})["lunch-special:kids-menu-seen"]).toBe("1");
+    expect(normalizeProgress({ "lunch-special:kids-menu-seen": "1" })).toEqual({ "lunch-special:kids-menu-seen": "1" });
   });
 
   it("falls back to the readable side when one copy is corrupted", () => {

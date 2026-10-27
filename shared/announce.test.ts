@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { clueAnnouncement, guessAnnouncement, MATCH_MARKS, MATCH_WORDS } from "./announce";
+import {
+  circleAnnouncement,
+  clueAnnouncement,
+  guessAnnouncement,
+  kidsMenuAnnouncement,
+  MATCH_MARKS,
+  MATCH_WORDS,
+} from "./announce";
 import { MAX_GUESSES, type GuessFeedback } from "./types";
 
 const miss: GuessFeedback = {
@@ -101,5 +108,20 @@ describe("the two redundant channels", () => {
   it("gives the three states three distinct marks", () => {
     expect(new Set(Object.values(MATCH_MARKS)).size).toBe(3);
     expect(new Set(Object.values(MATCH_WORDS)).size).toBe(3);
+  });
+});
+
+describe("the Kids Menu", () => {
+  it("says what the menu holds and what narrowed it", () => {
+    expect(kidsMenuAnnouncement(10, ["East Asia", "pork"])).toBe("Kids Menu: 10 dishes, East Asia and pork.");
+    expect(kidsMenuAnnouncement(451, [])).toBe("Kids Menu: 451 dishes, the whole menu.");
+    expect(kidsMenuAnnouncement(8, ["Oceania"])).toBe("Kids Menu: 8 dishes, Oceania.");
+    expect(kidsMenuAnnouncement(9, ["East Asia", "entree", "hot", "pork"])).toBe(
+      "Kids Menu: 9 dishes, East Asia, entree, hot and pork.",
+    );
+  });
+
+  it("says the ring going round a dish", () => {
+    expect(circleAnnouncement("Pho")).toBe("Circled Pho. Order it from the foot of the menu.");
   });
 });

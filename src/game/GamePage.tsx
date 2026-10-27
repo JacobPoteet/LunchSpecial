@@ -60,11 +60,13 @@ import {
   emptyRound,
   getPlayerId,
   hasSeenHowTo,
+  hasSeenKidsMenuIntro,
   isReturningPlayer,
   loadArchiveRound,
   loadRound,
   loadStats,
   markHowToSeen,
+  markKidsMenuIntroSeen,
   recordResult,
   rememberAnnouncementSeen,
   saveArchiveRound,
@@ -74,6 +76,8 @@ import {
   type RoundState,
   type Stats,
 } from "./storage";
+import { KidsMenuCard, KidsMenuCoach, KidsMenuPill } from "./KidsMenu";
+import { kidsMenuIntroDue, kidsMenuOpen, MENU_AFTER } from "../../shared/kidsmenu";
 import { seededShowcaseRound } from "./showcase";
 import { useOccasion, useWearOccasion } from "../occasions/store";
 import clocheUrl from "../assets/art/ai-cloche.svg";
@@ -638,6 +642,10 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   const [matches, setMatches] = useState(0);
   const [showStats, setShowStats] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
+  // The Kids Menu (KidsMenu.tsx). The card never opens itself; the coach card
+  // beside the pill shows once per device, the first round it could be opened.
+  const [showKidsMenu, setShowKidsMenu] = useState(false);
+  const [kidsSeen, setKidsSeen] = useState(() => isShowcase || hasSeenKidsMenuIntro());
   // Unseen notices from the kitchen, oldest first, shown one after another.
   const [notices, setNotices] = useState<Announcement[]>([]);
   const [noticeIndex, setNoticeIndex] = useState(0);
@@ -772,7 +780,9 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // One at a time, and never stacked on another modal: the check that auto-opens
   // for an already-finished round gets to go first, then the notice.
   const activeNotice =
-    !coaching && !showHowTo && !showResult && !showStats && !showArchive ? (notices[noticeIndex] ?? null) : null;
+    !coaching && !showHowTo && !showResult && !showStats && !showArchive && !showKidsMenu
+      ? (notices[noticeIndex] ?? null)
+      : null;
 
   // Counted the moment it's on screen, not when it's dismissed — someone who
   // reads a note and closes the tab still read it. localStorage is what stops it
@@ -904,7 +914,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   useEffect(() => () => window.clearTimeout(clueTimer.current), []);
 
   const submitGuess = useCallback(
-    async (dish: DishSummary) => {
+    async (dish: DishSummary, fromKidsMenu = false) => {
       if (!daily || busy || staleDaily || round.status !== "playing") return;
       setBusy(true);
       setError(null);
@@ -928,6 +938,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           special: playtest,
           roundId,
           playerId: roundId ? getPlayerId() : undefined,
+          fromKidsMenu: fromKidsMenu || undefined,
         });
         const next: RoundState = {
           ...round,
@@ -1015,6 +1026,34 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   );
 
   const guessedIds = useMemo(() => new Set(round.guesses.map((g) => g.dish.id)), [round.guesses]);
+
+  // ---- The Kids Menu ----
+  //
+  // The pill sits beside My stats from the fourth miss while the round is
+  // playing (shared/kidsmenu.ts).
+  // `fresh` is whether it appeared during this sitting, which is what the
+  // entrance hangs off: a board reloaded at four misses just has it there.
+  const kidsAvailable = kidsMenuOpen(round.status, round.guesses.length) && !!daily && !staleDaily;
+  const [mountGuesses] = useState(() => round.guesses.length);
+  const kidsFresh = mountGuesses < MENU_AFTER;
+  const kidsIntro = kidsAvailable && kidsMenuIntroDue({ seen: kidsSeen, status: round.status, guesses: round.guesses.length });
+  const endKidsIntro = useCallback(() => {
+    markKidsMenuIntroSeen();
+    setKidsSeen(true);
+  }, []);
+  // A coach card the round outlived has done its job, the same rule as the
+  // walkthrough's: the next round that reaches a fourth miss is left alone.
+  const kidsIntroShown = useRef(false);
+  if (kidsIntro) kidsIntroShown.current = true;
+  useEffect(() => {
+    if (kidsIntroShown.current && !kidsSeen && round.status !== "playing") endKidsIntro();
+  }, [round.status, kidsSeen, endKidsIntro]);
+  const openKidsMenu = useCallback(() => {
+    if (!kidsSeen) endKidsIntro();
+    setShowKidsMenu(true);
+  }, [kidsSeen, endKidsIntro]);
+  const kidsCoachId = "coach-kids";
+  const kidsPillRef = useRef<HTMLButtonElement>(null);
   // The streak beside the date, on Today's Special only: it is a fact about
   // the daily, and a Leftover or a Chef's Choice never touches it. Read off
   // `stats`, which recordResult replaces the moment a round ends, so a win
@@ -1109,6 +1148,14 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
             <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowStats(true); }}>
               <Icon name="stats" /> My stats
             </button>
+            {kidsAvailable && !pending && (
+              <KidsMenuPill
+                fresh={kidsFresh}
+                buttonRef={kidsPillRef}
+                describedBy={kidsIntro ? kidsCoachId : undefined}
+                onOpen={openKidsMenu}
+              />
+            )}
             {canArchive && (
               <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowArchive(true); }}>
                 <Icon name="calendar" /> Leftovers
@@ -1131,6 +1178,9 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
               </button>
             )}
           </div>
+          {kidsAvailable && !pending && kidsIntro && (
+            <KidsMenuCoach id={kidsCoachId} anchor={kidsPillRef} onDismiss={endKidsIntro} />
+          )}
         </div>
 
         {/* No dish list and no puzzle means there's nothing to order from, so
@@ -1179,6 +1229,13 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
                   <p className="stuck-note" role="status" aria-live="polite">
                     {STUCK_NOTE}
                   </p>
+                )}
+                {/* Discord's picture-in-picture tile hides the toolbar, so the
+                    pill has a second copy here that only that layout shows. */}
+                {kidsAvailable && !pending && (
+                  <div className="kids-pill-row">
+                    <KidsMenuPill fresh={kidsFresh} pip onOpen={openKidsMenu} />
+                  </div>
                 )}
               </>
             )}
@@ -1255,6 +1312,27 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           position={noticeIndex + 1}
           total={notices.length}
           onClose={dismissNotice}
+        />
+      )}
+      {showKidsMenu && kidsAvailable && (
+        <KidsMenuCard
+          board={{
+            date,
+            preview,
+            random,
+            special: playtest,
+            guessed: round.guesses.map((g) => g.dish.id),
+            roundId: tracked ? round.analyticsId : undefined,
+            playerId: tracked && round.analyticsId ? getPlayerId() : undefined,
+          }}
+          guesses={round.guesses}
+          onOrder={(dish) => {
+            // Closed first so the row lands and the clue prints where the
+            // player can see them; the pill stays for the next one.
+            setShowKidsMenu(false);
+            void submitGuess(dish, true);
+          }}
+          onClose={() => setShowKidsMenu(false)}
         />
       )}
       {showStats && (

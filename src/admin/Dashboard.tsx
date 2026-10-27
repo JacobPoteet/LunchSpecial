@@ -10,6 +10,7 @@ import ExperimentsPanel from "./ExperimentsPanel";
 import IngredientWebPanel from "./IngredientWebPanel";
 import Fold from "./Fold";
 import GuessPanel from "./GuessPanel";
+import KidsMenuPanel from "./KidsMenuPanel";
 import MenuMixPanel from "./MenuMixPanel";
 import OverviewPanel from "./OverviewPanel";
 import PlayersPanel from "./PlayersPanel";
@@ -250,6 +251,9 @@ export default function Dashboard({
           />
           <DishReportPanel surface={surface} focusDish={focusDish} onFocused={() => setFocusDish(null)} />
           <GuessPanel />
+          <Fold title="Kids Menu" hint="Who opened it after a 4th miss.">
+            <KidsMenuPanel />
+          </Fold>
           {/* The catalogue halves answer questions you ask rarely and fetch
               their own data, so they stay a bar until opened. */}
           <Fold title="Menu mix" hint="Served vs the pool.">

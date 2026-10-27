@@ -11,3 +11,4 @@ export * from "./types/announcements";
 export * from "./types/analytics";
 export * from "./types/experiments";
 export * from "./types/issues";
+export * from "./types/kidsmenu";

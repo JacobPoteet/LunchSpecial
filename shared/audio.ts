@@ -233,6 +233,23 @@ export const TICKET_MS = 1140;
 export const WIN_BELL_MS = 150;
 
 /**
+ * The Kids Menu's moments (src/game/KidsMenu.tsx), mirrored by the `--kids-*`
+ * dial at the top of its block in game.css. Each moment is also a state the
+ * card writes to a data attribute (`data-kids`, `data-row`, `data-moment`), so
+ * the motion pass can hang an animation on any of them and a sound on the same
+ * beat by reading these. Re-time one and you re-time both.
+ *
+ * `pillIn`: the pill fading onto the toolbar after the fourth miss, held until
+ * the clue ticket has printed so the two don't land together.
+ * `circle`: the crayon ring drawing round a name.
+ */
+export const KIDS_MENU_MS = {
+  pillDelay: TICKET_MS,
+  pillIn: 320,
+  circle: 260,
+} as const;
+
+/**
  * A loss lands in the gap between the chips settling and the check opening
  * (`LOSS_CHECK_DELAY_MS` = 800 in GamePage). Late enough to be its own beat,
  * early enough that the receipt doesn't print over the top of it.

@@ -29,7 +29,7 @@ const app = new Hono<{ Bindings: Env }>();
 
 const ACTIVITY_COLS =
   `round_id, puzzle_number, play_date, kind, surface, player_id, country, dish_id, drink_id,
-   started_at, completed, completed_at, shared, shared_at, guesses, solved,
+   started_at, completed, completed_at, shared, shared_at, guesses, solved, kids_menu_at,
    COALESCE(shared_at, completed_at, updated_at, started_at) AS last_at`;
 
 interface ActivityRoundRow {
@@ -51,6 +51,7 @@ interface ActivityRoundRow {
   shared_at: string | null;
   guesses: number | null;
   solved: number | null;
+  kids_menu_at: number | null;
   last_at: string;
 }
 
@@ -158,6 +159,7 @@ app.get("/recent-rounds", async (c) => {
     sharedAt: nullableInstant(r.shared_at),
     guesses: r.guesses ?? null,
     solved: r.solved === null || r.solved === undefined ? null : r.solved === 1,
+    kidsMenuAt: r.kids_menu_at ?? null,
     lastAt: instant(r.last_at),
   }));
   if (day) rounds = rounds.filter((r) => r.playedDay === day);
@@ -259,7 +261,7 @@ app.get("/round-guesses", async (c) => {
   const round = c.req.query("round")?.trim();
   if (!round) return c.json({ error: "No round given" }, 400);
   const res = await c.env.DB.prepare(
-    `SELECT g.guess_number, g.created_at,
+    `SELECT g.guess_number, g.created_at, g.from_kids_menu,
             COALESCE(dd.name, dk.name) AS name,
             COALESCE(dd.country, dk.country) AS country,
             COALESCE(g.guessed_dish_id = g.target_dish_id, g.guessed_drink_id = g.target_drink_id, 0) AS correct

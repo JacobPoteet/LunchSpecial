@@ -111,6 +111,8 @@ export interface RoundGuessRow {
   correct: number;
   /** SQLite datetime ("2026-10-08 20:01:00"), UTC. */
   created_at: string;
+  /** 0/1 from migrations/0062; NULL before it and on every drink. Absent reads as NULL. */
+  from_kids_menu?: number | null;
 }
 
 /**
@@ -125,6 +127,7 @@ export function foldRoundGuesses(roundId: string, rows: Iterable<RoundGuessRow>)
       name: r.name,
       country: r.country,
       correct: r.correct === 1,
+      fromKidsMenu: r.from_kids_menu === null || r.from_kids_menu === undefined ? null : r.from_kids_menu === 1,
       at: `${r.created_at.replace(" ", "T")}Z`,
     }))
     .sort((a, b) => a.number - b.number);

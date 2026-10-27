@@ -4,6 +4,7 @@ import Database from "better-sqlite3";
 import { describe, expect, it } from "vitest";
 import { clueBeat, coasterBeat, type ClueBeat } from "../shared/clues";
 import { classify, nearRate, type PantryItem } from "../shared/families";
+import { MENU_FLOOR, sizeMenu, type MenuTraits } from "../shared/kidsmenu";
 
 // Applies every migration + the seed catalog to a real (in-memory) SQLite
 // database so the schema's own CHECK/UNIQUE constraints do the enforcing —
@@ -1112,5 +1113,28 @@ describe("the pantry", () => {
     const b = nearRate(bar);
     expect(k.withNear / k.pairs).toBeLessThan(0.3);
     expect(b.withNear / b.pairs).toBeLessThan(0.3);
+  });
+});
+
+describe("the kids menu", () => {
+  // The sizing rule in shared/kidsmenu.ts over the real pool, with every fact
+  // known: the shortest menu a board can earn. A batch that piles into one
+  // course, temperature and protein in one region grows the worst case; these
+  // are ratchets on that, measured on 451 dishes (median 11, p90 21, max 38).
+  const db = buildDb();
+  const pool = db
+    .prepare("SELECT name, region, course, temperature, protein FROM dishes WHERE is_active = 1")
+    .all() as (MenuTraits & { name: string })[];
+  const sizes = pool.map((t) => sizeMenu(pool, t).dishes.length).sort((a, b) => a - b);
+  const at = (p: number) => sizes[Math.min(sizes.length - 1, Math.floor(p * sizes.length))];
+
+  it("keeps the all-facts menu short", () => {
+    expect(at(0.5)).toBeLessThanOrEqual(14);
+    expect(at(0.9)).toBeLessThanOrEqual(26);
+    expect(sizes[sizes.length - 1]).toBeLessThanOrEqual(45);
+  });
+
+  it("never prints fewer than the floor", () => {
+    expect(sizes[0]).toBeGreaterThanOrEqual(MENU_FLOOR);
   });
 });

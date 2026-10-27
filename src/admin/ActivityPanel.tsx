@@ -645,7 +645,7 @@ function GroupHeader({
 const surfaceLabel = (s: string) => (s === "discord" ? "Discord" : "Web");
 
 /** How a step's node is drawn on the rail. */
-type Node = "event" | "guess" | "hit" | "missing" | "open";
+type Node = "event" | "guess" | "hit" | "missing" | "open" | "aside";
 
 /** One line of a round's timeline. */
 interface Step {
@@ -728,11 +728,17 @@ function RoundTimeline({ round }: { round: ActivityRoundView }) {
             <span className="act-tl__name">{g.name ?? "Left the menu"}</span>
             {g.country && <span className="ev-sub">{g.country}</span>}
             {g.correct && <span className="act-tl__hit">✓ answer</span>}
+            {g.fromKidsMenu && <span className="ev-kids">Kids Menu</span>}
           </>
         ),
         after: wait === null ? null : `+${spanLabel(wait)}`,
       });
       prev = g.at;
+      // The menu's first open is a guess number, so it has no clock time of
+      // its own: it sits after the guess it opened on.
+      if (round.kidsMenuAt === n) {
+        steps.push({ key: "kids-open", at: null, node: "aside", body: <span>Opened the Kids Menu</span> });
+      }
     }
   }
 
@@ -776,7 +782,7 @@ function RoundTimeline({ round }: { round: ActivityRoundView }) {
       </span>
       <span className="act-tl__body">{body}</span>
       <span className="act-tl__after">{after}</span>
-      <span className="act-tl__at">{at ? clock(at) : at === null && node !== "open" ? "—" : ""}</span>
+      <span className="act-tl__at">{at ? clock(at) : at === null && node !== "open" && node !== "aside" ? "—" : ""}</span>
     </li>
   );
 
@@ -1090,6 +1096,11 @@ export default function ActivityPanel({
           </td>
           <td>
             <Result round={r} now={now} />
+            {r.kidsMenuAt !== null && (
+              <span className="ev-kids" title={`Opened after ${r.kidsMenuAt} guesses`}>
+                Kids Menu
+              </span>
+            )}
           </td>
           <td>
             <span className="ev-when">{surfaceLabel(r.surface)}</span>

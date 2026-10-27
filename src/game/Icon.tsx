@@ -126,6 +126,15 @@ const PATHS = {
       <path d="M10 10.2a2.8 2.8 0 0 0 3.8 3.6" />
     </>
   ),
+  // A crayon, for the Kids Menu: the pill that opens it and the button on each
+  // dish that crosses it out.
+  crayon: (
+    <>
+      <path d="M4 20l1.4-4.6L15.6 5.2l3.2 3.2L8.6 18.6z" />
+      <path d="M13.4 7.4l3.2 3.2" />
+      <path d="M5.4 15.4l3.2 3.2" />
+    </>
+  ),
   back: (
     <>
       <path d="M19 12H5" />

@@ -36,6 +36,7 @@ function round(over: Partial<ActivityRound> = {}): ActivityRound {
     sharedAt: null,
     guesses: null,
     solved: null,
+    kidsMenuAt: null,
     lastAt: startedAt,
     ...over,
   };

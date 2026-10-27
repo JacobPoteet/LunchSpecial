@@ -182,3 +182,25 @@ export function drinkGuessAnnouncement(input: {
 export function coasterAnnouncement(index: number, text: string): string {
   return `Coaster ${index}: ${text}`;
 }
+
+// ---- The Kids Menu ----
+//
+// The card changes in two ways a sighted player sees at once: it opens on its
+// list, and a name gets a crayon ring round it. Each is said in one short
+// sentence in the card's own live region. Never a word about which dish is the
+// Special: the card doesn't know, and neither does this.
+
+/** "Kids Menu: 9 dishes, East Asia, entree, hot and pork." Said when the card opens on its list. */
+export function kidsMenuAnnouncement(dishes: number, filters: ReadonlyArray<string>): string {
+  const narrowed =
+    filters.length === 0
+      ? "the whole menu"
+      : filters.length === 1
+        ? filters[0]
+        : `${filters.slice(0, -1).join(", ")} and ${filters[filters.length - 1]}`;
+  return `Kids Menu: ${count(dishes, "dish", "dishes")}, ${narrowed}.`;
+}
+
+export function circleAnnouncement(name: string): string {
+  return `Circled ${name}. Order it from the foot of the menu.`;
+}

@@ -171,7 +171,10 @@ function MonthGrid({
           const recovered = isToday ? undefined : recoveredFor(date);
           const played = recovered ? ` on the day in ${recovered.guesses} ${recovered.guesses === 1 ? "guess" : "guesses"}` : "";
           const occasion = occasionOn(date, bookings);
-          const label = `Special No. ${puzzleNumberFor(date)}${isToday ? " (today)" : ""}, ${status}${played}${
+          // Leads with the day number the cell shows: a voice user says what
+          // they see ("click 27"), and the name has to contain it (WCAG 2.5.3,
+          // axe's label-content-name-mismatch).
+          const label = `${dayNum}, Special No. ${puzzleNumberFor(date)}${isToday ? " (today)" : ""}, ${status}${played}${
             occasion ? `, ${OCCASIONS[occasion].name}` : ""
           }`;
           // Stagger by calendar ROW, not by cell: seven cells landing together

@@ -4,7 +4,12 @@ import { Hono } from "hono";
 import type { Experiment, ExperimentInput, ExperimentMetric, ExperimentReport } from "../../../shared/types";
 import { EXPERIMENT_LIMITS, EXPERIMENT_METRICS } from "../../../shared/types";
 
-import { foldExperimentSeries, type ExperimentHourRow } from "../../experiments";
+import {
+  foldExperimentSeries,
+  foldFourthMissReturns,
+  type ExperimentHourRow,
+  type FourthMissRow,
+} from "../../experiments";
 
 import { serverToday } from "../../db";
 
@@ -56,7 +61,7 @@ function parseExperiment(body: unknown): { input: ExperimentInput } | { error: s
 app.get("/experiments", async (c) => {
   const { and: surfAnd, where: surfWhere } = surfaceClause(c);
   const today = serverToday();
-  const [rowsRes, hourRes, playerRes, trackingRes, visitRes] = await c.env.DB.batch([
+  const [rowsRes, hourRes, playerRes, trackingRes, visitRes, fourthMissRes, ledgerRes] = await c.env.DB.batch([
     c.env.DB.prepare(
       `SELECT id, label, hypothesis, metric, shipped_on, created_at
          FROM experiments ORDER BY shipped_on DESC, id DESC`,
@@ -84,6 +89,18 @@ app.get("/experiments", async (c) => {
     ),
     // visit_day is already an ET day, stamped by the beacon handler.
     c.env.DB.prepare(`SELECT visit_day, COUNT(*) AS n FROM analytics_visits${surfWhere} GROUP BY visit_day`),
+    // The Kids Menu's cohort: lunch rounds that reached a fourth miss (see
+    // foldFourthMissReturns). The ledger's first day is where it is measured from.
+    c.env.DB.prepare(
+      `SELECT r.player_id, strftime('%Y-%m-%d %H', r.started_at) AS bucket
+         FROM analytics_rounds r
+        WHERE r.kind != 'nightcap' AND r.player_id IS NOT NULL AND r.started_at IS NOT NULL${surfAnd.replace(/surface/g, "r.surface")}
+          AND ((r.completed = 1 AND r.guesses >= 5)
+            OR EXISTS (SELECT 1 FROM analytics_guesses g
+                        WHERE g.round_id = r.round_id AND g.guess_number = 4
+                          AND g.guessed_dish_id != g.target_dish_id))`,
+    ),
+    c.env.DB.prepare(`SELECT MIN(created_at) AS first FROM analytics_guesses`),
   ]);
 
   const activity = foldPlayerActivity(playerRes.results as PlayerBucketRow[]);
@@ -92,6 +109,13 @@ app.get("/experiments", async (c) => {
   const visitsByDay = new Map<string, number>();
   for (const r of visitRes.results as { visit_day: string; n: number }[]) visitsByDay.set(r.visit_day, r.n);
   const visitsSince = [...visitsByDay.keys()].sort()[0] ?? null;
+  const ledgerFirst = (ledgerRes.results[0] as { first: string | null } | undefined)?.first ?? null;
+  const fourthMiss = foldFourthMissReturns(
+    fourthMissRes.results as unknown as FourthMissRow[],
+    activity.visitDays,
+    today,
+    ledgerFirst ? etDayOfUtcStamp(ledgerFirst) : null,
+  );
 
   const experiments: Experiment[] = (
     rowsRes.results as {
@@ -120,6 +144,7 @@ app.get("/experiments", async (c) => {
       trackingStart,
       visitsByDay,
       visitsSince,
+      fourthMiss,
     ),
   };
   return c.json(report);

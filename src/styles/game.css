@@ -2589,6 +2589,12 @@ textarea.dish-request__input {
   --cal-cell-start: 0.1s;
   --cal-cell-step: 40ms;
   --cal-cell-dur: 0.3s;
+
+  /* The Kids Menu, mirrored by KIDS_MENU_MS in shared/audio.ts. The pill waits
+     for the clue ticket (--ticket-start) so the two never land together. */
+  --kids-pill-delay: 1.14s;
+  --kids-pill-in: 0.32s;
+  --kids-circle: 0.26s;
 }
 
 /* Modal: backdrop fades, card slides up from the bottom; reverse on close.
@@ -3006,6 +3012,8 @@ textarea.dish-request__input {
 .bar-band__btn:focus-visible,
 .archive-cal__nav-btn:focus-visible,
 .notice__ok:focus-visible,
+.kids-row__dish:focus-visible,
+.kids-sec__head:focus-visible,
 .footer-note a:focus-visible {
   outline: 3px solid var(--mustard);
   outline-offset: 2px;
@@ -3507,6 +3515,349 @@ textarea.dish-request__input {
   font-weight: inherit;
 }
 
+/* ---- the Kids Menu ----
+
+   A placemat handed over from the fourth miss (src/game/KidsMenu.tsx). Paper,
+   crayon red and a rubber stamp; the only motion is the pill fading in and the
+   crayon ring drawing on, each timed off the --kids-* dial up top. Every
+   moment is also a data attribute (data-kids, data-row, data-moment), which is
+   what the motion pass hangs its work on. */
+
+/* Crayon red, not the toolbar's ink: this is a thing on the board you are
+   meant to press. Cherry on paper is 5.04:1. */
+.kids-pill {
+  border-color: var(--cherry);
+  color: var(--cherry);
+}
+
+.kids-pill:hover {
+  background: var(--cherry-hover);
+  border-color: var(--cherry-hover);
+  color: var(--on-cherry);
+}
+
+.kids-pill[data-kids="new"] {
+  animation: kids-pill-in var(--kids-pill-in) ease var(--kids-pill-delay) backwards;
+}
+
+/* The board's copy of the pill is for Discord's picture-in-picture tile only,
+   where the toolbar is hidden (see the PIP block at the end of this file). */
+.kids-pill-row {
+  display: none;
+  justify-content: center;
+  margin: 0 0 var(--space-8);
+}
+
+/* The tip hangs under the toolbar, its caret pointing up at the pill.
+   KidsMenu.tsx measures the pill and sets --caret-x; until it has, the caret
+   sits in the middle. */
+.coach--kids {
+  margin: var(--space-14) 0 0;
+  text-align: left;
+  animation-delay: var(--kids-pill-delay);
+}
+
+.coach--kids::before,
+.coach--kids::after {
+  top: auto;
+  bottom: 100%;
+  left: calc(var(--caret-x, 50%) - 9px);
+  border: 9px solid transparent;
+  border-top: 0;
+}
+
+.coach--kids::before {
+  border-bottom-color: var(--mustard);
+}
+
+.coach--kids::after {
+  margin: 0 0 -3px;
+  border-bottom-color: var(--paper-bright);
+}
+
+/* The placemat. A dashed crayon rule inside the card's edge is the whole frame. */
+.modal--kids {
+  background: var(--paper-bright);
+  max-width: 440px;
+}
+
+.modal--kids::before {
+  content: "";
+  position: absolute;
+  inset: var(--space-8);
+  z-index: 1;
+  border: var(--border-medium) dashed color-mix(in srgb, var(--cherry) 45%, transparent);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+
+.kids__head {
+  position: relative;
+  text-align: center;
+  margin: 0 0 var(--space-12);
+  padding: 0 var(--space-34);
+}
+
+.kids__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-xxl);
+  font-weight: normal;
+  line-height: 1.1;
+  color: var(--cherry);
+  transform: rotate(-2deg);
+}
+
+.kids__fine {
+  margin: var(--space-4) 0 0;
+  font-family: var(--font-gothic);
+  font-size: var(--fs-md);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.kids__doodle {
+  position: absolute;
+  left: 0;
+  top: -4px;
+  width: 34px;
+  height: 34px;
+  fill: none;
+  stroke: var(--mustard);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transform: rotate(-8deg);
+}
+
+.kids__note {
+  margin: var(--space-8) 0;
+  text-align: center;
+  font-size: var(--fs-md);
+  color: var(--ink-soft);
+}
+
+/* Rubber stamps: the facts the menu was narrowed on, in the board's words. */
+.kids__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-8);
+  margin: 0 0 var(--space-12);
+}
+
+.kids-chip {
+  padding: var(--space-2) var(--space-8);
+  border: var(--border-medium) solid var(--teal);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-gothic);
+  font-size: var(--fs-lg);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal);
+  transform: rotate(-2deg);
+}
+
+.kids-chip:nth-child(odd) {
+  transform: rotate(1.5deg);
+}
+
+.kids-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.kids-row {
+  border-bottom: var(--border-hair) dotted var(--paper-edge);
+}
+
+.kids-row:last-child {
+  border-bottom: 0;
+}
+
+/* The whole row is the button that circles the dish: name and country, at
+   least 44px tall. */
+.kids-row__dish {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-6) var(--space-14);
+  background: transparent;
+  border: 0;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.kids-row__dish:hover,
+.kids-row__dish:active {
+  background: var(--near-soft);
+}
+
+.kids-row[data-row="guessed"] .kids-row__dish {
+  cursor: default;
+}
+
+.kids-row[data-row="guessed"] .kids-row__dish:hover {
+  background: transparent;
+}
+
+.kids-row__name {
+  position: relative;
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.kids-row[data-row="guessed"] .kids-row__name {
+  color: var(--ink-soft);
+}
+
+.kids-row__country {
+  font-family: var(--font-gothic);
+  font-size: var(--fs-md);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* The crayon marks: drawn over the name, never under its text colour. */
+.kids-mark {
+  position: absolute;
+  pointer-events: none;
+  overflow: visible;
+  fill: none;
+  stroke: var(--cherry);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.kids-mark path {
+  vector-effect: non-scaling-stroke;
+}
+
+.kids-mark--cross {
+  left: -4px;
+  width: calc(100% + 8px);
+  top: calc(50% - 6px);
+  height: 12px;
+}
+
+.kids-mark--circle {
+  left: -12px;
+  top: -8px;
+  width: calc(100% + 24px);
+  height: calc(100% + 16px);
+}
+
+.kids-mark--circle path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: kids-draw var(--kids-circle) ease-out backwards;
+}
+
+/* A long menu: one fold per course, with the count on its head. */
+.kids-sec {
+  margin: 0 0 var(--space-6);
+}
+
+.kids-sec__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: 44px;
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  color: var(--teal);
+  cursor: pointer;
+  list-style: none;
+  border-bottom: var(--border-medium) solid var(--paper-edge);
+}
+
+.kids-sec__head::-webkit-details-marker {
+  display: none;
+}
+
+.kids-sec__head::before {
+  content: "▸";
+  font-size: var(--fs-md);
+  color: var(--ink-soft);
+}
+
+.kids-sec[open] > .kids-sec__head::before {
+  content: "▾";
+}
+
+.kids-sec__count {
+  margin-left: auto;
+  font-family: var(--font-gothic);
+  font-size: var(--fs-md);
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+.kids-sec__sub {
+  margin: var(--space-10) 0 0;
+  font-family: var(--font-gothic);
+  font-size: var(--fs-md);
+  font-weight: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.kids__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.kids__picked {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--fs-md);
+  color: var(--ink-soft);
+}
+
+.kids__picked strong {
+  color: var(--ink);
+}
+
+.modal__footer .kids__order {
+  flex: none;
+  width: auto;
+  margin: 0;
+  padding: var(--space-12) var(--space-18);
+  font-size: var(--fs-md);
+  letter-spacing: 0.06em;
+}
+
+.modal__footer .kids__order:disabled {
+  background: transparent;
+  color: var(--ink-soft);
+  border: var(--border-thin) dashed var(--miss);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+@keyframes kids-pill-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes kids-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .modal-backdrop,
   .modal,
@@ -3567,6 +3918,9 @@ textarea.dish-request__input {
   .coach-spotlight,
   .guess-input--coach-order input:not(:focus),
   .guess-input--coach-pick .guess-input__submit:not(:disabled),
+  /* The Kids Menu: the pill is just there, the crayon ring just drawn. */
+  .kids-pill[data-kids="new"],
+  .kids-mark--circle path,
   /* The last order keeps its colour and copy; only the ring stops pulsing. */
   .tally--final .tally__hole:not(.tally__hole--punched) {
     animation: none !important;
@@ -3757,4 +4111,71 @@ textarea.dish-request__input {
 
 :root[data-discord-layout="pip"] .guess-row {
   padding: var(--space-6) var(--space-8);
+}
+
+/* The Kids Menu in a tile. The toolbar is gone, so the board's own copy of the
+   pill shows under the punch card. The placemat takes the whole tile, and
+   everything but the list and its stamps gives way: a tile is short before it
+   is narrow. */
+:root[data-discord-layout="pip"] .kids-pill-row {
+  display: flex;
+}
+
+:root[data-discord-layout="pip"] .modal-backdrop:has(.modal--kids) {
+  padding: var(--space-4);
+}
+
+:root[data-discord-layout="pip"] .modal--kids {
+  max-height: calc(100dvh - 8px);
+}
+
+:root[data-discord-layout="pip"] .modal--kids::before,
+:root[data-discord-layout="pip"] .kids__doodle,
+:root[data-discord-layout="pip"] .kids__fine,
+:root[data-discord-layout="pip"] .kids__note {
+  display: none;
+}
+
+:root[data-discord-layout="pip"] .modal--kids .modal__scroll {
+  padding: var(--space-8) var(--space-10) var(--space-4);
+}
+
+:root[data-discord-layout="pip"] .kids__head {
+  margin-bottom: var(--space-4);
+}
+
+:root[data-discord-layout="pip"] .kids__title {
+  font-size: var(--fs-lg);
+  transform: none;
+}
+
+:root[data-discord-layout="pip"] .kids__chips {
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+:root[data-discord-layout="pip"] .kids-chip {
+  font-size: var(--fs-sm);
+  padding: 0 var(--space-6);
+  transform: none;
+}
+
+:root[data-discord-layout="pip"] .kids-row__dish {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-14);
+  padding: var(--space-4) var(--space-14);
+}
+
+:root[data-discord-layout="pip"] .kids-row__name {
+  font-size: var(--fs-md);
+}
+
+:root[data-discord-layout="pip"] .modal--kids .modal__footer {
+  padding: var(--space-6) var(--space-10);
+}
+
+:root[data-discord-layout="pip"] .kids__picked {
+  font-size: var(--fs-sm);
 }
