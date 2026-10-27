@@ -93,14 +93,11 @@ export function filterLabel(fact: MenuFact, value: string): string {
 }
 
 /**
- * The line under the card's title: what the list is, and what ordering from it
- * costs. A player meets the card mid-round, two guesses from the end, so it
- * says both in one breath.
+ * The line under the card's title: what the list is, in one short sentence.
+ * The Order button at the foot says the rest.
  */
 export function menuBlurb(dishes: number): string {
-  const what =
-    dishes === 1 ? "Only one dish fits every tile on your board." : `These ${dishes} dishes fit every tile on your board.`;
-  return `${what} Circle one to order it. It uses a guess, like any order.`;
+  return dishes === 1 ? "Only 1 dish could still be the answer." : `${dishes} dishes could still be the answer.`;
 }
 
 export interface BoardMenu<T> {

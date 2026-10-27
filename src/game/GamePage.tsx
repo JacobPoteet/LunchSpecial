@@ -139,29 +139,25 @@ function HowToModal({ onClose }: { onClose: () => void }) {
       <div className="howto">
         <h2>How to play</h2>
         <p>
-          One <strong>Special</strong> a day, a famous dish from somewhere in the world, under the cloche. You get{" "}
-          {MAX_GUESSES} guesses.
+          Guess the <strong>Special</strong>, a mystery dish from somewhere in the world. You get {MAX_GUESSES} tries.
         </p>
-        <p>
-          <strong>Order any dish.</strong> The kitchen shows which of its ingredients the Special shares, and how its
-          country, course, temperature and protein compare:
-        </p>
+        <p>Each guess shows which ingredients you got right, and how close its country, course, temperature and protein are:</p>
         {/* The mark leads, and the colour is named second. The board draws the
             same three glyphs on every tile, so a player who can't separate the
             green from the mustard still has something here that maps onto what
             they're looking at. */}
         <div className="legend">
-          <span className="chip chip--hit">✓ match (green)</span>
-          <span className="chip chip--near">~ close, same region (yellow)</span>
-          <span className="chip chip--miss">× miss (gray)</span>
+          <span className="chip chip--hit">✓ right (green)</span>
+          <span className="chip chip--near">~ close (yellow)</span>
+          <span className="chip chip--miss">× wrong (gray)</span>
         </div>
+        <p>A yellow country is in the same region. A yellow ingredient (≈) is a near swap, like lemon for lime.</p>
         <p>
-          An ingredient chip turns <strong>yellow</strong> and takes a ≈ when the Special holds a cousin of it, a
-          different ingredient from the same family, like lemon for lime or pasta for noodles.
+          Every miss gets you a <strong>clue</strong>. Stuck after four misses? The <strong>Kids Menu</strong> lists every
+          dish that could still be the answer.
         </p>
         <p>
-          Every miss earns a <strong>clue ticket</strong>, five in all. Settle today's check and the{" "}
-          <strong>Leftovers</strong> open: every Special you missed, or a random one off the cook.
+          Finish today's Special to unlock <strong>Leftovers</strong>, every past Special.
         </p>
       </div>
     </Modal>
@@ -237,8 +233,7 @@ function KitchenClosed({ detail, onRetry }: { detail: string | null; onRetry: ()
     <div className="closed" role="alert">
       <p className="closed__sign">Sorry — we're closed</p>
       <p className="closed__body">
-        The kitchen isn't answering, so today's Special is staying under the cloche. Check your connection and give the
-        bell another ring.
+        The kitchen isn't answering. Check your connection and try again.
       </p>
       {detail && <p className="closed__detail">{detail}</p>}
       <button className="replay-btn" onClick={() => { playSfx("ui-click"); onRetry(); }}>
@@ -1093,8 +1088,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
             a stranger, unlike the two above, which are addressed to the admin. */}
         {isShowcase && (
           <p className="preview-banner">
-            Preview link — today's Special is shown already solved, so you can see the whole game.
-            Nothing here is saved.
+            Preview: this Special is already solved so you can look around. Nothing is saved.
           </p>
         )}
         {/* Sits above every other bar: if the day has turned, that reframes

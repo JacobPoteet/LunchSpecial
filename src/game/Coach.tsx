@@ -47,7 +47,7 @@ export function CoachMark({
       <p className="coach__text">
         {beat === "order" && (
           <>
-            <strong>Order any dish to start.</strong> The kitchen tells you how close you got.
+            <strong>Guess today's mystery dish.</strong> Type any dish to start.
           </>
         )}
         {beat === "pick" && (
@@ -57,7 +57,7 @@ export function CoachMark({
         )}
         {beat === "read" && (
           <>
-            <strong>Green matches, yellow is the same region.</strong> Every miss buys a clue.
+            <strong>Green is right, yellow is close.</strong> Each miss also gets you a clue.
           </>
         )}
       </p>
