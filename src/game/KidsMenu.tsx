@@ -22,7 +22,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { Course, GuessFeedback, KidsMenuDish, KidsMenuInfo } from "../../shared/types";
 import { REGION_LABELS } from "../../shared/types";
-import { filterLabel, layoutMenu } from "../../shared/kidsmenu";
+import { filterLabel, layoutMenu, menuBlurb } from "../../shared/kidsmenu";
 import { circleAnnouncement, kidsMenuAnnouncement } from "../../shared/announce";
 import { fetchKidsMenu, type KidsMenuBoard } from "../api";
 import { playSfx } from "../audio";
@@ -267,38 +267,34 @@ export function KidsMenuCard({
 
         {menu && layout && (
           <>
-            <p className="kids__chips">
-              <span className="sr-only">Narrowed to: </span>
-              {menu.filters.length === 0 ? (
-                <span className="kids-chip">Still on the menu</span>
-              ) : (
-                menu.filters.map((f) => (
+            <p className="kids__blurb">{menuBlurb(menu.dishes.length)}</p>
+            {/* The stamps are what a tile confirmed. A board of misses has
+                none to show: its misses narrowed the list without a stamp. */}
+            {menu.filters.length > 0 && (
+              <p className="kids__chips">
+                <span className="kids__chips-label">Confirmed</span>
+                {menu.filters.map((f) => (
                   <span key={f.fact} className="kids-chip">
                     {filterLabel(f.fact, f.value)}
                   </span>
-                ))
-              )}
-            </p>
-            {layout.folded && <p className="kids__note">Nothing on the board narrows it much yet.</p>}
-            {layout.sections.map((section) =>
-              section.course === null ? (
-                <ul key="all" className="kids-list">
-                  {section.groups[0].dishes.map(row)}
-                </ul>
-              ) : (
-                <details key={section.course} className="kids-sec" open={!layout.folded}>
-                  <summary className="kids-sec__head">
-                    {COURSE_HEADS[section.course]} <span className="kids-sec__count">{section.count}</span>
-                  </summary>
-                  {section.groups.map((g) => (
-                    <div key={g.region ?? "all"} className="kids-sec__group">
-                      {g.region && <h3 className="kids-sec__sub">{REGION_LABELS[g.region]}</h3>}
-                      <ul className="kids-list">{g.dishes.map(row)}</ul>
-                    </div>
-                  ))}
-                </details>
-              ),
+                ))}
+              </p>
             )}
+            {layout.sections.map((section) => (
+              <div key={section.course ?? "all"} className="kids-sec">
+                {section.course && (
+                  <h3 className="kids-sec__head">
+                    {COURSE_HEADS[section.course]} <span className="kids-sec__count">{section.count}</span>
+                  </h3>
+                )}
+                {section.groups.map((g) => (
+                  <div key={g.region ?? "all"} className="kids-sec__group">
+                    {g.region && <h4 className="kids-sec__sub">{REGION_LABELS[g.region]}</h4>}
+                    <ul className="kids-list">{g.dishes.map(row)}</ul>
+                  </div>
+                ))}
+              </div>
+            ))}
           </>
         )}
       </div>

@@ -92,6 +92,17 @@ export function filterLabel(fact: MenuFact, value: string): string {
   return fact === "region" ? (REGION_LABELS[value as Region] ?? value) : value;
 }
 
+/**
+ * The line under the card's title: what the list is, and what ordering from it
+ * costs. A player meets the card mid-round, two guesses from the end, so it
+ * says both in one breath.
+ */
+export function menuBlurb(dishes: number): string {
+  const what =
+    dishes === 1 ? "Only one dish fits every tile on your board." : `These ${dishes} dishes fit every tile on your board.`;
+  return `${what} Circle one to order it. It uses a guess, like any order.`;
+}
+
 export interface BoardMenu<T> {
   dishes: T[];
   /** The confirmed facts, in MENU_FACTS order. Printed as stamped chips. */
@@ -120,8 +131,6 @@ export function boardMenu<T extends MenuTraits & { name: string }>(
 
 /** Up to this many dishes print as one list with no section heads. */
 export const MENU_FLAT_MAX = 20;
-/** Up to this many, sections by course print open; past it they start folded. */
-export const MENU_OPEN_MAX = 60;
 /** A course section longer than this gets region subheads, when the board hasn't placed the Special. */
 export const MENU_SUBHEAD_MIN = 30;
 
@@ -132,7 +141,7 @@ export interface MenuGroup<T> {
 }
 
 export interface MenuSection<T> {
-  /** Null for the single unnamed section of a short menu. */
+  /** Null for the single unnamed section: a short menu, or one with a single course on it. */
   course: Course | null;
   count: number;
   groups: MenuGroup<T>[];
@@ -140,15 +149,15 @@ export interface MenuSection<T> {
 
 export interface MenuLayout<T> {
   sections: MenuSection<T>[];
-  /** Sections start folded (a long menu). Each still says how many it holds. */
-  folded: boolean;
 }
 
 /**
- * Twenty or fewer: one list. More: a section per course in COURSES order,
- * open up to MENU_OPEN_MAX and folded past it. A long section on a menu with
- * no region or country stamp splits by region in REGIONS order. Every order here
- * is fixed by the vocabulary, never by the dishes, so a layout can't point.
+ * Twenty or fewer: one list. More: a heading per course in COURSES order, or
+ * none when every dish shares a course (the stamp already says it). A long
+ * section on a menu with no region or country stamp splits by region in
+ * REGIONS order. Every dish is always on show: nothing folds, because a folded
+ * menu is a card with nothing on it to order. Every order here is fixed by the
+ * vocabulary, never by the dishes, so a layout can't point.
  */
 export function layoutMenu<T extends { name: string; course: Course; region: Region }>(
   dishes: ReadonlyArray<T>,
@@ -156,7 +165,7 @@ export function layoutMenu<T extends { name: string; course: Course; region: Reg
 ): MenuLayout<T> {
   const sorted = [...dishes].sort(byName);
   if (sorted.length <= MENU_FLAT_MAX) {
-    return { sections: [{ course: null, count: sorted.length, groups: [{ region: null, dishes: sorted }] }], folded: false };
+    return { sections: [{ course: null, count: sorted.length, groups: [{ region: null, dishes: sorted }] }] };
   }
   const sections: MenuSection<T>[] = [];
   for (const course of COURSES) {
@@ -170,7 +179,8 @@ export function layoutMenu<T extends { name: string; course: Course; region: Reg
       : [{ region: null, dishes: inCourse }];
     sections.push({ course, count: inCourse.length, groups });
   }
-  return { sections, folded: sorted.length > MENU_OPEN_MAX };
+  if (sections.length === 1) sections[0].course = null;
+  return { sections };
 }
 
 // ---- The pill and its coach card ----------------------------------------

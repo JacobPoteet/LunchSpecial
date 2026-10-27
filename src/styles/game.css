@@ -3013,7 +3013,6 @@ textarea.dish-request__input {
 .archive-cal__nav-btn:focus-visible,
 .notice__ok:focus-visible,
 .kids-row__dish:focus-visible,
-.kids-sec__head:focus-visible,
 .footer-note a:focus-visible {
   outline: 3px solid var(--mustard);
   outline-offset: 2px;
@@ -3637,13 +3636,32 @@ textarea.dish-request__input {
   color: var(--ink-soft);
 }
 
-/* Rubber stamps: the facts the menu was narrowed on, in the board's words. */
+/* What the card is, in one reading sentence, before the list starts. */
+.kids__blurb {
+  margin: 0 0 var(--space-12);
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  line-height: 1.45;
+  text-align: center;
+  color: var(--ink);
+}
+
+/* Rubber stamps: what the board's tiles confirmed, in the board's words. */
 .kids__chips {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--space-8);
   margin: 0 0 var(--space-12);
+}
+
+.kids__chips-label {
+  align-self: center;
+  font-family: var(--font-gothic);
+  font-size: var(--fs-md);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 .kids-chip {
@@ -3763,36 +3781,23 @@ textarea.dish-request__input {
   animation: kids-draw var(--kids-circle) ease-out backwards;
 }
 
-/* A long menu: one fold per course, with the count on its head. */
+/* A longer menu: a heading per course, with its count. Plain headings, never
+   folds: a folded section left the card with nothing on it to order. */
 .kids-sec {
   margin: 0 0 var(--space-6);
 }
 
 .kids-sec__head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--space-8);
-  min-height: 44px;
+  margin: var(--space-10) 0 0;
+  padding: 0 0 var(--space-4);
   font-family: var(--font-display);
   font-size: var(--fs-lg);
+  font-weight: normal;
   color: var(--teal);
-  cursor: pointer;
-  list-style: none;
   border-bottom: var(--border-medium) solid var(--paper-edge);
-}
-
-.kids-sec__head::-webkit-details-marker {
-  display: none;
-}
-
-.kids-sec__head::before {
-  content: "▸";
-  font-size: var(--fs-md);
-  color: var(--ink-soft);
-}
-
-.kids-sec[open] > .kids-sec__head::before {
-  content: "▾";
 }
 
 .kids-sec__count {
@@ -4138,6 +4143,12 @@ textarea.dish-request__input {
 
 :root[data-discord-layout="pip"] .modal--kids .modal__scroll {
   padding: var(--space-8) var(--space-10) var(--space-4);
+}
+
+:root[data-discord-layout="pip"] .kids__blurb {
+  margin-bottom: var(--space-4);
+  font-size: var(--fs-sm);
+  line-height: 1.3;
 }
 
 :root[data-discord-layout="pip"] .kids__head {

@@ -7,9 +7,9 @@ import {
   kidsMenuIntroDue,
   kidsMenuOpen,
   layoutMenu,
+  menuBlurb,
   MENU_AFTER,
   MENU_FLAT_MAX,
-  MENU_OPEN_MAX,
   type MenuTraits,
 } from "./kidsmenu";
 import type { Course, Protein, Region, Temperature } from "./types";
@@ -103,6 +103,15 @@ describe("confirmedFacts", () => {
   });
 });
 
+describe("menuBlurb", () => {
+  it("says what the list is and what an order off it costs", () => {
+    expect(menuBlurb(41)).toBe(
+      "These 41 dishes fit every tile on your board. Circle one to order it. It uses a guess, like any order.",
+    );
+    expect(menuBlurb(1)).toMatch(/^Only one dish fits every tile on your board\./);
+  });
+});
+
 describe("filterLabel", () => {
   it("names a region the way a near tile does, and the rest as the tile's value", () => {
     expect(filterLabel("region", "east-asia")).toBe("East Asia");
@@ -152,20 +161,20 @@ describe("layoutMenu", () => {
     const layout = layoutMenu(many(MENU_FLAT_MAX, "Dish", {}), []);
     expect(layout.sections).toHaveLength(1);
     expect(layout.sections[0].course).toBeNull();
-    expect(layout.folded).toBe(false);
   });
 
-  it("sections a longer one by course in the fixed order, open", () => {
+  it("heads a longer one by course in the fixed order", () => {
     const dishes = [...many(12, "Dessert", { course: "dessert" }), ...many(12, "Breakfast", { course: "breakfast" })];
     const layout = layoutMenu(dishes, []);
     expect(layout.sections.map((s) => s.course)).toEqual(["breakfast", "dessert"]);
     expect(layout.sections.map((s) => s.count)).toEqual([12, 12]);
-    expect(layout.folded).toBe(false);
   });
 
-  it("folds sections past the open limit", () => {
-    expect(layoutMenu(many(MENU_OPEN_MAX + 1, "Dish", {}), []).folded).toBe(true);
-    expect(layoutMenu(many(MENU_OPEN_MAX, "Dish", {}), []).folded).toBe(false);
+  it("drops the course heading when every dish shares a course", () => {
+    const layout = layoutMenu(many(41, "Entree", { course: "entree" }), ["course"]);
+    expect(layout.sections).toHaveLength(1);
+    expect(layout.sections[0].course).toBeNull();
+    expect(layout.sections[0].count).toBe(41);
   });
 
   it("splits a long section by region unless region is a filter", () => {
