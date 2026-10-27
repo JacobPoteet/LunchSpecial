@@ -26,14 +26,15 @@ function clearance(poly: Array<[number, number]>, x: number, y: number): number 
   return best;
 }
 
-// Entries (name over country): a short name to a long one, a name wrapped
-// onto two lines at 320px, and Discord's PIP rows (name beside country).
+// Entries (name over country, 40px tall): a short name to the longest on the
+// menu (220px), a name wrapped onto two lines, and Discord's PIP rows (name
+// beside country).
 const BOXES: Array<[number, number]> = [
-  [30, 42],
-  [60, 42],
-  [140, 42],
-  [260, 42],
-  [200, 66],
+  [30, 40],
+  [60, 40],
+  [140, 40],
+  [220, 40],
+  [200, 64],
   [120, 20],
   [300, 20],
 ];
@@ -65,20 +66,35 @@ describe("crayonRing", () => {
     }
   });
 
-  // Inside the card's dashed border at 320px, and off the ink of the rows
-  // either side (each row has 6px of padding, then the line box's leading).
+  // Inside the card's scroll box (30px left of the entry at every phone width,
+  // less the stroke) and off the ink of the rows either side (about 16px off).
   it("stays close to the entry", () => {
-    for (const [w, h] of BOXES.filter(([, h]) => h <= 42)) {
+    for (const [w, h] of BOXES.filter(([, h]) => h <= 40)) {
       for (const seed of SEEDS) {
         const { points } = crayonRingPoints(w, h, seed);
         const xs = points.map(([x]) => x);
         const ys = points.map(([, y]) => y);
-        if (h === 42) {
-          expect(Math.min(...xs)).toBeGreaterThan(-30);
-          expect(Math.max(...xs)).toBeLessThan(w + 30);
+        if (h === 40) {
+          expect(Math.min(...xs)).toBeGreaterThan(-28.5);
+          expect(Math.max(...xs)).toBeLessThan(w + 28.5);
         }
-        expect(Math.min(...ys)).toBeGreaterThan(-17);
-        expect(Math.max(...ys)).toBeLessThan(h + 17);
+        expect(Math.min(...ys)).toBeGreaterThan(-14.5);
+        expect(Math.max(...ys)).toBeLessThan(h + 14.5);
+      }
+    }
+  });
+
+  // The point of the ring: an oval, not a box (2 is an ellipse). Most names
+  // are 140px or under; only the longest square up, and only as far as fits.
+  it("stays round", () => {
+    for (const [w, h, most] of [
+      [30, 40, 2.5],
+      [90, 40, 2.5],
+      [140, 40, 2.75],
+      [220, 40, 3.3],
+    ]) {
+      for (const seed of SEEDS) {
+        expect(crayonRingPoints(w, h, seed).squareness, `${w}x${h} seed ${seed}`).toBeLessThanOrEqual(most);
       }
     }
   });

@@ -7,13 +7,30 @@
 // which way it goes, how round the loop is, how far the tail overshoots), but
 // every ring goes all the way round the entry and past where it began.
 
-/** Room either side of the entry before the hand adds its own. */
-export const RING_PAD = { x: 10, y: 5 } as const;
+/**
+ * How far the ring may reach past either end of the entry, in px, before its
+ * wobble and tail. At every phone width the card's scroll box clips 30px left
+ * of the entry; the ring may cross the placemat's dashed border on the way.
+ */
+export const RING_REACH = 25;
+
+/**
+ * How far the ring rises above and dips below the entry, in px, before its
+ * wobble and tail. The rows either side keep their ink about 16px off.
+ */
+export const RING_RISE = { min: 8, max: 9.5 } as const;
+
+/**
+ * How round a hand draws: 2 is an ellipse, higher is squarer. A hand picks
+ * from this range, and only an entry too long to fit a round ring inside
+ * RING_REACH is drawn squarer, by as little as fits.
+ */
+export const RING_ROUNDNESS = { min: 2.1, max: 2.5 } as const;
 
 /**
  * The line boxes carry leading above the name and below the country, so the
- * ink sits this far inside the entry's box. The ring clears the ink, not the
- * leading, which is what lets it stay round without towering over the row.
+ * ink sits this far inside the entry's box (measured: 3 to 5px). The ring
+ * clears the ink, not the leading.
  */
 export const INK_INSET = { x: 0, y: 3 } as const;
 
@@ -42,6 +59,8 @@ export interface CrayonRing {
   points: Array<[number, number]>;
   /** Radians the stroke sweeps: one full turn plus the overshoot. */
   sweep: number;
+  /** How square the loop is: 2 is an ellipse. */
+  squareness: number;
 }
 
 /** The ring as points, for an entry `width` × `height` px, in the hand `seed` picks. */
@@ -49,28 +68,36 @@ export function crayonRingPoints(width: number, height: number, seed: number): C
   const r = rng(seed);
   const between = (lo: number, hi: number) => lo + (hi - lo) * r();
 
-  // An oval, a little squarer than an ellipse (a superellipse) so it hugs a
-  // long entry rather than ballooning over the rows either side. A longer
-  // entry gets a little squarer still.
-  const n = between(2.6, 3.2) + Math.min(0.8, Math.max(0, (width / height - 2) * 0.15));
   const cx = width / 2 + between(-1.5, 1.5);
   const cy = height / 2 + between(-1, 1);
-  const a = width / 2 + RING_PAD.x + width * 0.04 + between(0, 3);
 
   // The crayon starts a touch inside and finishes a touch outside, so the
   // tail crosses the start rather than landing on it; the line wobbles a little.
-  const spiral = between(2, 4);
-  const wobble = between(0.5, 1.2);
+  const spiral = between(1.5, 3);
+  const wobble = between(0.4, 1);
   const lumps = r() < 0.5 ? 2 : 3;
   const phase = between(0, Math.PI * 2);
 
-  // The width is the hand's; the height is whatever clears the ink's corners
-  // at the ring's innermost reach.
+  // An oval (a superellipse, `n` 2 being an ellipse) round the ink's corners,
+  // measured at the ring's innermost reach. The hand picks how round and how
+  // tall; the width follows from those. An entry too long for that width
+  // keeps the width at RING_REACH and squares up just enough to fit, and a
+  // name wrapped onto two lines then grows taller.
   const shrink = spiral * 0.3 + wobble;
   const cornerX = width / 2 - INK_INSET.x + 1.5 + CLEARANCE;
   const cornerY = height / 2 - INK_INSET.y + 1 + CLEARANCE;
-  const fit = cornerY / (1 - (cornerX / (a - shrink)) ** n) ** (1 / n) + shrink;
-  const b = Math.max(height / 2 + RING_PAD.y, fit) + between(0, 1.5);
+  const fits = (n: number, a: number, b: number) =>
+    (cornerX / (a - shrink)) ** n + (cornerY / (b - shrink)) ** n <= 1;
+  let n = between(RING_ROUNDNESS.min, RING_ROUNDNESS.max);
+  // A box taller than the rise allows (a wrapped name) sets its own height.
+  let b = Math.max(height / 2 + between(RING_RISE.min, RING_RISE.max), cornerY / 0.9 + shrink);
+  let a = shrink + cornerX / (1 - (cornerY / (b - shrink)) ** n) ** (1 / n);
+  const reach = width / 2 + RING_REACH - between(0, 3);
+  if (a > reach) {
+    a = reach;
+    while (!fits(n, a, b) && n < 4) n += 0.05;
+    while (!fits(n, a, b)) b += 0.5;
+  }
 
   // Start somewhere along the top, mostly anticlockwise, as most hands go.
   const start = Math.PI * between(1.15, 1.85);
@@ -88,7 +115,7 @@ export function crayonRingPoints(width: number, height: number, seed: number): C
     const ey = Math.sign(s) * Math.abs(s) ** (2 / n);
     points.push([cx + (a + grow) * ex, cy + (b + grow) * ey]);
   }
-  return { points, sweep };
+  return { points, sweep, squareness: n };
 }
 
 const fmt = (v: number) => (Math.round(v * 10) / 10).toString();
