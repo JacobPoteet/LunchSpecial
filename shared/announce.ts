@@ -190,9 +190,14 @@ export function coasterAnnouncement(index: number, text: string): string {
 // sentence in the card's own live region. Never a word about which dish is the
 // Special: the card doesn't know, and neither does this.
 
-/** "Kids Menu: 10 dishes, East Asia and pork." Said when the card opens on its list. */
+/** "Kids Menu: 9 dishes, East Asia, entree, hot and pork." Said when the card opens on its list. */
 export function kidsMenuAnnouncement(dishes: number, filters: ReadonlyArray<string>): string {
-  const narrowed = filters.length === 0 ? "the whole menu" : filters.join(" and ");
+  const narrowed =
+    filters.length === 0
+      ? "the whole menu"
+      : filters.length === 1
+        ? filters[0]
+        : `${filters.slice(0, -1).join(", ")} and ${filters[filters.length - 1]}`;
   return `Kids Menu: ${count(dishes, "dish", "dishes")}, ${narrowed}.`;
 }
 

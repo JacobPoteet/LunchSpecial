@@ -110,11 +110,7 @@ const SCANS = [
     name: "Kids Menu: the pill and its coach card (fourth miss)",
     async setup(page) {
       await page.goto(`${BASE}/?special=${TARGET_SLUG}`, { waitUntil: "domcontentloaded" });
-      for (const name of KIDS_MISSES) {
-        await guess(page, name);
-        await page.waitForSelector(`.guess-row:nth-child(${KIDS_MISSES.indexOf(name) + 1}) .attr-tile--revealed`);
-      }
-      await page.waitForSelector(".menu-card__toolbar .kids-pill");
+      await missFourTimes(page);
       await page.waitForSelector(".coach--kids");
     },
   },
@@ -236,6 +232,27 @@ const SCANS = [
       await page.waitForSelector(".hw-verdict");
     },
   },
+  // The Kids Menu in costume. The pill and the title are crayon red
+  // (--cherry), which the costume's palette swap reaches. The coach card was
+  // dismissed by the uncostumed state above (same browser context), so this
+  // measures the pill on its own.
+  {
+    name: "Halloween: Kids Menu pill (fourth miss, in costume)",
+    async setup(page) {
+      await page.goto(`${BASE}/?special=${TARGET_SLUG}&occasion=halloween`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector(".hw-cloche__btn");
+      await missFourTimes(page);
+    },
+  },
+  {
+    name: "Halloween: Kids Menu card (a dish circled, in costume)",
+    async setup(page) {
+      await page.click(".menu-card__toolbar .kids-pill");
+      await page.waitForSelector(".kids-row");
+      await page.click('.kids-row[data-row="live"] .kids-row__dish >> nth=0');
+      await page.waitForSelector(".kids-mark--circle");
+    },
+  },
   {
     name: "Halloween: bar mid-round (night palette in costume, coaster)",
     async setup(page) {
@@ -273,6 +290,15 @@ async function guess(page, name) {
   await page.fill(INPUT, name);
   await page.waitForSelector(".guess-input__option");
   await page.click(".guess-input__option >> nth=0");
+}
+
+/** Four misses against the pinned ramen, each row filled in, then the Kids Menu pill. */
+async function missFourTimes(page) {
+  for (const [i, name] of KIDS_MISSES.entries()) {
+    await guess(page, name);
+    await page.waitForSelector(`.guess-row:nth-child(${i + 1}) .attr-tile--revealed`);
+  }
+  await page.waitForSelector(".menu-card__toolbar .kids-pill");
 }
 
 /** The same at the bar. Different pool, same input. */

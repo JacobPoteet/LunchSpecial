@@ -102,7 +102,16 @@ export function KidsMenuCoach({
         <strong>Two orders left?</strong> Ask for the Kids Menu. Same kitchen, smaller menu: every dish that still
         fits your board. Ordering off it still takes a guess.
       </p>
-      <button className="coach__dismiss" onClick={onDismiss} aria-label="Dismiss the Kids Menu tip">
+      {/* The card unmounts with its own × in it, which would drop keyboard
+          focus to the page; the pill it described is where focus belongs. */}
+      <button
+        className="coach__dismiss"
+        onClick={() => {
+          anchor.current?.focus();
+          onDismiss();
+        }}
+        aria-label="Dismiss the Kids Menu tip"
+      >
         ×
       </button>
     </div>
