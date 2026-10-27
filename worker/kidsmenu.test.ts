@@ -56,7 +56,7 @@ describe("parseGuessed", () => {
 });
 
 describe("buildMenu", () => {
-  it("derives the facts from the guessed dishes against the target", () => {
+  it("reads the board off the guessed dishes against the target", () => {
     const menu = buildMenu(pool, board, ids, ramen)!;
     expect(menu.filters).toEqual([
       { fact: "region", value: "east-asia" },
@@ -64,6 +64,13 @@ describe("buildMenu", () => {
     ]);
     expect(menu.dishes).toHaveLength(10);
     expect(menu.dishes.map((d) => d.id)).toContain(ramen.id);
+  });
+
+  it("leaves off a dish from the near country itself", () => {
+    // Mapo Tofu came near from China, so the Special is East Asian but not Chinese.
+    const charSiu = dish("Char Siu", "China", "east-asia", "entree", "hot", "pork");
+    const menu = buildMenu([...pool, charSiu], board, ids, ramen)!;
+    expect(menu.dishes.map((d) => d.name)).not.toContain("Char Siu");
   });
 
   it("sends names, countries, regions and courses, and nothing else", () => {

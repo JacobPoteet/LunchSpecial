@@ -3,8 +3,9 @@
 // From the fourth miss the toolbar carries a pill that opens a placemat listing
 // every dish that still fits the board (the Worker builds it; the rules are
 // shared/kidsmenu.ts). It never opens itself. On the card a player circles a
-// dish and orders it, which is an ordinary guess. Dishes already guessed print
-// crossed out.
+// dish and orders it, which is an ordinary guess. A guessed dish stays on the
+// menu only when every one of its tiles hit (it fits the board as well as the
+// Special does), and prints crossed out.
 //
 // Every moment is a state on an attribute, so the motion pass can hang an
 // animation on any of them without touching this file's logic:
@@ -269,7 +270,7 @@ export function KidsMenuCard({
             <p className="kids__chips">
               <span className="sr-only">Narrowed to: </span>
               {menu.filters.length === 0 ? (
-                <span className="kids-chip">The whole menu</span>
+                <span className="kids-chip">Still on the menu</span>
               ) : (
                 menu.filters.map((f) => (
                   <span key={f.fact} className="kids-chip">

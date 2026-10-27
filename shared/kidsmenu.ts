@@ -1,15 +1,18 @@
 // The Kids Menu: an opt-in short list of the dishes that still fit — PURE.
 //
 // After the fourth miss the player can ask for a smaller menu. It lists every
-// active dish that matches what the board has already told them, and nothing
-// it hasn't: a fact is only used once a guess has earned it, and a miss is
-// never applied as a filter (ruling dishes out is still the player's work).
+// active dish that agrees with every tile the board has printed, hits and
+// misses alike: a dish from a region a country tile ruled out, or with a
+// course, temperature or protein a tile missed on, can't be the Special and
+// never prints. Ingredients are deliberately left out: matched and missed
+// ingredients, with the count the board prints, pin the answer down almost
+// every time, and the menu would solve the round instead of shortening it.
 // Circling a dish and ordering it is an ordinary guess.
 //
 // Both halves import this file. The Worker builds the menu (the public pool
-// carries no attributes, and the facts are worked out from the round's guessed
-// dish ids against the target, never taken from the client); the client lays
-// it out. Nothing about the order of a menu may hint at the answer, so dishes
+// carries no attributes, and the board is read from the round's guessed dish
+// ids against the target, never from the client's claims); the client lays it
+// out. Nothing about the order of a menu may hint at the answer, so dishes
 // sort by name and sections follow the fixed COURSES and REGIONS orders.
 
 import { COURSES, REGION_LABELS, REGIONS, type Course, type Protein, type Region, type Temperature } from "./types";
@@ -17,88 +20,100 @@ import { COURSES, REGION_LABELS, REGIONS, type Course, type Protein, type Region
 /** Misses on the board before the pill appears (four clues seen, two guesses left). */
 export const MENU_AFTER = 4;
 
-/** The smallest menu the sizing rule will print. */
-export const MENU_FLOOR = 8;
-
-/** The four facts a board can earn, in the order the chips print them. */
-export const MENU_FACTS = ["region", "course", "temperature", "protein"] as const;
+/** The facts a board can confirm, in the order the stamps print them. */
+export const MENU_FACTS = ["country", "region", "course", "temperature", "protein"] as const;
 export type MenuFact = (typeof MENU_FACTS)[number];
 
-/** The attributes the sizing rule reads off a dish. */
+/** The attributes the board's tiles compare. */
 export interface MenuTraits {
+  country: string;
   region: Region;
   course: Course;
   temperature: Temperature;
   protein: Protein;
 }
 
-/** What the board has established about the Special: the value of each earned fact. */
+/** What the board has confirmed about the Special: the value of each fact a tile hit. */
 export type KnownFacts = Partial<MenuTraits>;
 
-interface Probe extends MenuTraits {
-  country: string;
+const TILES = ["course", "temperature", "protein"] as const;
+
+/**
+ * Whether `dish` could still be the Special after `guesses`, read tile by
+ * tile the way the board printed them:
+ *
+ * | Country tile | Leaves                                       |
+ * |---|---|
+ * | hit          | that country only                            |
+ * | near         | that region, minus the guess's own country   |
+ * | miss         | every region but the guess's                 |
+ *
+ * Course, temperature and protein: a hit keeps that value only, a miss rules
+ * it out. The Special fits its own board, so it is always on the menu.
+ */
+export function fitsBoard(dish: MenuTraits, target: MenuTraits, guesses: ReadonlyArray<MenuTraits>): boolean {
+  for (const g of guesses) {
+    if (g.country === target.country) {
+      if (dish.country !== g.country) return false;
+    } else if (g.region === target.region) {
+      if (dish.region !== g.region || dish.country === g.country) return false;
+    } else if (dish.region === g.region) {
+      return false;
+    }
+    for (const t of TILES) {
+      if (g[t] === target[t] ? dish[t] !== g[t] : dish[t] === g[t]) return false;
+    }
+  }
+  return true;
 }
 
 /**
- * Region is known once any guess's country tile hit or came near (both mean
- * the same region); course, temperature and protein once any guess hit that
- * tile. The value is the target's, which is the guess's on a hit.
+ * The facts the board has confirmed, for the stamps: the country once a
+ * country tile hit, else the region once one came near; course, temperature
+ * and protein once a tile hit. Misses narrow the menu but print no stamp.
  */
-export function knownFacts(guesses: ReadonlyArray<Probe>, target: Probe): KnownFacts {
+export function confirmedFacts(guesses: ReadonlyArray<MenuTraits>, target: MenuTraits): KnownFacts {
   const known: KnownFacts = {};
   for (const g of guesses) {
-    if (g.country === target.country || g.region === target.region) known.region = target.region;
-    if (g.course === target.course) known.course = target.course;
-    if (g.temperature === target.temperature) known.temperature = target.temperature;
-    if (g.protein === target.protein) known.protein = target.protein;
+    if (g.country === target.country) known.country = target.country;
+    else if (g.region === target.region) known.region = target.region;
+    for (const t of TILES) if (g[t] === target[t]) (known as Record<string, string>)[t] = target[t];
   }
+  // A known country already says its region.
+  if (known.country) delete known.region;
   return known;
 }
 
 /**
- * A filter as the stamped chip says it: the region by the board's own name for
- * the bucket (the one a near tile prints), the rest as the tile's value.
+ * A stamp as it prints: the region by the board's own name for the bucket
+ * (the one a near tile prints), the rest as the tile's value.
  */
 export function filterLabel(fact: MenuFact, value: string): string {
   return fact === "region" ? (REGION_LABELS[value as Region] ?? value) : value;
 }
 
-export interface SizedMenu<T> {
+export interface BoardMenu<T> {
   dishes: T[];
-  /** The facts the menu was filtered on, in MENU_FACTS order. Printed as stamped chips. */
+  /** The confirmed facts, in MENU_FACTS order. Printed as stamped chips. */
   filters: MenuFact[];
+  known: KnownFacts;
 }
 
 const byName = (a: { name: string }, b: { name: string }) =>
   a.name.localeCompare(b.name, "en", { sensitivity: "base" });
 
-/**
- * Over every subset of the known facts (none included), the one whose matching
- * set is the smallest that still holds at least MENU_FLOOR dishes; a tie goes
- * to fewer filters. A pool under the floor gets no filters at all.
- *
- * The answer is always on the menu when it is in `pool`, because it matches
- * every one of its own facts.
- */
-export function sizeMenu<T extends MenuTraits & { name: string }>(
+/** Every dish in `pool` that fits the board, by name, with the stamps to print over it. */
+export function boardMenu<T extends MenuTraits & { name: string }>(
   pool: ReadonlyArray<T>,
-  known: KnownFacts,
-  floor = MENU_FLOOR,
-): SizedMenu<T> {
-  const earned = MENU_FACTS.filter((f) => known[f] !== undefined);
-  let best: SizedMenu<T> | null = null;
-  for (let mask = 0; mask < 1 << earned.length; mask++) {
-    const filters = earned.filter((_, i) => (mask >> i) & 1);
-    const dishes = pool.filter((d) => filters.every((f) => d[f] === known[f]));
-    if (dishes.length < floor) continue;
-    const better =
-      !best ||
-      dishes.length < best.dishes.length ||
-      (dishes.length === best.dishes.length && filters.length < best.filters.length);
-    if (better) best = { dishes, filters };
-  }
-  const chosen = best ?? { dishes: [...pool], filters: [] };
-  return { dishes: [...chosen.dishes].sort(byName), filters: chosen.filters };
+  target: MenuTraits,
+  guesses: ReadonlyArray<MenuTraits>,
+): BoardMenu<T> {
+  const known = confirmedFacts(guesses, target);
+  return {
+    dishes: pool.filter((d) => fitsBoard(d, target, guesses)).sort(byName),
+    filters: MENU_FACTS.filter((f) => known[f] !== undefined),
+    known,
+  };
 }
 
 // ---- Layout -------------------------------------------------------------
@@ -107,7 +122,7 @@ export function sizeMenu<T extends MenuTraits & { name: string }>(
 export const MENU_FLAT_MAX = 20;
 /** Up to this many, sections by course print open; past it they start folded. */
 export const MENU_OPEN_MAX = 60;
-/** A course section longer than this gets region subheads, when region isn't a filter. */
+/** A course section longer than this gets region subheads, when the board hasn't placed the Special. */
 export const MENU_SUBHEAD_MIN = 30;
 
 export interface MenuGroup<T> {
@@ -131,8 +146,8 @@ export interface MenuLayout<T> {
 
 /**
  * Twenty or fewer: one list. More: a section per course in COURSES order,
- * open up to MENU_OPEN_MAX and folded past it. A long section on a menu that
- * isn't filtered by region splits by region in REGIONS order. Every order here
+ * open up to MENU_OPEN_MAX and folded past it. A long section on a menu with
+ * no region or country stamp splits by region in REGIONS order. Every order here
  * is fixed by the vocabulary, never by the dishes, so a layout can't point.
  */
 export function layoutMenu<T extends { name: string; course: Course; region: Region }>(
@@ -147,7 +162,7 @@ export function layoutMenu<T extends { name: string; course: Course; region: Reg
   for (const course of COURSES) {
     const inCourse = sorted.filter((d) => d.course === course);
     if (inCourse.length === 0) continue;
-    const split = inCourse.length > MENU_SUBHEAD_MIN && !filters.includes("region");
+    const split = inCourse.length > MENU_SUBHEAD_MIN && !filters.includes("region") && !filters.includes("country");
     const groups: MenuGroup<T>[] = split
       ? REGIONS.map((region) => ({ region, dishes: inCourse.filter((d) => d.region === region) })).filter(
           (g) => g.dishes.length > 0,

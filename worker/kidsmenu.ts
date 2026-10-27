@@ -1,18 +1,18 @@
 // The Worker's half of the Kids Menu (shared/kidsmenu.ts holds the rules).
 //
 // The Worker keeps no record of a round, so the client sends the dish ids on
-// its board and the Worker works the facts out itself, by comparing each of
-// those dishes to the target it resolves the usual way. A client can name
-// dishes it never ordered; that buys facts early, which /reveal already gives
-// away for less effort (the Wordle trust model). What it can never do is name
-// a fact.
+// its board and the Worker reads the board itself, by comparing each of those
+// dishes to the target it resolves the usual way. A client can name dishes it
+// never ordered; that narrows the menu early, which /reveal already gives away
+// for less effort (the Wordle trust model). What it can never do is name a
+// tile result.
 //
 // The request checks and the menu itself are pure and tested beside this
 // file; the loaders and the one write are below them.
 
 import { MAX_GUESSES, type Dish, type KidsMenuInfo, type KidsMenuReport } from "../shared/types";
 import { rate } from "../shared/sample";
-import { knownFacts, MENU_AFTER, sizeMenu } from "../shared/kidsmenu";
+import { boardMenu, MENU_AFTER } from "../shared/kidsmenu";
 import { rowToDish, type DishDbRow } from "./db";
 
 export interface MenuRequest {
@@ -41,15 +41,14 @@ export function parseGuessed(raw: unknown): MenuRequest | { error: string } {
 export function buildMenu(pool: ReadonlyArray<Dish>, guessed: ReadonlyArray<Dish>, guessedIds: ReadonlyArray<number>, target: Dish): KidsMenuInfo | null {
   if (guessed.length !== guessedIds.length) return null;
   if (guessedIds.includes(target.id)) return null;
-  const known = knownFacts(guessed, target);
   // The target always prints, even when it has since been deactivated (an old
   // Leftover, an admin preview of a parked dish): a menu without the answer on
   // it would be a lie.
   const withTarget = pool.some((d) => d.id === target.id) ? pool : [...pool, target];
-  const menu = sizeMenu(withTarget, known);
+  const menu = boardMenu(withTarget, target, guessed);
   return {
     dishes: menu.dishes.map(({ id, name, country, region, course }) => ({ id, name, country, region, course })),
-    filters: menu.filters.map((fact) => ({ fact, value: known[fact] as string })),
+    filters: menu.filters.map((fact) => ({ fact, value: menu.known[fact] as string })),
   };
 }
 
