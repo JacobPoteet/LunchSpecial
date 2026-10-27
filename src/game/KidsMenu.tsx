@@ -24,6 +24,7 @@ import type { Course, GuessFeedback, KidsMenuDish, KidsMenuInfo } from "../../sh
 import { REGION_LABELS } from "../../shared/types";
 import { filterLabel, layoutMenu, menuBlurb } from "../../shared/kidsmenu";
 import { circleAnnouncement, kidsMenuAnnouncement } from "../../shared/announce";
+import { crayonRing } from "../../shared/crayon";
 import { fetchKidsMenu, type KidsMenuBoard } from "../api";
 import { playSfx } from "../audio";
 import { Modal } from "./components";
@@ -210,14 +211,16 @@ export function KidsMenuCard({
           aria-disabled={guessed || undefined}
           onClick={() => circle(dish)}
         >
-          <span className="kids-row__name">
-            {dish.name}
-            {guessed && <CrayonCross />}
-            {isCircled && <CrayonCircle />}
-          </span>
-          <span className="kids-row__country">
-            {dish.country}
-            {guessed && <span className="kids-row__tag"> · ordered</span>}
+          <span className="kids-row__entry">
+            <span className="kids-row__name">
+              {dish.name}
+              {guessed && <CrayonCross />}
+            </span>
+            <span className="kids-row__country">
+              {dish.country}
+              {guessed && <span className="kids-row__tag"> · ordered</span>}
+            </span>
+            {isCircled && <CrayonCircle seed={dish.id} />}
           </span>
         </button>
       </li>
@@ -310,11 +313,35 @@ function CrayonCross() {
   );
 }
 
-/** A crayon ring round the circled dish, not quite closed, as a hand draws one. pathLength="1" lets the CSS draw it on. */
-function CrayonCircle() {
+/**
+ * A crayon ring round the circled dish, name and country, in that dish's own
+ * hand (shared/crayon.ts). It is drawn at the entry's measured size rather than
+ * stretched, so a long name is as fully ringed as a short one; pathLength="1"
+ * lets the CSS draw it on.
+ */
+function CrayonCircle({ seed }: { seed: number }) {
+  const ref = useRef<SVGSVGElement>(null);
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const entry = ref.current?.parentElement;
+    if (!entry) return;
+    const measure = () => {
+      const w = entry.offsetWidth;
+      const h = entry.offsetHeight;
+      setBox((b) => (b && b.w === w && b.h === h ? b : { w, h }));
+    };
+    measure();
+    // Zoom, rotation or a font arriving late changes the box; the path is
+    // redrawn in place and the draw-on does not replay.
+    const watch = new ResizeObserver(measure);
+    watch.observe(entry);
+    return () => watch.disconnect();
+  }, []);
+
   return (
-    <svg className="kids-mark kids-mark--circle" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M58 4C80 4 97 10 97 20S78 37 50 37 3 31 3 20 22 3 46 4c6 0 12 1 16 3" pathLength="1" />
+    <svg ref={ref} className="kids-mark kids-mark--circle" viewBox={box ? `0 0 ${box.w} ${box.h}` : undefined} aria-hidden="true">
+      {box && <path d={crayonRing(box.w, box.h, seed)} pathLength="1" />}
     </svg>
   );
 }

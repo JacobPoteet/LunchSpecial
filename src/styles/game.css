@@ -3695,7 +3695,7 @@ textarea.dish-request__input {
 }
 
 /* The whole row is the button that circles the dish: name and country, at
-   least 44px tall. */
+   least 44px tall. The entry inside it is what the ring goes round. */
 .kids-row__dish {
   width: 100%;
   min-height: 44px;
@@ -3722,6 +3722,13 @@ textarea.dish-request__input {
 
 .kids-row[data-row="guessed"] .kids-row__dish:hover {
   background: transparent;
+}
+
+.kids-row__entry {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .kids-row__name {
@@ -3757,7 +3764,10 @@ textarea.dish-request__input {
   stroke-linejoin: round;
 }
 
-.kids-mark path {
+/* The cross is stretched to the name; the ring is drawn at its own size and
+   must not take this (a dash under non-scaling-stroke is measured on screen,
+   and pathLength stops reaching the end of the ring). */
+.kids-mark--cross path {
   vector-effect: non-scaling-stroke;
 }
 
@@ -3769,10 +3779,9 @@ textarea.dish-request__input {
 }
 
 .kids-mark--circle {
-  left: -12px;
-  top: -8px;
-  width: calc(100% + 24px);
-  height: calc(100% + 16px);
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .kids-mark--circle path {
@@ -4172,11 +4181,13 @@ textarea.dish-request__input {
 }
 
 :root[data-discord-layout="pip"] .kids-row__dish {
+  padding: var(--space-4) var(--space-14);
+}
+
+:root[data-discord-layout="pip"] .kids-row__entry {
   flex-direction: row;
   align-items: center;
-  justify-content: flex-start;
   gap: var(--space-14);
-  padding: var(--space-4) var(--space-14);
 }
 
 :root[data-discord-layout="pip"] .kids-row__name {
