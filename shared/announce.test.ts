@@ -114,7 +114,7 @@ describe("the two redundant channels", () => {
 describe("the Kids Menu", () => {
   it("says what the menu holds and what narrowed it", () => {
     expect(kidsMenuAnnouncement(10, ["East Asia", "pork"])).toBe("Kids Menu: 10 dishes, East Asia and pork.");
-    expect(kidsMenuAnnouncement(451, [])).toBe("Kids Menu: 451 dishes, the whole menu.");
+    expect(kidsMenuAnnouncement(195, [])).toBe("Kids Menu: 195 dishes still on the menu.");
     expect(kidsMenuAnnouncement(8, ["Oceania"])).toBe("Kids Menu: 8 dishes, Oceania.");
     expect(kidsMenuAnnouncement(9, ["East Asia", "entree", "hot", "pork"])).toBe(
       "Kids Menu: 9 dishes, East Asia, entree, hot and pork.",

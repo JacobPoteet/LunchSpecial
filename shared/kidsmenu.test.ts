@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  boardMenu,
+  confirmedFacts,
   filterLabel,
+  fitsBoard,
   kidsMenuIntroDue,
   kidsMenuOpen,
-  knownFacts,
   layoutMenu,
+  menuBlurb,
   MENU_AFTER,
   MENU_FLAT_MAX,
-  MENU_FLOOR,
-  MENU_OPEN_MAX,
-  sizeMenu,
   type MenuTraits,
 } from "./kidsmenu";
 import type { Course, Protein, Region, Temperature } from "./types";
@@ -34,111 +34,125 @@ const dish = (
 const many = (n: number, prefix: string, traits: Partial<D>): D[] =>
   Array.from({ length: n }, (_, i) => ({ ...dish(`${prefix} ${String(i).padStart(2, "0")}`, "X", "europe"), ...traits }));
 
-describe("knownFacts", () => {
-  const target = dish("Ramen", "Japan", "east-asia", "entree", "hot", "pork");
+const ramen = dish("Ramen", "Japan", "east-asia", "entree", "hot", "pork");
 
-  it("knows nothing from a board of misses", () => {
-    expect(knownFacts([dish("Taco", "Mexico", "latin-america", "appetizer", "cold", "beef")], target)).toEqual({});
+describe("fitsBoard", () => {
+  it("keeps only the guess's country after a country hit", () => {
+    const board = [dish("Sushi", "Japan", "east-asia", "dessert", "cold", "seafood")];
+    expect(fitsBoard(dish("Katsu", "Japan", "east-asia", "entree", "hot", "pork"), ramen, board)).toBe(true);
+    expect(fitsBoard(dish("Mapo", "China", "east-asia", "entree", "hot", "pork"), ramen, board)).toBe(false);
   });
 
-  it("earns region from a near or a hit country tile", () => {
-    expect(knownFacts([dish("Pho", "Vietnam", "southeast-asia", "dessert", "cold", "beef")], target)).toEqual({});
-    expect(knownFacts([dish("Mapo", "China", "east-asia", "dessert", "cold", "beef")], target)).toEqual({
-      region: "east-asia",
-    });
-    expect(knownFacts([dish("Sushi", "Japan", "east-asia", "dessert", "cold", "beef")], target)).toEqual({
-      region: "east-asia",
-    });
+  it("keeps the region but drops the guess's own country after a near", () => {
+    const board = [dish("Mapo Tofu", "China", "east-asia", "dessert", "cold", "vegetarian")];
+    expect(fitsBoard(dish("Bulgogi", "South Korea", "east-asia", "entree", "hot", "pork"), ramen, board)).toBe(true);
+    expect(fitsBoard(dish("Char Siu", "China", "east-asia", "entree", "hot", "pork"), ramen, board)).toBe(false);
+    expect(fitsBoard(dish("Adobo", "Philippines", "southeast-asia", "entree", "hot", "pork"), ramen, board)).toBe(false);
   });
 
-  it("earns each other tile only on a hit, and keeps what any guess earned", () => {
+  it("drops the guess's whole region after a country miss", () => {
+    // The reported bug: a North American miss left North America on the menu.
+    const board = [dish("Hamburger", "United States", "north-america", "dessert", "cold", "vegetarian")];
+    expect(fitsBoard(dish("Poutine", "Canada", "north-america", "entree", "hot", "pork"), ramen, board)).toBe(false);
+    expect(fitsBoard(dish("Bulgogi", "South Korea", "east-asia", "entree", "hot", "pork"), ramen, board)).toBe(true);
+  });
+
+  it("keeps a hit tile's value and drops a missed one's", () => {
+    const board = [dish("Pavlova", "Australia", "oceania", "entree", "cold", "beef")];
+    // course hit (entree), temperature miss (cold), protein miss (beef)
+    expect(fitsBoard(dish("A", "Japan", "east-asia", "entree", "hot", "pork"), ramen, board)).toBe(true);
+    expect(fitsBoard(dish("B", "Japan", "east-asia", "dessert", "hot", "pork"), ramen, board)).toBe(false);
+    expect(fitsBoard(dish("C", "Japan", "east-asia", "entree", "cold", "pork"), ramen, board)).toBe(false);
+    expect(fitsBoard(dish("D", "Japan", "east-asia", "entree", "hot", "beef"), ramen, board)).toBe(false);
+  });
+
+  it("always keeps the Special", () => {
+    const board = [
+      dish("Pavlova", "Australia", "oceania", "dessert", "cold", "vegetarian"),
+      dish("Mapo Tofu", "China", "east-asia", "entree", "hot", "vegetarian"),
+      dish("Sushi", "Japan", "east-asia", "appetizer", "cold", "seafood"),
+    ];
+    expect(fitsBoard(ramen, ramen, board)).toBe(true);
+  });
+});
+
+describe("confirmedFacts", () => {
+  it("confirms nothing from a board of misses", () => {
+    expect(confirmedFacts([dish("Taco", "Mexico", "latin-america", "appetizer", "cold", "beef")], ramen)).toEqual({});
+  });
+
+  it("confirms the region from a near and the country from a hit, never both", () => {
+    expect(confirmedFacts([dish("Mapo", "China", "east-asia", "dessert", "cold", "beef")], ramen)).toEqual({
+      region: "east-asia",
+    });
+    expect(
+      confirmedFacts(
+        [dish("Mapo", "China", "east-asia", "dessert", "cold", "beef"), dish("Sushi", "Japan", "east-asia", "dessert", "cold", "beef")],
+        ramen,
+      ),
+    ).toEqual({ country: "Japan" });
+  });
+
+  it("confirms each other tile on a hit, from any guess", () => {
     const guesses = [
       dish("A", "France", "europe", "entree", "cold", "beef"),
       dish("B", "Peru", "latin-america", "dessert", "hot", "lamb"),
       dish("C", "Italy", "europe", "breakfast", "cold", "pork"),
     ];
-    expect(knownFacts(guesses, target)).toEqual({ course: "entree", temperature: "hot", protein: "pork" });
+    expect(confirmedFacts(guesses, ramen)).toEqual({ course: "entree", temperature: "hot", protein: "pork" });
+  });
+});
+
+describe("menuBlurb", () => {
+  it("says what the list is and what an order off it costs", () => {
+    expect(menuBlurb(41)).toBe(
+      "These 41 dishes fit every tile on your board. Circle one to order it. It uses a guess, like any order.",
+    );
+    expect(menuBlurb(1)).toMatch(/^Only one dish fits every tile on your board\./);
   });
 });
 
 describe("filterLabel", () => {
   it("names a region the way a near tile does, and the rest as the tile's value", () => {
     expect(filterLabel("region", "east-asia")).toBe("East Asia");
+    expect(filterLabel("country", "Japan")).toBe("Japan");
     expect(filterLabel("protein", "pork")).toBe("pork");
   });
 });
 
-describe("sizeMenu", () => {
-  it("prints the whole pool, unfiltered, when nothing is known", () => {
-    const pool = many(12, "Dish", {});
-    const menu = sizeMenu(pool, {});
-    expect(menu.filters).toEqual([]);
-    expect(menu.dishes).toHaveLength(12);
+describe("boardMenu", () => {
+  const board = [
+    dish("Pavlova", "Australia", "oceania", "dessert", "cold", "vegetarian"),
+    dish("Gazpacho", "Spain", "europe", "appetizer", "cold", "vegetarian"),
+    dish("Ceviche", "Peru", "latin-america", "appetizer", "cold", "seafood"),
+    dish("Tiramisu", "Italy", "europe", "dessert", "cold", "vegetarian"),
+    dish("Hamburger", "United States", "north-america", "entree", "hot", "beef"),
+  ];
+  const pool = [
+    ramen,
+    dish("Bulgogi", "South Korea", "east-asia", "entree", "hot", "pork"),
+    dish("Poutine", "Canada", "north-america", "entree", "hot", "pork"),
+    dish("Paella", "Spain", "europe", "entree", "hot", "pork"),
+    dish("Butter Chicken", "India", "south-asia", "entree", "hot", "poultry"),
+    dish("Bao", "China", "east-asia", "appetizer", "hot", "pork"),
+    dish("Chili", "Mexico", "latin-america", "entree", "hot", "pork"),
+  ];
+
+  it("lists only what every tile still allows, by name, with no floor", () => {
+    const menu = boardMenu(pool, ramen, board);
+    expect(menu.dishes.map((d) => d.name)).toEqual(["Bulgogi", "Butter Chicken", "Ramen"]);
+    expect(menu.filters).toEqual(["course", "temperature"]);
   });
 
-  it("takes the smallest set that still holds the floor", () => {
-    const pool = [
-      ...many(8, "Asia pork", { region: "east-asia", protein: "pork" }),
-      ...many(20, "Asia beef", { region: "east-asia", protein: "beef" }),
-      ...many(30, "Euro pork", { region: "europe", protein: "pork" }),
-    ];
-    const menu = sizeMenu(pool, { region: "east-asia", protein: "pork" });
-    expect(menu.filters).toEqual(["region", "protein"]);
-    expect(menu.dishes).toHaveLength(8);
+  it("can come down to the Special alone, which the board already proved", () => {
+    const tight = [...board.slice(0, 4), dish("Bibimbap", "South Korea", "east-asia", "entree", "hot", "pork")];
+    expect(boardMenu(pool, ramen, tight).dishes.map((d) => d.name)).toEqual(["Ramen"]);
   });
 
-  it("drops a filter when using every fact would go under the floor", () => {
-    const pool = [
-      ...many(3, "Asia pork", { region: "east-asia", protein: "pork" }),
-      ...many(9, "Asia beef", { region: "east-asia", protein: "beef" }),
-      ...many(40, "Euro pork", { region: "europe", protein: "pork" }),
-    ];
-    const menu = sizeMenu(pool, { region: "east-asia", protein: "pork" });
-    expect(menu.filters).toEqual(["region"]);
-    expect(menu.dishes).toHaveLength(12);
-  });
-
-  it("breaks a tie toward fewer filters", () => {
-    // Every Asian dish here is hot, so region alone and region + temperature
-    // print the same ten. The chip line should say only what narrowed it.
-    const pool = [...many(10, "Asia", { region: "east-asia", temperature: "hot" }), ...many(10, "Euro", { temperature: "cold" })];
-    const menu = sizeMenu(pool, { region: "east-asia", temperature: "hot" });
-    expect(menu.filters).toEqual(["region"]);
-  });
-
-  it("never uses a fact the board hasn't earned", () => {
-    // Pork would cut the menu to eight, but the board has never hit protein.
-    const pool = [
-      ...many(8, "Asia pork", { region: "east-asia", protein: "pork" }),
-      ...many(30, "Asia beef", { region: "east-asia" }),
-      ...many(20, "Euro", { region: "europe" }),
-    ];
-    const menu = sizeMenu(pool, { region: "east-asia" });
-    expect(menu.filters).toEqual(["region"]);
-    expect(menu.dishes).toHaveLength(38);
-  });
-
-  it("sorts by name whatever order the pool came in", () => {
-    const pool = ["Zuppa", "árepa", "Borscht", "Arancini", "Moussaka", "Crêpe", "Eclair", "Dal"].map((n) =>
-      dish(n, "X", "europe"),
-    );
-    expect(sizeMenu(pool.reverse(), {}).dishes.map((d) => d.name)).toEqual([
-      "Arancini",
-      "árepa",
-      "Borscht",
-      "Crêpe",
-      "Dal",
-      "Eclair",
-      "Moussaka",
-      "Zuppa",
-    ]);
-  });
-
-  it("falls back to the whole pool when even that is under the floor", () => {
-    const menu = sizeMenu(many(3, "Tiny", {}), { region: "europe" });
-    expect(menu.filters).toEqual([]);
-    expect(menu.dishes).toHaveLength(3);
-    expect(MENU_FLOOR).toBe(8);
+  it("stamps the country, not the region, once a country tile hit", () => {
+    const menu = boardMenu(pool, ramen, [dish("Sushi", "Japan", "east-asia", "appetizer", "cold", "seafood")]);
+    expect(menu.filters).toEqual(["country"]);
+    expect(menu.known.country).toBe("Japan");
   });
 });
 
@@ -147,20 +161,20 @@ describe("layoutMenu", () => {
     const layout = layoutMenu(many(MENU_FLAT_MAX, "Dish", {}), []);
     expect(layout.sections).toHaveLength(1);
     expect(layout.sections[0].course).toBeNull();
-    expect(layout.folded).toBe(false);
   });
 
-  it("sections a longer one by course in the fixed order, open", () => {
+  it("heads a longer one by course in the fixed order", () => {
     const dishes = [...many(12, "Dessert", { course: "dessert" }), ...many(12, "Breakfast", { course: "breakfast" })];
     const layout = layoutMenu(dishes, []);
     expect(layout.sections.map((s) => s.course)).toEqual(["breakfast", "dessert"]);
     expect(layout.sections.map((s) => s.count)).toEqual([12, 12]);
-    expect(layout.folded).toBe(false);
   });
 
-  it("folds sections past the open limit", () => {
-    expect(layoutMenu(many(MENU_OPEN_MAX + 1, "Dish", {}), []).folded).toBe(true);
-    expect(layoutMenu(many(MENU_OPEN_MAX, "Dish", {}), []).folded).toBe(false);
+  it("drops the course heading when every dish shares a course", () => {
+    const layout = layoutMenu(many(41, "Entree", { course: "entree" }), ["course"]);
+    expect(layout.sections).toHaveLength(1);
+    expect(layout.sections[0].course).toBeNull();
+    expect(layout.sections[0].count).toBe(41);
   });
 
   it("splits a long section by region unless region is a filter", () => {
@@ -173,6 +187,7 @@ describe("layoutMenu", () => {
     expect(split.sections[0].groups.map((g) => g.region)).toEqual(["europe", "africa", "east-asia"]);
     const whole = layoutMenu(dishes, ["region"]);
     expect(whole.sections[0].groups.map((g) => g.region)).toEqual([null]);
+    expect(layoutMenu(dishes, ["country"]).sections[0].groups.map((g) => g.region)).toEqual([null]);
   });
 });
 

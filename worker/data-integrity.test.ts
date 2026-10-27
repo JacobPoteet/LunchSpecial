@@ -4,7 +4,7 @@ import Database from "better-sqlite3";
 import { describe, expect, it } from "vitest";
 import { clueBeat, coasterBeat, type ClueBeat } from "../shared/clues";
 import { classify, nearRate, type PantryItem } from "../shared/families";
-import { MENU_FLOOR, sizeMenu, type MenuTraits } from "../shared/kidsmenu";
+import { boardMenu, type MenuTraits } from "../shared/kidsmenu";
 
 // Applies every migration + the seed catalog to a real (in-memory) SQLite
 // database so the schema's own CHECK/UNIQUE constraints do the enforcing —
@@ -1117,24 +1117,35 @@ describe("the pantry", () => {
 });
 
 describe("the kids menu", () => {
-  // The sizing rule in shared/kidsmenu.ts over the real pool, with every fact
-  // known: the shortest menu a board can earn. A batch that piles into one
-  // course, temperature and protein in one region grows the worst case; these
-  // are ratchets on that, measured on 451 dishes (median 11, p90 21, max 38).
+  // The rule in shared/kidsmenu.ts over the real pool. Every tile the board
+  // printed filters, hits and misses alike, so a dish the board ruled out
+  // never prints, and the Special always does.
   const db = buildDb();
   const pool = db
-    .prepare("SELECT name, region, course, temperature, protein FROM dishes WHERE is_active = 1")
+    .prepare("SELECT name, country, region, course, temperature, protein FROM dishes WHERE is_active = 1")
     .all() as (MenuTraits & { name: string })[];
-  const sizes = pool.map((t) => sizeMenu(pool, t).dishes.length).sort((a, b) => a - b);
-  const at = (p: number) => sizes[Math.min(sizes.length - 1, Math.floor(p * sizes.length))];
+  const named = (n: string) => pool.find((d) => d.name === n)!;
 
-  it("keeps the all-facts menu short", () => {
-    expect(at(0.5)).toBeLessThanOrEqual(14);
-    expect(at(0.9)).toBeLessThanOrEqual(26);
-    expect(sizes[sizes.length - 1]).toBeLessThanOrEqual(45);
+  it("drops every dish a miss ruled out (the board from the bug report)", () => {
+    // Four blank misses, then a North American dish that hit course and
+    // temperature. The first build left 43 North American dishes on this menu.
+    const ramen = named("Ramen");
+    const board = ["Pavlova", "Gazpacho", "Ceviche", "Tiramisu", "Hamburger"].map(named);
+    const menu = boardMenu(pool, ramen, board).dishes;
+    expect(menu.map((d) => d.name)).toContain("Ramen");
+    for (const d of menu) {
+      expect(["north-america", "europe", "latin-america", "oceania"]).not.toContain(d.region);
+      expect(d.course).toBe("entree");
+      expect(d.temperature).toBe("hot");
+      expect(["beef", "seafood", "vegetarian"]).not.toContain(d.protein);
+    }
   });
 
-  it("never prints fewer than the floor", () => {
-    expect(sizes[0]).toBeGreaterThanOrEqual(MENU_FLOOR);
+  it("always prints the Special on its own board", () => {
+    const missing = pool.filter((target, i) => {
+      const board = [1, 2, 3, 4, 5].map((k) => pool[(i + k * 37) % pool.length]).filter((d) => d !== target);
+      return !boardMenu(pool, target, board).dishes.includes(target);
+    });
+    expect(missing.map((d) => d.name)).toEqual([]);
   });
 });

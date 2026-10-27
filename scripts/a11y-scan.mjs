@@ -104,8 +104,7 @@ const SCANS = [
     },
   },
   // The Kids Menu: the pill beside My stats and its one coach card after the
-  // fourth miss, then the card itself with a dish circled. The guessed dishes
-  // print crossed out, so both of its marks are on screen.
+  // fourth miss, then the card itself with a dish circled.
   {
     name: "Kids Menu: the pill and its coach card (fourth miss)",
     async setup(page) {
@@ -115,7 +114,7 @@ const SCANS = [
     },
   },
   {
-    name: "Kids Menu: the card (a dish circled, guessed ones crossed out)",
+    name: "Kids Menu: the card (a dish circled)",
     async setup(page) {
       await page.click(".menu-card__toolbar .kids-pill");
       await page.waitForSelector(".kids-row");
