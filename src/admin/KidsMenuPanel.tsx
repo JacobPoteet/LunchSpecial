@@ -66,8 +66,8 @@ export default function KidsMenuPanel() {
             <RateMetric label="Won, didn't" rate={report.wonWithout} />
           </div>
           <p className="dash-note">
-            Since {report.measuredFrom} · {report.menuOrders} order{report.menuOrders === 1 ? "" : "s"} off the card ·{" "}
-            {report.peeks} peek{report.peeks === 1 ? "" : "s"} · lunch rounds only
+            Since {report.measuredFrom} · {report.menuOrders} order{report.menuOrders === 1 ? "" : "s"} off the card ·
+            lunch rounds only
           </p>
         </>
       )}

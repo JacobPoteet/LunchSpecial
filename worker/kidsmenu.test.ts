@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Course, Dish, Protein, Region, Temperature } from "../shared/types";
-import { MENU_PEEKS } from "../shared/kidsmenu";
-import { buildMenu, foldKidsMenuReport, parseGuessed, servePeek } from "./kidsmenu";
+import { buildMenu, foldKidsMenuReport, parseGuessed } from "./kidsmenu";
 
 let nextId = 100;
 const dish = (
@@ -84,35 +83,6 @@ describe("buildMenu", () => {
   });
 });
 
-describe("servePeek", () => {
-  const menu = buildMenu(pool, board, ids, ramen)!;
-
-  it("marks the board's ingredients on the dish", () => {
-    const served = servePeek(menu, ramen, board, ramen, [], true);
-    expect(served.verdict).toBe("ok");
-    expect(served.peek?.lines).toContainEqual({ ingredient: "egg", mark: "matched" });
-    expect(served.peek?.peeksLeft).toBe(MENU_PEEKS - 1);
-  });
-
-  it("counts down only on a tracked round", () => {
-    expect(servePeek(menu, ramen, board, ramen, [], false).peek?.peeksLeft).toBeNull();
-  });
-
-  it("refuses a dish off this round's menu", () => {
-    const stranger = pool.find((d) => d.region === "europe")!;
-    expect(servePeek(menu, stranger, board, ramen, [], true)).toEqual({ verdict: "off-menu" });
-  });
-
-  it("stops at the limit, and a second look at a peeked dish is free", () => {
-    const [a, b] = menu.dishes.filter((d) => d.id !== ramen.id).map((d) => pool.find((p) => p.id === d.id)!);
-    const spent = Array.from({ length: MENU_PEEKS }, (_, i) => menu.dishes[i + 1].id);
-    expect(servePeek(menu, ramen, board, ramen, spent, true).verdict).toBe("spent");
-    const again = servePeek(menu, a, board, ramen, [a.id, b.id].slice(0, MENU_PEEKS), true);
-    expect(again.verdict).toBe("repeat");
-    expect(again.peek?.peeksLeft).toBe(0);
-  });
-});
-
 describe("foldKidsMenuReport", () => {
   it("is unmeasured, not zero, before the first flagged guess", () => {
     const r = foldKidsMenuReport(null, undefined);
@@ -129,7 +99,6 @@ describe("foldKidsMenuReport", () => {
       unopened_finished: 25,
       unopened_won: 5,
       menu_orders: 9,
-      peeks: 12,
     });
     expect(r.opened).toMatchObject({ pct: 25, of: 40 });
     expect(r.wonAfterOpen).toMatchObject({ pct: 75, of: 8 });

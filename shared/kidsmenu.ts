@@ -3,8 +3,8 @@
 // After the fourth miss the player can ask for a smaller menu. It lists every
 // active dish that matches what the board has already told them, and nothing
 // it hasn't: a fact is only used once a guess has earned it, and a miss is
-// never applied as a filter (crossing dishes off is the player's own crayon
-// work). Ordering from it is an ordinary guess.
+// never applied as a filter (ruling dishes out is still the player's work).
+// Circling a dish and ordering it is an ordinary guess.
 //
 // Both halves import this file. The Worker builds the menu (the public pool
 // carries no attributes, and the facts are worked out from the round's guessed
@@ -19,26 +19,6 @@ export const MENU_AFTER = 4;
 
 /** The smallest menu the sizing rule will print. */
 export const MENU_FLOOR = 8;
-
-/**
- * "What's in it?" taps per round, drawn as crayon checkmarks. 0 turns peeks
- * off everywhere: the button is not drawn and the Worker refuses the route.
- */
-export const MENU_PEEKS = 2;
-
-/**
- * How much a peek shows. Under review in the first pass, so both are built:
- *
- * - `full`: every ingredient of the dish, the player's matched ones marked and
- *   their missed ones struck. Strong: the board prints the Special's
- *   ingredient count, so peeking the answer shows the right count with every
- *   matched ingredient present.
- * - `tried`: only the ingredients the player has already put on the board
- *   (matched or missed), plus "and more" when there are others. No count, so
- *   it says nothing the player's own guesses hadn't tested.
- */
-export type PeekStyle = "full" | "tried";
-export const PEEK_STYLE: PeekStyle = "full";
 
 /** The four facts a board can earn, in the order the chips print them. */
 export const MENU_FACTS = ["region", "course", "temperature", "protein"] as const;
@@ -176,78 +156,6 @@ export function layoutMenu<T extends { name: string; course: Course; region: Reg
     sections.push({ course, count: inCourse.length, groups });
   }
   return { sections, folded: sorted.length > MENU_OPEN_MAX };
-}
-
-// ---- Peeks --------------------------------------------------------------
-
-export type PeekVerdict = "ok" | "repeat" | "off" | "off-menu" | "guessed" | "spent";
-
-export interface PeekInput {
-  dishId: number;
-  /** Dish ids the menu printed for this round. */
-  menuIds: ReadonlyArray<number>;
-  guessedIds: ReadonlyArray<number>;
-  /** Dishes this round has already peeked. */
-  peeked: ReadonlyArray<number>;
-  limit?: number;
-}
-
-/**
- * Whether a peek is served. Peeking the same dish again is free (`repeat`, the
- * answer the round already holds); a guessed dish has no peek, since its
- * ingredients are on the board.
- */
-export function peekVerdict({ dishId, menuIds, guessedIds, peeked, limit = MENU_PEEKS }: PeekInput): PeekVerdict {
-  if (limit <= 0) return "off";
-  if (!menuIds.includes(dishId)) return "off-menu";
-  if (guessedIds.includes(dishId)) return "guessed";
-  if (peeked.includes(dishId)) return "repeat";
-  if (peeked.length >= limit) return "spent";
-  return "ok";
-}
-
-export type PeekMark = "matched" | "missed" | "untried";
-
-export interface PeekLine {
-  ingredient: string;
-  mark: PeekMark;
-}
-
-export interface PeekCard {
-  lines: PeekLine[];
-  /** `tried` style only: the dish has ingredients the board hasn't tested. */
-  more: boolean;
-}
-
-/**
- * One dish's ingredients against the board. `matched` is every ingredient a
- * guess shared with the Special; `missed` every guessed ingredient the Special
- * lacks. Both are already on the player's board, so the marks add nothing.
- */
-export function peekCard(
-  ingredients: ReadonlyArray<string>,
-  board: { matched: ReadonlySet<string>; missed: ReadonlySet<string> },
-  style: PeekStyle = PEEK_STYLE,
-): PeekCard {
-  const lines = ingredients.map<PeekLine>((ingredient) => ({
-    ingredient,
-    mark: board.matched.has(ingredient) ? "matched" : board.missed.has(ingredient) ? "missed" : "untried",
-  }));
-  if (style === "full") return { lines, more: false };
-  const tried = lines.filter((l) => l.mark !== "untried");
-  return { lines: tried, more: tried.length < lines.length };
-}
-
-/** The board's ingredient knowledge, worked out from the guessed dishes and the Special. */
-export function boardIngredients(
-  guessed: ReadonlyArray<{ ingredients: ReadonlyArray<string> }>,
-  target: { ingredients: ReadonlyArray<string> },
-): { matched: Set<string>; missed: Set<string> } {
-  const inTarget = new Set(target.ingredients);
-  const matched = new Set<string>();
-  const missed = new Set<string>();
-  for (const g of guessed) for (const i of g.ingredients) (inTarget.has(i) ? matched : missed).add(i);
-  return { matched, missed };
 }
 
 // ---- The pill and its coach card ----------------------------------------

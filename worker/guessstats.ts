@@ -11,7 +11,7 @@
 // catalogue, so a row carries nothing personal, and that route sits behind the
 // admin session like the rest of /api/admin.
 
-import type { GuessPick, GuessReport, GuessReportRow, RoundGuess, RoundGuesses, RoundPeek } from "../shared/types";
+import type { GuessPick, GuessReport, GuessReportRow, RoundGuess, RoundGuesses } from "../shared/types";
 
 /** One (answer, pick) pair, with whether it was guess number one. */
 export interface GuessPairRow {
@@ -115,21 +115,12 @@ export interface RoundGuessRow {
   from_kids_menu?: number | null;
 }
 
-export interface RoundPeekRow {
-  name: string | null;
-  created_at: string;
-}
-
 /**
  * One round's guesses, in the order they were made. The query orders them, and
  * this orders them again: the primary key is (round, number), so a fold that
  * trusted its input would be one reordered query away from a scrambled board.
  */
-export function foldRoundGuesses(
-  roundId: string,
-  rows: Iterable<RoundGuessRow>,
-  peekRows: Iterable<RoundPeekRow> = [],
-): RoundGuesses {
+export function foldRoundGuesses(roundId: string, rows: Iterable<RoundGuessRow>): RoundGuesses {
   const guesses: RoundGuess[] = [...rows]
     .map((r) => ({
       number: r.guess_number,
@@ -140,8 +131,5 @@ export function foldRoundGuesses(
       at: `${r.created_at.replace(" ", "T")}Z`,
     }))
     .sort((a, b) => a.number - b.number);
-  const peeks: RoundPeek[] = [...peekRows]
-    .map((p) => ({ name: p.name, at: `${p.created_at.replace(" ", "T")}Z` }))
-    .sort((a, b) => a.at.localeCompare(b.at));
-  return { roundId, guesses, peeks };
+  return { roundId, guesses };
 }

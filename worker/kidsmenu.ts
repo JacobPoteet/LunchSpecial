@@ -8,20 +8,11 @@
 // a fact.
 //
 // The request checks and the menu itself are pure and tested beside this
-// file; the loaders and the two writes are below them.
+// file; the loaders and the one write are below them.
 
-import { MAX_GUESSES, type Dish, type KidsMenuInfo, type KidsMenuPeek, type KidsMenuReport } from "../shared/types";
+import { MAX_GUESSES, type Dish, type KidsMenuInfo, type KidsMenuReport } from "../shared/types";
 import { rate } from "../shared/sample";
-import {
-  boardIngredients,
-  knownFacts,
-  MENU_AFTER,
-  MENU_PEEKS,
-  peekCard,
-  peekVerdict,
-  sizeMenu,
-  type PeekVerdict,
-} from "../shared/kidsmenu";
+import { knownFacts, MENU_AFTER, sizeMenu } from "../shared/kidsmenu";
 import { rowToDish, type DishDbRow } from "./db";
 
 export interface MenuRequest {
@@ -62,30 +53,6 @@ export function buildMenu(pool: ReadonlyArray<Dish>, guessed: ReadonlyArray<Dish
   };
 }
 
-/** A peek against the board. `peeked` is what the Worker counted for this round (empty when it counts nothing). */
-export function servePeek(
-  menu: KidsMenuInfo,
-  dish: Dish,
-  guessed: ReadonlyArray<Dish>,
-  target: Dish,
-  peeked: ReadonlyArray<number>,
-  counted: boolean,
-): { verdict: PeekVerdict; peek?: KidsMenuPeek } {
-  const verdict = peekVerdict({
-    dishId: dish.id,
-    menuIds: menu.dishes.map((d) => d.id),
-    guessedIds: guessed.map((g) => g.id),
-    peeked,
-  });
-  if (verdict !== "ok" && verdict !== "repeat") return { verdict };
-  const spent = verdict === "ok" ? peeked.length + 1 : peeked.length;
-  const card = peekCard(dish.ingredients, boardIngredients(guessed, target));
-  return {
-    verdict,
-    peek: { dishId: dish.id, ...card, peeksLeft: counted ? Math.max(0, MENU_PEEKS - spent) : null },
-  };
-}
-
 /** The readout's totals as the route counts them; see KidsMenuReport. */
 export interface KidsMenuTotalsRow {
   reached: number;
@@ -95,13 +62,12 @@ export interface KidsMenuTotalsRow {
   unopened_finished: number;
   unopened_won: number;
   menu_orders: number;
-  peeks: number;
 }
 
 export function foldKidsMenuReport(measuredFrom: string | null, row: KidsMenuTotalsRow | undefined): KidsMenuReport {
   const n = (v: unknown) => Number(v) || 0;
   if (measuredFrom === null || !row) {
-    return { measuredFrom: null, reached: 0, opened: null, openedCount: 0, wonAfterOpen: null, wonWithout: null, menuOrders: 0, peeks: 0 };
+    return { measuredFrom: null, reached: 0, opened: null, openedCount: 0, wonAfterOpen: null, wonWithout: null, menuOrders: 0 };
   }
   return {
     measuredFrom,
@@ -111,7 +77,6 @@ export function foldKidsMenuReport(measuredFrom: string | null, row: KidsMenuTot
     wonAfterOpen: rate(n(row.opened_won), n(row.opened_finished)),
     wonWithout: rate(n(row.unopened_won), n(row.unopened_finished)),
     menuOrders: n(row.menu_orders),
-    peeks: n(row.peeks),
   };
 }
 
@@ -147,19 +112,4 @@ export async function stampOpened(db: D1Database, roundId: string, guesses: numb
   } catch {
     // Swallowed on purpose; see above.
   }
-}
-
-export async function loadPeeked(db: D1Database, roundId: string): Promise<number[]> {
-  const res = await db.prepare("SELECT dish_id FROM kids_menu_peeks WHERE round_id = ?").bind(roundId).all<{ dish_id: number }>();
-  return res.results.map((r) => r.dish_id);
-}
-
-export async function recordPeek(db: D1Database, roundId: string, dishId: number, playerId: string | null): Promise<void> {
-  await db
-    .prepare(
-      `INSERT INTO kids_menu_peeks (round_id, dish_id, player_id) VALUES (?, ?, ?)
-       ON CONFLICT(round_id, dish_id) DO NOTHING`,
-    )
-    .bind(roundId, dishId, playerId)
-    .run();
 }

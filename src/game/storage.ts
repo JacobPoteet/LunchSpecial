@@ -3,7 +3,6 @@
 import type { DrinkGuessFeedback, GuessFeedback, PastRound } from "../../shared/types";
 import { DRINK_MAX_GUESSES, MAX_GUESSES } from "../../shared/types";
 import { addDays } from "../../shared/time";
-import type { PeekLine } from "../../shared/kidsmenu";
 import { deviceCookie, readDeviceCookie, type DeviceIdOrigin } from "../../shared/device";
 
 export type GameStatus = "playing" | "won" | "lost";
@@ -27,19 +26,6 @@ export interface RoundState {
    * denominator it made up.
    */
   ingredientCount?: number;
-  /**
-   * The Kids Menu scratchpad (shared/kidsmenu.ts): the dishes the player
-   * crossed out with the crayon, and what each "What's in it?" showed, so a
-   * reload neither forgets the notes nor spends a peek twice. Optional: absent
-   * on every round that never opened the menu. Saved with the round, so it
-   * rides the archive and the Discord progress copy with no rule of its own.
-   */
-  kidsMenu?: KidsMenuScratch;
-}
-
-export interface KidsMenuScratch {
-  crossed: number[];
-  peeks: Record<string, { lines: PeekLine[]; more: boolean }>;
 }
 
 export interface Stats {

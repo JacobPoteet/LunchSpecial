@@ -1,7 +1,7 @@
-// The Kids Menu on the wire: what POST /api/kids-menu and its peek route
-// answer. The rules behind both live in shared/kidsmenu.ts.
+// The Kids Menu on the wire: what POST /api/kids-menu answers, and the admin
+// readout. The rules behind both live in shared/kidsmenu.ts.
 
-import type { MenuFact, PeekLine } from "../kidsmenu";
+import type { MenuFact } from "../kidsmenu";
 import type { Rate } from "../sample";
 import type { Course, Region } from "./game";
 
@@ -29,15 +29,6 @@ export interface KidsMenuInfo {
   filters: KidsMenuFilter[];
 }
 
-export interface KidsMenuPeek {
-  dishId: number;
-  lines: PeekLine[];
-  /** The `tried` style held back ingredients the board hasn't tested. */
-  more: boolean;
-  /** What the Worker counted for a tracked round; null when it counts nothing. */
-  peeksLeft: number | null;
-}
-
 /**
  * The Menu tab's Kids Menu readout (GET /api/admin/kids-menu). Every count is
  * lunch rounds that reached a fourth miss since the menu's first tracked order
@@ -55,7 +46,6 @@ export interface KidsMenuReport {
   wonAfterOpen: Rate | null;
   /** Finished rounds that reached a fourth miss and never opened it, won. */
   wonWithout: Rate | null;
-  /** Guesses ordered off the card, and peeks spent. */
+  /** Guesses ordered off the card. */
   menuOrders: number;
-  peeks: number;
 }

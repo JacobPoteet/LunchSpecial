@@ -13,7 +13,6 @@ import type {
   DrinkPoolEntry,
   GuessFeedback,
   KidsMenuInfo,
-  KidsMenuPeek,
   NightcapInfo,
   NightcapReveal,
   PastRound,
@@ -85,7 +84,7 @@ export function postGuess(body: {
   });
 }
 
-/** What every Kids Menu request carries: the round's target and its board. */
+/** What a Kids Menu request carries: the round's target and its board. */
 export interface KidsMenuBoard {
   date: string;
   preview?: string;
@@ -100,14 +99,6 @@ export interface KidsMenuBoard {
 
 export function fetchKidsMenu(body: KidsMenuBoard): Promise<KidsMenuInfo> {
   return request("/api/kids-menu", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-}
-
-export function peekKidsMenu(body: KidsMenuBoard & { dishId: number }): Promise<KidsMenuPeek> {
-  return request("/api/kids-menu/peek", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

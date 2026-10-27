@@ -20,7 +20,6 @@ import {
   type RoundState,
 } from "../../shared/activity";
 import { gameClock, gameTimestamp } from "../../shared/time";
-import { MENU_AFTER } from "../../shared/kidsmenu";
 import * as api from "./api";
 import { Modal } from "../game/components";
 import { peekPlayerId } from "../game/storage";
@@ -252,7 +251,7 @@ function MyDataPanel({
     );
   };
 
-  const total = summary ? summary.rounds.total + summary.visits.total + summary.noticeViews + summary.guesses + summary.occasionViews + summary.menuPeeks : 0;
+  const total = summary ? summary.rounds.total + summary.visits.total + summary.noticeViews + summary.guesses + summary.occasionViews : 0;
 
   return (
     <section className="panel">
@@ -278,9 +277,8 @@ function MyDataPanel({
             <p className="dash-note dash-note--warn">
               Removed {deleted.rounds} round{deleted.rounds === 1 ? "" : "s"}, {deleted.guesses} guess
               {deleted.guesses === 1 ? "" : "es"}, {deleted.visits} arrival{deleted.visits === 1 ? "" : "s"},{" "}
-              {deleted.noticeViews} notice view{deleted.noticeViews === 1 ? "" : "s"}, {deleted.occasionViews} event
-              sighting{deleted.occasionViews === 1 ? "" : "s"} and {deleted.menuPeeks} Kids Menu peek
-              {deleted.menuPeeks === 1 ? "" : "s"}.
+              {deleted.noticeViews} notice view{deleted.noticeViews === 1 ? "" : "s"} and {deleted.occasionViews} event
+              sighting{deleted.occasionViews === 1 ? "" : "s"}. 
             </p>
           )}
 
@@ -312,10 +310,6 @@ function MyDataPanel({
                 <div className="metric">
                   <span className="metric__num">{summary.occasionViews}</span>
                   <span className="metric__label">Event sightings</span>
-                </div>
-                <div className="metric">
-                  <span className="metric__num">{summary.menuPeeks}</span>
-                  <span className="metric__label">Kids Menu peeks</span>
                 </div>
               </div>
               <ul className="device-data__facts">
@@ -372,9 +366,8 @@ function MyDataPanel({
             {summary.rounds.total === 1 ? "" : "s"}, <strong>{summary.guesses}</strong> guess
             {summary.guesses === 1 ? "" : "es"}, <strong>{summary.visits.total}</strong> arrival
             {summary.visits.total === 1 ? "" : "s"}, <strong>{summary.noticeViews}</strong> notice view
-            {summary.noticeViews === 1 ? "" : "s"}, <strong>{summary.occasionViews}</strong> event sighting
-            {summary.occasionViews === 1 ? "" : "s"} and <strong>{summary.menuPeeks}</strong> Kids Menu peek
-            {summary.menuPeeks === 1 ? "" : "s"}. Can't be undone.
+            {summary.noticeViews === 1 ? "" : "s"} and <strong>{summary.occasionViews}</strong> event sighting
+            {summary.occasionViews === 1 ? "" : "s"}. Can't be undone.
           </p>
           <div className="btn-row" style={{ marginTop: 16 }}>
             <button className="btn btn--red" onClick={wipe}>
@@ -715,7 +708,6 @@ function RoundTimeline({ round }: { round: ActivityRoundView }) {
   else {
     const byNumber = new Map(data.guesses.map((g) => [g.number, g]));
     const last = Math.max(round.guesses ?? 0, ...data.guesses.map((g) => g.number));
-    const placed = new Set<number>();
     let prev: string | null = round.startedAt;
     for (let n = 1; n <= last; n++) {
       const g = byNumber.get(n);
@@ -742,32 +734,11 @@ function RoundTimeline({ round }: { round: ActivityRoundView }) {
         after: wait === null ? null : `+${spanLabel(wait)}`,
       });
       prev = g.at;
-      // The Kids Menu between guesses: when it was first opened (a guess
-      // number, so it has no clock time of its own), then each peek that came
-      // before the next guess.
+      // The menu's first open is a guess number, so it has no clock time of
+      // its own: it sits after the guess it opened on.
       if (round.kidsMenuAt === n) {
         steps.push({ key: "kids-open", at: null, node: "aside", body: <span>Opened the Kids Menu</span> });
       }
-      // Peeks come after the menu opened, never before. The ledger stamps to
-      // the second, so a peek sharing its second with the next order goes
-      // before it: a player peeks, then orders.
-      const next = byNumber.get(n + 1)?.at ?? null;
-      const opened = round.kidsMenuAt ?? MENU_AFTER;
-      data.peeks.forEach((p, i) => {
-        if (placed.has(i) || n < opened || (next !== null && p.at > next)) return;
-        placed.add(i);
-        steps.push({
-          key: `peek${i}`,
-          at: p.at,
-          node: "aside",
-          body: (
-            <>
-              <span>Peeked at</span>
-              <span className="act-tl__name">{p.name ?? "Left the menu"}</span>
-            </>
-          ),
-        });
-      });
     }
   }
 

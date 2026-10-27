@@ -86,7 +86,6 @@ describe("foldRoundGuesses", () => {
 
   it("is empty for a round the ledger never saw: unmeasured, not zero guesses", () => {
     expect(foldRoundGuesses("round-1", []).guesses).toEqual([]);
-    expect(foldRoundGuesses("round-1", []).peeks).toEqual([]);
   });
 
   it("marks a guess ordered off the Kids Menu, and leaves an unmeasured row unmeasured", () => {
@@ -96,16 +95,5 @@ describe("foldRoundGuesses", () => {
       { ...row(6, "Udon"), from_kids_menu: 0 },
     ]);
     expect(r.guesses.map((g) => g.fromKidsMenu)).toEqual([null, true, false]);
-  });
-
-  it("lists the round's peeks oldest first", () => {
-    const r = foldRoundGuesses("round-1", [], [
-      { name: "Udon", created_at: "2026-10-08 20:07:00" },
-      { name: null, created_at: "2026-10-08 20:05:00" },
-    ]);
-    expect(r.peeks).toEqual([
-      { name: null, at: "2026-10-08T20:05:00Z" },
-      { name: "Udon", at: "2026-10-08T20:07:00Z" },
-    ]);
   });
 });

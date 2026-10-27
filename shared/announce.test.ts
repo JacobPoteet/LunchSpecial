@@ -2,14 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   circleAnnouncement,
   clueAnnouncement,
-  crossAnnouncement,
   guessAnnouncement,
   kidsMenuAnnouncement,
   MATCH_MARKS,
   MATCH_WORDS,
-  PEEK_MARKS,
-  PEEK_WORDS,
-  peekAnnouncement,
 } from "./announce";
 import { MAX_GUESSES, type GuessFeedback } from "./types";
 
@@ -121,32 +117,7 @@ describe("the Kids Menu", () => {
     expect(kidsMenuAnnouncement(451, [])).toBe("Kids Menu: 451 dishes, the whole menu.");
   });
 
-  it("says a crayon line going on and coming off", () => {
-    expect(crossAnnouncement("Pho", true)).toBe("Crossed out Pho.");
-    expect(crossAnnouncement("Pho", false)).toBe("Pho is back on the menu.");
+  it("says the ring going round a dish", () => {
     expect(circleAnnouncement("Pho")).toBe("Circled Pho. Order it from the foot of the menu.");
-  });
-
-  it("reads a peek out with its marks as words, then the peeks left", () => {
-    const card = {
-      lines: [
-        { ingredient: "rice", mark: "matched" as const },
-        { ingredient: "egg", mark: "missed" as const },
-        { ingredient: "carrot", mark: "untried" as const },
-      ],
-      more: false,
-    };
-    expect(peekAnnouncement("Congee", card, 1)).toBe(
-      "Congee: rice, in the Special; egg, not in the Special; carrot. 1 peek left.",
-    );
-    expect(peekAnnouncement("Congee", { lines: [], more: true }, 0)).toBe(
-      "Congee: nothing you've tried, and more you haven't tried. No peeks left.",
-    );
-    expect(peekAnnouncement("Congee", card, null)).toMatch(/carrot\.$/);
-  });
-
-  it("gives each peek mark a word and a glyph", () => {
-    expect(PEEK_MARKS.matched).not.toBe(PEEK_MARKS.missed);
-    expect(PEEK_WORDS.matched).not.toBe(PEEK_WORDS.missed);
   });
 });

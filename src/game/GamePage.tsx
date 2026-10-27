@@ -73,11 +73,10 @@ import {
   saveRound,
   seenAnnouncements,
   type GameStatus,
-  type KidsMenuScratch,
   type RoundState,
   type Stats,
 } from "./storage";
-import { EMPTY_SCRATCH, KidsMenuCard, KidsMenuCoach, KidsMenuPill } from "./KidsMenu";
+import { KidsMenuCard, KidsMenuCoach, KidsMenuPill } from "./KidsMenu";
 import { kidsMenuIntroDue, kidsMenuOpen, MENU_AFTER } from "../../shared/kidsmenu";
 import { seededShowcaseRound } from "./showcase";
 import { useOccasion, useWearOccasion } from "../occasions/store";
@@ -1030,7 +1029,8 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
 
   // ---- The Kids Menu ----
   //
-  // The pill from the fourth miss while the round is playing (shared/kidsmenu.ts).
+  // The pill sits beside My stats from the fourth miss while the round is
+  // playing (shared/kidsmenu.ts).
   // `fresh` is whether it appeared during this sitting, which is what the
   // entrance hangs off: a board reloaded at four misses just has it there.
   const kidsAvailable = kidsMenuOpen(round.status, round.guesses.length) && !!daily && !staleDaily;
@@ -1052,15 +1052,8 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
     if (!kidsSeen) endKidsIntro();
     setShowKidsMenu(true);
   }, [kidsSeen, endKidsIntro]);
-  const saveScratch = useCallback(
-    (scratch: KidsMenuScratch) => {
-      const next = { ...round, kidsMenu: scratch };
-      setRound(next);
-      if (!ephemeral) persist(next);
-    },
-    [round, ephemeral, persist],
-  );
   const kidsCoachId = "coach-kids";
+  const kidsPillRef = useRef<HTMLButtonElement>(null);
   // The streak beside the date, on Today's Special only: it is a fact about
   // the daily, and a Leftover or a Chef's Choice never touches it. Read off
   // `stats`, which recordResult replaces the moment a round ends, so a win
@@ -1155,6 +1148,14 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
             <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowStats(true); }}>
               <Icon name="stats" /> My stats
             </button>
+            {kidsAvailable && !pending && (
+              <KidsMenuPill
+                fresh={kidsFresh}
+                buttonRef={kidsPillRef}
+                describedBy={kidsIntro ? kidsCoachId : undefined}
+                onOpen={openKidsMenu}
+              />
+            )}
             {canArchive && (
               <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowArchive(true); }}>
                 <Icon name="calendar" /> Leftovers
@@ -1177,6 +1178,9 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
               </button>
             )}
           </div>
+          {kidsAvailable && !pending && kidsIntro && (
+            <KidsMenuCoach id={kidsCoachId} anchor={kidsPillRef} onDismiss={endKidsIntro} />
+          )}
         </div>
 
         {/* No dish list and no puzzle means there's nothing to order from, so
@@ -1226,14 +1230,11 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
                     {STUCK_NOTE}
                   </p>
                 )}
+                {/* Discord's picture-in-picture tile hides the toolbar, so the
+                    pill has a second copy here that only that layout shows. */}
                 {kidsAvailable && !pending && (
                   <div className="kids-pill-row">
-                    {kidsIntro && <KidsMenuCoach id={kidsCoachId} onDismiss={endKidsIntro} />}
-                    <KidsMenuPill
-                      fresh={kidsFresh}
-                      describedBy={kidsIntro ? kidsCoachId : undefined}
-                      onOpen={openKidsMenu}
-                    />
+                    <KidsMenuPill fresh={kidsFresh} pip onOpen={openKidsMenu} />
                   </div>
                 )}
               </>
@@ -1325,8 +1326,6 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
             playerId: tracked && round.analyticsId ? getPlayerId() : undefined,
           }}
           guesses={round.guesses}
-          scratch={round.kidsMenu ?? EMPTY_SCRATCH}
-          onScratch={saveScratch}
           onOrder={(dish) => {
             // Closed first so the row lands and the clue prints where the
             // player can see them; the pill stays for the next one.

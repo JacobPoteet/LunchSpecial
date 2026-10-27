@@ -675,8 +675,7 @@ app.get("/kids-menu", async (c) => {
             COALESCE(SUM(kids_menu_at IS NOT NULL AND completed = 1 AND solved = 1), 0) AS opened_won,
             COALESCE(SUM(kids_menu_at IS NULL AND completed = 1), 0) AS unopened_finished,
             COALESCE(SUM(kids_menu_at IS NULL AND completed = 1 AND solved = 1), 0) AS unopened_won,
-            (SELECT COUNT(*) FROM analytics_guesses WHERE from_kids_menu = 1) AS menu_orders,
-            (SELECT COUNT(*) FROM kids_menu_peeks) AS peeks
+            (SELECT COUNT(*) FROM analytics_guesses WHERE from_kids_menu = 1) AS menu_orders
        FROM reached`,
   )
     .bind(since)

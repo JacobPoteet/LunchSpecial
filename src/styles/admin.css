@@ -1604,7 +1604,7 @@
 .act-tl__step--hit .act-tl__node { box-shadow: inset 0 0 0 2px var(--cream); background: var(--ink); }
 .act-tl__step--missing .act-tl__node,
 .act-tl__step--open .act-tl__node { border-style: dashed; border-color: var(--ink-soft); }
-/* The Kids Menu's own steps (opened, peeked): a smaller ring, off the guess line. */
+/* The Kids Menu's open: a smaller ring, off the guess line. */
 .act-tl__step--aside .act-tl__node { width: 7px; height: 7px; border-color: var(--ink-soft); }
 .act-tl__step--aside .act-tl__body { color: var(--ink-soft); }
 .act-tl__body {

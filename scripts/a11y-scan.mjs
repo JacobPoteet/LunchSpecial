@@ -103,9 +103,9 @@ const SCANS = [
       await page.waitForSelector(".modal--receipt");
     },
   },
-  // The Kids Menu: the pill and its one coach card after the fourth miss, then
-  // the card itself with a dish crossed out, one peeked and one circled, which
-  // is every mark it can draw.
+  // The Kids Menu: the pill beside My stats and its one coach card after the
+  // fourth miss, then the card itself with a dish circled. The guessed dishes
+  // print crossed out, so both of its marks are on screen.
   {
     name: "Kids Menu: the pill and its coach card (fourth miss)",
     async setup(page) {
@@ -114,18 +114,15 @@ const SCANS = [
         await guess(page, name);
         await page.waitForSelector(`.guess-row:nth-child(${KIDS_MISSES.indexOf(name) + 1}) .attr-tile--revealed`);
       }
-      await page.waitForSelector(".kids-pill");
+      await page.waitForSelector(".menu-card__toolbar .kids-pill");
       await page.waitForSelector(".coach--kids");
     },
   },
   {
-    name: "Kids Menu: the card (crossed, peeked, circled)",
+    name: "Kids Menu: the card (a dish circled, guessed ones crossed out)",
     async setup(page) {
-      await page.click(".kids-pill");
+      await page.click(".menu-card__toolbar .kids-pill");
       await page.waitForSelector(".kids-row");
-      await page.click(".kids-row__crayon >> nth=0");
-      await page.click(".kids-row__peek >> nth=1");
-      await page.waitForSelector(".kids-peek");
       await page.click('.kids-row[data-row="live"] .kids-row__dish >> nth=0');
       await page.waitForSelector(".kids-mark--circle");
     },

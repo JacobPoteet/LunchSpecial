@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  boardIngredients,
   filterLabel,
   kidsMenuIntroDue,
   kidsMenuOpen,
@@ -10,8 +9,6 @@ import {
   MENU_FLAT_MAX,
   MENU_FLOOR,
   MENU_OPEN_MAX,
-  peekCard,
-  peekVerdict,
   sizeMenu,
   type MenuTraits,
 } from "./kidsmenu";
@@ -176,61 +173,6 @@ describe("layoutMenu", () => {
     expect(split.sections[0].groups.map((g) => g.region)).toEqual(["europe", "africa", "east-asia"]);
     const whole = layoutMenu(dishes, ["region"]);
     expect(whole.sections[0].groups.map((g) => g.region)).toEqual([null]);
-  });
-});
-
-describe("peekVerdict", () => {
-  const base = { menuIds: [1, 2, 3, 4], guessedIds: [4], peeked: [] as number[] };
-
-  it("serves a dish on the menu", () => {
-    expect(peekVerdict({ ...base, dishId: 1 })).toBe("ok");
-  });
-
-  it("refuses a dish off the menu and a guessed one", () => {
-    expect(peekVerdict({ ...base, dishId: 9 })).toBe("off-menu");
-    expect(peekVerdict({ ...base, dishId: 4 })).toBe("guessed");
-  });
-
-  it("stops at the limit, but a dish already peeked is free", () => {
-    expect(peekVerdict({ ...base, dishId: 3, peeked: [1, 2] })).toBe("spent");
-    expect(peekVerdict({ ...base, dishId: 2, peeked: [1, 2] })).toBe("repeat");
-    expect(peekVerdict({ ...base, dishId: 3, peeked: [1], limit: 2 })).toBe("ok");
-  });
-
-  it("is off everywhere at a limit of zero", () => {
-    expect(peekVerdict({ ...base, dishId: 1, limit: 0 })).toBe("off");
-  });
-});
-
-describe("peekCard", () => {
-  const target = { ingredients: ["rice", "pork", "ginger", "scallion"] };
-  const board = boardIngredients([{ ingredients: ["rice", "beef", "ginger"] }, { ingredients: ["egg", "rice"] }], target);
-
-  it("reads the board off the guessed dishes against the Special", () => {
-    expect([...board.matched].sort()).toEqual(["ginger", "rice"]);
-    expect([...board.missed].sort()).toEqual(["beef", "egg"]);
-  });
-
-  it("full: every ingredient, marked", () => {
-    expect(peekCard(["rice", "egg", "carrot"], board, "full")).toEqual({
-      lines: [
-        { ingredient: "rice", mark: "matched" },
-        { ingredient: "egg", mark: "missed" },
-        { ingredient: "carrot", mark: "untried" },
-      ],
-      more: false,
-    });
-  });
-
-  it("tried: only what the board has tested, and no count of the rest", () => {
-    expect(peekCard(["rice", "egg", "carrot", "onion"], board, "tried")).toEqual({
-      lines: [
-        { ingredient: "rice", mark: "matched" },
-        { ingredient: "egg", mark: "missed" },
-      ],
-      more: true,
-    });
-    expect(peekCard(["rice"], board, "tried").more).toBe(false);
   });
 });
 

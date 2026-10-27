@@ -1030,15 +1030,6 @@ export interface RoundGuess {
 export interface RoundGuesses {
   roundId: string;
   guesses: RoundGuess[];
-  /** The round's "What's in it?" taps on the Kids Menu, oldest first (kids_menu_peeks). */
-  peeks: RoundPeek[];
-}
-
-export interface RoundPeek {
-  /** Null when the dish has left the catalogue since. */
-  name: string | null;
-  /** ISO-8601 UTC instant. */
-  at: string;
 }
 
 /** A count and the count it is out of. Rates are computed at the edge with `rate()`. */
@@ -1270,8 +1261,6 @@ export interface DeviceDataSummary {
   guesses: number;
   /** Costume sightings and knocks (occasion_views, migrations/0055). */
   occasionViews: number;
-  /** "What's in it?" taps on the Kids Menu (kids_menu_peeks, migrations/0062). */
-  menuPeeks: number;
 }
 
 /** What a device wipe actually removed, per table — reported back, never assumed. */
@@ -1281,7 +1270,6 @@ export interface DeviceDataDeleted {
   noticeViews: number;
   guesses: number;
   occasionViews: number;
-  menuPeeks: number;
 }
 
 /** Anonymous engagement aggregates for the admin dashboard. */

@@ -16,7 +16,7 @@ import { ACTIVITY_MAX, ACTIVITY_PAGE } from "../../../shared/types";
 import { foldDeviceData, type DeviceRoundRow, type DeviceVisitRow } from "../../device";
 import { foldDeviceCheck, type DeviceArrivalRow, type DeviceKindRow } from "../../devicecheck";
 import type { RegularsRoundRow } from "../../regulars";
-import { foldRoundGuesses, type RoundGuessRow, type RoundPeekRow } from "../../guessstats";
+import { foldRoundGuesses, type RoundGuessRow } from "../../guessstats";
 
 import { serverToday } from "../../db";
 
@@ -260,8 +260,7 @@ app.get("/recent-rounds", async (c) => {
 app.get("/round-guesses", async (c) => {
   const round = c.req.query("round")?.trim();
   if (!round) return c.json({ error: "No round given" }, 400);
-  const [res, peeks] = await c.env.DB.batch([
-    c.env.DB.prepare(
+  const res = await c.env.DB.prepare(
     `SELECT g.guess_number, g.created_at, g.from_kids_menu,
             COALESCE(dd.name, dk.name) AS name,
             COALESCE(dd.country, dk.country) AS country,
@@ -271,18 +270,10 @@ app.get("/round-guesses", async (c) => {
        LEFT JOIN drinks dk ON dk.id = g.guessed_drink_id
       WHERE g.round_id = ?
       ORDER BY g.guess_number`,
-    ).bind(round),
-    // The Kids Menu's peeks, named: this is the one per-round read, admin-only,
-    // and the guesses beside it are named the same way.
-    c.env.DB.prepare(
-      `SELECT d.name, p.created_at FROM kids_menu_peeks p
-         LEFT JOIN dishes d ON d.id = p.dish_id
-        WHERE p.round_id = ? ORDER BY p.created_at`,
-    ).bind(round),
-  ]);
-  return c.json(
-    foldRoundGuesses(round, res.results as unknown as RoundGuessRow[], peeks.results as unknown as RoundPeekRow[]),
-  );
+  )
+    .bind(round)
+    .all();
+  return c.json(foldRoundGuesses(round, res.results as unknown as RoundGuessRow[]));
 });
 
 // One device against the house, for the check a device id in the feed opens.
@@ -358,7 +349,7 @@ app.get("/device-data", async (c) => {
 
   // Grouped by (kind, surface) rather than aggregated flat: the fold needs the
   // split to zero-fill, and one query is cheaper than four COUNT(*)s.
-  const [rounds, visits, views, guesses, sightings, peeks] = await c.env.DB.batch([
+  const [rounds, visits, views, guesses, sightings] = await c.env.DB.batch([
     c.env.DB.prepare(
       `SELECT kind, surface, COUNT(*) AS rounds,
               SUM(completed) AS completed, SUM(shared) AS shared,
@@ -377,10 +368,6 @@ app.get("/device-data", async (c) => {
         WHERE player_id = ? OR round_id IN (SELECT round_id FROM analytics_rounds WHERE player_id = ?)`,
     ).bind(player, player),
     c.env.DB.prepare(`SELECT COUNT(*) AS total FROM occasion_views WHERE player_id = ?`).bind(player),
-    c.env.DB.prepare(
-      `SELECT COUNT(*) AS total FROM kids_menu_peeks
-        WHERE player_id = ? OR round_id IN (SELECT round_id FROM analytics_rounds WHERE player_id = ?)`,
-    ).bind(player, player),
   ]);
 
   const visitRow = (visits.results[0] as DeviceVisitRow | undefined) ?? {
@@ -391,7 +378,6 @@ app.get("/device-data", async (c) => {
   const viewCount = (views.results[0] as { total: number } | undefined)?.total ?? 0;
   const guessCount = (guesses.results[0] as { total: number } | undefined)?.total ?? 0;
   const sightingCount = (sightings.results[0] as { total: number } | undefined)?.total ?? 0;
-  const peekCount = (peeks.results[0] as { total: number } | undefined)?.total ?? 0;
   return c.json(
     foldDeviceData(
       player,
@@ -400,7 +386,6 @@ app.get("/device-data", async (c) => {
       viewCount,
       guessCount,
       sightingCount,
-      peekCount,
     ),
   );
 });
@@ -413,16 +398,12 @@ app.delete("/device-data", async (c) => {
   const player = playerParam(c);
   if (!player) return c.json({ error: "No device id given" }, 400);
 
-  // Guesses and Kids Menu peeks first: besides their own player_id (which a guess whose round row
+  // Guesses first: besides their own player_id (which a guess whose round row
   // never landed is reachable by alone), they are found through this device's
   // round ids, which the next statement deletes. The batch runs in order.
-  const [guesses, peeks, rounds, visits, views, sightings] = await c.env.DB.batch([
+  const [guesses, rounds, visits, views, sightings] = await c.env.DB.batch([
     c.env.DB.prepare(
       `DELETE FROM analytics_guesses
-        WHERE player_id = ? OR round_id IN (SELECT round_id FROM analytics_rounds WHERE player_id = ?)`,
-    ).bind(player, player),
-    c.env.DB.prepare(
-      `DELETE FROM kids_menu_peeks
         WHERE player_id = ? OR round_id IN (SELECT round_id FROM analytics_rounds WHERE player_id = ?)`,
     ).bind(player, player),
     c.env.DB.prepare("DELETE FROM analytics_rounds WHERE player_id = ?").bind(player),
@@ -437,7 +418,6 @@ app.delete("/device-data", async (c) => {
     noticeViews: views.meta.changes ?? 0,
     guesses: guesses.meta.changes ?? 0,
     occasionViews: sightings.meta.changes ?? 0,
-    menuPeeks: peeks.meta.changes ?? 0,
   };
   return c.json(deleted);
 });

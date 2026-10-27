@@ -61,13 +61,6 @@ describe("mergeProgress", () => {
     expect(normalizeProgress({ "lunch-special:kids-menu-seen": "1" })).toEqual({ "lunch-special:kids-menu-seen": "1" });
   });
 
-  it("keeps the Kids Menu scratchpad with the board it was written on", () => {
-    const board = (n: number, crossed: number[]) =>
-      JSON.stringify({ date: "2026-10-26", status: "playing", guesses: Array(n).fill({}), kidsMenu: { crossed, peeks: {} } });
-    const merged = JSON.parse(mergeProgress({ [ROUND]: board(4, [1]) }, { [ROUND]: board(5, [1, 2]) })[ROUND]!);
-    expect(merged.kidsMenu.crossed).toEqual([1, 2]);
-  });
-
   it("falls back to the readable side when one copy is corrupted", () => {
     const good = stats(2, "2026-10-18");
     expect(mergeProgress({ [STATS]: "{nope" }, { [STATS]: good })[STATS]).toBe(good);
