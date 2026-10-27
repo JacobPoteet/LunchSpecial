@@ -1,4 +1,4 @@
-// The Kids Menu: the pill beside My stats, its one coach card, and the card.
+// The Kids' Menu: the pill beside My stats, its one coach card, and the card.
 //
 // From the fourth miss the toolbar carries a pill that opens a placemat listing
 // every dish that still fits the board (the Worker builds it; the rules are
@@ -61,7 +61,7 @@ export function KidsMenuPill({
         onOpen();
       }}
     >
-      <Icon name="crayon" /> Kids Menu
+      <Icon name="crayon" /> Kids' Menu
     </button>
   );
 }
@@ -101,7 +101,7 @@ export function KidsMenuCoach({
       style={caret === null ? undefined : ({ "--caret-x": `${caret}px` } as React.CSSProperties)}
     >
       <p className="coach__text">
-        <strong>Stuck?</strong> Open the Kids Menu to see every dish that could still be the answer.
+        <strong>Stuck?</strong> Open the Kids' Menu to see every dish that could still be the answer.
       </p>
       {/* The card unmounts with its own × in it, which would drop keyboard
           focus to the page; the pill it described is where focus belongs. */}
@@ -111,7 +111,7 @@ export function KidsMenuCoach({
           anchor.current?.focus();
           onDismiss();
         }}
-        aria-label="Dismiss the Kids Menu tip"
+        aria-label="Dismiss the Kids' Menu tip"
       >
         ×
       </button>
@@ -230,7 +230,7 @@ export function KidsMenuCard({
   return (
     <Modal
       onClose={onClose}
-      label="Kids Menu"
+      label="Kids' Menu"
       variant="kids"
       footer={
         <div className="kids__foot">
@@ -260,7 +260,7 @@ export function KidsMenuCard({
         </p>
         <header className="kids__head">
           <Doodle />
-          <h2 className="kids__title">Kids Menu</h2>
+          <h2 className="kids__title">Kids' Menu</h2>
           <p className="kids__fine">For diners 12 and under. We won't check.</p>
         </header>
 

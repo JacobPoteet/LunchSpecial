@@ -54,7 +54,7 @@ describe("mergeProgress", () => {
     expect(mergeProgress({}, { "lunch-special:howto-seen": "1" })["lunch-special:howto-seen"]).toBe("1");
   });
 
-  it("carries the Kids Menu's coach card flag, so a phone that lost it isn't coached twice", () => {
+  it("carries the Kids' Menu's coach card flag, so a phone that lost it isn't coached twice", () => {
     expect(PROGRESS_KEYS).toContain("lunch-special:kids-menu-seen");
     expect(mergeProgress({}, { "lunch-special:kids-menu-seen": "1" })["lunch-special:kids-menu-seen"]).toBe("1");
     expect(mergeProgress({ "lunch-special:kids-menu-seen": "1" }, {})["lunch-special:kids-menu-seen"]).toBe("1");

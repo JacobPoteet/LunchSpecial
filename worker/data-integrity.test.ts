@@ -1116,7 +1116,7 @@ describe("the pantry", () => {
   });
 });
 
-describe("the kids menu", () => {
+describe("the kids' menu", () => {
   // The rule in shared/kidsmenu.ts over the real pool. Every tile the board
   // printed filters, hits and misses alike, so a dish the board ruled out
   // never prints, and the Special always does.

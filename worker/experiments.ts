@@ -107,7 +107,7 @@ export function foldExperimentSeries(
 
 // ---- Back after a fourth miss ---------------------------------------------
 //
-// The cohort the Kids Menu is offered to, read the same way before and after it
+// The cohort the Kids' Menu is offered to, read the same way before and after it
 // shipped: a lunch round that reached a fourth miss. That is a guess 4 that
 // wasn't the answer in the guess ledger, or a finished round of five or six
 // guesses. Counted in devices per ET day (a device with two such rounds in a

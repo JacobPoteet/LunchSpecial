@@ -58,12 +58,12 @@ describe("isAnalyticsId", () => {
     expect(isAnalyticsId(null)).toBe(false);
   });
 
-  it("flags a guess ordered off the Kids Menu, only where the card could have been open", () => {
+  it("flags a guess ordered off the Kids' Menu, only where the card could have been open", () => {
     expect(guessRecord({ ...base, guessNumber: 5, fromKidsMenu: true })?.fromKidsMenu).toBe(true);
     expect(guessRecord({ ...base, guessNumber: 6, fromKidsMenu: true })?.fromKidsMenu).toBe(true);
     // Before the fifth guess there is no card to order from.
     expect(guessRecord({ ...base, guessNumber: 4, fromKidsMenu: true })?.fromKidsMenu).toBe(false);
-    // Only a literal true counts, and the bar has no Kids Menu.
+    // Only a literal true counts, and the bar has no Kids' Menu.
     expect(guessRecord({ ...base, guessNumber: 5, fromKidsMenu: "yes" })?.fromKidsMenu).toBe(false);
     expect(guessRecord({ ...base, guessNumber: 5, catalogue: "drink", fromKidsMenu: true })?.fromKidsMenu).toBe(false);
   });

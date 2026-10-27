@@ -149,7 +149,7 @@ export const getAudience = () => request<AudienceReport>("/audience");
 /** What players order, per answer: the kitchen's or the bar's. No surface filter (the ledger has none). */
 export const getGuessReport = (catalogue: "dish" | "drink" = "dish") =>
   request<GuessReport>(catalogue === "dish" ? "/picks" : "/picks/drinks");
-/** The Kids Menu readout for the Menu tab (worker/kidsmenu.ts). */
+/** The Kids' Menu readout for the Menu tab (worker/kidsmenu.ts). */
 export const getKidsMenuReport = () => request<KidsMenuReport>("/kids-menu");
 export const getDishReport =(surface?: Surface) =>
   request<DishReport>(`/dish-report${surface ? `?surface=${surface}` : ""}`);

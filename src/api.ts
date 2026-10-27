@@ -74,7 +74,7 @@ export function postGuess(body: {
   roundId?: string;
   /** The anonymous device id, sent beside `roundId` so a device wipe reaches the guess. */
   playerId?: string;
-  /** Ordered off the Kids Menu card rather than the order bar (migrations/0062). */
+  /** Ordered off the Kids' Menu card rather than the order bar (migrations/0062). */
   fromKidsMenu?: boolean;
 }): Promise<GuessFeedback> {
   return request("/api/guess", {
@@ -84,7 +84,7 @@ export function postGuess(body: {
   });
 }
 
-/** What a Kids Menu request carries: the round's target and its board. */
+/** What a Kids' Menu request carries: the round's target and its board. */
 export interface KidsMenuBoard {
   date: string;
   preview?: string;

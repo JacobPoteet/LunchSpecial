@@ -41,7 +41,7 @@ const FATAL = new Set(["serious", "critical"]);
 /** The dish the board is pinned to, and one that is definitely not it. */
 const TARGET_SLUG = "ramen";
 const WRONG_GUESS = "Spaghetti Carbonara";
-/** Four misses against ramen that earn a few facts, so the Kids Menu is short. */
+/** Four misses against ramen that earn a few facts, so the Kids' Menu is short. */
 const KIDS_MISSES = ["Mapo Tofu", "Full English Breakfast", "Fish Tacos", "Pavlova"];
 
 /** The same, for After Dark. `handoff=1` is what makes it reachable at noon. */
@@ -103,10 +103,10 @@ const SCANS = [
       await page.waitForSelector(".modal--receipt");
     },
   },
-  // The Kids Menu: the pill beside My stats and its one coach card after the
+  // The Kids' Menu: the pill beside My stats and its one coach card after the
   // fourth miss, then the card itself with a dish circled.
   {
-    name: "Kids Menu: the pill and its coach card (fourth miss)",
+    name: "Kids' Menu: the pill and its coach card (fourth miss)",
     async setup(page) {
       await page.goto(`${BASE}/?special=${TARGET_SLUG}`, { waitUntil: "domcontentloaded" });
       await missFourTimes(page);
@@ -114,7 +114,7 @@ const SCANS = [
     },
   },
   {
-    name: "Kids Menu: the card (a dish circled)",
+    name: "Kids' Menu: the card (a dish circled)",
     async setup(page) {
       await page.click(".menu-card__toolbar .kids-pill");
       await page.waitForSelector(".kids-row");
@@ -231,12 +231,12 @@ const SCANS = [
       await page.waitForSelector(".hw-verdict");
     },
   },
-  // The Kids Menu in costume. The pill and the title are crayon red
+  // The Kids' Menu in costume. The pill and the title are crayon red
   // (--cherry), which the costume's palette swap reaches. The coach card was
   // dismissed by the uncostumed state above (same browser context), so this
   // measures the pill on its own.
   {
-    name: "Halloween: Kids Menu pill (fourth miss, in costume)",
+    name: "Halloween: Kids' Menu pill (fourth miss, in costume)",
     async setup(page) {
       await page.goto(`${BASE}/?special=${TARGET_SLUG}&occasion=halloween`, { waitUntil: "domcontentloaded" });
       await page.waitForSelector(".hw-cloche__btn");
@@ -244,7 +244,7 @@ const SCANS = [
     },
   },
   {
-    name: "Halloween: Kids Menu card (a dish circled, in costume)",
+    name: "Halloween: Kids' Menu card (a dish circled, in costume)",
     async setup(page) {
       await page.click(".menu-card__toolbar .kids-pill");
       await page.waitForSelector(".kids-row");
@@ -291,7 +291,7 @@ async function guess(page, name) {
   await page.click(".guess-input__option >> nth=0");
 }
 
-/** Four misses against the pinned ramen, each row filled in, then the Kids Menu pill. */
+/** Four misses against the pinned ramen, each row filled in, then the Kids' Menu pill. */
 async function missFourTimes(page) {
   for (const [i, name] of KIDS_MISSES.entries()) {
     await guess(page, name);

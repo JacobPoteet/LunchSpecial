@@ -79,7 +79,7 @@ export interface ExperimentDay {
   visitors: number | null;
   /**
    * Devices whose lunch round that day reached a fourth miss: the cohort the
-   * Kids Menu is offered to, before it shipped and after (migrations/0062).
+   * Kids' Menu is offered to, before it shipped and after (migrations/0062).
    * Null before the guess ledger existed (migrations/0053; an abandoned round
    * at four misses is invisible without it), and null while the day is still
    * inside its return window: pending, never a no-show.

@@ -1,4 +1,4 @@
-// The Kids Menu: an opt-in short list of the dishes that still fit — PURE.
+// The Kids' Menu: an opt-in short list of the dishes that still fit — PURE.
 //
 // After the fourth miss the player can ask for a smaller menu. It lists every
 // active dish that agrees with every tile the board has printed, hits and

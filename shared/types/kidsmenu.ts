@@ -1,4 +1,4 @@
-// The Kids Menu on the wire: what POST /api/kids-menu answers, and the admin
+// The Kids' Menu on the wire: what POST /api/kids-menu answers, and the admin
 // readout. The rules behind both live in shared/kidsmenu.ts.
 
 import type { MenuFact } from "../kidsmenu";
@@ -30,7 +30,7 @@ export interface KidsMenuInfo {
 }
 
 /**
- * The Menu tab's Kids Menu readout (GET /api/admin/kids-menu). Every count is
+ * The Menu tab's Kids' Menu readout (GET /api/admin/kids-menu). Every count is
  * lunch rounds that reached a fourth miss since the menu's first tracked order
  * (`measuredFrom`); before that the open is unmeasured, never "nobody opened".
  */

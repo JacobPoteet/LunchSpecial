@@ -1,4 +1,4 @@
-// The Kids Menu: POST /api/kids-menu.
+// The Kids' Menu: POST /api/kids-menu.
 //
 // A POST because the body carries the board, and because a tracked round's
 // first open is written down. "kids-menu" stays clear of the words ad blockers
@@ -33,7 +33,7 @@ async function menuFor(env: Env, body: MenuBody) {
   ]);
   if ("error" in target) return { error: target.error };
   const menu = buildMenu(pool, guessed, parsed.guessed, target.dish);
-  if (!menu) return { error: "That board can't order off the Kids Menu" };
+  if (!menu) return { error: "That board can't order off the Kids' Menu" };
   // Tracked the way a guess is (worker/guesslog.ts): the client names the round
   // only when it is tracked, and a rehearsal target records nothing whatever
   // the client sent.

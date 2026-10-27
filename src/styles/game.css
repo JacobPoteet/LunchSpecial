@@ -2590,7 +2590,7 @@ textarea.dish-request__input {
   --cal-cell-step: 40ms;
   --cal-cell-dur: 0.3s;
 
-  /* The Kids Menu, mirrored by KIDS_MENU_MS in shared/audio.ts. The pill waits
+  /* The Kids' Menu, mirrored by KIDS_MENU_MS in shared/audio.ts. The pill waits
      for the clue ticket (--ticket-start) so the two never land together. */
   --kids-pill-delay: 1.14s;
   --kids-pill-in: 0.32s;
@@ -3514,7 +3514,7 @@ textarea.dish-request__input {
   font-weight: inherit;
 }
 
-/* ---- the Kids Menu ----
+/* ---- the Kids' Menu ----
 
    A placemat handed over from the fourth miss (src/game/KidsMenu.tsx). Paper,
    crayon red and a rubber stamp; the only motion is the pill fading in and the
@@ -3932,7 +3932,7 @@ textarea.dish-request__input {
   .coach-spotlight,
   .guess-input--coach-order input:not(:focus),
   .guess-input--coach-pick .guess-input__submit:not(:disabled),
-  /* The Kids Menu: the pill is just there, the crayon ring just drawn. */
+  /* The Kids' Menu: the pill is just there, the crayon ring just drawn. */
   .kids-pill[data-kids="new"],
   .kids-mark--circle path,
   /* The last order keeps its colour and copy; only the ring stops pulsing. */
@@ -4127,7 +4127,7 @@ textarea.dish-request__input {
   padding: var(--space-6) var(--space-8);
 }
 
-/* The Kids Menu in a tile. The toolbar is gone, so the board's own copy of the
+/* The Kids' Menu in a tile. The toolbar is gone, so the board's own copy of the
    pill shows under the punch card. The placemat takes the whole tile, and
    everything but the list and its stamps gives way: a tile is short before it
    is narrow. */

@@ -424,7 +424,7 @@ export function markHowToSeen(): void {
   }
 }
 
-// The Kids Menu's one coach card, shown the first round a device could open
+// The Kids' Menu's one coach card, shown the first round a device could open
 // the menu. Its own key: a player can know the board by heart and still never
 // have reached a fourth miss. Guarded like the how-to's, for the same reason.
 export function hasSeenKidsMenuIntro(): boolean {

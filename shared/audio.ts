@@ -233,7 +233,7 @@ export const TICKET_MS = 1140;
 export const WIN_BELL_MS = 150;
 
 /**
- * The Kids Menu's moments (src/game/KidsMenu.tsx), mirrored by the `--kids-*`
+ * The Kids' Menu's moments (src/game/KidsMenu.tsx), mirrored by the `--kids-*`
  * dial at the top of its block in game.css. Each moment is also a state the
  * card writes to a data attribute (`data-kids`, `data-row`, `data-moment`), so
  * the motion pass can hang an animation on any of them and a sound on the same

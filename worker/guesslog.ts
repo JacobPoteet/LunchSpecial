@@ -16,7 +16,7 @@ export interface GuessRecord {
   catalogue: GuessCatalogue;
   guessedId: number;
   targetId: number;
-  /** Ordered off the Kids Menu card rather than the order bar (migrations/0062). */
+  /** Ordered off the Kids' Menu card rather than the order bar (migrations/0062). */
   fromKidsMenu: boolean;
 }
 
@@ -95,7 +95,7 @@ export async function recordGuess(db: D1Database, rec: GuessRecord): Promise<voi
         dish ? rec.targetId : null,
         dish ? null : rec.guessedId,
         dish ? null : rec.targetId,
-        // NULL on a drink: the bar has no Kids Menu, so the question doesn't apply.
+        // NULL on a drink: the bar has no Kids' Menu, so the question doesn't apply.
         dish ? (rec.fromKidsMenu ? 1 : 0) : null,
       )
       .run();

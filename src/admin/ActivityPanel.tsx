@@ -728,7 +728,7 @@ function RoundTimeline({ round }: { round: ActivityRoundView }) {
             <span className="act-tl__name">{g.name ?? "Left the menu"}</span>
             {g.country && <span className="ev-sub">{g.country}</span>}
             {g.correct && <span className="act-tl__hit">✓ answer</span>}
-            {g.fromKidsMenu && <span className="ev-kids">Kids Menu</span>}
+            {g.fromKidsMenu && <span className="ev-kids">Kids' Menu</span>}
           </>
         ),
         after: wait === null ? null : `+${spanLabel(wait)}`,
@@ -737,7 +737,7 @@ function RoundTimeline({ round }: { round: ActivityRoundView }) {
       // The menu's first open is a guess number, so it has no clock time of
       // its own: it sits after the guess it opened on.
       if (round.kidsMenuAt === n) {
-        steps.push({ key: "kids-open", at: null, node: "aside", body: <span>Opened the Kids Menu</span> });
+        steps.push({ key: "kids-open", at: null, node: "aside", body: <span>Opened the Kids' Menu</span> });
       }
     }
   }
@@ -1098,7 +1098,7 @@ export default function ActivityPanel({
             <Result round={r} now={now} />
             {r.kidsMenuAt !== null && (
               <span className="ev-kids" title={`Opened after ${r.kidsMenuAt} guesses`}>
-                Kids Menu
+                Kids' Menu
               </span>
             )}
           </td>

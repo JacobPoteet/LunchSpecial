@@ -183,7 +183,7 @@ export function coasterAnnouncement(index: number, text: string): string {
   return `Coaster ${index}: ${text}`;
 }
 
-// ---- The Kids Menu ----
+// ---- The Kids' Menu ----
 //
 // The card changes in two ways a sighted player sees at once: it opens on its
 // list, and a name gets a crayon ring round it. Each is said in one short
@@ -191,17 +191,17 @@ export function coasterAnnouncement(index: number, text: string): string {
 // Special: the card doesn't know, and neither does this.
 
 /**
- * "Kids Menu: 9 dishes, East Asia, entree, hot and pork." Said when the card
+ * "Kids' Menu: 9 dishes, East Asia, entree, hot and pork." Said when the card
  * opens on its list. With no confirmed fact (every tile a miss) the misses
  * still narrowed it, so it says what's left rather than "the whole menu".
  */
 export function kidsMenuAnnouncement(dishes: number, filters: ReadonlyArray<string>): string {
-  if (filters.length === 0) return `Kids Menu: ${count(dishes, "dish", "dishes")} still on the menu.`;
+  if (filters.length === 0) return `Kids' Menu: ${count(dishes, "dish", "dishes")} still on the menu.`;
   const narrowed =
     filters.length === 1
         ? filters[0]
         : `${filters.slice(0, -1).join(", ")} and ${filters[filters.length - 1]}`;
-  return `Kids Menu: ${count(dishes, "dish", "dishes")}, ${narrowed}.`;
+  return `Kids' Menu: ${count(dishes, "dish", "dishes")}, ${narrowed}.`;
 }
 
 export function circleAnnouncement(name: string): string {

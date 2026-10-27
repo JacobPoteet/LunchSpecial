@@ -88,7 +88,7 @@ describe("foldRoundGuesses", () => {
     expect(foldRoundGuesses("round-1", []).guesses).toEqual([]);
   });
 
-  it("marks a guess ordered off the Kids Menu, and leaves an unmeasured row unmeasured", () => {
+  it("marks a guess ordered off the Kids' Menu, and leaves an unmeasured row unmeasured", () => {
     const r = foldRoundGuesses("round-1", [
       { ...row(4, "Pho"), from_kids_menu: null },
       { ...row(5, "Ramen", 1), from_kids_menu: 1 },

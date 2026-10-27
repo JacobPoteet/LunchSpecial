@@ -1,4 +1,4 @@
-// The Worker's half of the Kids Menu (shared/kidsmenu.ts holds the rules).
+// The Worker's half of the Kids' Menu (shared/kidsmenu.ts holds the rules).
 //
 // The Worker keeps no record of a round, so the client sends the dish ids on
 // its board and the Worker reads the board itself, by comparing each of those
@@ -28,7 +28,7 @@ export function parseGuessed(raw: unknown): MenuRequest | { error: string } {
   const ids = raw.map(Number);
   if (!ids.every((n) => Number.isInteger(n) && n > 0)) return { error: "guessed must be a list of dish ids" };
   if (new Set(ids).size !== ids.length) return { error: "guessed repeats a dish" };
-  if (ids.length < MENU_AFTER) return { error: "The Kids Menu opens after the fourth miss" };
+  if (ids.length < MENU_AFTER) return { error: "The Kids' Menu opens after the fourth miss" };
   if (ids.length >= MAX_GUESSES) return { error: "The round is over" };
   return { guessed: ids };
 }

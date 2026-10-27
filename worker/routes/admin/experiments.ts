@@ -89,7 +89,7 @@ app.get("/experiments", async (c) => {
     ),
     // visit_day is already an ET day, stamped by the beacon handler.
     c.env.DB.prepare(`SELECT visit_day, COUNT(*) AS n FROM analytics_visits${surfWhere} GROUP BY visit_day`),
-    // The Kids Menu's cohort: lunch rounds that reached a fourth miss (see
+    // The Kids' Menu's cohort: lunch rounds that reached a fourth miss (see
     // foldFourthMissReturns). The ledger's first day is where it is measured from.
     c.env.DB.prepare(
       `SELECT r.player_id, strftime('%Y-%m-%d %H', r.started_at) AS bucket

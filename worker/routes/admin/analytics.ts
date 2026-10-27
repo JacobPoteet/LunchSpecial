@@ -651,7 +651,7 @@ async function guessReport(db: D1Database, catalogue: "dish" | "drink") {
 app.get("/picks", async (c) => c.json(await guessReport(c.env.DB, "dish")));
 app.get("/picks/drinks", async (c) => c.json(await guessReport(c.env.DB, "drink")));
 
-// The Kids Menu readout for the Menu tab (worker/kidsmenu.ts). Measured from the
+// The Kids' Menu readout for the Menu tab (worker/kidsmenu.ts). Measured from the
 // ledger's first flagged guess, which is the day the menu shipped: the open
 // stamp and the flag arrived in the same migration (0062). Lunch rounds only,
 // reaching a fourth miss by the same rule the Experiments metric uses.

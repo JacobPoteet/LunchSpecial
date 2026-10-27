@@ -1,4 +1,4 @@
-// The Kids Menu, on the Menu tab: of the lunch rounds that reached a fourth
+// The Kids' Menu, on the Menu tab: of the lunch rounds that reached a fourth
 // miss since it shipped, how many opened the card, and how those rounds ended
 // beside the ones that didn't. The before/after read on whether it brings
 // people back lives on the Experiments tab ("Back after a 4th miss").
@@ -49,9 +49,9 @@ export default function KidsMenuPanel() {
   return (
     <section className="panel">
       <div className="analytics-head">
-        <h2>Kids Menu</h2>
+        <h2>Kids' Menu</h2>
       </div>
-      {error && <p className="dash-note">Couldn't load the Kids Menu: {error}</p>}
+      {error && <p className="dash-note">Couldn't load the Kids' Menu: {error}</p>}
       {!error && !report && <p className="dash-note">Counting crayons…</p>}
       {report && report.measuredFrom === null && <p className="dash-note">Not measured yet.</p>}
       {report && report.measuredFrom !== null && (

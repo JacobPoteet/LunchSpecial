@@ -1,5 +1,5 @@
 // Which Special a request is playing — shared by every route that compares a
-// guess to it: /daily, /guess and /reveal in routes/public.ts and the Kids Menu
+// guess to it: /daily, /guess and /reveal in routes/public.ts and the Kids' Menu
 // in routes/kidsmenu.ts.
 
 import { verifyToken } from "./auth";

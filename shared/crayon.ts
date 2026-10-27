@@ -1,4 +1,4 @@
-// The crayon ring round a circled dish on the Kids Menu — PURE.
+// The crayon ring round a circled dish on the Kids' Menu — PURE.
 //
 // The ring is drawn at the entry's own pixel size, never stretched from a
 // fixed viewBox: a stretched path under `vector-effect: non-scaling-stroke`

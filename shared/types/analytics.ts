@@ -913,7 +913,7 @@ export interface ActivityRound {
   /** Whether it was won, when it finished. */
   solved: boolean | null;
   /**
-   * Guesses on the board when the Kids Menu was first opened (migrations/0062),
+   * Guesses on the board when the Kids' Menu was first opened (migrations/0062),
    * or null when it never was. Null is also every round from before the menu
    * shipped, and any round whose /start was blocked: the feed marks a round
    * that used it, and never reads null as "didn't".
@@ -1009,7 +1009,7 @@ export interface RoundGuess {
   country: string | null;
   /** The guess was the answer (guessed id = target id; never stored). */
   correct: boolean;
-  /** Ordered off the Kids Menu card. Null on rows from before 0062 and on every drink. */
+  /** Ordered off the Kids' Menu card. Null on rows from before 0062 and on every drink. */
   fromKidsMenu: boolean | null;
   /**
    * When the Worker wrote it, as an ISO-8601 UTC instant. A retried number

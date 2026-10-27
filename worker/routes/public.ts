@@ -73,7 +73,7 @@ app.post("/guess", async (c) => {
     /** Sent only by a tracked round; see worker/guesslog.ts. */
     roundId?: string;
     playerId?: string;
-    /** Ordered off the Kids Menu card; recorded only on a tracked round. */
+    /** Ordered off the Kids' Menu card; recorded only on a tracked round. */
     fromKidsMenu?: boolean;
   };
   try {

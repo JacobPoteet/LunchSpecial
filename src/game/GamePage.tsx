@@ -153,7 +153,7 @@ function HowToModal({ onClose }: { onClose: () => void }) {
         </div>
         <p>A yellow country is in the same region. A yellow ingredient (≈) is a near swap, like lemon for lime.</p>
         <p>
-          Every miss gets you a <strong>clue</strong>. Stuck after four misses? The <strong>Kids Menu</strong> lists every
+          Every miss gets you a <strong>clue</strong>. Stuck after four misses? The <strong>Kids' Menu</strong> lists every
           dish that could still be the answer.
         </p>
         <p>
@@ -637,7 +637,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   const [matches, setMatches] = useState(0);
   const [showStats, setShowStats] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
-  // The Kids Menu (KidsMenu.tsx). The card never opens itself; the coach card
+  // The Kids' Menu (KidsMenu.tsx). The card never opens itself; the coach card
   // beside the pill shows once per device, the first round it could be opened.
   const [showKidsMenu, setShowKidsMenu] = useState(false);
   const [kidsSeen, setKidsSeen] = useState(() => isShowcase || hasSeenKidsMenuIntro());
@@ -1022,7 +1022,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
 
   const guessedIds = useMemo(() => new Set(round.guesses.map((g) => g.dish.id)), [round.guesses]);
 
-  // ---- The Kids Menu ----
+  // ---- The Kids' Menu ----
   //
   // The pill sits beside My stats from the fourth miss while the round is
   // playing (shared/kidsmenu.ts).
