@@ -913,6 +913,13 @@ export interface ActivityRound {
   /** Whether it was won, when it finished. */
   solved: boolean | null;
   /**
+   * Guesses on the board when the Kids Menu was first opened (migrations/0062),
+   * or null when it never was. Null is also every round from before the menu
+   * shipped, and any round whose /start was blocked: the feed marks a round
+   * that used it, and never reads null as "didn't".
+   */
+  kidsMenuAt: number | null;
+  /**
    * The most recent thing that happened to this round, falling back through
    * `shared_at` → `completed_at` → `updated_at` → `started_at`. The feed sorts on
    * it, so a round that gets shared an hour later comes back to the top with its
@@ -1002,6 +1009,8 @@ export interface RoundGuess {
   country: string | null;
   /** The guess was the answer (guessed id = target id; never stored). */
   correct: boolean;
+  /** Ordered off the Kids Menu card. Null on rows from before 0062 and on every drink. */
+  fromKidsMenu: boolean | null;
   /**
    * When the Worker wrote it, as an ISO-8601 UTC instant. A retried number
    * rewrites the row, so this is the last write, not the first try.
@@ -1021,6 +1030,15 @@ export interface RoundGuess {
 export interface RoundGuesses {
   roundId: string;
   guesses: RoundGuess[];
+  /** The round's "What's in it?" taps on the Kids Menu, oldest first (kids_menu_peeks). */
+  peeks: RoundPeek[];
+}
+
+export interface RoundPeek {
+  /** Null when the dish has left the catalogue since. */
+  name: string | null;
+  /** ISO-8601 UTC instant. */
+  at: string;
 }
 
 /** A count and the count it is out of. Rates are computed at the edge with `rate()`. */
@@ -1252,6 +1270,8 @@ export interface DeviceDataSummary {
   guesses: number;
   /** Costume sightings and knocks (occasion_views, migrations/0055). */
   occasionViews: number;
+  /** "What's in it?" taps on the Kids Menu (kids_menu_peeks, migrations/0062). */
+  menuPeeks: number;
 }
 
 /** What a device wipe actually removed, per table — reported back, never assumed. */
@@ -1261,6 +1281,7 @@ export interface DeviceDataDeleted {
   noticeViews: number;
   guesses: number;
   occasionViews: number;
+  menuPeeks: number;
 }
 
 /** Anonymous engagement aggregates for the admin dashboard. */

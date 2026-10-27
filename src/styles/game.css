@@ -2589,6 +2589,14 @@ textarea.dish-request__input {
   --cal-cell-start: 0.1s;
   --cal-cell-step: 40ms;
   --cal-cell-dur: 0.3s;
+
+  /* The Kids Menu, mirrored by KIDS_MENU_MS in shared/audio.ts. The pill waits
+     for the clue ticket (--ticket-start) so the two never land together. */
+  --kids-pill-delay: 1.14s;
+  --kids-pill-in: 0.32s;
+  --kids-cross: 0.22s;
+  --kids-circle: 0.26s;
+  --kids-peek: 0.2s;
 }
 
 /* Modal: backdrop fades, card slides up from the bottom; reverse on close.
@@ -3006,6 +3014,10 @@ textarea.dish-request__input {
 .bar-band__btn:focus-visible,
 .archive-cal__nav-btn:focus-visible,
 .notice__ok:focus-visible,
+.kids-row__dish:focus-visible,
+.kids-row__peek:focus-visible,
+.kids-row__crayon:focus-visible,
+.kids-sec__head:focus-visible,
 .footer-note a:focus-visible {
   outline: 3px solid var(--mustard);
   outline-offset: 2px;
@@ -3507,6 +3519,478 @@ textarea.dish-request__input {
   font-weight: inherit;
 }
 
+/* ---- the Kids Menu ----
+
+   A placemat handed over from the fourth miss (src/game/KidsMenu.tsx). Paper,
+   crayon red and a rubber stamp; the only motion is a pill fading in and the
+   crayon strokes drawing on, each timed off the --kids-* dial up top. Every
+   moment is also a data attribute (data-kids, data-row, data-peek,
+   data-moment), which is what the motion pass hangs its work on. */
+
+.kids-pill-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 0 var(--space-14);
+}
+
+/* Crayon red, not the toolbar's ink: this is a thing on the board you are
+   meant to press. Cherry on paper is 5.04:1. */
+.kids-pill {
+  border-color: var(--cherry);
+  color: var(--cherry);
+}
+
+.kids-pill:hover {
+  background: var(--cherry-hover);
+  border-color: var(--cherry-hover);
+  color: var(--on-cherry);
+}
+
+.kids-pill[data-kids="new"] {
+  animation: kids-pill-in var(--kids-pill-in) ease var(--kids-pill-delay) backwards;
+}
+
+/* The tip points down at the pill, which sits in the middle of the row. */
+.coach--kids {
+  max-width: 360px;
+  animation-delay: var(--kids-pill-delay);
+}
+
+.coach--kids::before,
+.coach--kids::after {
+  left: calc(50% - 9px);
+}
+
+/* The placemat. A dashed crayon rule inside the edge is the whole frame. */
+.modal--kids {
+  background: var(--paper-bright);
+  max-width: 440px;
+}
+
+/* On the card, not the scrolling body: a frame drawn inside the scroller
+   scrolled away with the first screenful of dishes. */
+.modal--kids::before {
+  content: "";
+  position: absolute;
+  inset: var(--space-8);
+  z-index: 1;
+  border: var(--border-medium) dashed color-mix(in srgb, var(--cherry) 45%, transparent);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+
+.kids__head {
+  position: relative;
+  text-align: center;
+  margin: 0 0 var(--space-12);
+  padding: 0 var(--space-34);
+}
+
+.kids__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-xxl);
+  font-weight: normal;
+  line-height: 1.1;
+  color: var(--cherry);
+  transform: rotate(-2deg);
+}
+
+.kids__fine {
+  margin: var(--space-4) 0 0;
+  font-family: var(--font-gothic);
+  font-size: var(--fs-md);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.kids__doodle {
+  position: absolute;
+  left: 0;
+  top: -4px;
+  width: 34px;
+  height: 34px;
+  fill: none;
+  stroke: var(--mustard);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transform: rotate(-8deg);
+}
+
+.kids__note {
+  margin: var(--space-8) 0;
+  text-align: center;
+  font-size: var(--fs-md);
+  color: var(--ink-soft);
+}
+
+/* Rubber stamps: the facts the menu was narrowed on, in the board's words. */
+.kids__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-8);
+  margin: 0 0 var(--space-10);
+}
+
+.kids-chip {
+  padding: var(--space-2) var(--space-8);
+  border: var(--border-medium) solid var(--teal);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-gothic);
+  font-size: var(--fs-lg);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--teal);
+  transform: rotate(-2deg);
+}
+
+.kids-chip:nth-child(odd) {
+  transform: rotate(1.5deg);
+}
+
+/* The peeks left, as crayon ticks. */
+.kids-tally {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  margin: 0 0 var(--space-12);
+  font-family: var(--font-gothic);
+  font-size: var(--fs-md);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.kids-tally__marks {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.kids-tally__mark {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--cherry);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.kids-tally__mark--spent {
+  stroke: var(--miss);
+}
+
+.kids-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.kids-row {
+  border-bottom: var(--border-hair) dotted var(--paper-edge);
+}
+
+.kids-row:last-child {
+  border-bottom: 0;
+}
+
+.kids-row__line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+/* The dish itself is the button that circles it: the whole name and country,
+   at least 44px tall. */
+.kids-row__dish {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--space-6) var(--space-4);
+  background: transparent;
+  border: 0;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.kids-row__name {
+  position: relative;
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.kids-row__country {
+  font-family: var(--font-gothic);
+  font-size: var(--fs-md);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.kids-row__tag {
+  margin-top: var(--space-2);
+  font-family: var(--font-gothic);
+  font-size: var(--fs-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.kids-row[data-row="crossed"] .kids-row__name,
+.kids-row[data-row="guessed"] .kids-row__name {
+  color: var(--ink-soft);
+}
+
+.kids-row[data-row="guessed"] .kids-row__dish {
+  cursor: default;
+}
+
+/* The two small controls: 36px drawn, 4px reach, 8px apart (CLAUDE.md). */
+.kids-row__peek,
+.kids-row__crayon {
+  position: relative;
+  flex: none;
+  min-height: 36px;
+  border: var(--border-thin) dashed color-mix(in srgb, var(--ink) 35%, transparent);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.kids-row__peek::after,
+.kids-row__crayon::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+
+.kids-row__peek {
+  padding: 0 var(--space-10);
+  font-family: var(--font-gothic);
+  font-size: var(--fs-md);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.kids-row__peek[aria-disabled="true"] {
+  color: var(--ink-soft);
+  border-color: var(--miss);
+  cursor: not-allowed;
+}
+
+.kids-row__peek[aria-busy="true"] {
+  cursor: progress;
+}
+
+.kids-row__crayon {
+  width: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: var(--fs-lg);
+}
+
+.kids-row__crayon[aria-pressed="true"] {
+  border-style: solid;
+  border-color: var(--cherry);
+  color: var(--cherry);
+}
+
+.kids-row__peek:hover:not([aria-disabled="true"]),
+.kids-row__crayon:hover,
+.kids-row__peek:active:not([aria-disabled="true"]),
+.kids-row__crayon:active {
+  background: var(--near-soft);
+}
+
+/* The crayon strokes: drawn over the name, never under its text colour. */
+.kids-mark {
+  position: absolute;
+  pointer-events: none;
+  overflow: visible;
+  fill: none;
+  stroke: var(--cherry);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.kids-mark path {
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.kids-mark--cross {
+  left: -4px;
+  width: calc(100% + 8px);
+  top: calc(50% - 6px);
+  height: 12px;
+}
+
+.kids-mark--cross path {
+  animation: kids-draw var(--kids-cross) ease-out backwards;
+}
+
+.kids-mark--circle {
+  left: -12px;
+  top: -8px;
+  width: calc(100% + 24px);
+  height: calc(100% + 16px);
+}
+
+.kids-mark--circle path {
+  animation: kids-draw var(--kids-circle) ease-out backwards;
+}
+
+/* What's in it: the board's own marks, as words for a screen reader and a
+   glyph plus a line for everyone else. Never colour alone. */
+.kids-peek {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-12);
+  list-style: none;
+  margin: 0 0 var(--space-10);
+  padding: 0 var(--space-4);
+  font-size: var(--fs-md);
+  color: var(--ink);
+  animation: kids-peek-in var(--kids-peek) ease-out backwards;
+}
+
+.kids-peek__mark {
+  margin-right: var(--space-2);
+  font-weight: 700;
+}
+
+.kids-peek__item--matched {
+  color: var(--hit-ink);
+  font-weight: 700;
+}
+
+.kids-peek__item--missed {
+  color: var(--ink-soft);
+  text-decoration: line-through;
+}
+
+.kids-peek__item--more {
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+/* A long menu: one fold per course, with the count on its head. */
+.kids-sec {
+  margin: 0 0 var(--space-6);
+}
+
+.kids-sec__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: 44px;
+  font-family: var(--font-display);
+  font-size: var(--fs-lg);
+  color: var(--teal);
+  cursor: pointer;
+  list-style: none;
+  border-bottom: var(--border-medium) solid var(--paper-edge);
+}
+
+.kids-sec__head::-webkit-details-marker {
+  display: none;
+}
+
+.kids-sec__head::before {
+  content: "▸";
+  font-size: var(--fs-md);
+  color: var(--ink-soft);
+}
+
+.kids-sec[open] > .kids-sec__head::before {
+  content: "▾";
+}
+
+.kids-sec__count {
+  margin-left: auto;
+  font-family: var(--font-gothic);
+  font-size: var(--fs-md);
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+.kids-sec__sub {
+  margin: var(--space-10) 0 0;
+  font-family: var(--font-gothic);
+  font-size: var(--fs-md);
+  font-weight: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.kids__foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.kids__picked {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--fs-md);
+  color: var(--ink-soft);
+}
+
+.kids__picked strong {
+  color: var(--ink);
+}
+
+.modal__footer .kids__order {
+  flex: none;
+  width: auto;
+  margin: 0;
+  padding: var(--space-12) var(--space-18);
+  font-size: var(--fs-md);
+  letter-spacing: 0.06em;
+}
+
+.modal__footer .kids__order:disabled {
+  background: transparent;
+  color: var(--ink-soft);
+  border: var(--border-thin) dashed var(--miss);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+@keyframes kids-pill-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes kids-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes kids-peek-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .modal-backdrop,
   .modal,
@@ -3567,6 +4051,10 @@ textarea.dish-request__input {
   .coach-spotlight,
   .guess-input--coach-order input:not(:focus),
   .guess-input--coach-pick .guess-input__submit:not(:disabled),
+  /* The Kids Menu: the pill is just there, the crayon marks just drawn. */
+  .kids-pill[data-kids="new"],
+  .kids-mark path,
+  .kids-peek,
   /* The last order keeps its colour and copy; only the ring stops pulsing. */
   .tally--final .tally__hole:not(.tally__hole--punched) {
     animation: none !important;
@@ -3757,4 +4245,23 @@ textarea.dish-request__input {
 
 :root[data-discord-layout="pip"] .guess-row {
   padding: var(--space-6) var(--space-8);
+}
+
+/* The Kids Menu in a tile: the placemat takes the whole tile, and the doodle
+   and fine print give way so the list starts near the top. */
+:root[data-discord-layout="pip"] .modal-backdrop:has(.modal--kids) {
+  padding: var(--space-6);
+}
+
+:root[data-discord-layout="pip"] .modal--kids {
+  max-height: calc(100dvh - 12px);
+}
+
+:root[data-discord-layout="pip"] .kids__doodle,
+:root[data-discord-layout="pip"] .kids__fine {
+  display: none;
+}
+
+:root[data-discord-layout="pip"] .kids__title {
+  font-size: var(--fs-xl);
 }

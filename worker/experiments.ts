@@ -13,6 +13,7 @@
 // against the midnight-ET boundary the game rolls over on.
 
 import { addDays, gameToday } from "../shared/time";
+import { RETENTION_WINDOW_DAYS } from "./players";
 import type { ExperimentDay } from "../shared/types";
 import type { PlayerActivity } from "./players";
 
@@ -53,6 +54,8 @@ export function foldExperimentSeries(
   visitsByDay: Map<string, number> = new Map(),
   /** The ET day the visit beacon switched on; days before it are unmeasured. */
   visitsSince: string | null = null,
+  /** foldFourthMissReturns below: the measured days only. A day it lacks is null. */
+  fourthMiss: Map<string, FourthMissDay> = new Map(),
 ): ExperimentDay[] {
   type Totals = Pick<ExperimentDay, "started" | "completed" | "solved" | "shared">;
   const byDay = new Map<string, Totals>();
@@ -95,7 +98,60 @@ export function foldExperimentSeries(
       players: tracked ? (split ? split.new + split.returning : 0) : null,
       newPlayers: tracked ? (split?.new ?? 0) : null,
       visitors: seated ? (visitsByDay.get(d) ?? 0) : null,
+      fourthMiss: fourthMiss.get(d)?.cohort ?? null,
+      fourthMissBack: fourthMiss.get(d)?.back ?? null,
     });
   }
   return series;
+}
+
+// ---- Back after a fourth miss ---------------------------------------------
+//
+// The cohort the Kids Menu is offered to, read the same way before and after it
+// shipped: a lunch round that reached a fourth miss. That is a guess 4 that
+// wasn't the answer in the guess ledger, or a finished round of five or six
+// guesses. Counted in devices per ET day (a device with two such rounds in a
+// day is one), and "back" means the device played again, any kind, on one of
+// the next RETENTION_WINDOW_DAYS days.
+
+/** One round that reached a fourth miss: whose, and the UTC hour it started in. */
+export interface FourthMissRow {
+  player_id: string;
+  bucket: string;
+}
+
+export interface FourthMissDay {
+  cohort: number;
+  back: number;
+}
+
+/**
+ * Per ET day from `since` (the ledger's first day) through the last day whose
+ * return window has closed. A day inside its window is left out, so the series
+ * reads it as pending; a measured day with nobody on it is a real zero.
+ */
+export function foldFourthMissReturns(
+  rows: Iterable<FourthMissRow>,
+  visitDays: Map<string, string[]>,
+  today: string,
+  since: string | null,
+): Map<string, FourthMissDay> {
+  const out = new Map<string, FourthMissDay>();
+  if (since === null) return out;
+  const lastClosed = addDays(today, -(RETENTION_WINDOW_DAYS + 1));
+  for (let d = since; d <= lastClosed; d = addDays(d, 1)) out.set(d, { cohort: 0, back: 0 });
+
+  const seen = new Set<string>();
+  for (const r of rows) {
+    const day = gameToday(new Date(`${r.bucket.replace(" ", "T")}:30:00Z`));
+    const acc = out.get(day);
+    if (!acc) continue;
+    const key = `${r.player_id}|${day}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    acc.cohort++;
+    const until = addDays(day, RETENTION_WINDOW_DAYS);
+    if ((visitDays.get(r.player_id) ?? []).some((v) => v > day && v <= until)) acc.back++;
+  }
+  return out;
 }

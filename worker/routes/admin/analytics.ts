@@ -27,6 +27,7 @@ import {
   type SolveTimeRow,
 } from "../../service";
 import { foldGrowth, type GrowthRow } from "../../growth";
+import { foldKidsMenuReport, type KidsMenuTotalsRow } from "../../kidsmenu";
 
 import { foldCountries, type CountryRow } from "../../countries";
 import { foldSources, type VisitSourceRow } from "../../attribution";
@@ -649,6 +650,39 @@ async function guessReport(db: D1Database, catalogue: "dish" | "drink") {
 
 app.get("/picks", async (c) => c.json(await guessReport(c.env.DB, "dish")));
 app.get("/picks/drinks", async (c) => c.json(await guessReport(c.env.DB, "drink")));
+
+// The Kids Menu readout for the Menu tab (worker/kidsmenu.ts). Measured from the
+// ledger's first flagged guess, which is the day the menu shipped: the open
+// stamp and the flag arrived in the same migration (0062). Lunch rounds only,
+// reaching a fourth miss by the same rule the Experiments metric uses.
+app.get("/kids-menu", async (c) => {
+  const first = await c.env.DB.prepare(
+    "SELECT MIN(created_at) AS first FROM analytics_guesses WHERE from_kids_menu IS NOT NULL",
+  ).first<{ first: string | null }>();
+  const since = first?.first ?? null;
+  if (!since) return c.json(foldKidsMenuReport(null, undefined));
+  const row = await c.env.DB.prepare(
+    `WITH reached AS (
+       SELECT r.round_id, r.kids_menu_at, r.completed, r.solved FROM analytics_rounds r
+        WHERE r.kind != 'nightcap' AND r.started_at >= ?
+          AND ((r.completed = 1 AND r.guesses >= 5)
+            OR EXISTS (SELECT 1 FROM analytics_guesses g
+                        WHERE g.round_id = r.round_id AND g.guess_number = 4
+                          AND g.guessed_dish_id != g.target_dish_id)))
+     SELECT COUNT(*) AS reached,
+            COALESCE(SUM(kids_menu_at IS NOT NULL), 0) AS opened,
+            COALESCE(SUM(kids_menu_at IS NOT NULL AND completed = 1), 0) AS opened_finished,
+            COALESCE(SUM(kids_menu_at IS NOT NULL AND completed = 1 AND solved = 1), 0) AS opened_won,
+            COALESCE(SUM(kids_menu_at IS NULL AND completed = 1), 0) AS unopened_finished,
+            COALESCE(SUM(kids_menu_at IS NULL AND completed = 1 AND solved = 1), 0) AS unopened_won,
+            (SELECT COUNT(*) FROM analytics_guesses WHERE from_kids_menu = 1) AS menu_orders,
+            (SELECT COUNT(*) FROM kids_menu_peeks) AS peeks
+       FROM reached`,
+  )
+    .bind(since)
+    .first<KidsMenuTotalsRow>();
+  return c.json(foldKidsMenuReport(etDayOfUtcStamp(since), row ?? undefined));
+});
 
 // Weekly active devices, the cohort grid and the first-visit funnel. Not
 // surface-filtered: the fold returns every surface's slice at once, because the

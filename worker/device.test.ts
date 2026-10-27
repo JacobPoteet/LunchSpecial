@@ -31,6 +31,7 @@ describe("foldDeviceData", () => {
       noticeViews: 0,
       guesses: 0,
       occasionViews: 0,
+      menuPeeks: 0,
     });
   });
 

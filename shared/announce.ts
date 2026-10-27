@@ -13,6 +13,7 @@
  * hold. Nothing here reads the target dish — the same rule the board follows.
  */
 
+import type { PeekCard, PeekMark } from "./kidsmenu";
 import { REGION_LABELS } from "./types";
 import type {
   AttributeFeedback,
@@ -181,4 +182,48 @@ export function drinkGuessAnnouncement(input: {
 /** The coaster, announced on its own once it has slid across the bar. */
 export function coasterAnnouncement(index: number, text: string): string {
   return `Coaster ${index}: ${text}`;
+}
+
+// ---- The Kids Menu ----
+//
+// The card changes in small ways a sighted player sees at once: a name gets a
+// crayon line through it, a ring round it, a list of ingredients under it. Each
+// is said in one short sentence in the card's own live region. Never a word
+// about which dish is the Special: the card doesn't know, and neither does this.
+
+/** Each mark a peek can put on an ingredient, as a word. */
+export const PEEK_WORDS: Record<PeekMark, string> = {
+  matched: "in the Special",
+  missed: "not in the Special",
+  untried: "",
+};
+
+/** The redundant visual channel for the same marks, beside the words so they can't drift. */
+export const PEEK_MARKS: Record<PeekMark, string> = {
+  matched: MATCH_MARKS.hit,
+  missed: MATCH_MARKS.miss,
+  untried: "",
+};
+
+/** "Kids Menu: 10 dishes, East Asia and pork." Said when the card opens on its list. */
+export function kidsMenuAnnouncement(dishes: number, filters: ReadonlyArray<string>): string {
+  const narrowed = filters.length === 0 ? "the whole menu" : filters.join(" and ");
+  return `Kids Menu: ${count(dishes, "dish", "dishes")}, ${narrowed}.`;
+}
+
+export function crossAnnouncement(name: string, crossed: boolean): string {
+  return crossed ? `Crossed out ${name}.` : `${name} is back on the menu.`;
+}
+
+export function circleAnnouncement(name: string): string {
+  return `Circled ${name}. Order it from the foot of the menu.`;
+}
+
+/** What a peek showed, then what is left of the round's peeks when that is known. */
+export function peekAnnouncement(name: string, card: PeekCard, left: number | null): string {
+  const parts = card.lines.map((l) => (l.mark === "untried" ? l.ingredient : `${l.ingredient}, ${PEEK_WORDS[l.mark]}`));
+  const what = parts.length === 0 ? "nothing you've tried" : parts.join("; ");
+  const more = card.more ? ", and more you haven't tried" : "";
+  const tail = left === null ? "" : left === 0 ? " No peeks left." : ` ${count(left, "peek", "peeks")} left.`;
+  return `${name}: ${what}${more}.${tail}`;
 }

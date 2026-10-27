@@ -45,6 +45,7 @@ export const METRIC_META: Record<ExperimentMetric, { label: string; hint: string
   finishRate: { label: "Finish rate", hint: "Started rounds finished", unit: "" },
   winRate: { label: "Win rate", hint: "Finished rounds won", unit: "" },
   shareRate: { label: "Share rate", hint: "Finishers who shared", unit: "" },
+  fourthMissReturn: { label: "Back after a 4th miss", hint: "Devices back within 7 days of a 4th miss", unit: "" },
 };
 
 const VERDICT_META: Record<Comparison["verdict"], { label: string; cls: string }> = {

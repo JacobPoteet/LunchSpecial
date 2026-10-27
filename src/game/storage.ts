@@ -3,6 +3,7 @@
 import type { DrinkGuessFeedback, GuessFeedback, PastRound } from "../../shared/types";
 import { DRINK_MAX_GUESSES, MAX_GUESSES } from "../../shared/types";
 import { addDays } from "../../shared/time";
+import type { PeekLine } from "../../shared/kidsmenu";
 import { deviceCookie, readDeviceCookie, type DeviceIdOrigin } from "../../shared/device";
 
 export type GameStatus = "playing" | "won" | "lost";
@@ -26,6 +27,19 @@ export interface RoundState {
    * denominator it made up.
    */
   ingredientCount?: number;
+  /**
+   * The Kids Menu scratchpad (shared/kidsmenu.ts): the dishes the player
+   * crossed out with the crayon, and what each "What's in it?" showed, so a
+   * reload neither forgets the notes nor spends a peek twice. Optional: absent
+   * on every round that never opened the menu. Saved with the round, so it
+   * rides the archive and the Discord progress copy with no rule of its own.
+   */
+  kidsMenu?: KidsMenuScratch;
+}
+
+export interface KidsMenuScratch {
+  crossed: number[];
+  peeks: Record<string, { lines: PeekLine[]; more: boolean }>;
 }
 
 export interface Stats {
@@ -41,6 +55,7 @@ export interface Stats {
 const STATE_KEY = "lunch-special:round";
 const STATS_KEY = "lunch-special:stats";
 const HOWTO_KEY = "lunch-special:howto-seen";
+const KIDS_MENU_KEY = "lunch-special:kids-menu-seen";
 const ARCHIVE_KEY = "lunch-special:archive";
 const PLAYER_KEY = "lunch-special:player";
 const ANNOUNCEMENTS_KEY = "lunch-special:announcements";
@@ -420,6 +435,25 @@ export function markHowToSeen(): void {
     localStorage.setItem(HOWTO_KEY, "1");
   } catch {
     // Storage blocked — the coach marks may show again next visit.
+  }
+}
+
+// The Kids Menu's one coach card, shown the first round a device could open
+// the menu. Its own key: a player can know the board by heart and still never
+// have reached a fourth miss. Guarded like the how-to's, for the same reason.
+export function hasSeenKidsMenuIntro(): boolean {
+  try {
+    return localStorage.getItem(KIDS_MENU_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markKidsMenuIntroSeen(): void {
+  try {
+    localStorage.setItem(KIDS_MENU_KEY, "1");
+  } catch {
+    // Storage blocked: the card may show again on a later round.
   }
 }
 

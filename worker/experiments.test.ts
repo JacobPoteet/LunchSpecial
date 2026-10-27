@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { foldExperimentSeries, type ExperimentHourRow } from "./experiments";
+import { foldExperimentSeries, foldFourthMissReturns, type ExperimentHourRow } from "./experiments";
 import { foldPlayerActivity, type PlayerBucketRow } from "./players";
 
 // ET is UTC-4 in summer, so 16:00 UTC is noon ET the same day and 02:00 UTC is
@@ -150,5 +150,57 @@ describe("foldExperimentSeries", () => {
       expect(series[1]).toMatchObject({ date: "2026-08-02", players: 0, newPlayers: 0 });
       expect(series[2]).toMatchObject({ date: "2026-08-03", players: 1, newPlayers: 1 });
     });
+  });
+});
+
+describe("foldFourthMissReturns", () => {
+  const visits = new Map([
+    ["p1", ["2026-08-01", "2026-08-05"]],
+    ["p2", ["2026-08-01", "2026-08-12"]],
+    ["p3", ["2026-08-02"]],
+  ]);
+
+  it("counts devices once a day, and back only inside the window", () => {
+    const out = foldFourthMissReturns(
+      [
+        { player_id: "p1", bucket: "2026-08-01 16" },
+        { player_id: "p1", bucket: "2026-08-01 18" },
+        { player_id: "p2", bucket: "2026-08-01 16" },
+        { player_id: "p3", bucket: "2026-08-02 16" },
+      ],
+      visits,
+      "2026-08-20",
+      "2026-08-01",
+    );
+    // p1 came back on the 5th; p2 not until the 12th, past seven days.
+    expect(out.get("2026-08-01")).toEqual({ cohort: 2, back: 1 });
+    expect(out.get("2026-08-02")).toEqual({ cohort: 1, back: 0 });
+    // A measured day with nobody on it is a zero.
+    expect(out.get("2026-08-03")).toEqual({ cohort: 0, back: 0 });
+  });
+
+  it("leaves a day inside its return window out (pending), and nothing before the ledger", () => {
+    const out = foldFourthMissReturns([{ player_id: "p1", bucket: "2026-08-15 16" }], visits, "2026-08-20", "2026-08-10");
+    expect(out.has("2026-08-09")).toBe(false);
+    expect(out.has("2026-08-12")).toBe(true);
+    expect(out.has("2026-08-13")).toBe(false);
+    expect(out.has("2026-08-15")).toBe(false);
+    expect(foldFourthMissReturns([], visits, "2026-08-20", null).size).toBe(0);
+  });
+
+  it("reaches the series as nulls on the days it didn't measure", () => {
+    const series = foldExperimentSeries(
+      [hour("2026-08-01 16"), hour("2026-08-02 16")],
+      "2026-08-02",
+      noPlayers,
+      null,
+      new Map(),
+      null,
+      new Map([["2026-08-01", { cohort: 3, back: 1 }]]),
+    );
+    expect(series.map((d) => [d.fourthMiss, d.fourthMissBack])).toEqual([
+      [3, 1],
+      [null, null],
+    ]);
   });
 });

@@ -21,11 +21,12 @@ export const EXPERIMENT_METRICS = [
   "finishRate",
   "winRate",
   "shareRate",
+  "fourthMissReturn",
 ] as const;
 export type ExperimentMetric = (typeof EXPERIMENT_METRICS)[number];
 
 /** Which metrics are proportions of a denominator rather than a daily quantity. */
-export const RATE_METRICS: readonly ExperimentMetric[] = ["playRate", "finishRate", "winRate", "shareRate"];
+export const RATE_METRICS: readonly ExperimentMetric[] = ["playRate", "finishRate", "winRate", "shareRate", "fourthMissReturn"];
 
 export const EXPERIMENT_LIMITS = { label: 80, hypothesis: 500 } as const;
 
@@ -76,6 +77,16 @@ export interface ExperimentDay {
    * rather than being read as a catastrophe.
    */
   visitors: number | null;
+  /**
+   * Devices whose lunch round that day reached a fourth miss: the cohort the
+   * Kids Menu is offered to, before it shipped and after (migrations/0062).
+   * Null before the guess ledger existed (migrations/0053; an abandoned round
+   * at four misses is invisible without it), and null while the day is still
+   * inside its return window: pending, never a no-show.
+   */
+  fourthMiss: number | null;
+  /** Of those, the devices that played again within RETENTION_WINDOW_DAYS. Null on the same days. */
+  fourthMissBack: number | null;
 }
 
 /** Everything the Experiments tab needs, in one response. */

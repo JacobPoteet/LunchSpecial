@@ -5,6 +5,7 @@ import { Hono } from "hono";
 import adminRoutes from "./routes/admin";
 import analyticsRoutes from "./routes/analytics";
 import discordRoutes from "./routes/discord";
+import kidsMenuRoutes from "./routes/kidsmenu";
 import nightcapRoutes from "./routes/nightcap";
 import publicRoutes from "./routes/public";
 import statsRoutes from "./routes/stats";
@@ -24,6 +25,8 @@ app.route("/api/discord", discordRoutes);
 // table, clue count or guess ceiling with the daily — and above all no pool.
 app.route("/api/night", nightcapRoutes);
 app.route("/api/stats", statsRoutes);
+// The Kids Menu, the short list offered from the fourth miss. See routes/kidsmenu.ts.
+app.route("/api/kids-menu", kidsMenuRoutes);
 app.route("/api", publicRoutes);
 
 app.notFound((c) => c.json({ error: "Not found" }, 404));

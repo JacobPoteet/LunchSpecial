@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_PROGRESS_BYTES, mergeProgress, normalizeProgress, type Progress } from "./progress";
+import { MAX_PROGRESS_BYTES, mergeProgress, normalizeProgress, PROGRESS_KEYS, type Progress } from "./progress";
 
 const STATS = "lunch-special:stats";
 const ROUND = "lunch-special:round";
@@ -52,6 +52,20 @@ describe("mergeProgress", () => {
 
   it("sets a seen-flag when either side has it", () => {
     expect(mergeProgress({}, { "lunch-special:howto-seen": "1" })["lunch-special:howto-seen"]).toBe("1");
+  });
+
+  it("carries the Kids Menu's coach card flag, so a phone that lost it isn't coached twice", () => {
+    expect(PROGRESS_KEYS).toContain("lunch-special:kids-menu-seen");
+    expect(mergeProgress({}, { "lunch-special:kids-menu-seen": "1" })["lunch-special:kids-menu-seen"]).toBe("1");
+    expect(mergeProgress({ "lunch-special:kids-menu-seen": "1" }, {})["lunch-special:kids-menu-seen"]).toBe("1");
+    expect(normalizeProgress({ "lunch-special:kids-menu-seen": "1" })).toEqual({ "lunch-special:kids-menu-seen": "1" });
+  });
+
+  it("keeps the Kids Menu scratchpad with the board it was written on", () => {
+    const board = (n: number, crossed: number[]) =>
+      JSON.stringify({ date: "2026-10-26", status: "playing", guesses: Array(n).fill({}), kidsMenu: { crossed, peeks: {} } });
+    const merged = JSON.parse(mergeProgress({ [ROUND]: board(4, [1]) }, { [ROUND]: board(5, [1, 2]) })[ROUND]!);
+    expect(merged.kidsMenu.crossed).toEqual([1, 2]);
   });
 
   it("falls back to the readable side when one copy is corrupted", () => {

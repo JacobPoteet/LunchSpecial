@@ -12,6 +12,8 @@ const day = (date: string, over: Partial<ExperimentDay> = {}): ExperimentDay => 
   players: 0,
   newPlayers: 0,
   visitors: 0,
+  fourthMiss: 0,
+  fourthMissBack: 0,
   ...over,
 });
 
@@ -266,5 +268,19 @@ describe("compare", () => {
       expect(TARGET_LIFT).toBeGreaterThan(0);
       expect(TARGET_LIFT).toBeLessThan(1);
     });
+  });
+});
+
+describe("back after a fourth miss", () => {
+  it("pools devices over the period and skips the days it couldn't measure", () => {
+    const days = [
+      day("2026-10-10", { fourthMiss: 10, fourthMissBack: 4 }),
+      day("2026-10-11", { fourthMiss: null, fourthMissBack: null }),
+      day("2026-10-12", { fourthMiss: 30, fourthMissBack: 12 }),
+    ];
+    const side = summarise("fourthMissReturn", days);
+    expect(side.n).toBe(40);
+    expect(side.rate?.of).toBe(40);
+    expect(side.rate?.pct).toBe(40);
   });
 });

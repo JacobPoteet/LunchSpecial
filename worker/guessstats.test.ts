@@ -80,11 +80,32 @@ describe("foldRoundGuesses", () => {
   it("keeps a guess whose dish has left the catalogue, nameless, rather than dropping it", () => {
     const r = foldRoundGuesses("round-1", [row(1, null)]);
     expect(r.guesses).toEqual([
-      { number: 1, name: null, country: null, correct: false, at: "2026-10-08T20:01:00Z" },
+      { number: 1, name: null, country: null, correct: false, fromKidsMenu: null, at: "2026-10-08T20:01:00Z" },
     ]);
   });
 
   it("is empty for a round the ledger never saw: unmeasured, not zero guesses", () => {
     expect(foldRoundGuesses("round-1", []).guesses).toEqual([]);
+    expect(foldRoundGuesses("round-1", []).peeks).toEqual([]);
+  });
+
+  it("marks a guess ordered off the Kids Menu, and leaves an unmeasured row unmeasured", () => {
+    const r = foldRoundGuesses("round-1", [
+      { ...row(4, "Pho"), from_kids_menu: null },
+      { ...row(5, "Ramen", 1), from_kids_menu: 1 },
+      { ...row(6, "Udon"), from_kids_menu: 0 },
+    ]);
+    expect(r.guesses.map((g) => g.fromKidsMenu)).toEqual([null, true, false]);
+  });
+
+  it("lists the round's peeks oldest first", () => {
+    const r = foldRoundGuesses("round-1", [], [
+      { name: "Udon", created_at: "2026-10-08 20:07:00" },
+      { name: null, created_at: "2026-10-08 20:05:00" },
+    ]);
+    expect(r.peeks).toEqual([
+      { name: null, at: "2026-10-08T20:05:00Z" },
+      { name: "Udon", at: "2026-10-08T20:07:00Z" },
+    ]);
   });
 });

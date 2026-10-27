@@ -56,7 +56,7 @@ export function Modal({
    * also swaps the enter/exit animation (it swings down from the top instead of
    * sliding up), so an announcement never reads as the check.
    */
-  variant?: "receipt" | "archive" | "notice";
+  variant?: "receipt" | "archive" | "notice" | "kids";
   /** Extra classes on the card, for a skin that lives outside game.css (the admin's device check). */
   className?: string;
   /**

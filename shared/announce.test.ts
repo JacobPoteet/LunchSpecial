@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { clueAnnouncement, guessAnnouncement, MATCH_MARKS, MATCH_WORDS } from "./announce";
+import {
+  circleAnnouncement,
+  clueAnnouncement,
+  crossAnnouncement,
+  guessAnnouncement,
+  kidsMenuAnnouncement,
+  MATCH_MARKS,
+  MATCH_WORDS,
+  PEEK_MARKS,
+  PEEK_WORDS,
+  peekAnnouncement,
+} from "./announce";
 import { MAX_GUESSES, type GuessFeedback } from "./types";
 
 const miss: GuessFeedback = {
@@ -101,5 +112,41 @@ describe("the two redundant channels", () => {
   it("gives the three states three distinct marks", () => {
     expect(new Set(Object.values(MATCH_MARKS)).size).toBe(3);
     expect(new Set(Object.values(MATCH_WORDS)).size).toBe(3);
+  });
+});
+
+describe("the Kids Menu", () => {
+  it("says what the menu holds and what narrowed it", () => {
+    expect(kidsMenuAnnouncement(10, ["East Asia", "pork"])).toBe("Kids Menu: 10 dishes, East Asia and pork.");
+    expect(kidsMenuAnnouncement(451, [])).toBe("Kids Menu: 451 dishes, the whole menu.");
+  });
+
+  it("says a crayon line going on and coming off", () => {
+    expect(crossAnnouncement("Pho", true)).toBe("Crossed out Pho.");
+    expect(crossAnnouncement("Pho", false)).toBe("Pho is back on the menu.");
+    expect(circleAnnouncement("Pho")).toBe("Circled Pho. Order it from the foot of the menu.");
+  });
+
+  it("reads a peek out with its marks as words, then the peeks left", () => {
+    const card = {
+      lines: [
+        { ingredient: "rice", mark: "matched" as const },
+        { ingredient: "egg", mark: "missed" as const },
+        { ingredient: "carrot", mark: "untried" as const },
+      ],
+      more: false,
+    };
+    expect(peekAnnouncement("Congee", card, 1)).toBe(
+      "Congee: rice, in the Special; egg, not in the Special; carrot. 1 peek left.",
+    );
+    expect(peekAnnouncement("Congee", { lines: [], more: true }, 0)).toBe(
+      "Congee: nothing you've tried, and more you haven't tried. No peeks left.",
+    );
+    expect(peekAnnouncement("Congee", card, null)).toMatch(/carrot\.$/);
+  });
+
+  it("gives each peek mark a word and a glyph", () => {
+    expect(PEEK_MARKS.matched).not.toBe(PEEK_MARKS.missed);
+    expect(PEEK_WORDS.matched).not.toBe(PEEK_WORDS.missed);
   });
 });

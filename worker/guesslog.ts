@@ -4,6 +4,8 @@
 // rule is testable without a database: a round is recorded only when the client
 // named it, and never when the request is a rehearsal.
 
+import { MENU_AFTER } from "../shared/kidsmenu";
+
 export type GuessCatalogue = "dish" | "drink";
 
 export interface GuessRecord {
@@ -14,6 +16,8 @@ export interface GuessRecord {
   catalogue: GuessCatalogue;
   guessedId: number;
   targetId: number;
+  /** Ordered off the Kids Menu card rather than the order bar (migrations/0062). */
+  fromKidsMenu: boolean;
 }
 
 export interface GuessRecordInput {
@@ -31,6 +35,11 @@ export interface GuessRecordInput {
    * `roundId` in those modes; this is the server not trusting that.
    */
   rehearsal: boolean;
+  /**
+   * From the request body. Believed only for a dish guess past MENU_AFTER: the
+   * card isn't on the board any earlier, and the bar has no card at all.
+   */
+  fromKidsMenu?: unknown;
 }
 
 /**
@@ -51,6 +60,7 @@ export function guessRecord(input: GuessRecordInput): GuessRecord | null {
     catalogue: input.catalogue,
     guessedId: input.guessedId,
     targetId: input.targetId,
+    fromKidsMenu: input.fromKidsMenu === true && input.catalogue === "dish" && input.guessNumber > MENU_AFTER,
   };
 }
 
@@ -68,12 +78,13 @@ export async function recordGuess(db: D1Database, rec: GuessRecord): Promise<voi
     await db
       .prepare(
         `INSERT INTO analytics_guesses
-           (round_id, guess_number, player_id, guessed_dish_id, target_dish_id, guessed_drink_id, target_drink_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
+           (round_id, guess_number, player_id, guessed_dish_id, target_dish_id, guessed_drink_id, target_drink_id, from_kids_menu)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(round_id, guess_number) DO UPDATE SET
            player_id = COALESCE(excluded.player_id, player_id),
            guessed_dish_id = excluded.guessed_dish_id,
            guessed_drink_id = excluded.guessed_drink_id,
+           from_kids_menu = excluded.from_kids_menu,
            created_at = datetime('now')`,
       )
       .bind(
@@ -84,6 +95,8 @@ export async function recordGuess(db: D1Database, rec: GuessRecord): Promise<voi
         dish ? rec.targetId : null,
         dish ? null : rec.guessedId,
         dish ? null : rec.targetId,
+        // NULL on a drink: the bar has no Kids Menu, so the question doesn't apply.
+        dish ? (rec.fromKidsMenu ? 1 : 0) : null,
       )
       .run();
   } catch {

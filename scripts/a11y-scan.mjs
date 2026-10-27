@@ -41,6 +41,8 @@ const FATAL = new Set(["serious", "critical"]);
 /** The dish the board is pinned to, and one that is definitely not it. */
 const TARGET_SLUG = "ramen";
 const WRONG_GUESS = "Spaghetti Carbonara";
+/** Four misses against ramen that earn a few facts, so the Kids Menu is short. */
+const KIDS_MISSES = ["Mapo Tofu", "Full English Breakfast", "Fish Tacos", "Pavlova"];
 
 /** The same, for After Dark. `handoff=1` is what makes it reachable at noon. */
 const TARGET_DRINK = "negroni";
@@ -99,6 +101,33 @@ const SCANS = [
       // on a delay, so wait for the dialog rather than for the guess.
       await guess(page, "Ramen");
       await page.waitForSelector(".modal--receipt");
+    },
+  },
+  // The Kids Menu: the pill and its one coach card after the fourth miss, then
+  // the card itself with a dish crossed out, one peeked and one circled, which
+  // is every mark it can draw.
+  {
+    name: "Kids Menu: the pill and its coach card (fourth miss)",
+    async setup(page) {
+      await page.goto(`${BASE}/?special=${TARGET_SLUG}`, { waitUntil: "domcontentloaded" });
+      for (const name of KIDS_MISSES) {
+        await guess(page, name);
+        await page.waitForSelector(`.guess-row:nth-child(${KIDS_MISSES.indexOf(name) + 1}) .attr-tile--revealed`);
+      }
+      await page.waitForSelector(".kids-pill");
+      await page.waitForSelector(".coach--kids");
+    },
+  },
+  {
+    name: "Kids Menu: the card (crossed, peeked, circled)",
+    async setup(page) {
+      await page.click(".kids-pill");
+      await page.waitForSelector(".kids-row");
+      await page.click(".kids-row__crayon >> nth=0");
+      await page.click(".kids-row__peek >> nth=1");
+      await page.waitForSelector(".kids-peek");
+      await page.click('.kids-row[data-row="live"] .kids-row__dish >> nth=0');
+      await page.waitForSelector(".kids-mark--circle");
     },
   },
   // After Dark runs the SAME components under a different palette, which is
