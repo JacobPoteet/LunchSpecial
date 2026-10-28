@@ -99,12 +99,19 @@ function readPicked() {
   }
 }
 
-/** The language this page load should speak, from the URL, the pick and the browser. */
+/** Discord's language setting, once src/discord/restore.ts has read it. Null off Discord. */
+let discordLocale: string | null = null;
+
+/** The language this page load should speak, from the URL, the pick, Discord and the browser. */
 function detect(): Speaking {
   const override = localeOverride(window.location.search, LOCALES);
   if (override) return override;
   return resolveLocale(
-    { picked: readPicked(), discord: null, browser: typeof navigator === "undefined" ? [] : navigator.languages },
+    {
+      picked: readPicked(),
+      discord: discordLocale,
+      browser: typeof navigator === "undefined" ? [] : navigator.languages,
+    },
     LOCALES,
   );
 }
@@ -138,6 +145,18 @@ export function setLocale(tag: LocaleTag): Promise<void> {
     // Storage blocked: the pick still holds for this page load.
   }
   return speak(tag);
+}
+
+/**
+ * Decide again once the Activity has authorized: Discord's own language is
+ * known now, and the restore may have brought back a pick made on another
+ * device. Usually lands before the mount (the restore holds it); a late one
+ * swaps the catalog in like a slow chunk does.
+ */
+export function learnDiscordLocale(locale: string | null): Promise<void> {
+  discordLocale = locale;
+  if (window.location.pathname.startsWith("/admin")) return Promise.resolve();
+  return speak(detect());
 }
 
 /**

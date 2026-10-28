@@ -236,6 +236,7 @@ const es: Messages = {
     winDay: "¡LISTO!",
     winNight: "SERVIDO",
     nightNumber: (night: number) => `Noche ${night}`,
+    playNow: "¡Juega ya!",
   },
   presence: {
     modes: {

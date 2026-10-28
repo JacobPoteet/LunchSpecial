@@ -108,13 +108,27 @@ export interface LocaleInputs {
   browser: readonly string[];
 }
 
+/**
+ * The reviewed locale a setting nobody chose for this game asks for, or null:
+ * a browser's language, Discord's, or a guild's (the Worker's progress
+ * message). An unreviewed locale is never the answer.
+ */
+export function detectLocale<T extends string>(
+  tag: string | null | undefined,
+  locales: readonly LocaleInfo<T>[],
+): T | null {
+  return matchLocale(
+    tag,
+    locales.filter((l) => l.autoDetect),
+  );
+}
+
 /** The language the page speaks. Always one of `locales`; the first is the fallback. */
 export function resolveLocale<T extends string>(input: LocaleInputs, locales: readonly LocaleInfo<T>[]): T {
   const picked = matchLocale(input.picked?.locale, locales);
   if (picked) return picked;
-  const detectable = locales.filter((l) => l.autoDetect);
   for (const tag of [input.discord, ...input.browser]) {
-    const hit = matchLocale(tag, detectable);
+    const hit = detectLocale(tag, locales);
     if (hit) return hit;
   }
   return locales[0].tag;

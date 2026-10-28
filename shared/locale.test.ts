@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  detectLocale,
   intlLocale,
   langAttribute,
   LOCALES,
@@ -36,6 +37,14 @@ describe("matchLocale", () => {
     expect(matchLocale(null, LIST)).toBeNull();
     expect(matchLocale("", LIST)).toBeNull();
     expect(matchLocale("ja-JP", LIST)).toBeNull();
+  });
+});
+
+describe("detectLocale", () => {
+  it("answers a guild's or a browser's setting with a reviewed locale only", () => {
+    expect(detectLocale("es-ES", LIST)).toBe("es");
+    expect(detectLocale("de", LIST)).toBeNull();
+    expect(detectLocale(undefined, LIST)).toBeNull();
   });
 });
 

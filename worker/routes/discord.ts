@@ -17,8 +17,10 @@
 // token, no image, no player. The upload is forwarded and forgotten.
 
 import { Hono } from "hono";
-// English until phase 1a reads the guild's language off the interaction.
+import { CATALOGS } from "../../shared/i18n/catalogs";
 import en from "../../shared/i18n/locales/en";
+import type { Messages } from "../../shared/i18n/messages";
+import { detectLocale, LOCALES } from "../../shared/locale";
 import { progressLine, type ScorecardTheme } from "../../shared/scorecard";
 import { avatarUrl, displayName } from "../avatar";
 import { verifyDiscordSignature } from "../discordsig";
@@ -266,6 +268,13 @@ interface Interaction {
   data?: { options?: { name?: string; value?: unknown }[]; custom_id?: string };
   member?: { user?: InteractionUser; nick?: string | null };
   user?: InteractionUser;
+  /** The server's language. Not `locale`, which is the one player's: the message is the channel's. */
+  guild_locale?: string;
+}
+
+/** The catalog a stored message tag names, English for NULL or anything we no longer ship. */
+function catalogFor(tag: string | null | undefined): Messages {
+  return (tag && CATALOGS[tag]) || en;
 }
 
 app.post("/interactions", async (c) => {
@@ -314,7 +323,12 @@ app.post("/interactions", async (c) => {
   const name = displayName(user, interaction.member?.nick);
   const icon = user.id ? avatarUrl(user.id, user.avatar) : undefined;
 
-  await rememberMessage(c.env.DB, handle, token);
+  // The server's language when we speak it (reviewed locales only, like any
+  // setting nobody chose for this game), kept for the edits that follow.
+  const locale = detectLocale(interaction.guild_locale, LOCALES);
+  const t = catalogFor(locale);
+
+  await rememberMessage(c.env.DB, handle, token, locale);
 
   // No image yet — the card arrives moments later on the first /progress call.
   // Composing it here would mean holding the bytes somewhere between the
@@ -322,12 +336,12 @@ app.post("/interactions", async (c) => {
   return c.json({
     type: CALLBACK_MESSAGE,
     data: {
-      content: progressLine(true, 0, "day", en),
+      content: progressLine(true, 0, "day", t),
       embeds: [{ author: { name, icon_url: icon }, color: EMBED_COLOR }],
       components: [
         {
           type: 1,
-          components: [{ type: 2, style: 1, label: "Play now!", custom_id: PLAY_BUTTON_ID }],
+          components: [{ type: 2, style: 1, label: t.scorecard.playNow, custom_id: PLAY_BUTTON_ID }],
         },
       ],
     },
@@ -342,17 +356,17 @@ app.post("/interactions", async (c) => {
  * Discord's clock, not ours: past {@link TOKEN_TTL_MINUTES} the token is dead
  * and the row is litter. There's no state worth a cron for.
  */
-async function rememberMessage(db: D1Database, handle: string, token: string): Promise<void> {
+async function rememberMessage(db: D1Database, handle: string, token: string, locale: string | null): Promise<void> {
   await db.batch([
     db
       .prepare("DELETE FROM discord_messages WHERE created_at < datetime('now', ?)")
       .bind(`-${TOKEN_TTL_MINUTES} minutes`),
     db
       .prepare(
-        `INSERT INTO discord_messages (handle, interaction_token) VALUES (?, ?)
-         ON CONFLICT(handle) DO UPDATE SET interaction_token = excluded.interaction_token`,
+        `INSERT INTO discord_messages (handle, interaction_token, locale) VALUES (?, ?, ?)
+         ON CONFLICT(handle) DO UPDATE SET interaction_token = excluded.interaction_token, locale = excluded.locale`,
       )
-      .bind(handle, token),
+      .bind(handle, token, locale),
   ]);
 }
 
@@ -377,11 +391,11 @@ app.post("/progress", async (c) => {
   if (image.size > MAX_IMAGE_BYTES) return c.json({ error: "Score card too large" }, 413);
 
   const row = await c.env.DB.prepare(
-    `SELECT interaction_token FROM discord_messages
+    `SELECT interaction_token, locale FROM discord_messages
      WHERE handle = ? AND created_at >= datetime('now', ?)`,
   )
     .bind(handle, `-${TOKEN_TTL_MINUTES} minutes`)
-    .first<{ interaction_token: string }>();
+    .first<{ interaction_token: string; locale: string | null }>();
   // A handle with no live row is the normal end of a long round, not an error
   // worth surfacing: Discord has expired the token and the message simply stops
   // updating. 410 tells the client to stop trying.
@@ -394,7 +408,7 @@ app.post("/progress", async (c) => {
   form.append(
     "payload_json",
     JSON.stringify({
-      content: progressLine(live, Number.isFinite(puzzle) ? puzzle : 0, mode, en),
+      content: progressLine(live, Number.isFinite(puzzle) ? puzzle : 0, mode, catalogFor(row.locale)),
       attachments: [{ id: 0, filename: "lunch-special.png" }],
     }),
   );

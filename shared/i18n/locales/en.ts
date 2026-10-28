@@ -230,6 +230,8 @@ const en = {
     winDay: "ORDER UP",
     winNight: "POURED",
     nightNumber: (night: number) => `Night ${night}`,
+    /** The progress message's button, which opens the Activity. */
+    playNow: "Play now!",
   },
   presence: {
     modes: {
