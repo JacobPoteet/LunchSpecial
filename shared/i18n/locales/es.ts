@@ -275,7 +275,7 @@ const es: Messages = {
     coach: "**¿Te atascaste?** Abre el Menú infantil para ver todos los platos que todavía pueden ser la respuesta.",
     dismissCoach: "Cerrar el consejo del Menú infantil",
     ordered: "pedido",
-    circled: (name: string) => `Marcado: **${name}**`,
+    circled: "Marcado:",
     tapToCircle: "Toca un plato para marcarlo con un círculo.",
     order: "Pedirlo",
     fine: "Para comensales de 12 años o menos. No lo vamos a comprobar.",
