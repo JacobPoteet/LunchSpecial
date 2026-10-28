@@ -117,7 +117,6 @@ const en = {
   input: {
     placeholder: "Order a dish…",
     label: "Guess a dish",
-    order: "Order",
     matches: (label: string) => `Matches for ${label.toLowerCase()}`,
     empty: "Not on the menu — try another dish",
   },
@@ -295,7 +294,7 @@ const en = {
     legendNear: "close",
     legendMiss: "miss",
     order: "**Guess today's mystery dish.** Type any dish to start.",
-    pick: "**Pick one, then hit Order.**",
+    pick: "**Pick your dish from the list.**",
     read: "**Green is right, yellow is close.** Each miss also gets you a clue.",
     skip: "Skip the walkthrough",
   },

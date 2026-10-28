@@ -5,7 +5,7 @@
 // the one thing to do next and each dismissed by doing it:
 //
 //   order   the board is empty     a spotlight on the order bar, one sentence
-//   pick    the list is open       the Order button pulses, one sentence
+//   pick    the list is open       the list pulses, one sentence
 //   read    the first row landed   the three marks, one sentence about clues
 //
 // Which beat shows is DERIVED from the round (0 guesses, a list with matches,

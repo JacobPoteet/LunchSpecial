@@ -383,13 +383,9 @@
   margin-bottom: var(--space-6);
 }
 
-.guess-input__row {
-  display: flex;
-  gap: var(--space-8);
-}
-
 .guess-input input {
-  flex: 1;
+  display: block;
+  width: 100%;
   border: var(--border-medium) solid var(--ink);
   border-radius: var(--radius);
   background: var(--paper-bright);
@@ -405,31 +401,14 @@
 }
 
 /* The diner's button: slab type, uppercase, a control corner. The teal share
-   button and the cherry order button are both this; each adds only its fill
-   and size below. */
-.share-btn,
-.guess-input__submit {
+   button and its cherry headline variant both start here; each adds only its
+   fill and size below. */
+.share-btn {
   font-family: var(--font-display);
   border: none;
   border-radius: var(--radius);
   font-size: var(--fs-md);
   text-transform: uppercase;
-}
-
-.guess-input__submit {
-  padding: 0 var(--space-18);
-  letter-spacing: 0.06em;
-}
-
-/* Disabled is an empty slot, not a dull button: transparent with a dashed edge
-   and quiet ink. The old flat --miss fill was grey-brown on cream and a darker
-   grey-brown at the bar, where it read as a muddy button rather than as one
-   waiting for a name. */
-.guess-input__submit:disabled {
-  background: transparent;
-  color: var(--ink-soft);
-  border: var(--border-thin) dashed var(--miss);
-  cursor: not-allowed;
 }
 
 .guess-input__list {
@@ -1450,8 +1429,6 @@
 
 /* The share button is the headline action once the check is settled: bigger,
    brighter (cherry), and lifted off the receipt so it's the obvious next tap. */
-/* The cherry treatment: the order button and the headline share action. */
-.guess-input__submit,
 .share-btn--primary {
   background: var(--cherry);
   color: var(--on-cherry);
@@ -1958,12 +1935,18 @@ textarea.dish-request__input {
   z-index: var(--z-spotlight-lit);
 }
 
-/* The ring on the order bar, and then on the Order button once there is
-   something to press it for. Off while the field is focused, which already
-   draws its own ring; two rings on one box read as a glitch. */
-.guess-input--coach-order input:not(:focus),
-.guess-input--coach-pick .guess-input__submit:not(:disabled) {
+/* The ring on the order bar, and then on the list once there is something in
+   it to pick. Off while the field is focused, which already draws its own
+   ring; two rings on one box read as a glitch. The list keeps its drop on
+   opening and its dropdown shadow under the ring. */
+.guess-input--coach-order input:not(:focus) {
   animation: coach-ring 1.8s ease-out infinite;
+}
+
+.guess-input--coach-pick .guess-input__list {
+  animation:
+    menu-drop var(--menu-drop-dur) cubic-bezier(0.2, 0.8, 0.25, 1),
+    coach-ring-list 1.8s ease-out infinite;
 }
 
 @keyframes coach-dim {
@@ -1975,6 +1958,12 @@ textarea.dish-request__input {
   0% { box-shadow: 0 0 0 0 rgb(var(--mustard-rgb) / 0.85); }
   70% { box-shadow: 0 0 0 12px rgb(var(--mustard-rgb) / 0); }
   100% { box-shadow: 0 0 0 12px rgb(var(--mustard-rgb) / 0); }
+}
+
+@keyframes coach-ring-list {
+  0% { box-shadow: var(--shadow-dropdown), 0 0 0 0 rgb(var(--mustard-rgb) / 0.85); }
+  70% { box-shadow: var(--shadow-dropdown), 0 0 0 12px rgb(var(--mustard-rgb) / 0); }
+  100% { box-shadow: var(--shadow-dropdown), 0 0 0 12px rgb(var(--mustard-rgb) / 0); }
 }
 
 @keyframes coach-in {
@@ -3041,7 +3030,6 @@ textarea.dish-request__input {
 .icon-btn,
 .share-btn:not(.share-btn--primary),
 .replay-btn,
-.guess-input__submit,
 .archive-bar__btn,
 .freeplay-bar__btn,
 .newday-bar__btn,
@@ -3066,8 +3054,7 @@ textarea.dish-request__input {
 }
 /* Full-width bars read better sinking than shrinking — a scale on something
    this wide looks like a rendering glitch rather than a press. */
-.share-btn:not(.share-btn--primary):active,
-.guess-input__submit:not(:disabled):active {
+.share-btn:not(.share-btn--primary):active {
   transform: translateY(2px);
 }
 
@@ -3092,7 +3079,6 @@ textarea.dish-request__input {
 .sound-btn:focus-visible,
 .share-btn:focus-visible,
 .replay-btn:focus-visible,
-.guess-input__submit:focus-visible,
 .modal__close:focus-visible,
 .coach__dismiss:focus-visible,
 .story__toggle:focus-visible,
@@ -4026,7 +4012,7 @@ textarea.dish-request__input {
   .coach,
   .coach-spotlight,
   .guess-input--coach-order input:not(:focus),
-  .guess-input--coach-pick .guess-input__submit:not(:disabled),
+  .guess-input--coach-pick .guess-input__list,
   /* The Kids' Menu: the pill is just there, the crayon ring just drawn. */
   .kids-pill[data-kids="new"],
   .kids-mark--circle path,
@@ -4037,9 +4023,12 @@ textarea.dish-request__input {
 
   /* The ring holds at its brightest rather than switching off, since the
      point of it is to say where to look. */
-  .guess-input--coach-order input:not(:focus),
-  .guess-input--coach-pick .guess-input__submit:not(:disabled) {
+  .guess-input--coach-order input:not(:focus) {
     box-shadow: 0 0 0 4px rgb(var(--mustard-rgb) / 0.85);
+  }
+
+  .guess-input--coach-pick .guess-input__list {
+    box-shadow: var(--shadow-dropdown), 0 0 0 4px rgb(var(--mustard-rgb) / 0.85);
   }
 
   .tally--final .tally__hole:not(.tally__hole--punched) {
@@ -4076,8 +4065,7 @@ textarea.dish-request__input {
   .dish-request__cancel:active,
   .modal__close:active,
   .share-btn:not(.share-btn--primary):active,
-  .share-btn--primary:active,
-  .guess-input__submit:not(:disabled):active {
+  .share-btn--primary:active {
     transform: none;
   }
 
