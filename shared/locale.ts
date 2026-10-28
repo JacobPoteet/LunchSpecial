@@ -29,7 +29,11 @@ export interface LocaleInfo<T extends string = string> {
  * one file in shared/i18n/locales/ named for its tag; catalog.test.ts holds the
  * two together.
  */
-export const LOCALES = [{ tag: "en", name: "English", autoDetect: true }] as const satisfies readonly LocaleInfo[];
+export const LOCALES = [
+  { tag: "en", name: "English", autoDetect: true },
+  // A draft: picker and ?locale=es only until a native speaker has read it.
+  { tag: "es", name: "Español", autoDetect: false },
+] as const satisfies readonly LocaleInfo[];
 
 export type LocaleTag = (typeof LOCALES)[number]["tag"];
 
