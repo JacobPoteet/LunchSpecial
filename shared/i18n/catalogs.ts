@@ -6,10 +6,12 @@
 // catalog.test.ts holds it to LOCALES, so a new locale can't be left off.
 
 import en from "./locales/en";
+import es from "./locales/es";
 import type { Messages } from "./messages";
 import { pseudoize } from "./pseudo";
 
 export const CATALOGS: Record<string, Messages> = {
   en,
+  es,
   pseudo: pseudoize(en),
 };

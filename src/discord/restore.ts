@@ -6,7 +6,8 @@
 // of their Discord id, worker/playerid.ts) and a signed proof of it. This module
 // adopts that id as the device id, pulls the saved copy and folds it into
 // localStorage BEFORE the board mounts, then saves the local copy back whenever
-// one of the game's keys is written.
+// one of the game's keys is written. Once authorized it also reads Discord's
+// language setting and hands it to src/i18n/store.ts.
 //
 // Best-effort end to end, like the rest of src/discord/: a player who declines,
 // a deployment with no PLAYER_ID_SECRET, a slow or failing Worker all leave the
@@ -16,6 +17,7 @@
 import type { DiscordSDK } from "@discord/embedded-app-sdk";
 import { PROGRESS_KEYS, mergeProgress, normalizeProgress, type Progress, type ProgressKey } from "../../shared/progress";
 import { adoptPlayerId } from "../game/storage";
+import { learnDiscordLocale } from "../i18n/store";
 import { ensureAuthorized, playerSession } from "./auth";
 
 /** The most the board waits on this before mounting regardless. A late finish still helps the next launch. */
@@ -100,8 +102,27 @@ function watchWrites(): void {
   });
 }
 
+/** Discord's language setting (`identify` covers it), or null. Never throws. */
+function discordLocale(instance: DiscordSDK): Promise<string | null> {
+  return instance.commands.userSettingsGetLocale().then(
+    ({ locale }) => (typeof locale === "string" ? locale : null),
+    () => null,
+  );
+}
+
 async function run(instance: DiscordSDK): Promise<void> {
   if (!(await ensureAuthorized(instance))) return;
+  // Asked alongside the restore, decided after it: a pick the saved copy
+  // brings back outranks Discord's setting (shared/locale.ts).
+  const locale = discordLocale(instance);
+  try {
+    await restore();
+  } finally {
+    await learnDiscordLocale(await locale);
+  }
+}
+
+async function restore(): Promise<void> {
   const session = playerSession();
   if (!session) return;
 

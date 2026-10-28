@@ -29,7 +29,11 @@ export interface LocaleInfo<T extends string = string> {
  * one file in shared/i18n/locales/ named for its tag; catalog.test.ts holds the
  * two together.
  */
-export const LOCALES = [{ tag: "en", name: "English", autoDetect: true }] as const satisfies readonly LocaleInfo[];
+export const LOCALES = [
+  { tag: "en", name: "English", autoDetect: true },
+  // A draft: picker and ?locale=es only until a native speaker has read it.
+  { tag: "es", name: "Español", autoDetect: false },
+] as const satisfies readonly LocaleInfo[];
 
 export type LocaleTag = (typeof LOCALES)[number]["tag"];
 
@@ -104,16 +108,38 @@ export interface LocaleInputs {
   browser: readonly string[];
 }
 
+/**
+ * The reviewed locale a setting nobody chose for this game asks for, or null:
+ * a browser's language, Discord's, or a guild's (the Worker's progress
+ * message). An unreviewed locale is never the answer.
+ */
+export function detectLocale<T extends string>(
+  tag: string | null | undefined,
+  locales: readonly LocaleInfo<T>[],
+): T | null {
+  return matchLocale(
+    tag,
+    locales.filter((l) => l.autoDetect),
+  );
+}
+
 /** The language the page speaks. Always one of `locales`; the first is the fallback. */
 export function resolveLocale<T extends string>(input: LocaleInputs, locales: readonly LocaleInfo<T>[]): T {
   const picked = matchLocale(input.picked?.locale, locales);
   if (picked) return picked;
-  const detectable = locales.filter((l) => l.autoDetect);
   for (const tag of [input.discord, ...input.browser]) {
-    const hit = matchLocale(tag, detectable);
+    const hit = detectLocale(tag, locales);
     if (hit) return hit;
   }
   return locales[0].tag;
+}
+
+/**
+ * A client-sent language, as the Worker stores it: one of LOCALES' tags
+ * exactly, or null (the pseudo-locale, a retired tag, anything malformed).
+ */
+export function shippedLocale(raw: unknown): LocaleTag | null {
+  return LOCALES.find((l) => l.tag === raw)?.tag ?? null;
 }
 
 /**

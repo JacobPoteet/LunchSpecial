@@ -19,6 +19,7 @@ import { loadBookings, parseSighting } from "../occasions";
 import { findServed } from "../requests";
 import { resolveTarget } from "../target";
 import { playerError } from "../../shared/errors";
+import { shippedLocale } from "../../shared/locale";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -135,7 +136,15 @@ function cleanField(value: unknown, max: number): string | null {
 // the dish's, as the player typed it.
 app.post("/requests", async (c) => {
   const body = (await c.req.json().catch(() => null)) as
-    | { name?: unknown; kind?: unknown; country?: unknown; note?: unknown; surface?: unknown; playerId?: unknown }
+    | {
+        name?: unknown;
+        kind?: unknown;
+        country?: unknown;
+        note?: unknown;
+        surface?: unknown;
+        playerId?: unknown;
+        locale?: unknown;
+      }
     | null;
   const name = cleanField(body?.name, DISH_REQUEST_LIMITS.name);
   if (!name) return c.json({ error: "A name is required" }, 400);
@@ -146,6 +155,7 @@ app.post("/requests", async (c) => {
   const note = cleanField(body?.note, DISH_REQUEST_LIMITS.note);
   const surface = SURFACES.includes(body?.surface as never) ? (body!.surface as string) : "web";
   const playerId = isAnalyticsId(body?.playerId) ? body.playerId : null;
+  const locale = shippedLocale(body?.locale);
 
   // Ignore an exact duplicate from the same device so a double-tap (or the same
   // player resubmitting the same idea) doesn't clutter the inbox. Per kind: a
@@ -160,10 +170,10 @@ app.post("/requests", async (c) => {
 
   await c.env.DB
     .prepare(
-      `INSERT INTO dish_requests (kind, name, country, note, surface, player_id, from_country, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+      `INSERT INTO dish_requests (kind, name, country, note, surface, player_id, from_country, locale, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
     )
-    .bind(kind, name, country, note, surface, playerId, edgeCountry(c.req.raw))
+    .bind(kind, name, country, note, surface, playerId, edgeCountry(c.req.raw), locale)
     .run();
   return c.json({ ok: true, ...(await alreadyServed(c.env.DB, kind as RequestKind, name)) });
 });

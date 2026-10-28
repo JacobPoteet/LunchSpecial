@@ -87,11 +87,16 @@ const en = {
     profile: "Profile",
     noSpirit: "no spirit",
   },
+  /**
+   * The count beside a guess's name. It wraps when the row runs out of room,
+   * so a number and its noun are joined by a no-break space (\u00a0) and the
+   * dot stays with the unit before it: the line only breaks after "·".
+   */
   row: {
     askingKitchen: "asking the kitchen…",
     askingBar: "asking the bar…",
-    ingredients: (matched: number, of: number) => `${matched}/${of} ingredients`,
-    close: (n: number) => ` · ${n} close`,
+    ingredients: (matched: number, of: number) => `${matched}/${of}\u00a0ingredients`,
+    close: (n: number) => `\u00a0· ${n}\u00a0close`,
     /** Hidden after a close chip: the family is content and stays English until phase 2. */
     closeChip: (family: string) => `, close: something in the Special is in the ${family} family`,
   },
@@ -230,6 +235,8 @@ const en = {
     winDay: "ORDER UP",
     winNight: "POURED",
     nightNumber: (night: number) => `Night ${night}`,
+    /** The progress message's button, which opens the Activity. */
+    playNow: "Play now!",
   },
   presence: {
     modes: {
@@ -327,6 +334,12 @@ const en = {
     privacy: "Privacy",
     terms: "Terms",
     press: "Press",
+  },
+  /** The footer's picker (src/game/LanguagePicker.tsx). Each language's own name comes from LOCALES. */
+  language: {
+    /** The button's name: the word, then the language on screen, which the button also prints. */
+    button: (name: string) => `Language: ${name}`,
+    list: "Language",
   },
   /**
    * What a failed request says, by the code the Worker (or src/api.ts) gave it.

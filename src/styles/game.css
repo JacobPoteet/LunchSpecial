@@ -620,8 +620,15 @@
   gap: var(--space-8);
 }
 
+/* The name never narrows past its longest word: at 320px "1/9 ingredientes ·
+   1 parecido" squeezed "Spaghetti Carbonara" to 40px and "Spaghetti" ran into
+   the count. The name's outsized shrink makes it wrap first; once it is down
+   to that word it freezes and the count gives way, breaking where the catalog
+   allows (a no-break space keeps each number with its noun). Not a tiny shrink
+   on the count instead: factors summing under 1 hand out only that fraction of
+   the overflow. */
 .guess-row__dish {
-  min-width: 0;
+  flex-shrink: 1000;
 }
 
 .guess-row__count {
@@ -629,7 +636,7 @@
   font-size: var(--fs-sm);
   font-weight: normal;
   color: var(--ink-soft);
-  white-space: nowrap;
+  text-align: right;
 }
 
 .attr-tiles {
@@ -758,6 +765,14 @@
    the label does. The sr-only verdict carries the whole name. */
 .attr-tile__label-text--region {
   letter-spacing: 0.03em;
+}
+
+/* For that ellipsis to happen in the one-row layout, the tile must be allowed
+   below its nowrap label: "~ Sudeste Asiático" beside "Vegetariano" ran 16px
+   past the row at 375. The other tiles stop at their own words, so this one
+   takes the squeeze, and its value is a country, never the longer word. */
+.attr-tile--region {
+  min-width: 0;
 }
 
 .chips {
@@ -1194,9 +1209,12 @@
   margin-right: 0.2em;
 }
 
+/* Date and orders take their own width and the menu the rest, at every width:
+   fixed fractions cut a longer language's menu ("Especial del día" at 360px)
+   where English still fit. */
 .guest-check__boxes {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.3fr;
+  grid-template-columns: auto auto 1fr;
   margin: 0;
   border: var(--border-thin) solid color-mix(in srgb, var(--cherry-dark) 55%, transparent);
   text-align: left;
@@ -1219,29 +1237,20 @@
   color: var(--ink-soft);
 }
 
+/* Wraps, never ellipsizes: "10/18/…" and "Daily Spec…" at 320px hid the one
+   thing the check is for, which round this was. */
 .guest-check__box dd {
   margin: 1px 0 0;
   font-size: var(--fs-md);
   color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
-/* At 320px the three boxes are ~85px wide and "10/18/26" and "Daily Special"
-   were cut to "10/18/…" and "Daily Spec…": the check's one job is to say which
-   round this was. Let the value wrap there instead of ellipsizing. */
 @media (max-width: 340px) {
-  .guest-check__boxes {
-    grid-template-columns: auto auto 1fr;
-  }
   .guest-check__box {
     padding-inline: var(--space-6);
   }
   .guest-check__box dd {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
     line-height: 1.15;
   }
 }
@@ -2537,6 +2546,90 @@ textarea.dish-request__input {
   letter-spacing: 0.06em;
 }
 
+/* The language picker (src/game/LanguagePicker.tsx) shares the build marker's
+   line: two small-print facts about the page itself. The gap is wider than
+   the picker's reach, so the version stays selectable for a screenshot. */
+.footer-note__meta {
+  margin-top: var(--space-6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-24);
+}
+
+.footer-note__meta .footer-note__build {
+  margin-top: 0;
+}
+
+.lang-picker {
+  position: relative;
+}
+
+/* Drawn as a footer link, in the footer's cream, with the same 15px reach
+   above and below that takes a 15px line to 44px. */
+.lang-picker__btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.lang-picker__btn::after {
+  content: "";
+  position: absolute;
+  inset: -15px -7px;
+}
+
+/* Opens upward: the footer is the foot of the page. */
+.lang-picker__list {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 160px;
+  margin: 0;
+  padding: var(--space-4);
+  list-style: none;
+  text-align: left;
+  background: var(--paper-bright);
+  color: var(--ink);
+  border: var(--border-medium) solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-dropdown);
+  z-index: var(--z-sticky);
+}
+
+.lang-picker__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-height: 44px;
+  padding: 0 var(--space-12);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  cursor: pointer;
+}
+
+.lang-picker__option--active,
+.lang-picker__option:hover {
+  background: var(--mustard);
+  color: var(--on-near);
+}
+
+/* The tick is the selected state's mark, so it is never the highlight alone. */
+.lang-picker__check {
+  width: 1em;
+  text-align: center;
+}
+
 /* ---- animations (issue #7) ----
    Sound hookups that pair with these live in src/game/sfx.ts. */
 
@@ -3013,6 +3106,8 @@ textarea.dish-request__input {
 .archive-cal__nav-btn:focus-visible,
 .notice__ok:focus-visible,
 .kids-row__dish:focus-visible,
+.lang-picker__btn:focus-visible,
+.lang-picker__list:focus-visible,
 .footer-note a:focus-visible {
   outline: 3px solid var(--mustard);
   outline-offset: 2px;

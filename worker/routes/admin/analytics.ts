@@ -31,6 +31,7 @@ import { foldKidsMenuReport, type KidsMenuTotalsRow } from "../../kidsmenu";
 
 import { foldCountries, type CountryRow } from "../../countries";
 import { foldSources, type VisitSourceRow } from "../../attribution";
+import { foldLocales, type LocaleRow } from "../../locales";
 
 import { foldDishStats, type DishMetaRow, type DishStatRow } from "../../dishstats";
 import {
@@ -250,6 +251,7 @@ app.get("/analytics", async (c) => {
     solveTimeRes,
     visitRes,
     sourceRes,
+    localeRes,
   ] = await c.env.DB.batch([
       c.env.DB.prepare(allTimeTotalsSql),
       c.env.DB.prepare(distSql("")).bind(MAX_GUESSES),
@@ -374,6 +376,13 @@ app.get("/analytics", async (c) => {
       // volume doesn't justify a window function for.
       c.env.DB.prepare(
         `SELECT player_id, visit_day, source FROM analytics_visits${surfWhere}`,
+      ),
+      // Language mix (migrations/0064), grouped like the country mix so a
+      // device lands in one language. NULLs come back as untracked.
+      c.env.DB.prepare(
+        `SELECT locale, player_id, COUNT(*) AS n
+           FROM analytics_rounds WHERE started_at IS NOT NULL${surfAnd}
+           GROUP BY locale, player_id`,
       ),
     ]);
 
@@ -542,6 +551,8 @@ app.get("/analytics", async (c) => {
     // against the *real* today for the same reason as `retention` above — the
     // return window asks whether enough time has passed by now.
     sources: foldSources(sourceRes.results as VisitSourceRow[], today),
+    // Which language the rounds were played in (migrations/0064).
+    locales: foldLocales(localeRes.results as LocaleRow[]),
     // Weekday × hour, off the same all-time buckets as `growth` and `activeDates`
     // — no extra query. Its `byHour` marginal is what used to be the bare
     // `hourly` array; the weekday axis is the cycle that array couldn't show.

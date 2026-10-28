@@ -6,6 +6,7 @@ import type {
   CountryUsage,
   FunnelCounts,
   FunnelEnding,
+  LocaleMix,
   PlayerFunnel,
   PlayerRetention,
   RetentionStep,
@@ -545,6 +546,59 @@ function countryUntrackedNote(mix: CountryMix): string {
   return mix.players === 0 ? `${rounds}, none with a country yet.` : `${rounds} without a country left out.`;
 }
 
+/** A locale tag by its English name ("Spanish"); /admin stays English. */
+const languageName = (tag: string) => {
+  try {
+    return new Intl.DisplayNames(["en"], { type: "language" }).of(tag) ?? tag;
+  } catch {
+    return tag;
+  }
+};
+
+/** The languages fold's verdict, or null before any round carries one. */
+function localeNote(mix: LocaleMix): string | null {
+  const top = mix.entries[0];
+  if (!top) return null;
+  if (mix.entries.length === 1) return `Every recorded round in ${languageName(top.locale)}.`;
+  return `${languageName(top.locale)} on ${pct(top.rounds, mix.rounds)}% of rounds.`;
+}
+
+/** Rounds with no language: before migrations/0064, or the pseudo-locale. Never English. */
+function localeUntrackedNote(mix: LocaleMix): string {
+  if (mix.untracked === 0) return "No language recorded yet.";
+  const rounds = `${mix.untracked.toLocaleString()} round${mix.untracked === 1 ? "" : "s"}`;
+  return mix.entries.length === 0 ? `${rounds}, none with a language yet.` : `${rounds} without a language left out.`;
+}
+
+function LocaleTable({ mix }: { mix: LocaleMix }) {
+  return (
+    <div className="day-table-wrap">
+      <table className="day-table dish-table">
+        <thead>
+          <tr>
+            <th>Language</th>
+            <th>Rounds</th>
+            <th>Players</th>
+          </tr>
+        </thead>
+        <tbody>
+          {mix.entries.map((e) => (
+            <tr key={e.locale}>
+              <td>
+                {languageName(e.locale)} <span className="ev-sub">{e.locale}</span>
+              </td>
+              <td>
+                {e.rounds.toLocaleString()} <span className="ev-sub">{pct(e.rounds, mix.rounds)}%</span>
+              </td>
+              <td>{e.players.toLocaleString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /** `direct` reads as jargon in a column of ad networks; say what it means. */
 const sourceLabel = (source: string) => (source === SOURCE_DIRECT ? "Direct / untagged" : source);
 
@@ -834,6 +888,7 @@ export default function PlayersPanel({
     retention,
     countries,
     sources,
+    locales,
     funnel,
     visits,
   } = data;
@@ -944,6 +999,24 @@ export default function PlayersPanel({
             <p className="dash-note">
               Devices, by the country they play from most.
               {countries.untracked > 0 && ` ${countryUntrackedNote(countries)}`}
+            </p>
+          </>
+        )}
+      </section>
+      </Fold>
+
+      <Fold title="Languages" hint={localeNote(locales) ?? "No language recorded yet."}>
+      <section className="panel">
+        <h2>Languages · all time</h2>
+        {locales.entries.length === 0 ? (
+          <p className="dash-note">{localeUntrackedNote(locales)}</p>
+        ) : (
+          <>
+            <p className="retention__headline">{localeNote(locales)}</p>
+            <LocaleTable mix={locales} />
+            <p className="dash-note">
+              Rounds by the language on screen; players by their usual one.
+              {locales.untracked > 0 && ` ${localeUntrackedNote(locales)}`}
             </p>
           </>
         )}

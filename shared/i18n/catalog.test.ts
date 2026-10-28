@@ -20,7 +20,14 @@ const TAGS = readdirSync(DIR)
  * Keys a translation may leave identical to English: brand words and names
  * the glossary keeps (the logo, After Dark). Add the key path, not the value.
  */
-const MAY_MATCH_ENGLISH = new Set<string>([]);
+const MAY_MATCH_ENGLISH = new Set<string>([
+  // The marquee is English in every language.
+  "presence.modes.nightcap",
+  // The same word in Spanish (and most languages that borrow it).
+  "spirits.tequila",
+  "spirits.vodka",
+  "occasions.halloween.name",
+]);
 
 /** Every leaf as "path:kind", functions with their arity. */
 function shape(value: unknown, path = ""): string[] {

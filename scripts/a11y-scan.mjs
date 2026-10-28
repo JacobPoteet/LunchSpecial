@@ -31,6 +31,10 @@
 //    ~40 animations under prefers-reduced-motion already, so asking for it is
 //    both the cheapest way to hold the page still and a free check that the
 //    reduced-motion path renders what everyone else eventually sees.
+// 6. **Selectors never read the screen's words.** Every shipped language is
+//    scanned (`?locale=`), so a control is found by its class or role, never
+//    by an aria-label or its text. Dish and drink names are content and stay
+//    English in every language until phase 2 of #269.
 
 import AxeBuilder from "@axe-core/playwright";
 import { chromium } from "playwright-core";
@@ -48,8 +52,9 @@ const KIDS_MISSES = ["Mapo Tofu", "Full English Breakfast", "Fish Tacos", "Pavlo
 const TARGET_DRINK = "negroni";
 const WRONG_POUR = "Margarita";
 
-const INPUT = 'input[aria-label="Guess a dish"]';
-const BAR_INPUT = 'input[aria-label="Guess a drink"]';
+/** The order bar, at the diner and the bar alike: one per page. */
+const INPUT = '.guess-input input[role="combobox"]';
+const BAR_INPUT = INPUT;
 
 /**
  * The scans, in the order a player meets them. Each returns after leaving the
@@ -202,7 +207,7 @@ const SCANS = [
       await page.waitForSelector(".modal--receipt");
       await page.click(".modal__close");
       await page.waitForSelector(".modal--receipt", { state: "detached" });
-      await page.click('button:has-text("Leftovers")');
+      await page.click(".icon-btn--leftovers");
       await page.waitForSelector(".archive-cal__day");
     },
   },
@@ -262,6 +267,65 @@ const SCANS = [
       await pour(page, WRONG_POUR);
       await page.waitForSelector(".ticket--coaster");
       await page.waitForSelector(".hw-sign");
+    },
+  },
+  // Spanish (`?locale=es`), the first real second language. Longer words on
+  // the same tiles, pills and tickets, so the states where the words are
+  // tightest and the ones where the bar's palette meets them. A draft is
+  // reachable by link, which is how it is scanned before review.
+  {
+    name: "Spanish: board, first guess (tiles, chips, clue ticket)",
+    async setup(page) {
+      await page.goto(`${BASE}/?special=${TARGET_SLUG}&locale=es`, { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(() => document.documentElement.lang === "es");
+      await guess(page, WRONG_GUESS);
+      await page.waitForSelector(".attr-tile--revealed");
+      await page.waitForSelector(".ticket");
+    },
+  },
+  {
+    name: "Spanish: the language list open",
+    async setup(page) {
+      await page.click(".lang-picker__btn");
+      await page.waitForSelector('.lang-picker__list [role="option"]');
+    },
+  },
+  {
+    name: "Spanish: the check (game over)",
+    async setup(page) {
+      await page.keyboard.press("Escape");
+      await guess(page, "Ramen");
+      await page.waitForSelector(".modal--receipt");
+    },
+  },
+  {
+    name: "Spanish: Kids' Menu card (a dish circled)",
+    async setup(page) {
+      await page.goto(`${BASE}/?special=${TARGET_SLUG}&locale=es`, { waitUntil: "domcontentloaded" });
+      await missFourTimes(page);
+      await page.click(".menu-card__toolbar .kids-pill");
+      await page.waitForSelector(".kids-row");
+      await page.click('.kids-row[data-row="live"] .kids-row__dish >> nth=0');
+      await page.waitForSelector(".kids-mark--circle");
+    },
+  },
+  {
+    name: "Spanish: bar mid-round (night palette, tiles, coaster)",
+    async setup(page) {
+      await page.goto(`${BASE}/?bar=1&handoff=1&nightcap=${TARGET_DRINK}&locale=es`, {
+        waitUntil: "domcontentloaded",
+      });
+      await page.waitForSelector(BAR_INPUT);
+      await pour(page, WRONG_POUR);
+      await page.waitForSelector(".attr-tile--revealed");
+      await page.waitForSelector(".ticket--coaster");
+    },
+  },
+  {
+    name: "Spanish: the tab (night game over)",
+    async setup(page) {
+      await pour(page, "Negroni");
+      await page.waitForSelector(".modal--receipt");
     },
   },
 ];

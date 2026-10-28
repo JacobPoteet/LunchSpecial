@@ -61,6 +61,18 @@ describe("mergeProgress", () => {
     expect(normalizeProgress({ "lunch-special:kids-menu-seen": "1" })).toEqual({ "lunch-special:kids-menu-seen": "1" });
   });
 
+  it("keeps the language picked later, whichever copy holds it", () => {
+    const KEY = "lunch-special:locale";
+    const older = JSON.stringify({ locale: "en", at: 1_000 });
+    const newer = JSON.stringify({ locale: "es", at: 2_000 });
+    expect(PROGRESS_KEYS).toContain(KEY);
+    expect(mergeProgress({ [KEY]: older }, { [KEY]: newer })[KEY]).toBe(newer);
+    expect(mergeProgress({ [KEY]: newer }, { [KEY]: older })[KEY]).toBe(newer);
+    expect(mergeProgress({}, { [KEY]: older })[KEY]).toBe(older);
+    expect(mergeProgress({ [KEY]: "not json" }, { [KEY]: older })[KEY]).toBe(older);
+    expect(mergeProgress({ [KEY]: "not json" }, {})[KEY]).toBeUndefined();
+  });
+
   it("falls back to the readable side when one copy is corrupted", () => {
     const good = stats(2, "2026-10-18");
     expect(mergeProgress({ [STATS]: "{nope" }, { [STATS]: good })[STATS]).toBe(good);

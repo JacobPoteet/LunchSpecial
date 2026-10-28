@@ -36,6 +36,7 @@ import {
 import { Icon } from "./Icon";
 import { FanStamp, RequestForm } from "./RequestForm";
 import { BuildTag } from "./BuildTag";
+import { LanguagePicker } from "./LanguagePicker";
 import { Byline } from "./Byline";
 import { SoundToggle } from "./SoundToggle";
 import { currentSurface } from "../discord/bootstrap";
@@ -664,7 +665,10 @@ function BarScene({ children }: { children: React.ReactNode }) {
           <a href="/privacy">{t.footer.privacy}</a> · <a href="/terms">{t.footer.terms}</a> ·{" "}
           <a href="/press">{t.footer.press}</a>
         </p>
-        <BuildTag />
+        <div className="footer-note__meta">
+          <LanguagePicker />
+          <BuildTag />
+        </div>
       </footer>
     </div>
   );

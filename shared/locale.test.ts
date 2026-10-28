@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  detectLocale,
   intlLocale,
   langAttribute,
   LOCALES,
@@ -7,6 +8,7 @@ import {
   matchLocale,
   parsePicked,
   resolveLocale,
+  shippedLocale,
   type LocaleInfo,
 } from "./locale";
 
@@ -36,6 +38,24 @@ describe("matchLocale", () => {
     expect(matchLocale(null, LIST)).toBeNull();
     expect(matchLocale("", LIST)).toBeNull();
     expect(matchLocale("ja-JP", LIST)).toBeNull();
+  });
+});
+
+describe("detectLocale", () => {
+  it("answers a guild's or a browser's setting with a reviewed locale only", () => {
+    expect(detectLocale("es-ES", LIST)).toBe("es");
+    expect(detectLocale("de", LIST)).toBeNull();
+    expect(detectLocale(undefined, LIST)).toBeNull();
+  });
+});
+
+describe("shippedLocale", () => {
+  it("keeps a shipped tag exactly and nulls everything else", () => {
+    expect(shippedLocale("en")).toBe("en");
+    expect(shippedLocale("pseudo")).toBeNull();
+    expect(shippedLocale("EN")).toBeNull();
+    expect(shippedLocale(42)).toBeNull();
+    expect(shippedLocale(undefined)).toBeNull();
   });
 });
 

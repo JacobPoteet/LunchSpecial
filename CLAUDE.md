@@ -56,7 +56,7 @@ Runs as an embedded iframe with **no separate build**: Discord proxies `lunchspe
 - **Authorize once per page load** (`prompt: "none"`); a refusal sets `unavailable`, never retried. **Nothing fails loudly**: presence throttles to one update per 4s with a trailing send, the progress loop retires on one failure, a 410 retires silently.
 - **Presence elapsed timer measures this sitting** and is dropped when the round ends. Preview/playtest publish nothing (same `tracked` flag as the beacons).
 - **Sharing:** `shareToChannel()` never throws and returns a boolean; `ResultModal.share()` copies on false. `openShareMomentDialog` accepts only a Discord CDN URL, hence the PNG score card (rects, not emoji; palette hard-coded from base.css). The upload goes through the Worker, which stores nothing. Sharing never raises a consent sheet (`peekToken()`, not `ensureAuthorized()`). `copyShareText()` falls back to `execCommand("copy")` because `navigator.clipboard` is blocked in the iframe. Don't use `sdk.commands.shareLink`.
-- **Progress message:** Discord creates it via a signed interaction; identity comes off the signed payload, never the client. Edits never re-send `embeds`. `discord_messages` holds only `{opaque client-minted handle, interaction token, created_at}`; the interaction token never reaches the browser. Verify the Ed25519 signature on the **raw** body or 401 (a 401 on Discord's bad-signature probe is a pass). Avatar indices use **BigInt**; animated `a_` hashes need `.gif`. Updates are trailing, not queued. `resetProgress()` must run before the publisher inside `useRoundTelemetry`; don't call either from a page. `shareInteraction` is undocumented: if it breaks, only the loop is lost.
+- **Progress message:** Discord creates it via a signed interaction; identity comes off the signed payload, never the client. Edits never re-send `embeds`. `discord_messages` holds only `{opaque client-minted handle, interaction token, created_at, the server's locale tag}`; the interaction token never reaches the browser. Verify the Ed25519 signature on the **raw** body or 401 (a 401 on Discord's bad-signature probe is a pass). Avatar indices use **BigInt**; animated `a_` hashes need `.gif`. Updates are trailing, not queued. `resetProgress()` must run before the publisher inside `useRoundTelemetry`; don't call either from a page. `shareInteraction` is undocumented: if it breaks, only the loop is lost.
 - **Social (`social.ts`, no scopes):** only the participant *count* leaves the module (never usernames/avatars); you are subtracted and the bar hides at zero. Invite hidden when `sdk.guildId === null`. PIP layout is scoped to `<html data-discord-layout="pip">`, never a width query.
 - `/privacy`, `/terms`, `/press` are plain same-origin links with no `target="_blank"`. The game's one outbound link is the footer byline (`src/game/Byline.tsx`, LinkedIn, new tab), web surface only; inside Discord it renders as plain text.
 - localStorage inside Discord is sandboxed to `discordsays.com`, so Activity players have separate history.
@@ -245,11 +245,17 @@ An opt-in short list of the dishes that still fit, from the fourth miss (`MENU_A
 
 ## Languages
 
-In progress (#269), landing as a stack of PRs. The game's own words go through a typed catalog; content (dish and drink names, ingredients, clues, coasters, country names) stays English until phase 2. `/admin` stays English.
+In progress (#269), landing as a stack of PRs. The game's own words go through a typed catalog; content (dish and drink names, ingredients, clues, coasters, country names) stays English until phase 2. `/admin` stays English. Shipped languages: English, Spanish (`es`, a draft: `autoDetect: false` until a native speaker reads it). `/translate` drafts the next one.
 
 - `shared/locale.ts` is the only place that decides the language (`resolveLocale`: the player's pick, then Discord, then `navigator.languages`, then English). A locale with `autoDetect: false` (no native-speaker review yet) is picker-only.
 - `shared/i18n/locales/en.ts` is the source of truth; **new strings land there first**. Every other locale is one file named for its tag, typed `Messages`, and a lazy chunk (`src/i18n/store.ts` globs the folder). A message is a string or a function of plain arguments.
 - Components read `useT()`. **Folds in `shared/` take the messages as an argument and never import a locale** (`conventions.test.ts`); tests pass `en`, and the never-name-the-dish tests run over every catalog (`shared/i18n/catalogs.ts`). Plurals go through `plural()` (`Intl.PluralRules`), never `n === 1 ? …`; lists through `list()`.
+- **Glossary:** the logo ("Lunch Special") and "After Dark" stay English in every language (`MAY_MATCH_ENGLISH`). The Special, Leftovers, Chef's Choice, Kids' Menu, Nightcap, coaster and the check are translated, in the diner's voice; the skill's table is the list.
+- **The picker** (`src/game/LanguagePicker.tsx`, footer, beside the build marker) is a hand-drawn listbox, never `<select>`, each language in its own name and `lang`. It writes `lunch-special:locale` as `{ locale, at }` through `setLocale()` (no reload). The key is in `PROGRESS_KEYS`; the later `at` wins.
+- A setting nobody chose for this game (browser, Discord's `userSettingsGetLocale()`, a server's `guild_locale`) goes through `detectLocale`: reviewed locales only. The Discord progress message speaks `guild_locale`, never the player's `locale`; its tag rides on `discord_messages.locale` so edits keep it, NULL is English. The tag is the server's setting, not the player's.
+- `analytics_rounds.locale` and `dish_requests.locale` (0064) hold `shippedLocale()` of what the client sent: a `LOCALES` tag or NULL (pre-0064 and pseudo). NULL is untracked on the dashboard, never English. The Players tab folds it (`worker/locales.ts`), one language per device.
+- `npm run a11y` scans Spanish states and finds controls by class or role, never by `aria-label` or text: a new scan step keeps it so.
+- A number and its noun on the guess row's count are joined by `\u00a0` in every catalog, and the dot stays with the unit before it.
 - `?locale=<tag>|pseudo` is cosmetic, honoured in production, never stored. The pseudo-locale accents, brackets and pads every string by 40%: an unbracketed string on screen is a leak.
 - `shared/i18n/catalog.test.ts`: one file per `LOCALES` entry, English's keys and arities everywhere, nothing left identical to English outside `MAY_MATCH_ENGLISH`.
 - `<html lang>` names the catalog on screen (`primeLocale()` before mount, 800ms cap), never ahead of it.
@@ -272,7 +278,7 @@ WCAG 2.1 AA for the game; `/admin` is exempt.
 
 ## Documentation
 
-**The wiki is the only source of truth for documentation.** The repo carries this file, the two beat-sheet skills (`.claude/skills/create-dishes`, `create-drinks`), `ASSETS.md`, `README.md`, and directory READMEs.
+**The wiki is the only source of truth for documentation.** The repo carries this file, the two beat-sheet skills (`.claude/skills/create-dishes`, `create-drinks`), the `translate` skill, `ASSETS.md`, `README.md`, and directory READMEs.
 
 - **Don't create a new top-level `.md`**; a change that wants one wants a wiki note.
 - **Never write the wiki's path into the repo** (comment, doc or commit message); say "the wiki". It lives in agent memory and `.claude/wiki-path.local`.

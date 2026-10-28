@@ -241,7 +241,7 @@ function AttrTile({
   const near = match === "near" && region ? t.regions[region] : null;
   return (
     <div
-      className={`attr-tile attr-tile--revealed attr-tile--${match}`}
+      className={`attr-tile attr-tile--revealed attr-tile--${match}${near ? " attr-tile--region" : ""}`}
       style={{ "--i": index } as React.CSSProperties}
       title={`${label}: ${value} (${t.announce.match[match]}${near ? `, ${near}` : ""})`}
     >
