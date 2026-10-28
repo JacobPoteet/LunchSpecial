@@ -8,7 +8,7 @@
 // New strings land here first. `/admin` stays English and has no entries.
 
 import type { OccasionId } from "../../occasions";
-import type { Course, MatchLevel, Protein, Region, Temperature } from "../../types";
+import type { Course, MatchLevel, Profile, Protein, Region, Spirit, Temperature } from "../../types";
 import { list, plural } from "../format";
 
 const guesses = (n: number) => plural("en", n, { one: `${n} guess`, other: `${n} guesses` });
@@ -52,6 +52,27 @@ const en = {
     lamb: "lamb",
     vegetarian: "vegetarian",
   } satisfies Record<Protein, string>,
+  spirits: {
+    gin: "gin",
+    whiskey: "whiskey",
+    rum: "rum",
+    tequila: "tequila",
+    vodka: "vodka",
+    brandy: "brandy",
+    wine: "wine",
+    beer: "beer",
+    none: "none",
+    other: "other",
+  } satisfies Record<Spirit, string>,
+  profiles: {
+    sweet: "sweet",
+    sour: "sour",
+    bitter: "bitter",
+    strong: "strong",
+    creamy: "creamy",
+  } satisfies Record<Profile, string>,
+  /** Every dialog's × button. */
+  close: "Close",
 
   // ---- What a screen reader hears (shared/announce.ts) ----------------------
 
@@ -233,6 +254,45 @@ const en = {
     served: (temperature: string) => `served ${temperature}`,
     playAgain: "Play again",
     invite: "Invite the table",
+  },
+
+  // ---- After Dark (src/game/NightPage.tsx) --------------------------------------
+
+  pourToasts: ["Smooth.", "Nice call.", "Got there.", "Last sip, hon."],
+  bar: {
+    sub: "One drink. Four guesses. Gone by morning.",
+    closedSign: "The bar's closed",
+    closedBody: "Open 8pm to 3am, your time. One drink a night, four guesses.",
+    opensIn: "Opens in",
+    backToDiner: "Back to the diner",
+    doorSign: "Kitchen first",
+    doorBody: "Finish today's Special to open the bar.",
+    doorBack: "Take me to today's Special",
+    intro: "**Same game, two new tiles.** Spirit and Profile replace Course and Protein.",
+    nights: "Nights",
+    previewShowcase: "Preview link — the bar's normally open 8pm to 3am. Nothing here is saved.",
+    previewAdmin: "Admin test pour — nothing is saved, counted or shown to players",
+    playtestRandom: "Playtest — a random pour, nothing is saved",
+    title: "Libations",
+    nightNo: (n: number) => `Night No. ${n} — `,
+    yourTab: "Your tab",
+    lastCall: "Last call in",
+    nothingOnTap: "Nothing on tap",
+    special: "Tonight's Nightcap",
+    hint: (n: number) =>
+      `A mystery pour with **${plural("en", n, { one: "1 ingredient", other: `${n} ingredients` })}**. What's it going to be?`,
+    loading: "Wiping down the bar…",
+    placeholder: "Order a drink…",
+    inputLabel: "Guess a drink",
+    guessFailed: "The bar didn't catch that order. Check your connection and try again.",
+    thanks: "Last call at three",
+    fine: (coasters: number) => `One pour a night · ${coasters} coasters · Please drink responsibly`,
+    shareIdle: "Share the night",
+    tabTitle: "After Dark — your tab",
+    won: "That one's on us",
+    lost: "Better luck tomorrow night",
+    noSpirit: "no base spirit",
+    alcoholFree: "alcohol-free",
   },
 };
 
