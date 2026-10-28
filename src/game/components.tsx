@@ -631,8 +631,8 @@ export function GuessInput<T extends { id: number; name: string }>({
   placeholder?: string;
   label?: string;
   /**
-   * The first visit (see Coach.tsx). `order` rings the field, `pick` pulses
-   * the button once there is something to press it for. Undefined for
+   * The first visit (see Coach.tsx). `order` rings the field, `pick` rings
+   * the list once there is something in it to pick. Undefined for
    * everyone who has played before.
    */
   coach?: "order" | "pick";
@@ -729,64 +729,59 @@ export function GuessInput<T extends { id: number; name: string }>({
   return (
     <div className={coach ? `guess-input guess-input--coach-${coach}` : "guess-input"} ref={rootRef}>
       {lead}
-      <div className="guess-input__row">
-        <input
-          ref={inputRef}
-          type="text"
-          value={text}
-          disabled={disabled}
-          placeholder={inputPlaceholder}
-          aria-label={inputLabel}
-          role="combobox"
-          aria-autocomplete="list"
-          aria-expanded={listOpen}
-          aria-controls={listOpen ? listId : undefined}
-          aria-activedescendant={listOpen && options[highlight] ? `${listId}-${options[highlight].id}` : undefined}
-          aria-describedby={describedBy}
-          autoCapitalize="off"
-          autoCorrect="off"
-          onChange={(e) => {
-            setText(e.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => setOpen(true)}
-          onKeyDown={(e) => {
-            // The tick is on the arrow keys and deliberately not on
-            // `onMouseEnter` below: hovering the list fires that on every
-            // mouse move across it, which is a stream of clicks nobody asked
-            // for. Keyboard navigation is discrete, so it can be sounded.
-            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-              e.preventDefault();
-              const next =
-                e.key === "ArrowDown"
-                  ? Math.min(highlight + 1, options.length - 1)
-                  : Math.max(highlight - 1, 0);
-              // Computed out here rather than inside the updater: a state
-              // updater must stay pure, and StrictMode runs it twice in dev —
-              // which would double every tick. Silent at the ends of the list,
-              // where nothing actually moved.
-              if (next !== highlight) playSfx("option-tick");
-              setHighlight(next);
-            } else if (e.key === "Enter" && options[highlight]) {
-              e.preventDefault();
-              pick(options[highlight]);
-            } else if (e.key === "Escape") {
-              // Swallowed only while there's a list to close. Inside a dialog
-              // the two Escape handlers would otherwise both fire on one press
-              // — the list should close first, the dialog second.
-              if (open && text.trim()) e.stopPropagation();
-              setOpen(false);
-            }
-          }}
-        />
-        <button
-          className="guess-input__submit"
-          disabled={disabled || options.length === 0}
-          onClick={() => options[highlight] && pick(options[highlight])}
-        >
-          {t.input.order}
-        </button>
-      </div>
+      {/* No Order button beside the field. All it could do was order the
+          highlighted row, and the highlight follows the mouse, so a pointer
+          crossing the list on its way to the button ordered whatever it passed
+          over. A guess is a row tapped or clicked, or Enter on the highlight. */}
+      <input
+        ref={inputRef}
+        type="text"
+        value={text}
+        disabled={disabled}
+        placeholder={inputPlaceholder}
+        aria-label={inputLabel}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={listOpen}
+        aria-controls={listOpen ? listId : undefined}
+        aria-activedescendant={listOpen && options[highlight] ? `${listId}-${options[highlight].id}` : undefined}
+        aria-describedby={describedBy}
+        autoCapitalize="off"
+        autoCorrect="off"
+        onChange={(e) => {
+          setText(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={(e) => {
+          // The tick is on the arrow keys and deliberately not on
+          // `onMouseEnter` below: hovering the list fires that on every
+          // mouse move across it, which is a stream of clicks nobody asked
+          // for. Keyboard navigation is discrete, so it can be sounded.
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            const next =
+              e.key === "ArrowDown"
+                ? Math.min(highlight + 1, options.length - 1)
+                : Math.max(highlight - 1, 0);
+            // Computed out here rather than inside the updater: a state
+            // updater must stay pure, and StrictMode runs it twice in dev —
+            // which would double every tick. Silent at the ends of the list,
+            // where nothing actually moved.
+            if (next !== highlight) playSfx("option-tick");
+            setHighlight(next);
+          } else if (e.key === "Enter" && options[highlight]) {
+            e.preventDefault();
+            pick(options[highlight]);
+          } else if (e.key === "Escape") {
+            // Swallowed only while there's a list to close. Inside a dialog
+            // the two Escape handlers would otherwise both fire on one press
+            // — the list should close first, the dialog second.
+            if (open && text.trim()) e.stopPropagation();
+            setOpen(false);
+          }
+        }}
+      />
       {listOpen && (
         <ul className="guess-input__list" role="listbox" id={listId} aria-label={t.input.matches(inputLabel)}>
           {options.length === 0 && <li className="guess-input__empty">{t.input.empty}</li>}

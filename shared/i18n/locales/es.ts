@@ -118,7 +118,6 @@ const es: Messages = {
   input: {
     placeholder: "Pide un plato…",
     label: "Adivina un plato",
-    order: "Pedir",
     matches: (label: string) => `Resultados: ${label.toLowerCase()}`,
     empty: "No está en el menú: prueba con otro plato",
   },
@@ -295,7 +294,7 @@ const es: Messages = {
     legendNear: "cerca",
     legendMiss: "fallo",
     order: "**Adivina el plato misterioso de hoy.** Escribe cualquier plato para empezar.",
-    pick: "**Elige uno y pulsa Pedir.**",
+    pick: "**Elige tu plato de la lista.**",
     read: "**Verde es correcto, amarillo es cerca.** Cada fallo también te da una pista.",
     skip: "Saltar el recorrido",
   },
