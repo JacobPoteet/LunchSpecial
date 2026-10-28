@@ -162,3 +162,49 @@ describe("the stylesheets spend colour channels and border widths through tokens
     expect(offenders).toEqual([]);
   });
 });
+
+describe("the game's screens speak through the catalog", () => {
+  // Every word a player reads comes from shared/i18n/locales/en.ts, or a
+  // second language leaks English. oxlint has no i18n rule, so this walks the
+  // TSX with the parser Vite already ships. It sees JSX text and the props that
+  // carry words; strings built in code are left to review and the pseudo-locale.
+  const WORD_PROPS = new Set(["aria-label", "title", "placeholder", "alt", "label", "text"]);
+  // The brand stays English in every language: the neon sign and the bar's name.
+  const BRAND = new Set(["Lunch Special", "After Dark"]);
+
+  it("no raw text in src/game or src/occasions JSX", async () => {
+    const { parseSync } = await import("vite");
+    const offenders: string[] = [];
+    const tsx = [...sourceFiles(join(ROOT, "src", "game")), ...sourceFiles(join(ROOT, "src", "occasions"))].filter((f) =>
+      f.endsWith(".tsx"),
+    );
+    for (const file of tsx) {
+      const code = readFileSync(file, "utf8");
+      const flag = (text: string, at: number) => {
+        // `&nbsp;` and friends are spacing, not words.
+        const words = text.replace(/&[a-z]+;/gi, " ").trim().replace(/\s+/g, " ");
+        if (/\p{L}{2,}/u.test(words) && !BRAND.has(words)) {
+          offenders.push(`${rel(file)}:${code.slice(0, at).split("\n").length}: ${words}`);
+        }
+      };
+      const walk = (node: unknown): void => {
+        if (!node || typeof node !== "object") return;
+        if (Array.isArray(node)) return node.forEach(walk);
+        const n = node as { type?: string; value?: unknown; name?: { name?: unknown }; start: number };
+        if (n.type === "JSXText" && typeof n.value === "string") flag(n.value, n.start);
+        if (n.type === "JSXAttribute" && WORD_PROPS.has(String(n.name?.name))) {
+          const v = n.value as { type?: string; value?: unknown } | null;
+          if (v?.type === "Literal" && typeof v.value === "string") flag(v.value, n.start);
+        }
+        if (n.type === "JSXExpressionContainer") {
+          const e = (n as { expression?: { type?: string; value?: unknown } }).expression;
+          if (e?.type === "Literal" && typeof e.value === "string") flag(e.value, n.start);
+        }
+        for (const [key, child] of Object.entries(n)) if (key !== "parent") walk(child);
+      };
+      walk(parseSync(file, code).program);
+    }
+    expect(tsx.length).toBeGreaterThan(10); // the scan must see the files it polices
+    expect(offenders).toEqual([]);
+  });
+});
