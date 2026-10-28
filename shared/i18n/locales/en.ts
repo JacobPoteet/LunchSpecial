@@ -7,6 +7,7 @@
 //
 // New strings land here first. `/admin` stays English and has no entries.
 
+import type { PlayerErrorCode } from "../../errors";
 import type { OccasionId } from "../../occasions";
 import type { Course, MatchLevel, Profile, Protein, Region, Spirit, Temperature } from "../../types";
 import { list, plural } from "../format";
@@ -327,6 +328,23 @@ const en = {
     terms: "Terms",
     press: "Press",
   },
+  /**
+   * What a failed request says, by the code the Worker (or src/api.ts) gave it.
+   * Shown under the closed sign or beside a guess that didn't land.
+   */
+  errors: {
+    offline: "Couldn't reach the kitchen — check your connection or any ad/content blocker.",
+    failed: "The kitchen sent that back.",
+    bad_request: "That order didn't make sense to the kitchen.",
+    bad_date: "There's no Special for that date.",
+    bad_link: "That link has expired or isn't valid.",
+    not_found: "That dish isn't on the menu any more.",
+    no_dish: "The kitchen has nothing to serve right now.",
+    unknown_dish: "That dish isn't on the menu.",
+    unknown_drink: "That drink isn't behind the bar.",
+    bar_closed: "The bar is closed.",
+    nothing_on_tap: "Nothing on tap tonight.",
+  } satisfies Record<PlayerErrorCode, string>,
   closed: {
     sign: "Sorry — we're closed",
     body: "The kitchen isn't answering. Check your connection and try again.",

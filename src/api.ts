@@ -21,8 +21,31 @@ import type {
   Surface,
 } from "../shared/types";
 import { gameToday } from "../shared/time";
+import { errorCopy, isPlayerErrorCode, type PlayerErrorCode } from "../shared/errors";
+import type { Messages } from "../shared/i18n/messages";
 import { currentClient } from "./discord/bootstrap";
 import { playerIdSource } from "./game/storage";
+
+/**
+ * A request that failed in a way a player may see. `message` is the Worker's
+ * English (for logs and the console); `code` is what the screen says, in the
+ * player's language, through {@link errorText}. Null when the Worker answered
+ * an error without one (an admin-shaped route), which prints as the English.
+ */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly code: PlayerErrorCode | null,
+    readonly status?: number,
+  ) {
+    super(message);
+  }
+}
+
+/** A failure as the player reads it (shared/errors.ts, `errorCopy`). */
+export function errorText(error: unknown, t: Messages): string {
+  return error instanceof Error ? errorCopy(error, t) : String(error);
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
@@ -33,11 +56,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     // blocker cancelling the request in-browser. The raw TypeError reads as
     // "Failed to fetch", which tells a player nothing — name the likely causes
     // instead, the same way the admin client does.
-    throw new Error("Couldn't reach the kitchen — check your connection or any ad/content blocker.");
+    throw new ApiError("Couldn't reach the kitchen — check your connection or any ad/content blocker.", "offline");
   }
-  const body = (await res.json().catch(() => null)) as (T & { error?: string }) | null;
+  const body = (await res.json().catch(() => null)) as (T & { error?: string; code?: unknown }) | null;
   if (!res.ok || body === null) {
-    throw new Error(body?.error ?? `Request failed (${res.status})`);
+    if (body?.error) throw new ApiError(body.error, isPlayerErrorCode(body.code) ? body.code : null, res.status);
+    throw new ApiError(`Request failed (${res.status})`, "failed", res.status);
   }
   return body;
 }

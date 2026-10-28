@@ -3,6 +3,7 @@ import {
   beaconComplete,
   beaconShare,
   beaconStart,
+  errorText,
   fetchAnnouncements,
   fetchDaily,
   fetchDishes,
@@ -612,10 +613,12 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   useWearOccasion(date, "diner", tracked);
   const { kit } = useOccasion();
   const [stats, setStats] = useState<Stats>(() => loadStats());
-  const [error, setError] = useState<string | null>(null);
+  // Errors are kept whole and worded at render (errorText), so the player's
+  // language reaches a failure the Worker reported as a code.
+  const [error, setError] = useState<Error | null>(null);
   // Initial-load failure, kept apart from `error` (a single guess that didn't
   // land): only this one replaces the board with the closed sign.
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<Error | null>(null);
   // Bumped by the retry button to re-run the load effect on unchanged inputs.
   const [reloadKey, setReloadKey] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -850,7 +853,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         setDaily(dailyInfo);
       })
       .catch((e: Error) => {
-        if (!cancelled) setLoadError(e.message);
+        if (!cancelled) setLoadError(e);
       });
     return () => {
       cancelled = true;
@@ -1013,7 +1016,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           }
         }
       } catch (e) {
-        setError((e as Error).message);
+        setError(e as Error);
         setPending(null); // roll the optimistic row back off the board
       } finally {
         setBusy(false);
@@ -1181,7 +1184,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
             the closed sign takes the board's place rather than sitting above a
             search box that can't match anything. */}
         {loadError && !daily ? (
-          <KitchenClosed detail={loadError} onRetry={() => setReloadKey((k) => k + 1)} />
+          <KitchenClosed detail={errorText(loadError, t)} onRetry={() => setReloadKey((k) => k + 1)} />
         ) : (
           <>
             <div className={showSpotlight ? "special-line special-line--lit" : "special-line"}>
@@ -1239,7 +1242,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         {error && (
           <p className="error-note">
             {t.board.guessFailed}
-            <span className="error-note__detail">{error}</span>
+            <span className="error-note__detail">{errorText(error, t)}</span>
           </p>
         )}
 
