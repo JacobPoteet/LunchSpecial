@@ -243,6 +243,17 @@ An opt-in short list of the dishes that still fit, from the fourth miss (`MENU_A
 - **Press areas are 44px, drawn smaller if they need to be.** Pills and round icon buttons are 36px with a 4px `::after` reach and an 8px gap so reaches never overlap; a new small control takes the same pseudo-element rather than a taller drawing. **Attribute tiles are a content-weighted flex row, never equal columns**: "Vegetarian" and "United States" overflow a quarter of a 375px row. Two by two under 340px. Check a new tile or chip layout at 320, 360, 375, 390 and 430 with the widest country, course and protein together.
 - **Three faces:** Alfa Slab One (sign, 1rem and up only), Yellowtail (neon/flourish), League Gothic `--font-gothic` (tabs, labels, small print). Fonts ship as `.woff2` only. Paper surfaces take `--radius-paper`, controls `--radius`. One job per face: Alfa Slab = headings and big numbers, Gothic = labels, Georgia = reading text and controls; Yellowtail = the neon title only. Sizes come from the `--fs-xs`…`--fs-xxl` scale in `base.css`; no raw rem or px font sizes in `admin.css`, nothing under `--fs-xs`.
 
+## Languages
+
+In progress (#269), landing as a stack of PRs. The game's own words go through a typed catalog; content (dish and drink names, ingredients, clues, coasters, country names) stays English until phase 2. `/admin` stays English.
+
+- `shared/locale.ts` is the only place that decides the language (`resolveLocale`: the player's pick, then Discord, then `navigator.languages`, then English). A locale with `autoDetect: false` (no native-speaker review yet) is picker-only.
+- `shared/i18n/locales/en.ts` is the source of truth; **new strings land there first**. Every other locale is one file named for its tag, typed `Messages`, and a lazy chunk (`src/i18n/store.ts` globs the folder). A message is a string or a function of plain arguments.
+- Components read `useT()`. **Folds in `shared/` take the messages as an argument and never import a locale** (`conventions.test.ts`). Plurals go through `plural()` (`Intl.PluralRules`), never `n === 1 ? …`; lists through `list()`.
+- `?locale=<tag>|pseudo` is cosmetic, honoured in production, never stored. The pseudo-locale accents, brackets and pads every string by 40%: an unbracketed string on screen is a leak.
+- `shared/i18n/catalog.test.ts`: one file per `LOCALES` entry, English's keys and arities everywhere, nothing left identical to English outside `MAY_MATCH_ENGLISH`.
+- `<html lang>` names the catalog on screen (`primeLocale()` before mount, 800ms cap), never ahead of it.
+
 ## Accessibility (player-facing UI)
 
 WCAG 2.1 AA for the game; `/admin` is exempt.

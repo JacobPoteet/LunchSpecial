@@ -11,6 +11,7 @@ import { useSyncExternalStore } from "react";
 import { beaconSound } from "../api";
 import { audioAvailable, isMuted, playSfx, subscribe, toggleMuted } from "../audio";
 import { currentSurface } from "../discord/bootstrap";
+import { useT } from "../i18n/store";
 import { peekPlayerId } from "./storage";
 
 /**
@@ -56,6 +57,7 @@ function SpeakerIcon({ muted }: { muted: boolean }) {
 
 export function SoundToggle() {
   const muted = useSyncExternalStore(subscribe, isMuted, () => false);
+  const t = useT();
 
   // No assets in this build means no sound, and a mute button for silence is
   // worse than no button: a control that visibly does nothing. The check sits
@@ -74,7 +76,7 @@ export function SoundToggle() {
     if (playerId) beaconSound({ playerId, surface: currentSurface(), muted: next.muted, toggles: next.toggles });
   };
 
-  const label = muted ? "Unmute sound" : "Mute sound";
+  const label = muted ? t.sound.unmute : t.sound.mute;
   return (
     <button className="sound-btn" onClick={flip} aria-label={label} aria-pressed={muted} title={label}>
       <SpeakerIcon muted={muted} />

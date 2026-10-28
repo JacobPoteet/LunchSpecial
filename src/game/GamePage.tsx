@@ -80,6 +80,7 @@ import { KidsMenuCard, KidsMenuCoach, KidsMenuPill } from "./KidsMenu";
 import { kidsMenuIntroDue, kidsMenuOpen, MENU_AFTER } from "../../shared/kidsmenu";
 import { seededShowcaseRound } from "./showcase";
 import { useOccasion, useWearOccasion } from "../occasions/store";
+import { useT } from "../i18n/store";
 import clocheUrl from "../assets/art/ai-cloche.svg";
 
 // Web vs Discord Activity — stable for the page's lifetime, so resolve it once
@@ -225,19 +226,18 @@ function StatsPanel({ stats, today, highlight }: { stats: Stats; today: string; 
  * reads as "my dish isn't in the game" rather than "the site is down".
  */
 function KitchenClosed({ detail, onRetry }: { detail: string | null; onRetry: () => void }) {
+  const t = useT();
   useEffect(() => {
     playSfx("error");
   }, []);
 
   return (
     <div className="closed" role="alert">
-      <p className="closed__sign">Sorry — we're closed</p>
-      <p className="closed__body">
-        The kitchen isn't answering. Check your connection and try again.
-      </p>
+      <p className="closed__sign">{t.closed.sign}</p>
+      <p className="closed__body">{t.closed.body}</p>
       {detail && <p className="closed__detail">{detail}</p>}
       <button className="replay-btn" onClick={() => { playSfx("ui-click"); onRetry(); }}>
-        <Icon name="bell" /> Ring the bell again
+        <Icon name="bell" /> {t.closed.retry}
       </button>
     </div>
   );
@@ -566,6 +566,7 @@ function ResultModal({
 
 export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   const today = useMemo(() => localToday(), []);
+  const t = useT();
 
   // Which round this is, read off the URL once (shared/mode.ts, tested). The
   // reasoning behind each flag — why a showcase isn't a preview, why a
@@ -1267,10 +1268,8 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         <EarlierTickets stack={tickets} Piece={ClueTicket} />
 
         <footer className="menu-card__thanks">
-          <p className="menu-card__thanks-script">{kit?.copy?.thanks ?? "Best food in town!"}</p>
-          <p className="menu-card__thanks-fine">
-            {kit?.copy?.fine ?? "No substitutions on the Special · Ask about our pie"}
-          </p>
+          <p className="menu-card__thanks-script">{kit?.copy?.thanks ?? t.menuCard.thanks}</p>
+          <p className="menu-card__thanks-fine">{kit?.copy?.fine ?? t.menuCard.fine}</p>
           {/* How-to and Sound moved off the main toolbar: neither is
               time-sensitive the way Leftovers, Your check or After Dark are,
               and the toolbar was showing up to six controls on a 375px card
@@ -1279,7 +1278,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           <div className="menu-card__utility">
             <button
               className="icon-btn icon-btn--solo"
-              aria-label="How to play"
+              aria-label={t.menuCard.howToPlay}
               onClick={() => { playSfx("ui-click"); setShowHowTo(true); }}
             >
               <Icon name="help" />
@@ -1292,7 +1291,8 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
       <footer className="footer-note">
         <Byline />
         <p className="footer-note__links">
-          <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/press">Press</a>
+          <a href="/privacy">{t.footer.privacy}</a> · <a href="/terms">{t.footer.terms}</a> ·{" "}
+          <a href="/press">{t.footer.press}</a>
         </p>
         <BuildTag />
       </footer>

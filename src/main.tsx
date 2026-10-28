@@ -4,6 +4,7 @@ import App from "./App";
 import { initDiscord } from "./discord/bootstrap";
 import { applyHandoffHarness } from "./game/devHarness";
 import { applyShowcase } from "./game/showcase";
+import { primeLocale } from "./i18n/store";
 import { primeOccasion } from "./occasions/store";
 import "./styles/base.css";
 import "./styles/game.css";
@@ -30,5 +31,6 @@ function mount() {
 //
 // The occasion is primed alongside them so the first frame is already in
 // costume, and caps its own wait (src/occasions/store.ts): a decoration never
-// holds the board up for long.
-void Promise.all([initDiscord(), applyHandoffHarness(), applyShowcase(), primeOccasion()]).then(mount);
+// holds the board up for long. The language is primed the same way, so the
+// first frame speaks it (src/i18n/store.ts).
+void Promise.all([initDiscord(), applyHandoffHarness(), applyShowcase(), primeOccasion(), primeLocale()]).then(mount);
