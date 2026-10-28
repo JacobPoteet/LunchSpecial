@@ -13,7 +13,7 @@
  * hold. Nothing here reads the target dish — the same rule the board follows.
  */
 
-import { REGION_LABELS } from "./types";
+import type { Messages } from "./i18n/messages";
 import type {
   AttributeFeedback,
   DrinkAttributeFeedback,
@@ -23,21 +23,14 @@ import type {
   Region,
 } from "./types";
 
-/**
- * The verdict, in words. Also what the tiles carry in their own hidden text
- * node, so a tile read on its own ("Country, Italy, close") and the summary
- * read here can't describe the same square two different ways.
- */
-export const MATCH_WORDS: Record<MatchLevel, string> = {
-  hit: "match",
-  near: "close",
-  miss: "no match",
-};
+// The verdict in words (`t.announce.match`) is also what the tiles carry in
+// their own hidden text node, so a tile read on its own ("Country, Italy,
+// close") and the summary read here can't describe the same square two ways.
 
 /**
  * The redundant visual channel for the same three states — the thing that makes
- * a tile readable without seeing its colour (WCAG 1.4.1). Kept beside the words
- * so the two can never drift apart.
+ * a tile readable without seeing its colour (WCAG 1.4.1). Glyphs, so the same
+ * in every language.
  */
 export const MATCH_MARKS: Record<MatchLevel, string> = {
   hit: "✓",
@@ -46,21 +39,16 @@ export const MATCH_MARKS: Record<MatchLevel, string> = {
 };
 
 /** Tile order on the board, left to right. */
-const ATTRIBUTES: Array<[keyof AttributeFeedback, string]> = [
-  ["country", "country"],
-  ["course", "course"],
-  ["temperature", "served"],
-  ["protein", "protein"],
-];
+const ATTRIBUTES: Array<keyof AttributeFeedback> = ["country", "course", "temperature", "protein"];
 
 /**
  * What a near country tile adds: the region the game means. The eye gets the
  * same words on a second line of the tile (see AttrTile), so a screen reader
  * hears exactly what a sighted player reads, which is the whole rule.
  */
-export function regionAside(key: string, cell: { match: MatchLevel; region?: Region }): string {
+export function regionAside(key: string, cell: { match: MatchLevel; region?: Region }, t: Messages): string {
   if (key !== "country" || cell.match !== "near" || !cell.region) return "";
-  return ` (${REGION_LABELS[cell.region]})`;
+  return t.announce.region(t.regions[cell.region]);
 }
 
 /**
@@ -68,14 +56,40 @@ export function regionAside(key: string, cell: { match: MatchLevel; region?: Reg
  * different one of the same family as something in the Special, and a listener
  * needs the number for the same reason a sighted player gets the chips.
  */
-function closeAside(guess: { nearIngredients?: unknown[] }): string {
+function closeAside(guess: { nearIngredients?: unknown[] }, t: Messages): string {
   const n = guess.nearIngredients?.length ?? 0;
-  return n > 0 ? `, ${n} close` : "";
+  return n > 0 ? t.announce.close(n) : "";
 }
 
-/** "1 guess" / "3 guesses" — the word is irregular, so both forms are named. */
-function count(n: number, one: string, many: string): string {
-  return `${n} ${n === 1 ? one : many}`;
+/** The tiles, in board order, as one comma-run phrase. */
+function tilesPhrase<K extends string>(
+  keys: ReadonlyArray<K>,
+  labels: Record<K, string>,
+  attributes: Record<K, { match: MatchLevel; region?: Region }>,
+  t: Messages,
+): string {
+  return keys
+    .map((key) => {
+      const cell = attributes[key];
+      return t.announce.tile(labels[key], t.announce.match[cell.match]) + regionAside(key, cell, t);
+    })
+    .join(", ");
+}
+
+/** A miss, as the sentence both boards say it. */
+function missSentence(
+  guess: { matchedIngredients: unknown[]; nearIngredients?: unknown[] },
+  name: string,
+  tiles: string,
+  input: { ingredientCount: number; guessNumber: number; maxGuesses: number },
+  t: Messages,
+): string {
+  const { ingredientCount, guessNumber, maxGuesses } = input;
+  return (
+    `${t.announce.head(guessNumber, maxGuesses, name)} ` +
+    `${t.announce.ingredients(guess.matchedIngredients.length, ingredientCount)}${closeAside(guess, t)}. ` +
+    `${tiles}. ${t.announce.left(maxGuesses - guessNumber)}`
+  );
 }
 
 /**
@@ -87,34 +101,20 @@ function count(n: number, one: string, many: string): string {
  * then the ingredient count, then the tiles in the order they're drawn, and
  * closes with what's left.
  */
-export function guessAnnouncement(input: {
-  guess: GuessFeedback;
-  ingredientCount: number;
-  guessNumber: number;
-  maxGuesses: number;
-}): string {
-  const { guess, ingredientCount, guessNumber, maxGuesses } = input;
+export function guessAnnouncement(
+  input: {
+    guess: GuessFeedback;
+    ingredientCount: number;
+    guessNumber: number;
+    maxGuesses: number;
+  },
+  t: Messages,
+): string {
+  const { guess } = input;
   const name = guess.dish.name;
-  if (guess.correct) {
-    return `${name} is the Special. Solved in ${count(guessNumber, "guess", "guesses")}.`;
-  }
-
-  const tiles = ATTRIBUTES.map(([key, label]) => {
-    const cell = guess.attributes[key];
-    return `${label} ${MATCH_WORDS[cell.match]}${regionAside(key, cell)}`;
-  }).join(", ");
-
-  const remaining = maxGuesses - guessNumber;
-  const tail =
-    remaining === 0
-      ? "No guesses left."
-      : `${count(remaining, "guess", "guesses")} left.`;
-
-  return (
-    `Guess ${guessNumber} of ${maxGuesses}: ${name}. ` +
-    `${guess.matchedIngredients.length} of ${ingredientCount} ingredients match${closeAside(guess)}. ` +
-    `${tiles}. ${tail}`
-  );
+  if (guess.correct) return t.announce.solved(name, input.guessNumber);
+  const tiles = tilesPhrase(ATTRIBUTES, t.announce.dishTiles, guess.attributes, t);
+  return missSentence(guess, name, tiles, input, t);
 }
 
 /**
@@ -123,8 +123,8 @@ export function guessAnnouncement(input: {
  * stagger is deliberate and a single region updated twice in quick succession
  * drops the first message.
  */
-export function clueAnnouncement(index: number, text: string): string {
-  return `Clue ${index}: ${text}`;
+export function clueAnnouncement(index: number, text: string, t: Messages): string {
+  return t.announce.clue(index, text);
 }
 
 // ---- After Dark ----
@@ -132,17 +132,10 @@ export function clueAnnouncement(index: number, text: string): string {
 // The bar's board changes in the same three places and needs the same two
 // sentences. Two of the four tiles differ, the noun is a drink rather than a
 // dish, and the paper is a coaster rather than a ticket -- so the wording is
-// its own fold rather than a parameterised version of the one above, which
-// would have ended up taking a label table, a noun and a verb to save eight
-// lines.
+// its own entry point. The sentence around the tiles is shared (missSentence).
 
 /** Tile order on the bar's board, left to right. */
-const DRINK_ATTRIBUTES: Array<[keyof DrinkAttributeFeedback, string]> = [
-  ["country", "country"],
-  ["spirit", "base spirit"],
-  ["temperature", "served"],
-  ["profile", "profile"],
-];
+const DRINK_ATTRIBUTES: Array<keyof DrinkAttributeFeedback> = ["country", "spirit", "temperature", "profile"];
 
 /**
  * One Nightcap guess, as a sentence.
@@ -151,36 +144,25 @@ const DRINK_ATTRIBUTES: Array<[keyof DrinkAttributeFeedback, string]> = [
  * guessed -- the same rule the board follows, and the reason a screen reader
  * user hears exactly what a sighted player sees.
  */
-export function drinkGuessAnnouncement(input: {
-  guess: DrinkGuessFeedback;
-  ingredientCount: number;
-  guessNumber: number;
-  maxGuesses: number;
-}): string {
-  const { guess, ingredientCount, guessNumber, maxGuesses } = input;
+export function drinkGuessAnnouncement(
+  input: {
+    guess: DrinkGuessFeedback;
+    ingredientCount: number;
+    guessNumber: number;
+    maxGuesses: number;
+  },
+  t: Messages,
+): string {
+  const { guess } = input;
   const name = guess.drink.name;
-  if (guess.correct) {
-    return `${name} is tonight's Nightcap. Solved in ${count(guessNumber, "guess", "guesses")}.`;
-  }
-
-  const tiles = DRINK_ATTRIBUTES.map(([key, label]) => {
-    const cell = guess.attributes[key];
-    return `${label} ${MATCH_WORDS[cell.match]}${regionAside(key, cell)}`;
-  }).join(", ");
-
-  const remaining = maxGuesses - guessNumber;
-  const tail = remaining === 0 ? "No guesses left." : `${count(remaining, "guess", "guesses")} left.`;
-
-  return (
-    `Guess ${guessNumber} of ${maxGuesses}: ${name}. ` +
-    `${guess.matchedIngredients.length} of ${ingredientCount} ingredients match${closeAside(guess)}. ` +
-    `${tiles}. ${tail}`
-  );
+  if (guess.correct) return t.announce.solvedNightcap(name, input.guessNumber);
+  const tiles = tilesPhrase(DRINK_ATTRIBUTES, t.announce.drinkTiles, guess.attributes, t);
+  return missSentence(guess, name, tiles, input, t);
 }
 
 /** The coaster, announced on its own once it has slid across the bar. */
-export function coasterAnnouncement(index: number, text: string): string {
-  return `Coaster ${index}: ${text}`;
+export function coasterAnnouncement(index: number, text: string, t: Messages): string {
+  return t.announce.coaster(index, text);
 }
 
 // ---- The Kids' Menu ----
@@ -195,15 +177,11 @@ export function coasterAnnouncement(index: number, text: string): string {
  * opens on its list. With no confirmed fact (every tile a miss) the misses
  * still narrowed it, so it says what's left rather than "the whole menu".
  */
-export function kidsMenuAnnouncement(dishes: number, filters: ReadonlyArray<string>): string {
-  if (filters.length === 0) return `Kids' Menu: ${count(dishes, "dish", "dishes")} still on the menu.`;
-  const narrowed =
-    filters.length === 1
-        ? filters[0]
-        : `${filters.slice(0, -1).join(", ")} and ${filters[filters.length - 1]}`;
-  return `Kids' Menu: ${count(dishes, "dish", "dishes")}, ${narrowed}.`;
+export function kidsMenuAnnouncement(dishes: number, filters: ReadonlyArray<string>, t: Messages): string {
+  if (filters.length === 0) return t.announce.kidsMenuAll(dishes);
+  return t.announce.kidsMenu(dishes, t.and(filters));
 }
 
-export function circleAnnouncement(name: string): string {
-  return `Circled ${name}. Order it from the foot of the menu.`;
+export function circleAnnouncement(name: string, t: Messages): string {
+  return t.announce.circled(name);
 }

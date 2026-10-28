@@ -17,6 +17,8 @@
 // token, no image, no player. The upload is forwarded and forgotten.
 
 import { Hono } from "hono";
+// English until phase 1a reads the guild's language off the interaction.
+import en from "../../shared/i18n/locales/en";
 import { progressLine, type ScorecardTheme } from "../../shared/scorecard";
 import { avatarUrl, displayName } from "../avatar";
 import { verifyDiscordSignature } from "../discordsig";
@@ -320,7 +322,7 @@ app.post("/interactions", async (c) => {
   return c.json({
     type: CALLBACK_MESSAGE,
     data: {
-      content: progressLine(true, 0),
+      content: progressLine(true, 0, "day", en),
       embeds: [{ author: { name, icon_url: icon }, color: EMBED_COLOR }],
       components: [
         {
@@ -392,7 +394,7 @@ app.post("/progress", async (c) => {
   form.append(
     "payload_json",
     JSON.stringify({
-      content: progressLine(live, Number.isFinite(puzzle) ? puzzle : 0, mode),
+      content: progressLine(live, Number.isFinite(puzzle) ? puzzle : 0, mode, en),
       attachments: [{ id: 0, filename: "lunch-special.png" }],
     }),
   );

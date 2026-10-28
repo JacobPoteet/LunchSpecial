@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import en from "./i18n/locales/en";
 import { SMALL_SAMPLE_MIN } from "./sample";
 import { foldTally, modalGuess, tallyLine, type TallyRow } from "./tally";
 import { MAX_GUESSES } from "./types";
@@ -43,21 +44,21 @@ describe("tallyLine", () => {
 
   it("prints nothing under the sample floor, not a hedge", () => {
     const t = foldTally([...solvedIn(3, enough - 1)], MAX_GUESSES);
-    expect(tallyLine(t)).toBeNull();
+    expect(tallyLine(t, en)).toBeNull();
   });
 
   it("quotes the share of finishers and the modal guess", () => {
     const t = foldTally([...solvedIn(3, 24), ...solvedIn(2, 6), ...failed(10)], MAX_GUESSES);
-    expect(tallyLine(t)).toBe("75% of diners got today's Special · most in 3");
+    expect(tallyLine(t, en)).toBe("75% of diners got today's Special · most in 3");
   });
 
   it("drops the modal guess when nobody got it", () => {
     const t = foldTally(failed(enough), MAX_GUESSES);
-    expect(tallyLine(t)).toBe("0% of diners got today's Special.");
+    expect(tallyLine(t, en)).toBe("0% of diners got today's Special.");
   });
 
   it("measures against finishes, not against solves", () => {
     const t = foldTally([...solvedIn(1, 15), ...failed(15)], MAX_GUESSES);
-    expect(tallyLine(t)).toMatch(/^50%/);
+    expect(tallyLine(t, en)).toMatch(/^50%/);
   });
 });

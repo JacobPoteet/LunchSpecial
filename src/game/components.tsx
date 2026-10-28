@@ -11,8 +11,8 @@ import type {
   NearIngredient,
   Region,
 } from "../../shared/types";
-import { REGION_LABELS } from "../../shared/types";
-import { MATCH_MARKS, MATCH_WORDS } from "../../shared/announce";
+import { MATCH_MARKS } from "../../shared/announce";
+import { useT } from "../i18n/store";
 import { gameToday, hms, msUntilGameMidnight } from "../../shared/time";
 import { rankByName } from "../../shared/search";
 import { playSfx, setMuffled } from "../audio";
@@ -236,7 +236,8 @@ function AttrTile({
    */
   region?: Region;
 }) {
-  const near = match === "near" && region ? REGION_LABELS[region] : null;
+  const t = useT();
+  const near = match === "near" && region ? t.regions[region] : null;
   return (
     <div
       className={`attr-tile attr-tile--revealed attr-tile--${match}`}
@@ -259,7 +260,7 @@ function AttrTile({
       </span>
       <span className="attr-tile__value">{value}</span>
       <span className="sr-only">
-        {MATCH_WORDS[match]}
+        {t.announce.match[match]}
         {near ? ` (${near})` : ""}
       </span>
     </div>

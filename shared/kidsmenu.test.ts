@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import en from "./i18n/locales/en";
 import {
   boardMenu,
   confirmedFacts,
@@ -105,16 +106,16 @@ describe("confirmedFacts", () => {
 
 describe("menuBlurb", () => {
   it("says what the list is in one sentence", () => {
-    expect(menuBlurb(41)).toBe("41 dishes could still be the answer.");
-    expect(menuBlurb(1)).toBe("Only 1 dish could still be the answer.");
+    expect(menuBlurb(41, en)).toBe("41 dishes could still be the answer.");
+    expect(menuBlurb(1, en)).toBe("Only 1 dish could still be the answer.");
   });
 });
 
 describe("filterLabel", () => {
   it("names a region the way a near tile does, and the rest as the tile's value", () => {
-    expect(filterLabel("region", "east-asia")).toBe("East Asia");
-    expect(filterLabel("country", "Japan")).toBe("Japan");
-    expect(filterLabel("protein", "pork")).toBe("pork");
+    expect(filterLabel("region", "east-asia", en)).toBe("East Asia");
+    expect(filterLabel("country", "Japan", en)).toBe("Japan");
+    expect(filterLabel("protein", "pork", en)).toBe("pork");
   });
 });
 

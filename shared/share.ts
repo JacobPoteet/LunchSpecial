@@ -7,7 +7,8 @@
 // that reads `navigator` lives in src/game/share.ts, and the Discord half in
 // src/discord/share.ts.
 
-import { OCCASIONS, type OccasionId } from "./occasions";
+import type { Messages } from "./i18n/messages";
+import type { OccasionId } from "./occasions";
 import type { DrinkGuessFeedback, GuessFeedback, MatchLevel } from "./types";
 import { DRINK_MAX_GUESSES, MAX_GUESSES } from "./types";
 
@@ -27,8 +28,8 @@ export const SHARE_URL = "https://lunchspecial.app";
  * one line between the grid and the url. The grid itself is untouched, so a
  * costumed result still reads as the same game in a channel full of plain ones.
  */
-export function shareMessage(text: string, occasion: OccasionId | null = null): string {
-  const line = occasion ? `\n${OCCASIONS[occasion].shareLine}` : "";
+export function shareMessage(text: string, t: Messages, occasion: OccasionId | null = null): string {
+  const line = occasion ? `\n${t.occasions[occasion].shareLine}` : "";
   return `${text}${line}\n${SHARE_URL}`;
 }
 
@@ -118,6 +119,7 @@ export function buildShareText(
   guesses: GuessFeedback[],
   won: boolean,
   ingredientCount: number,
+  t: Messages,
 ): string {
   const score = won ? `${guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
   const rows = guesses.map((g) => {
@@ -127,7 +129,7 @@ export function buildShareText(
       .join("");
     return withPantry(tiles, g.correct ? "🛎️" : pantryCount(g.matchedIngredients.length, ingredientCount, "🥄"));
   });
-  return [`Lunch Special #${puzzleNumber} — ${score}`, ...rows].join("\n");
+  return [t.share.lunchTitle(puzzleNumber, score), ...rows].join("\n");
 }
 
 /**
@@ -151,6 +153,7 @@ export function buildNightShareText(
   guesses: DrinkGuessFeedback[],
   won: boolean,
   ingredientCount: number,
+  t: Messages,
 ): string {
   const score = won ? `${guesses.length}/${DRINK_MAX_GUESSES}` : `X/${DRINK_MAX_GUESSES}`;
   const rows = guesses.map((g) => {
@@ -162,6 +165,6 @@ export function buildNightShareText(
     // answer to the bell and the spoon.
     return withPantry(tiles, g.correct ? "🥂" : pantryCount(g.matchedIngredients.length, ingredientCount, "🥃"));
   });
-  const title = nightNumber > 0 ? `After Dark · Night #${nightNumber} — ${score}` : `After Dark — ${score}`;
+  const title = nightNumber > 0 ? t.share.nightTitle(nightNumber, score) : t.share.nightTitleUnnumbered(score);
   return [title, ...rows].join("\n");
 }

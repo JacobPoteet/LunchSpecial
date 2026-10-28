@@ -15,8 +15,7 @@ import type { GuessFeedback } from "./types";
 /** Guesses it takes before a blank board earns the nudge. */
 export const STUCK_AFTER = 2;
 
-/** What the nudge says. A fragment that names no dish and no clue's content. */
-export const STUCK_NOTE = "Nothing close yet. Try the clue ticket.";
+// What the nudge says is `t.stuck`: a fragment that names no dish and no clue's content.
 
 type Probe = Pick<GuessFeedback, "correct" | "matchedIngredients" | "attributes">;
 
