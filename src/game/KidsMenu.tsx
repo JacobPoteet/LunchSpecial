@@ -231,7 +231,13 @@ export function KidsMenuCard({
       footer={
         <div className="kids__foot">
           <p className="kids__picked">
-            {picked ? <InlineMarkdown source={t.kidsMenu.circled(picked.name)} /> : t.kidsMenu.tapToCircle}
+            {picked ? (
+              <>
+                {t.kidsMenu.circled} <strong>{picked.name}</strong>
+              </>
+            ) : (
+              t.kidsMenu.tapToCircle
+            )}
           </p>
           <button type="button" className="share-btn share-btn--primary kids__order" disabled={!picked} onClick={order}>
             {t.kidsMenu.order}

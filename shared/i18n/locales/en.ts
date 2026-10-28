@@ -264,7 +264,8 @@ const en = {
     coach: "**Stuck?** Open the Kids' Menu to see every dish that could still be the answer.",
     dismissCoach: "Dismiss the Kids' Menu tip",
     ordered: "ordered",
-    circled: (name: string) => `Circled: **${name}**`,
+    /** Printed before the circled dish's name, which is content and never goes through Markdown. */
+    circled: "Circled:",
     tapToCircle: "Tap a dish to circle it.",
     order: "Order it",
     fine: "For diners 12 and under. We won't check.",
