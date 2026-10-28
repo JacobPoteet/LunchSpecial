@@ -67,8 +67,8 @@ export function tzOffsetMinutes(): number {
  * the small hours: at 1am on the 5th you are still out on the 4th, and a card
  * that says the 5th is arguing with the player about what night it is.
  */
-export function nightDateLabel(night: string): string {
-  return new Date(`${night}T12:00:00`).toLocaleDateString(undefined, {
+export function nightDateLabel(night: string, locale: string): string {
+  return new Date(`${night}T12:00:00`).toLocaleDateString(locale, {
     weekday: "long",
     month: "long",
     day: "numeric",

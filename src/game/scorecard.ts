@@ -61,8 +61,6 @@ const PALETTE = {
     near: "#e8a53a",
     miss: "#a99e8f",
     onHit: "#fbf4e0",
-    /** What the winning row says instead of a pantry count. */
-    winWord: "ORDER UP",
   },
   // Kept in step with `:root[data-after-dark]` in base.css BY HAND, which is the
   // deliberate trade — the palette is copied rather than read at draw time so
@@ -80,7 +78,6 @@ const PALETTE = {
     near: "#e8a53a",
     miss: "#6b6055",
     onHit: "#ffffff",
-    winWord: "POURED",
   },
 } as const;
 
@@ -189,7 +186,7 @@ export async function drawScorecard(card: Scorecard): Promise<Blob | null> {
       // does in the stylesheet.
       ctx.fillStyle = COLOR.onHit;
       ctx.font = `700 14px Georgia, "Times New Roman", serif`;
-      ctx.fillText(COLOR.winWord, px + pantryW / 2, y + TILE / 2 + 5);
+      ctx.fillText(card.winWord, px + pantryW / 2, y + TILE / 2 + 5);
     } else {
       ctx.fillStyle = COLOR.inkSoft;
       ctx.font = `600 17px Georgia, "Times New Roman", serif`;

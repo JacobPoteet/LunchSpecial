@@ -15,44 +15,9 @@ import { dateLabel } from "./archive";
 import { devUrl } from "./devHarness";
 import { getPlayerId } from "./storage";
 import { Icon } from "./Icon";
+import { useLocale, useT } from "../i18n/store";
 
 const SURFACE = currentSurface();
-
-const COPY: Record<
-  RequestKind,
-  {
-    toggle: string;
-    title: string;
-    namePlaceholder: string;
-    submit: string;
-    thanks: string;
-    stampTitle: string;
-    stampBody: (name: string) => string;
-    /** The answer when the name has already been on the menu. */
-    served: (name: string, day: string) => string;
-  }
-> = {
-  dish: {
-    toggle: "Suggest a dish for the menu",
-    title: "Suggest a dish for the menu",
-    namePlaceholder: "Dish name (required)",
-    submit: "Send to the kitchen",
-    thanks: "Thanks, hon — the cook's got your request!",
-    stampTitle: "Off a customer's ticket",
-    stampBody: (name) => `A regular asked for ${name}. Yours could be next.`,
-    served: (name, day) => `Good taste, hon: ${name} was the Special on ${day}.`,
-  },
-  drink: {
-    toggle: "Suggest a drink for the bar",
-    title: "Suggest a drink for the bar",
-    namePlaceholder: "Drink name (required)",
-    submit: "Send to the bar",
-    thanks: "Thanks — the bartender's got your request!",
-    stampTitle: "Off a regular's tab",
-    stampBody: (name) => `Somebody at the bar asked for ${name}. Yours could be next.`,
-    served: (name, day) => `Good taste: ${name} was poured on ${day}.`,
-  },
-};
 
 /**
  * The credit a fan-submitted Special (or pour) carries on the check. It sits
@@ -74,7 +39,7 @@ export function FanStamp({ name, kind }: { name: string; kind: RequestKind }) {
   useEffect(() => {
     playSfx("fan-stamp", { delayMs: 500 });
   }, []);
-  const copy = COPY[kind];
+  const copy = useT().requests[kind];
 
   return (
     <div className="fan-stamp">
@@ -106,7 +71,8 @@ export function RequestForm({ kind, promoted = false }: { kind: RequestKind; pro
   const [note, setNote] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [served, setServed] = useState<DishRequestResponse["served"]>(undefined);
-  const copy = COPY[kind];
+  const { t, intl } = useLocale();
+  const copy = t.requests[kind];
 
   if (status === "done") {
     // Asked for something the menu has already had: say when, and for a dish
@@ -117,8 +83,8 @@ export function RequestForm({ kind, promoted = false }: { kind: RequestKind; pro
         <p>{copy.thanks}</p>
         {served && (
           <p className="dish-request__served">
-            {copy.served(served.name, dateLabel(served.date))}{" "}
-            {kind === "dish" && <a href={surfaceUrl(devUrl(`/?date=${served.date}`))}>Order it from Leftovers</a>}
+            {copy.served(served.name, dateLabel(served.date, intl))}{" "}
+            {kind === "dish" && <a href={surfaceUrl(devUrl(`/?date=${served.date}`))}>{t.requests.orderFromLeftovers}</a>}
           </p>
         )}
       </div>
@@ -169,26 +135,26 @@ export function RequestForm({ kind, promoted = false }: { kind: RequestKind; pro
       />
       <input
         className="dish-request__input"
-        placeholder="Country of origin (optional)"
+        placeholder={t.requests.countryPlaceholder}
         value={country}
         maxLength={DISH_REQUEST_LIMITS.country}
         onChange={(e) => setCountry(e.target.value)}
       />
       <textarea
         className="dish-request__input"
-        placeholder="Anything else? (optional)"
+        placeholder={t.requests.notePlaceholder}
         value={note}
         maxLength={DISH_REQUEST_LIMITS.note}
         rows={2}
         onChange={(e) => setNote(e.target.value)}
       />
-      {status === "error" && <p className="dish-request__error">Couldn't send that — try again.</p>}
+      {status === "error" && <p className="dish-request__error">{t.requests.error}</p>}
       <div className="dish-request__actions">
         <button className="replay-btn" type="submit" disabled={!name.trim() || status === "sending"}>
-          {status === "sending" ? "Sending…" : copy.submit}
+          {status === "sending" ? t.requests.sending : copy.submit}
         </button>
         <button className="dish-request__cancel" type="button" onClick={() => setOpen(false)}>
-          Never mind
+          {t.requests.cancel}
         </button>
       </div>
     </form>

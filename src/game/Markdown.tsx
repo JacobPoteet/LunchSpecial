@@ -36,6 +36,16 @@ function renderSpan(span: Span, key: number) {
   }
 }
 
+/**
+ * One line of the game's own copy with **bold** in it, and no paragraph
+ * around it. A catalog message keeps its emphasis inside the sentence this
+ * way, so a translator moves the bold word with the grammar instead of
+ * translating three fragments.
+ */
+export function InlineMarkdown({ source }: { source: string }) {
+  return <>{parseMarkdown(source).flatMap((p) => p.lines.flat()).map(renderSpan)}</>;
+}
+
 export default function Markdown({ source }: { source: string }) {
   return (
     <>

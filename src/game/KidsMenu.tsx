@@ -20,7 +20,7 @@
 // in game.css.
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
-import type { Course, GuessFeedback, KidsMenuDish, KidsMenuInfo } from "../../shared/types";
+import type { GuessFeedback, KidsMenuDish, KidsMenuInfo } from "../../shared/types";
 import { filterLabel, layoutMenu, menuBlurb } from "../../shared/kidsmenu";
 import { useT } from "../i18n/store";
 import { circleAnnouncement, kidsMenuAnnouncement } from "../../shared/announce";
@@ -29,6 +29,7 @@ import { fetchKidsMenu, type KidsMenuBoard } from "../api";
 import { playSfx } from "../audio";
 import { Modal } from "./components";
 import { Icon } from "./Icon";
+import { InlineMarkdown } from "./Markdown";
 
 /**
  * The pill. `fresh` is true when it appeared during this sitting. `pip` marks
@@ -48,6 +49,7 @@ export function KidsMenuPill({
   onOpen: () => void;
   buttonRef?: RefObject<HTMLButtonElement | null>;
 }) {
+  const t = useT();
   return (
     <button
       ref={buttonRef}
@@ -61,7 +63,7 @@ export function KidsMenuPill({
         onOpen();
       }}
     >
-      <Icon name="crayon" /> Kids' Menu
+      <Icon name="crayon" /> {t.kidsMenu.name}
     </button>
   );
 }
@@ -81,6 +83,7 @@ export function KidsMenuCoach({
   anchor: RefObject<HTMLButtonElement | null>;
   onDismiss: () => void;
 }) {
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   const [caret, setCaret] = useState<number | null>(null);
   useLayoutEffect(() => {
@@ -101,7 +104,7 @@ export function KidsMenuCoach({
       style={caret === null ? undefined : ({ "--caret-x": `${caret}px` } as React.CSSProperties)}
     >
       <p className="coach__text">
-        <strong>Stuck?</strong> Open the Kids' Menu to see every dish that could still be the answer.
+        <InlineMarkdown source={t.kidsMenu.coach} />
       </p>
       {/* The card unmounts with its own × in it, which would drop keyboard
           focus to the page; the pill it described is where focus belongs. */}
@@ -111,21 +114,13 @@ export function KidsMenuCoach({
           anchor.current?.focus();
           onDismiss();
         }}
-        aria-label="Dismiss the Kids' Menu tip"
+        aria-label={t.kidsMenu.dismissCoach}
       >
         ×
       </button>
     </div>
   );
 }
-
-const COURSE_HEADS: Record<Course, string> = {
-  breakfast: "Breakfast",
-  appetizer: "Appetizers",
-  entree: "Entrees",
-  dessert: "Desserts",
-  drink: "Drinks",
-};
 
 /**
  * One menu per board, held for the page's life: reopening the card without a
@@ -219,7 +214,7 @@ export function KidsMenuCard({
             </span>
             <span className="kids-row__country">
               {dish.country}
-              {guessed && <span className="kids-row__tag"> · ordered</span>}
+              {guessed && <span className="kids-row__tag"> · {t.kidsMenu.ordered}</span>}
             </span>
             {isCircled && <CrayonCircle seed={dish.id} />}
           </span>
@@ -231,21 +226,21 @@ export function KidsMenuCard({
   return (
     <Modal
       onClose={onClose}
-      label="Kids' Menu"
+      label={t.kidsMenu.name}
       variant="kids"
       footer={
         <div className="kids__foot">
           <p className="kids__picked">
             {picked ? (
               <>
-                Circled: <strong>{picked.name}</strong>
+                {t.kidsMenu.circled} <strong>{picked.name}</strong>
               </>
             ) : (
-              "Tap a dish to circle it."
+              t.kidsMenu.tapToCircle
             )}
           </p>
           <button type="button" className="share-btn share-btn--primary kids__order" disabled={!picked} onClick={order}>
-            Order it
+            {t.kidsMenu.order}
           </button>
         </div>
       }
@@ -261,12 +256,12 @@ export function KidsMenuCard({
         </p>
         <header className="kids__head">
           <Doodle />
-          <h2 className="kids__title">Kids' Menu</h2>
-          <p className="kids__fine">For diners 12 and under. We won't check.</p>
+          <h2 className="kids__title">{t.kidsMenu.name}</h2>
+          <p className="kids__fine">{t.kidsMenu.fine}</p>
         </header>
 
-        {error && <p className="kids__note">The kitchen lost the crayons. Close this and try again.</p>}
-        {!menu && !error && <p className="kids__note">Fetching the crayons…</p>}
+        {error && <p className="kids__note">{t.kidsMenu.error}</p>}
+        {!menu && !error && <p className="kids__note">{t.kidsMenu.loading}</p>}
 
         {menu && layout && (
           <>
@@ -275,7 +270,7 @@ export function KidsMenuCard({
                 none to show: its misses narrowed the list without a stamp. */}
             {menu.filters.length > 0 && (
               <p className="kids__chips">
-                <span className="kids__chips-label">Confirmed</span>
+                <span className="kids__chips-label">{t.kidsMenu.confirmed}</span>
                 {menu.filters.map((f) => (
                   <span key={f.fact} className="kids-chip">
                     {filterLabel(f.fact, f.value, t)}
@@ -287,7 +282,7 @@ export function KidsMenuCard({
               <div key={section.course ?? "all"} className="kids-sec">
                 {section.course && (
                   <h3 className="kids-sec__head">
-                    {COURSE_HEADS[section.course]} <span className="kids-sec__count">{section.count}</span>
+                    {t.kidsMenu.courses[section.course]} <span className="kids-sec__count">{section.count}</span>
                   </h3>
                 )}
                 {section.groups.map((g) => (

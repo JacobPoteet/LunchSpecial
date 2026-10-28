@@ -44,7 +44,8 @@ import { nightIntroDone, nightIntroDue } from "../../shared/coach";
 import { TICKET_MS } from "../../shared/audio";
 import { buildNightScorecard } from "../../shared/scorecard";
 import { useOccasion, useWearOccasion } from "../occasions/store";
-import { useT } from "../i18n/store";
+import { useLocale, useT } from "../i18n/store";
+import { InlineMarkdown } from "./Markdown";
 import { playGuessArc, playSfx, setupAudio } from "../audio";
 import { buildNightShareText, buildShareText, joinShareBlocks, shareMessage } from "./share";
 import {
@@ -71,9 +72,6 @@ import { liveStreak } from "../../shared/streak";
 
 const SURFACE: Surface = currentSurface();
 
-/** The bar's answer to WIN_TOASTS. Shorter list — there are only four rungs. */
-const POUR_TOASTS = ["Smooth.", "Nice call.", "Got there.", "Last sip, hon."];
-
 /**
  * A countdown that ticks once a second, for the closed sign and for last call.
  *
@@ -91,6 +89,7 @@ function useCountdown(msLeft: () => number): number {
 
 /** The sign on the door outside opening hours. */
 function ClosedSign({ onLeave }: { onLeave: () => void }) {
+  const t = useT();
   const ms = useCountdown(untilOpen);
   const { h, m, s } = hms(ms);
   useEffect(() => {
@@ -101,15 +100,13 @@ function ClosedSign({ onLeave }: { onLeave: () => void }) {
   }, [ms]);
   return (
     <div className="closed closed--bar" role="status">
-      <p className="closed__sign">The bar's closed</p>
-      <p className="closed__body">
-        Open 8pm to 3am, your time. One drink a night, four guesses.
-      </p>
+      <p className="closed__sign">{t.bar.closedSign}</p>
+      <p className="closed__body">{t.bar.closedBody}</p>
       <p className="bar-countdown">
-        Opens in <b>{h}</b>:<b>{m}</b>:<b>{s}</b>
+        {t.bar.opensIn} <b>{h}</b>:<b>{m}</b>:<b>{s}</b>
       </p>
       <button className="replay-btn" onClick={() => { playSfx("ui-click"); onLeave(); }}>
-        ← Back to the diner
+        ← {t.bar.backToDiner}
       </button>
     </div>
   );
@@ -123,14 +120,13 @@ function ClosedSign({ onLeave }: { onLeave: () => void }) {
  * a locked door with no reason on it is the most annoying screen in any game.
  */
 function DoorSign({ onLeave }: { onLeave: () => void }) {
+  const t = useT();
   return (
     <div className="closed closed--bar" role="status">
-      <p className="closed__sign">Kitchen first</p>
-      <p className="closed__body">
-        Finish today's Special to open the bar.
-      </p>
+      <p className="closed__sign">{t.bar.doorSign}</p>
+      <p className="closed__body">{t.bar.doorBody}</p>
       <button className="replay-btn" onClick={() => { playSfx("ui-click"); onLeave(); }}>
-        ← Take me to today's Special
+        ← {t.bar.doorBack}
       </button>
     </div>
   );
@@ -146,12 +142,13 @@ function DoorSign({ onLeave }: { onLeave: () => void }) {
  * CoachMark draws, so the After Dark token swap themes it for free.
  */
 function NightIntro({ onDismiss }: { onDismiss: () => void }) {
+  const t = useT();
   return (
     <div className="coach coach--night">
       <p className="coach__text">
-        <strong>Same game, two new tiles.</strong> Spirit and Profile replace Course and Protein.
+        <InlineMarkdown source={t.bar.intro} />
       </p>
-      <button className="coach__dismiss" onClick={onDismiss} aria-label="Close">
+      <button className="coach__dismiss" onClick={onDismiss} aria-label={t.close}>
         ×
       </button>
     </div>
@@ -160,6 +157,7 @@ function NightIntro({ onDismiss }: { onDismiss: () => void }) {
 
 /** The bar's stats panel. Four rungs, never six. */
 function NightStatsPanel({ stats, night, highlight }: { stats: NightStats; night: string; highlight?: number }) {
+  const t = useT();
   // Stored streaks only move when a round is recorded, so a dead one still
   // reads as alive in storage. Same fold the daily's panel goes through,
   // with the night key standing in for the ET day.
@@ -173,10 +171,10 @@ function NightStatsPanel({ stats, night, highlight }: { stats: NightStats; night
   return (
     <>
       <div className="stats-grid">
-        <div><span className="stat__num">{stats.played}</span><span className="stat__label">Nights</span></div>
-        <div><span className="stat__num">{winPct}%</span><span className="stat__label">Win rate</span></div>
-        <div><span className="stat__num">{streak}</span><span className="stat__label">Streak</span></div>
-        <div><span className="stat__num">{stats.maxStreak}</span><span className="stat__label">Best</span></div>
+        <div><span className="stat__num">{stats.played}</span><span className="stat__label">{t.bar.nights}</span></div>
+        <div><span className="stat__num">{winPct}%</span><span className="stat__label">{t.stats.winRate}</span></div>
+        <div><span className="stat__num">{streak}</span><span className="stat__label">{t.stats.streak}</span></div>
+        <div><span className="stat__num">{stats.maxStreak}</span><span className="stat__label">{t.stats.best}</span></div>
       </div>
       <div className="dist">
         {stats.dist.map((n, i) => (
@@ -249,7 +247,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   // The bar dresses for the night key, fixed at entry like the night itself.
   useWearOccasion(night, "bar", tracked);
   const { kit } = useOccasion();
-  const t = useT();
+  const { t, intl } = useLocale();
 
   const [drinks, setDrinks] = useState<DrinkPoolEntry[]>([]);
   const [info, setInfo] = useState<NightcapInfo | null>(null);
@@ -265,7 +263,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   // The tab opens on the same beat as the check (roundLifecycle.ts): a beat
   // after a loss, a toast then a beat after a win, instantly for a round that
   // was already settled when the page loaded.
-  const check = useCheckOpening(round.status, round.guesses.length, (n) => POUR_TOASTS[n - 1] ?? POUR_TOASTS[0]);
+  const check = useCheckOpening(round.status, round.guesses.length, (n) => t.pourToasts[n - 1] ?? t.pourToasts[0]);
   const { toast, showCheck: showTab, setShowCheck: setShowTab } = check;
   const [openedAt] = useState(() => Date.now());
 
@@ -497,14 +495,12 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
         {kit?.Card && <kit.Card room="bar" />}
         {isPreview && (
           <p className="preview-banner">
-            {isShowcase
-              ? "Preview link — the bar's normally open 8pm to 3am. Nothing here is saved."
-              : "Admin test pour — nothing is saved, counted or shown to players"}
+            {isShowcase ? t.bar.previewShowcase : t.bar.previewAdmin}
           </p>
         )}
         {pinned && (
           <p className="preview-banner">
-            Playtest — {wantsRoll ? "a random pour" : `pinned to “${pinned}”`}, nothing is saved
+            {wantsRoll ? t.bar.playtestRandom : t.board.playtest(pinned)}
           </p>
         )}
 
@@ -518,20 +514,20 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
             <Icon name="glass" /> After Dark
           </span>
           <button className="bar-return__btn" onClick={() => { playSfx("ui-click"); onLeave(); }}>
-            Back to the diner
+            {t.bar.backToDiner}
           </button>
         </div>
 
         <div className="menu-card__header">
-          <h2 className="menu-card__title">Libations</h2>
+          <h2 className="menu-card__title">{t.bar.title}</h2>
           <p className="menu-card__meta">
-            {info && info.nightNumber > 0 ? <>Night No. {info.nightNumber} — </> : null}
-            {nightDateLabel(night)}
+            {info && info.nightNumber > 0 ? t.bar.nightNo(info.nightNumber) : null}
+            {nightDateLabel(night, intl)}
           </p>
           <div className="menu-card__toolbar">
             {round.status !== "playing" && (
               <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowTab(true); }}>
-                Your tab
+                {t.bar.yourTab}
               </button>
             )}
             <SoundToggle />
@@ -544,16 +540,16 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
         {lastCall > 0 && lastCall < 3_600_000 && round.status === "playing" && (
           <div className="lastcall-bar" role="status" aria-live="polite">
             <span className="lastcall-bar__tag">
-              <Icon name="clock" /> Last call in {hms(lastCall).m}:{hms(lastCall).s}</span>
+              <Icon name="clock" /> {t.bar.lastCall} {hms(lastCall).m}:{hms(lastCall).s}</span>
           </div>
         )}
 
         {loadError && !info ? (
           <div className="closed" role="alert">
-            <p className="closed__sign">Nothing on tap</p>
+            <p className="closed__sign">{t.bar.nothingOnTap}</p>
             <p className="closed__body">{loadError}</p>
             <button className="replay-btn" onClick={() => { playSfx("ui-click"); onLeave(); }}>
-              ← Back to the diner
+              ← {t.bar.backToDiner}
             </button>
           </div>
         ) : (
@@ -564,16 +560,12 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
               </span>
               <div className="special-line__body">
                 <p className="special-line__label">
-                  <span>Tonight's Nightcap</span>
+                  <span>{t.bar.special}</span>
                   <span className="leader" aria-hidden="true" />
-                  <span className="special-line__price">on the house</span>
+                  <span className="special-line__price">{t.board.onTheHouse}</span>
                 </p>
                 <p className="special-line__hint">
-                  {info ? (
-                    <>A mystery pour with <strong>{info.ingredientCount} ingredients</strong>. What's it going to be?</>
-                  ) : (
-                    "Wiping down the bar…"
-                  )}
+                  {info ? <InlineMarkdown source={t.bar.hint(info.ingredientCount)} /> : t.bar.loading}
                 </p>
               </div>
             </div>
@@ -585,8 +577,8 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
                   excludeIds={guessedIds}
                   disabled={!info || busy}
                   onGuess={submitGuess}
-                  placeholder="Order a drink…"
-                  label="Guess a drink"
+                  placeholder={t.bar.placeholder}
+                  label={t.bar.inputLabel}
                   hint={(d) => d.country}
                 />
                 <PunchCard used={DRINK_MAX_GUESSES - remaining} total={DRINK_MAX_GUESSES} />
@@ -597,7 +589,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
 
         {error && (
           <p className="error-note">
-            The bar didn't catch that order. Check your connection and try again.
+            {t.bar.guessFailed}
             <span className="error-note__detail">{error}</span>
           </p>
         )}
@@ -623,10 +615,8 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
         <EarlierTickets stack={coasters} Piece={Coaster} />
 
         <footer className="menu-card__thanks">
-          <p className="menu-card__thanks-script">Last call at three</p>
-          <p className="menu-card__thanks-fine">
-            One pour a night · {DRINK_CLUE_COUNT} coasters · Please drink responsibly
-          </p>
+          <p className="menu-card__thanks-script">{t.bar.thanks}</p>
+          <p className="menu-card__thanks-fine">{t.bar.fine(DRINK_CLUE_COUNT)}</p>
         </footer>
       </main>
 
@@ -661,7 +651,7 @@ function BarScene({ children }: { children: React.ReactNode }) {
         <h1 className="marquee__script">
           {kit?.Sign ? <kit.Sign text="After Dark" room="bar" /> : "After Dark"}
         </h1>
-        <p className="marquee__sub">{kit?.copy?.(t).barSub ?? "One drink. Four guesses. Gone by morning."}</p>
+        <p className="marquee__sub">{kit?.copy?.(t).barSub ?? t.bar.sub}</p>
       </header>
       {children}
       {/* The same footer the diner carries, byline included. The bar is a room
@@ -670,7 +660,8 @@ function BarScene({ children }: { children: React.ReactNode }) {
       <footer className="footer-note">
         <Byline />
         <p className="footer-note__links">
-          <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/press">Press</a>
+          <a href="/privacy">{t.footer.privacy}</a> · <a href="/terms">{t.footer.terms}</a> ·{" "}
+          <a href="/press">{t.footer.press}</a>
         </p>
         <BuildTag />
       </footer>
@@ -714,7 +705,7 @@ function TabModal({
    */
   const sharing = useShare({
     surface: SURFACE,
-    idle: "Share the night",
+    idle: t.bar.shareIdle,
     message: () => {
       // The lunch that let them in: the ET day's, or past ET midnight the one
       // dated on this night (see lunchAdmits).
@@ -765,18 +756,18 @@ function TabModal({
       </div>
       <div className="replay-actions">
         <button className="replay-btn" onClick={() => { playSfx("ui-click"); onLeave(); }}>
-          ← Back to the diner
+          ← {t.bar.backToDiner}
         </button>
       </div>
     </>
   );
 
   return (
-    <Modal onClose={onClose} variant="receipt" footer={actions} label="Your tab">
+    <Modal onClose={onClose} variant="receipt" footer={actions} label={t.bar.yourTab}>
       <div className="receipt__head">
-        <p className="receipt__title">After Dark — your tab</p>
+        <p className="receipt__title">{t.bar.tabTitle}</p>
         <p className="receipt__verdict">
-          {won ? "That one's on us" : "Better luck tomorrow night"}
+          {won ? t.bar.won : t.bar.lost}
           {kit?.Verdict && <kit.Verdict won={won} />}
         </p>
       </div>
@@ -786,9 +777,9 @@ function TabModal({
           {!won && (
             <>
               <p className="receipt__facts">
-                {reveal.country} · {reveal.spirit === "none" ? "no base spirit" : reveal.spirit} · served{" "}
-                {reveal.temperature} · {reveal.profile}
-                {!reveal.isAlcoholic && " · alcohol-free"}
+                {reveal.country} · {reveal.spirit === "none" ? t.bar.noSpirit : t.spirits[reveal.spirit]} ·{" "}
+                {t.check.served(t.temperatures[reveal.temperature])} · {t.profiles[reveal.profile]}
+                {!reveal.isAlcoholic && ` · ${t.bar.alcoholFree}`}
               </p>
               {reveal.ingredients.length > 0 && (
                 <p className="receipt__ingredients">{reveal.ingredients.join(" · ")}</p>

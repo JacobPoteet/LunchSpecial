@@ -13,21 +13,23 @@ import type { Surface } from "../../shared/types";
 import { canShareToChannel, shareToChannel } from "../discord/share";
 import { playSfx } from "../audio";
 import { canUseNativeShare, copyShareText } from "./share";
+import type { Messages } from "../../shared/i18n/messages";
+import { useT } from "../i18n/store";
 
 export type ShareState = "idle" | "working" | "channel" | "sent" | "copied" | "failed";
 
-export function shareLabel(state: ShareState, surface: Surface, idle = "Share"): string {
+export function shareLabel(state: ShareState, surface: Surface, t: Messages, idle = t.shareButton.idle): string {
   switch (state) {
     case "working":
-      return "Plating up…";
+      return t.shareButton.working;
     case "channel":
-      return "Sent to the channel!";
+      return t.shareButton.channel;
     case "sent":
-      return "Shared!";
+      return t.shareButton.sent;
     case "copied":
-      return surface === "discord" ? "Copied — paste it in chat!" : "Copied!";
+      return surface === "discord" ? t.shareButton.copiedDiscord : t.shareButton.copied;
     case "failed":
-      return "Tap to retry";
+      return t.shareButton.failed;
     default:
       return idle;
   }
@@ -56,6 +58,7 @@ export interface ShareInput {
  * lines in each.
  */
 export function useShare({ surface, message, card, onShare, idle }: ShareInput) {
+  const t = useT();
   const [state, setState] = useState<ShareState>("idle");
 
   const share = async () => {
@@ -91,5 +94,5 @@ export function useShare({ surface, message, card, onShare, idle }: ShareInput) 
     else if (state === "failed") playSfx("error");
   }, [state]);
 
-  return { state, share, label: shareLabel(state, surface, idle), busy: state === "working" };
+  return { state, share, label: shareLabel(state, surface, t, idle), busy: state === "working" };
 }

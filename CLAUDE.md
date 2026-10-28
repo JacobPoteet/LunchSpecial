@@ -253,6 +253,8 @@ In progress (#269), landing as a stack of PRs. The game's own words go through a
 - `?locale=<tag>|pseudo` is cosmetic, honoured in production, never stored. The pseudo-locale accents, brackets and pads every string by 40%: an unbracketed string on screen is a leak.
 - `shared/i18n/catalog.test.ts`: one file per `LOCALES` entry, English's keys and arities everywhere, nothing left identical to English outside `MAY_MATCH_ENGLISH`.
 - `<html lang>` names the catalog on screen (`primeLocale()` before mount, 800ms cap), never ahead of it.
+- **No raw English in `src/game` or `src/occasions` JSX**: text and word-carrying props (`aria-label`, `title`, `placeholder`, `alt`, `label`, `text`) come from `t`; `conventions.test.ts` walks the TSX and allows only the brand ("Lunch Special", "After Dark"). Bold inside a sentence is `**word**` in one message, rendered by `InlineMarkdown`, never three fragments. Only catalog text goes through it; a dish, drink or player-typed name never does.
+- Dates and numbers a player reads take `useLocale().intl`, never `undefined` (the browser's language may not be the game's). `/admin` keeps the browser's.
 
 ## Accessibility (player-facing UI)
 

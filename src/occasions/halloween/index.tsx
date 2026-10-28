@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import { playSfx } from "../../audio";
 import type { OccasionKit, Room } from "../kit";
 import { noteOccasionMoment } from "../store";
+import { useT } from "../../i18n/store";
 import jackUrl from "./art/ai-jack.svg";
 import "./halloween.css";
 
@@ -189,6 +190,7 @@ const PEEK_MS = 2400;
  * the rule, and the joke is that it has to be.
  */
 function Cloche({ src }: { src: string }) {
+  const t = useT();
   // A ref, not state: three quick knocks land before React has re-rendered
   // between them, and each must see the one before it.
   const knocks = useRef<number[]>([]);
@@ -209,7 +211,7 @@ function Cloche({ src }: { src: string }) {
     // Who found it: the Events page counts devices that knocked.
     noteOccasionMoment("knock");
     setPeeking(true);
-    setSaid("Boo.");
+    setSaid(t.occasions.halloween.boo);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       setPeeking(false);
@@ -222,7 +224,7 @@ function Cloche({ src }: { src: string }) {
       <button
         type="button"
         className={peeking ? "hw-cloche__btn hw-cloche__btn--peek" : "hw-cloche__btn"}
-        aria-label="Knock on the cloche"
+        aria-label={t.occasions.halloween.knock}
         onClick={knock}
       >
         <img key={shake} className={shake ? "hw-cloche__img hw-cloche__img--knocked" : "hw-cloche__img"} src={src} alt="" />

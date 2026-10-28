@@ -8,18 +8,20 @@
 // so a Leftover or Chef's Choice opened from inside Discord still counts.
 
 import { currentSurface } from "../discord/bootstrap";
+import { useT } from "../i18n/store";
 
 const AUTHOR = "Jacob Poteet";
 const AUTHOR_URL = "https://www.linkedin.com/in/jacobpoteet/";
 
 export function Byline() {
+  const t = useT();
   return (
     <p>
-      Created by{" "}
+      {t.byline.createdBy}{" "}
       {currentSurface() === "web" ? (
         <a className="footer-note__author" href={AUTHOR_URL} target="_blank" rel="noopener noreferrer">
           {AUTHOR}
-          <span className="sr-only"> (LinkedIn, opens in a new tab)</span>
+          <span className="sr-only">{t.byline.newTab}</span>
         </a>
       ) : (
         <b>{AUTHOR}</b>
