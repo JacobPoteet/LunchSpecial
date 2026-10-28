@@ -135,6 +135,14 @@ export function resolveLocale<T extends string>(input: LocaleInputs, locales: re
 }
 
 /**
+ * A client-sent language, as the Worker stores it: one of LOCALES' tags
+ * exactly, or null (the pseudo-locale, a retired tag, anything malformed).
+ */
+export function shippedLocale(raw: unknown): LocaleTag | null {
+  return LOCALES.find((l) => l.tag === raw)?.tag ?? null;
+}
+
+/**
  * `?locale=<tag>|pseudo` on this page load. Cosmetic and honoured in
  * production, like `?occasion=`: it dresses one page load and is never written
  * back as the player's pick. Any shipped locale is accepted, reviewed or not,

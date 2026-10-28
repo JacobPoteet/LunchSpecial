@@ -230,6 +230,32 @@ export interface CountryMix {
   untracked: number;
 }
 
+/** One language in the all-time mix (migrations/0064). */
+export interface LocaleUsage {
+  /** A shipped locale tag ("en", "es"), as the client resolved it. */
+  locale: string;
+  /** Rounds started in it. */
+  rounds: number;
+  /** Devices whose rounds were mostly in it. Each lands in exactly one language. */
+  players: number;
+}
+
+/**
+ * Which language rounds were played in, all time and surface-filtered.
+ * Same shape of honesty as {@link CountryMix}: NULL is "not measured" (every
+ * round before migrations/0064, and the pseudo-locale), never English.
+ */
+export interface LocaleMix {
+  /** Every language a round was started in, most rounds first. */
+  entries: LocaleUsage[];
+  /** Rounds counted across `entries`. */
+  rounds: number;
+  /** Devices counted across `entries`. */
+  players: number;
+  /** Rounds with no language recorded. Beside the table, never a row. */
+  untracked: number;
+}
+
 /**
  * One arrival source in the all-time mix (migrations/0024) — a `utm_source` off
  * the landing URL, or `direct` for an arrival that carried no tag.
@@ -1349,6 +1375,11 @@ export interface AnalyticsSummary extends AnalyticsPeriod {
    * `countries` above. See {@link SourceMix}.
    */
   sources: SourceMix;
+  /**
+   * Which language rounds were played in (migrations/0064), all time and
+   * surface-filtered like `countries`. See {@link LocaleMix}.
+   */
+  locales: LocaleMix;
   /**
    * When people play, all time and surface-filtered: the weekday × hour grid and
    * both its marginals. Replaces the bare `hourly: number[]` this used to carry —

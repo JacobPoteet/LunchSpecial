@@ -25,6 +25,7 @@ import { errorCopy, isPlayerErrorCode, type PlayerErrorCode } from "../shared/er
 import type { Messages } from "../shared/i18n/messages";
 import { currentClient } from "./discord/bootstrap";
 import { playerIdSource } from "./game/storage";
+import { speakingLocale } from "./i18n/store";
 
 /**
  * A request that failed in a way a player may see. `message` is the Worker's
@@ -195,7 +196,7 @@ export function submitDishRequest(body: DishRequestInput): Promise<DishRequestRe
   return request("/api/requests", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ ...body, locale: speakingLocale() }),
   });
 }
 
@@ -309,7 +310,13 @@ export function beaconStart(b: {
   // Stamped here rather than at the two call sites: which Discord client this
   // is, and which store the device id came out of (#251). Both closed sets,
   // re-checked by the Worker; neither says anything about who is playing.
-  beacon("/api/rounds/start", { ...b, client: currentClient(), deviceFrom: playerIdSource() });
+  // And the language on screen, which the Worker keeps only if it's a shipped one.
+  beacon("/api/rounds/start", {
+    ...b,
+    client: currentClient(),
+    deviceFrom: playerIdSource(),
+    locale: speakingLocale(),
+  });
 }
 
 export function beaconComplete(b: {

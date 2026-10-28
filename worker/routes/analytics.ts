@@ -14,6 +14,7 @@ import { edgeCountry } from "../countries";
 import { isAnalyticsId } from "../guesslog";
 import { occasionFor } from "../occasions";
 import { RECOVER_THROUGH, foldPastRounds, type PastRoundRow } from "../pastrounds";
+import { shippedLocale } from "../../shared/locale";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -217,6 +218,8 @@ app.post("/start", async (c) => {
   // Closed sets; anything else is NULL, and a web round never has a client.
   const client = b.surface === "discord" ? normalizeClient((raw as { client?: unknown }).client) : null;
   const deviceFrom = playerId ? normalizeDeviceOrigin((raw as { deviceFrom?: unknown }).deviceFrom) : null;
+  // The language the round is played in: a shipped tag, or NULL (never English).
+  const locale = shippedLocale((raw as { locale?: unknown }).locale);
   // `occasion` is insert-only like the rest: the costume the round's own day
   // wore, stamped here so the client has nothing to say about it.
   const [dishId, drinkId, occasion] = await Promise.all([
@@ -225,11 +228,11 @@ app.post("/start", async (c) => {
     occasionFor(c.env.DB, b.date),
   ]);
   await c.env.DB.prepare(
-    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, player_id, dish_id, drink_id, tz_offset, occasion, client, device_from, started_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    `INSERT INTO analytics_rounds (round_id, puzzle_number, play_date, kind, surface, country, player_id, dish_id, drink_id, tz_offset, occasion, client, device_from, locale, started_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
      ON CONFLICT(round_id) DO NOTHING`,
   )
-    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, edgeCountry(c.req.raw), playerId, dishId, drinkId, tzOffsetOf(raw), occasion, client, deviceFrom)
+    .bind(b.roundId, b.puzzleNumber, b.date, b.kind, b.surface, edgeCountry(c.req.raw), playerId, dishId, drinkId, tzOffsetOf(raw), occasion, client, deviceFrom, locale)
     .run();
   return c.json({ ok: true });
 });

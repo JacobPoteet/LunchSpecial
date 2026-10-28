@@ -126,6 +126,11 @@ export function useLocale(): LocaleState {
   return useSyncExternalStore(subscribe, () => state);
 }
 
+/** What the page is speaking right now, outside React (the beacons stamp it). */
+export function speakingLocale(): Speaking {
+  return state.speaking;
+}
+
 /** The catalog alone, for a component that only prints strings. */
 export function useT(): Messages {
   return useLocale().t;

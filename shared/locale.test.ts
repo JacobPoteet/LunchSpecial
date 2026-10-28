@@ -8,6 +8,7 @@ import {
   matchLocale,
   parsePicked,
   resolveLocale,
+  shippedLocale,
   type LocaleInfo,
 } from "./locale";
 
@@ -45,6 +46,16 @@ describe("detectLocale", () => {
     expect(detectLocale("es-ES", LIST)).toBe("es");
     expect(detectLocale("de", LIST)).toBeNull();
     expect(detectLocale(undefined, LIST)).toBeNull();
+  });
+});
+
+describe("shippedLocale", () => {
+  it("keeps a shipped tag exactly and nulls everything else", () => {
+    expect(shippedLocale("en")).toBe("en");
+    expect(shippedLocale("pseudo")).toBeNull();
+    expect(shippedLocale("EN")).toBeNull();
+    expect(shippedLocale(42)).toBeNull();
+    expect(shippedLocale(undefined)).toBeNull();
   });
 });
 
