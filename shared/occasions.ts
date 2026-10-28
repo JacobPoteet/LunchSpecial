@@ -37,12 +37,10 @@ export interface OccasionMeta {
    * off it.
    */
   suggested: { from: string; to: string };
-  /**
-   * One line between the grid and the url in a shared result. Emoji are fine
-   * here (share text keeps emoji); it never names the dish.
-   */
-  shareLine: string;
 }
+
+// The player's words for an occasion (its share line, the costume's copy) live
+// in the catalog under `t.occasions[id]`; these are the back office's.
 
 export const OCCASIONS: Record<OccasionId, OccasionMeta> = {
   halloween: {
@@ -50,7 +48,6 @@ export const OCCASIONS: Record<OccasionId, OccasionMeta> = {
     name: "Halloween",
     billing: "Graveyard shift",
     suggested: { from: "10-24", to: "10-31" },
-    shareLine: "🎃 Graveyard shift at Lunch Special",
   },
 };
 

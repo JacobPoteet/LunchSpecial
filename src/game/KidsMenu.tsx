@@ -21,8 +21,8 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { Course, GuessFeedback, KidsMenuDish, KidsMenuInfo } from "../../shared/types";
-import { REGION_LABELS } from "../../shared/types";
 import { filterLabel, layoutMenu, menuBlurb } from "../../shared/kidsmenu";
+import { useT } from "../i18n/store";
 import { circleAnnouncement, kidsMenuAnnouncement } from "../../shared/announce";
 import { crayonRing } from "../../shared/crayon";
 import { fetchKidsMenu, type KidsMenuBoard } from "../api";
@@ -152,6 +152,7 @@ export function KidsMenuCard({
   const [error, setError] = useState<string | null>(null);
   const [circled, setCircled] = useState<number | null>(null);
   const [live, setLive] = useState("");
+  const t = useT();
   const [moment, setMoment] = useState<{ name: Moment; n: number } | null>(null);
   const mark = (name: Moment) => setMoment((m) => ({ name, n: (m?.n ?? 0) + 1 }));
 
@@ -160,7 +161,7 @@ export function KidsMenuCard({
   const request = useMemo(() => board, [key]);
   useEffect(() => {
     const say = (info: KidsMenuInfo) =>
-      setLive(kidsMenuAnnouncement(info.dishes.length, info.filters.map((f) => filterLabel(f.fact, f.value))));
+      setLive(kidsMenuAnnouncement(info.dishes.length, info.filters.map((f) => filterLabel(f.fact, f.value, t)), t));
     const held = menuCache.get(key);
     if (held) {
       say(held);
@@ -179,7 +180,7 @@ export function KidsMenuCard({
     return () => {
       alive = false;
     };
-  }, [key, request]);
+  }, [key, request, t]);
 
   const guessedIds = useMemo(() => new Set(guesses.map((g) => g.dish.id)), [guesses]);
   const layout = useMemo(() => (menu ? layoutMenu(menu.dishes, menu.filters.map((f) => f.fact)) : null), [menu]);
@@ -189,7 +190,7 @@ export function KidsMenuCard({
     if (guessedIds.has(dish.id)) return;
     playSfx("ui-click");
     setCircled(dish.id);
-    setLive(circleAnnouncement(dish.name));
+    setLive(circleAnnouncement(dish.name, t));
     mark("circled");
   };
 
@@ -269,7 +270,7 @@ export function KidsMenuCard({
 
         {menu && layout && (
           <>
-            <p className="kids__blurb">{menuBlurb(menu.dishes.length)}</p>
+            <p className="kids__blurb">{menuBlurb(menu.dishes.length, t)}</p>
             {/* The stamps are what a tile confirmed. A board of misses has
                 none to show: its misses narrowed the list without a stamp. */}
             {menu.filters.length > 0 && (
@@ -277,7 +278,7 @@ export function KidsMenuCard({
                 <span className="kids__chips-label">Confirmed</span>
                 {menu.filters.map((f) => (
                   <span key={f.fact} className="kids-chip">
-                    {filterLabel(f.fact, f.value)}
+                    {filterLabel(f.fact, f.value, t)}
                   </span>
                 ))}
               </p>
@@ -291,7 +292,7 @@ export function KidsMenuCard({
                 )}
                 {section.groups.map((g) => (
                   <div key={g.region ?? "all"} className="kids-sec__group">
-                    {g.region && <h4 className="kids-sec__sub">{REGION_LABELS[g.region]}</h4>}
+                    {g.region && <h4 className="kids-sec__sub">{t.regions[g.region]}</h4>}
                     <ul className="kids-list">{g.dishes.map(row)}</ul>
                   </div>
                 ))}

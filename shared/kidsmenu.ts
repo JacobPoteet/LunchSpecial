@@ -15,7 +15,8 @@
 // out. Nothing about the order of a menu may hint at the answer, so dishes
 // sort by name and sections follow the fixed COURSES and REGIONS orders.
 
-import { COURSES, REGION_LABELS, REGIONS, type Course, type Protein, type Region, type Temperature } from "./types";
+import type { Messages } from "./i18n/messages";
+import { COURSES, REGIONS, type Course, type Protein, type Region, type Temperature } from "./types";
 
 /** Misses on the board before the pill appears (four clues seen, two guesses left). */
 export const MENU_AFTER = 4;
@@ -86,18 +87,29 @@ export function confirmedFacts(guesses: ReadonlyArray<MenuTraits>, target: MenuT
 
 /**
  * A stamp as it prints: the region by the board's own name for the bucket
- * (the one a near tile prints), the rest as the tile's value.
+ * (the one a near tile prints), the rest as the tile's value. The country is
+ * content and prints as it comes.
  */
-export function filterLabel(fact: MenuFact, value: string): string {
-  return fact === "region" ? (REGION_LABELS[value as Region] ?? value) : value;
+export function filterLabel(fact: MenuFact, value: string, t: Messages): string {
+  const table: Record<string, string> | null =
+    fact === "region"
+      ? t.regions
+      : fact === "course"
+        ? t.courses
+        : fact === "temperature"
+          ? t.temperatures
+          : fact === "protein"
+            ? t.proteins
+            : null;
+  return table?.[value] ?? value;
 }
 
 /**
  * The line under the card's title: what the list is, in one short sentence.
  * The Order button at the foot says the rest.
  */
-export function menuBlurb(dishes: number): string {
-  return dishes === 1 ? "Only 1 dish could still be the answer." : `${dishes} dishes could still be the answer.`;
+export function menuBlurb(dishes: number, t: Messages): string {
+  return t.kidsMenu.blurb(dishes);
 }
 
 export interface BoardMenu<T> {

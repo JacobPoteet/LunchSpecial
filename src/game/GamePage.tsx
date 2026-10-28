@@ -13,7 +13,7 @@ import {
   newAnalyticsId,
   postGuess,
 } from "../api";
-import type { Announcement, DailyInfo, DishPoolEntry, DishSummary, RevealInfo, RoundKind } from "../../shared/types";
+import type { Announcement, DailyInfo, DailyTally, DishPoolEntry, DishSummary, RevealInfo, RoundKind } from "../../shared/types";
 import { MAX_GUESSES } from "../../shared/types";
 import {
   ClueTicket,
@@ -38,7 +38,7 @@ import { CoachMark, CoachSpotlight } from "./Coach";
 import { coachBeat as pickCoachBeat, coachingDone } from "../../shared/coach";
 import { boardStreakMark, checkStreakLine, liveStreak } from "../../shared/streak";
 import { tallyLine } from "../../shared/tally";
-import { isStuck, STUCK_NOTE } from "../../shared/stuck";
+import { isStuck } from "../../shared/stuck";
 import { dateLabel } from "./archive";
 import { resolveMode } from "../../shared/mode";
 import { useRoundTelemetry } from "./useRoundTelemetry";
@@ -405,6 +405,7 @@ function ResultModal({
   onClose: () => void;
 }) {
   const won = round.status === "won";
+  const t = useT();
   // The costume the board behind this check is wearing. Its line rides the
   // share text; its art sits beside the verdict and in the card's corner.
   const { id: occasion, kit } = useOccasion();
@@ -414,8 +415,8 @@ function ResultModal({
   const sharing = useShare({
     surface: SURFACE,
     message: () =>
-      shareMessage(buildShareText(daily.puzzleNumber, round.guesses, won, daily.ingredientCount), occasion),
-    card: () => ({ ...buildScorecard(daily.puzzleNumber, round.guesses, won, daily.ingredientCount), occasion }),
+      shareMessage(buildShareText(daily.puzzleNumber, round.guesses, won, daily.ingredientCount, t), t, occasion),
+    card: () => ({ ...buildScorecard(daily.puzzleNumber, round.guesses, won, daily.ingredientCount, t), occasion }),
     onShare: () => {
       if (round.analyticsId) {
         beaconShare({ roundId: round.analyticsId, puzzleNumber: daily.puzzleNumber, date: round.date, kind, surface: SURFACE });
@@ -425,18 +426,20 @@ function ResultModal({
   // How the room did (GitHub #186). Asked for as the check opens and never
   // waited on; a failed fetch prints nothing, and so does a thin sample —
   // tallyLine() is where the floor lives. Null until it has something to say.
-  const [tally, setTally] = useState<string | null>(null);
+  const [counts, setCounts] = useState<DailyTally | null>(null);
   useEffect(() => {
     if (!isToday) return;
     let live = true;
     fetchTally(round.date).then(
-      (t) => live && setTally(tallyLine(t)),
+      (c) => live && setCounts(c),
       () => {},
     );
     return () => {
       live = false;
     };
   }, [isToday, round.date]);
+  // Worded at render, so a change of language rewords it without a refetch.
+  const tally = counts ? tallyLine(counts, t) : null;
   // Resolved once as the check opens: off Discord, or in a DM where there's no
   // channel to invite anyone to, there's no button.
   const [showInvite] = useState(() => SURFACE === "discord" && canInvite());
@@ -552,8 +555,8 @@ function ResultModal({
               right before a middot reads as two sentences colliding. */}
           <p className="receipt__streak">
             {tally
-              ? `${checkStreakLine({ ...stats, today, won }).replace(/\.$/, "")} · ${tally}`
-              : checkStreakLine({ ...stats, today, won })}
+              ? `${checkStreakLine({ ...stats, today, won }, t).replace(/\.$/, "")} · ${tally}`
+              : checkStreakLine({ ...stats, today, won }, t)}
           </p>
         </>
       )}
@@ -883,7 +886,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
     // a different pinned dish each start one.
     boardKey: `${date}|${random ?? ""}|${playtest ?? ""}`,
     buildCard: () =>
-      buildScorecard(daily?.puzzleNumber ?? 0, round.guesses, round.status === "won", daily?.ingredientCount ?? 0),
+      buildScorecard(daily?.puzzleNumber ?? 0, round.guesses, round.status === "won", daily?.ingredientCount ?? 0, t),
     assignId: (id) => {
       // Persist the id where the round lives (daily/archive); random keeps it
       // in memory only, which is enough to link its own beacons this session.
@@ -963,18 +966,21 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         // its printer, so the three arrive together rather than the sentence
         // landing a second before the paper.
         setLiveGuess(
-          guessAnnouncement({
-            guess: feedback,
-            ingredientCount: daily.ingredientCount,
-            guessNumber,
-            maxGuesses: MAX_GUESSES,
-          }),
+          guessAnnouncement(
+            {
+              guess: feedback,
+              ingredientCount: daily.ingredientCount,
+              guessNumber,
+              maxGuesses: MAX_GUESSES,
+            },
+            t,
+          ),
         );
         const clue = feedback.clue;
         window.clearTimeout(clueTimer.current);
         if (clue) {
           clueTimer.current = window.setTimeout(
-            () => setLiveClue(clueAnnouncement(clue.index, clue.text)),
+            () => setLiveClue(clueAnnouncement(clue.index, clue.text, t)),
             TICKET_MS,
           );
         }
@@ -1018,7 +1024,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         setBusy(false);
       }
     },
-    [daily, busy, staleDaily, round, date, preview, random, playtest, ephemeral, tracked, isDaily, analyticsKind, persist],
+    [daily, busy, staleDaily, round, date, preview, random, playtest, ephemeral, tracked, isDaily, analyticsKind, persist, t],
   );
 
   const guessedIds = useMemo(() => new Set(round.guesses.map((g) => g.dish.id)), [round.guesses]);
@@ -1054,7 +1060,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // the daily, and a Leftover or a Chef's Choice never touches it. Read off
   // `stats`, which recordResult replaces the moment a round ends, so a win
   // ticks it up on the board behind the check.
-  const streakMark = isDaily ? boardStreakMark({ ...stats, today }) : null;
+  const streakMark = isDaily ? boardStreakMark({ ...stats, today }, t) : null;
   const remaining = MAX_GUESSES - round.guesses.length;
   const tickets = useTicketStack(round.clues);
 
@@ -1075,7 +1081,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         <h1 className="marquee__script">
           {kit?.Sign ? <kit.Sign text="Lunch Special" room="diner" /> : "Lunch Special"}
         </h1>
-        <p className="marquee__sub">{kit?.copy?.sub ?? "The daily dish guessing game"}</p>
+        <p className="marquee__sub">{kit?.copy?.(t).sub ?? "The daily dish guessing game"}</p>
       </header>
 
       <main className="menu-card">
@@ -1222,7 +1228,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
                 <PunchCard used={MAX_GUESSES - remaining} total={MAX_GUESSES} />
                 {isStuck(round.guesses) && !pending && (
                   <p className="stuck-note" role="status" aria-live="polite">
-                    {STUCK_NOTE}
+                    {t.stuck}
                   </p>
                 )}
                 {/* Discord's picture-in-picture tile hides the toolbar, so the
@@ -1268,8 +1274,8 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         <EarlierTickets stack={tickets} Piece={ClueTicket} />
 
         <footer className="menu-card__thanks">
-          <p className="menu-card__thanks-script">{kit?.copy?.thanks ?? t.menuCard.thanks}</p>
-          <p className="menu-card__thanks-fine">{kit?.copy?.fine ?? t.menuCard.fine}</p>
+          <p className="menu-card__thanks-script">{kit?.copy?.(t).thanks ?? t.menuCard.thanks}</p>
+          <p className="menu-card__thanks-fine">{kit?.copy?.(t).fine ?? t.menuCard.fine}</p>
           {/* How-to and Sound moved off the main toolbar: neither is
               time-sensitive the way Leftovers, Your check or After Dark are,
               and the toolbar was showing up to six controls on a 375px card

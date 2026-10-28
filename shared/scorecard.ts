@@ -19,6 +19,7 @@
 // barred. Tile colours and counts are safe; they say how it went, not what it
 // was.
 
+import type { Messages } from "./i18n/messages";
 import type { OccasionId } from "./occasions";
 import type { DrinkGuessFeedback, GuessFeedback, MatchLevel } from "./types";
 import { DRINK_MAX_GUESSES, MAX_GUESSES } from "./types";
@@ -65,6 +66,7 @@ export interface Scorecard {
 /** Printed along the bottom so a card that gets forwarded still says where it's from. */
 export const SCORECARD_FOOTER = "lunchspecial.app";
 
+// The logo's words, in every language: the brand, like the neon sign.
 const TITLE = "Lunch Special";
 const NIGHT_TITLE = "After Dark";
 
@@ -85,16 +87,17 @@ const NIGHT_TITLE = "After Dark";
 export function progressLine(
   live: boolean,
   puzzleNumber: number,
-  theme: ScorecardTheme = "day",
+  theme: ScorecardTheme,
+  t: Messages,
 ): string {
   const night = theme === "night";
   const title = night ? NIGHT_TITLE : TITLE;
-  const unit = night ? "Night" : "No.";
-  const what = puzzleNumber > 0 ? `**${title}** · ${unit} ${puzzleNumber}` : `**${title}**`;
+  const number = night ? t.scorecard.nightNumber(puzzleNumber) : t.scorecard.lunchNumber(puzzleNumber);
+  const what = puzzleNumber > 0 ? `**${title}** · ${number}` : `**${title}**`;
   // "playing" either way. A channel does not need to be told somebody is
   // drinking, and the verb is the one part of this line that is about the
   // person rather than the game.
-  return `${live ? "is" : "was"} playing ${what}`;
+  return t.scorecard.progress(live, what);
 }
 
 /**
@@ -109,12 +112,13 @@ export function buildScorecard(
   guesses: GuessFeedback[],
   won: boolean,
   ingredientCount: number,
+  t: Messages,
   maxGuesses: number = MAX_GUESSES,
 ): Scorecard {
   const score = won ? `${guesses.length}/${maxGuesses}` : `X/${maxGuesses}`;
   // An unnumbered round (Chef's Choice) would otherwise headline "No. 0" — the
   // same conditional presence.ts needs, for the same reason.
-  const subtitle = puzzleNumber > 0 ? `No. ${puzzleNumber} · ${score}` : score;
+  const subtitle = puzzleNumber > 0 ? t.scorecard.lunchSubtitle(puzzleNumber, score) : score;
   return {
     theme: "day",
     title: TITLE,
@@ -149,10 +153,11 @@ export function buildNightScorecard(
   guesses: DrinkGuessFeedback[],
   won: boolean,
   ingredientCount: number,
+  t: Messages,
   maxGuesses: number = DRINK_MAX_GUESSES,
 ): Scorecard {
   const score = won ? `${guesses.length}/${maxGuesses}` : `X/${maxGuesses}`;
-  const subtitle = nightNumber > 0 ? `Night ${nightNumber} · ${score}` : score;
+  const subtitle = nightNumber > 0 ? t.scorecard.nightSubtitle(nightNumber, score) : score;
   return {
     theme: "night",
     title: NIGHT_TITLE,

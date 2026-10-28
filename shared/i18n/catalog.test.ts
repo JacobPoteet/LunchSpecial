@@ -6,7 +6,8 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { LOCALES } from "../locale";
+import { LOCALES, PSEUDO_LOCALE } from "../locale";
+import { CATALOGS } from "./catalogs";
 import en from "./locales/en";
 import { pseudoize } from "./pseudo";
 
@@ -45,6 +46,10 @@ const load = async (tag: string): Promise<unknown> => (await import(`./locales/$
 describe("the catalogs", () => {
   it("are exactly the shipped locales, one file each", () => {
     expect([...TAGS].sort()).toEqual(LOCALES.map((l) => l.tag).sort());
+  });
+
+  it("are all in CATALOGS, with the pseudo-locale", () => {
+    expect(Object.keys(CATALOGS).sort()).toEqual([...LOCALES.map((l) => l.tag), PSEUDO_LOCALE].sort());
   });
 
   it("have English's keys, kinds and arities", async () => {

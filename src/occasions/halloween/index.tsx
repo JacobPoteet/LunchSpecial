@@ -300,12 +300,7 @@ const halloween: OccasionKit = {
   Win,
   Verdict,
   LightsOut,
-  copy: {
-    sub: "Open for the graveyard shift",
-    thanks: "Best food in town, if you dare",
-    fine: "No substitutions on the Special · Ask about our pumpkin pie",
-    barSub: "One drink. Four guesses. Gone by the witching hour.",
-  },
+  copy: (t) => t.occasions.halloween.copy,
 };
 
 export default halloween;

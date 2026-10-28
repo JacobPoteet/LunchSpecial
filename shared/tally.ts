@@ -8,6 +8,7 @@
 //    finishes the line is null and the check prints nothing, not a hedge.
 // 2. Only completed rounds count. A board still open is not a miss.
 
+import type { Messages } from "./i18n/messages";
 import { SMALL_SAMPLE_MIN } from "./sample";
 import type { DailyTally } from "./types";
 
@@ -54,10 +55,10 @@ export function modalGuess(tally: DailyTally): number | null {
  * say. The percentage is of *finished* rounds, so a room that mostly gave up
  * reads as a hard Special rather than a popular one.
  */
-export function tallyLine(tally: DailyTally): string | null {
+export function tallyLine(tally: DailyTally, t: Messages): string | null {
   if (tally.finished < SMALL_SAMPLE_MIN) return null;
   const pct = Math.round((tally.solved / tally.finished) * 100);
   const mode = modalGuess(tally);
-  const room = `${pct}% of diners got today's Special`;
-  return mode === null ? `${room}.` : `${room} · most in ${mode}`;
+  const room = t.tally.room(pct);
+  return mode === null ? `${room}.` : `${room} · ${t.tally.mostIn(mode)}`;
 }

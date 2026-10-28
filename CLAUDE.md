@@ -120,7 +120,7 @@ A costume the game wears for a stretch of the calendar (Halloween first). **Hand
 - **Decoration only:** `aria-hidden`, never under text, never recolours text or a fill text sits on. The one pressable slot (Cloche) is a real button with a label and announces its result.
 - **Lights loop, the way the bar band's halo does:** no flash faster than 3/s (2.3.1), never over text, and every keyframe in the costume's own reduced-motion block, same commit. Looping past 5s with no pause control is a known WCAG 2.2.2 gap; reduced motion is the off switch.
 - **A costume's palette is a token swap** scoped `:root[data-occasion="<id>"]:not([data-after-dark])` (an unscoped one ties with After Dark and repaints the bar). `--hit`/`--near`/`--miss` never move. Measure on the painted surface and add an a11y state for every screen the swap reaches.
-- Share: `shareMessage(text, occasion)` adds the occasion's line between grid and url; the grid is untouched. Score card corner art is a pixel map, never emoji. Neither names the dish.
+- Share: `shareMessage(text, t, occasion)` adds the occasion's line (`t.occasions[id].shareLine`) between grid and url; the grid is untouched. A costume's words (`copy`) are catalog entries too. Score card corner art is a pixel map, never emoji. Neither names the dish.
 - Sounds: `OCCASION_SFX` in `shared/audio.ts`, files under `src/assets/sfx/occasions/<id>/`. Missing file = everyday sound.
 - `npm run a11y` scans each room in costume; add states for a new occasion.
 - **Reach (`occasion_views`, `POST /api/occasions/seen`):** one row per (occasion, device, ET seen_day, room, moment); moments `seen` and `knock`. The client sends only from a tracked round, never under `?occasion=` or before the bookings come back from the Worker (`noteOccasionMoment`); the Worker re-runs the fold on `play_day` and 400s a costume that day didn't wear. Runs are attributed by `play_day`, so a Leftover replayed later counts as "after", not as reach. Reach before the ledger's first row is unmeasured (`measuredFrom: null`), never zero.
@@ -249,7 +249,7 @@ In progress (#269), landing as a stack of PRs. The game's own words go through a
 
 - `shared/locale.ts` is the only place that decides the language (`resolveLocale`: the player's pick, then Discord, then `navigator.languages`, then English). A locale with `autoDetect: false` (no native-speaker review yet) is picker-only.
 - `shared/i18n/locales/en.ts` is the source of truth; **new strings land there first**. Every other locale is one file named for its tag, typed `Messages`, and a lazy chunk (`src/i18n/store.ts` globs the folder). A message is a string or a function of plain arguments.
-- Components read `useT()`. **Folds in `shared/` take the messages as an argument and never import a locale** (`conventions.test.ts`). Plurals go through `plural()` (`Intl.PluralRules`), never `n === 1 ? …`; lists through `list()`.
+- Components read `useT()`. **Folds in `shared/` take the messages as an argument and never import a locale** (`conventions.test.ts`); tests pass `en`, and the never-name-the-dish tests run over every catalog (`shared/i18n/catalogs.ts`). Plurals go through `plural()` (`Intl.PluralRules`), never `n === 1 ? …`; lists through `list()`.
 - `?locale=<tag>|pseudo` is cosmetic, honoured in production, never stored. The pseudo-locale accents, brackets and pads every string by 40%: an unbracketed string on screen is a leak.
 - `shared/i18n/catalog.test.ts`: one file per `LOCALES` entry, English's keys and arities everywhere, nothing left identical to English outside `MAY_MATCH_ENGLISH`.
 - `<html lang>` names the catalog on screen (`primeLocale()` before mount, 800ms cap), never ahead of it.
@@ -258,7 +258,7 @@ In progress (#269), landing as a stack of PRs. The game's own words go through a
 
 WCAG 2.1 AA for the game; `/admin` is exempt.
 
-- **Never encode meaning in colour alone**: pair with a glyph/border and an `.sr-only` text, all off `shared/announce.ts`. `title` doesn't count.
+- **Never encode meaning in colour alone**: pair with a glyph/border and an `.sr-only` text: the glyph off `shared/announce.ts`, the words off the catalog (`t.announce.match`). `title` doesn't count.
 - **Anything that changes after a user action is announced** (`role="status"` + `aria-live="polite"`); the guess flow uses two regions because the clue lands ~1.14s after the row.
 - **Don't remove a focus indicator without replacing it.** `:focus-visible` is declared once at the bottom of `game.css`.
 - **Every animation goes in the reduced-motion block** at the bottom of `game.css`, same commit as the keyframe. `playSfx()` deliberately does not check it.

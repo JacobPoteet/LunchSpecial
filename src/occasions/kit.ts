@@ -17,6 +17,7 @@
 //   decoration sits in a corner, a margin or behind the card, never under type.
 
 import type { ComponentType } from "react";
+import type { Messages } from "../../shared/i18n/messages";
 
 /** The room a slot is drawn in. The bar is the same room with the lights off. */
 export type Room = "diner" | "bar";
@@ -43,8 +44,11 @@ export interface OccasionKit {
   Verdict?: ComponentType<{ won: boolean }>;
   /** Inside the walk to the bar, over the scrim. */
   LightsOut?: ComponentType;
-  /** The house's words on the day. Anything absent keeps the everyday line. */
-  copy?: Partial<Record<CopyKey, string>>;
+  /**
+   * The house's words on the day, read from the catalog (`t.occasions[id].copy`)
+   * so they speak the player's language. Anything absent keeps the everyday line.
+   */
+  copy?: (t: Messages) => Partial<Record<CopyKey, string>>;
 }
 
 export type CopyKey =

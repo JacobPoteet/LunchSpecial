@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import en from "./i18n/locales/en";
+import { CATALOGS } from "./i18n/catalogs";
 import {
   buildNightShareText,
   buildShareText,
@@ -13,24 +15,24 @@ const GRID = ["Lunch Special #26 — 3/6", "🟩🟨⬜⬜ 2/6🥄", "🟩🟩�
 
 describe("shareMessage", () => {
   it("keeps the whole grid and adds the url on its own line", () => {
-    expect(shareMessage(GRID)).toBe(`${GRID}\n${SHARE_URL}`);
+    expect(shareMessage(GRID, en)).toBe(`${GRID}\n${SHARE_URL}`);
   });
 
   // The regression this whole path exists for: the url used to ride in Web
   // Share's separate `url` field, and Windows' share sheet delivered that field
   // alone — a bare link, no score. Everything must be in the one string.
   it("is a single string, so no target can deliver the link without the score", () => {
-    const message = shareMessage(GRID);
+    const message = shareMessage(GRID, en);
     expect(message).toContain(SHARE_URL);
     for (const row of GRID.split("\n")) expect(message).toContain(row);
   });
 
   it("leaves a lost round's X/6 intact", () => {
-    expect(shareMessage("Lunch Special #26 — X/6")).toContain("X/6");
+    expect(shareMessage("Lunch Special #26 — X/6", en)).toContain("X/6");
   });
 
   it("puts an occasion's line between the grid and the url, once, and leaves the grid alone", () => {
-    const message = shareMessage(GRID, "halloween");
+    const message = shareMessage(GRID, en, "halloween");
     expect(message).toBe(`${GRID}\n🎃 Graveyard shift at Lunch Special\n${SHARE_URL}`);
     expect(message.split(SHARE_URL)).toHaveLength(2);
   });
@@ -103,38 +105,38 @@ const nightGuess = (over: Partial<DrinkGuessFeedback> = {}): DrinkGuessFeedback 
 
 describe("buildShareText", () => {
   it("prints the score out of six and a row per guess", () => {
-    const text = buildShareText(26, [lunchGuess(), lunchGuess({ correct: true })], true, 6);
+    const text = buildShareText(26, [lunchGuess(), lunchGuess({ correct: true })], true, 6, en);
     expect(text.split("\n")).toEqual(["Lunch Special #26 — 2/6", "🟨🟩🟩⬜ 2/6🥄", "🟨🟩🟩⬜ 🛎️"]);
   });
 
   it("prints X for a round that ran out", () => {
-    expect(buildShareText(26, [lunchGuess()], false, 6)).toContain("X/6");
+    expect(buildShareText(26, [lunchGuess()], false, 6, en)).toContain("X/6");
   });
 
   it("drops the pantry column when the denominator was never measured", () => {
     // Rounds saved before RoundState.ingredientCount shipped have no count, and
     // the After Dark tab redraws today's lunch grid from exactly those. It used
     // to print "2/0", which is a grid claiming two of nothing.
-    const rows = buildShareText(26, [lunchGuess()], false, 0).split("\n");
+    const rows = buildShareText(26, [lunchGuess()], false, 0, en).split("\n");
     expect(rows[1]).toBe("🟨🟩🟩⬜");
     expect(rows[1]).not.toContain("/0");
   });
 
   it("still prints the bell on a winning row with no denominator", () => {
-    const rows = buildShareText(26, [lunchGuess({ correct: true })], true, 0).split("\n");
+    const rows = buildShareText(26, [lunchGuess({ correct: true })], true, 0, en).split("\n");
     expect(rows[1]).toContain("🛎️");
   });
 
   it("carries no url of its own", () => {
     // shareMessage appends it once, to the whole message. A grid that carried
     // its own would put two in a combined share.
-    expect(buildShareText(26, [lunchGuess()], false, 6)).not.toContain(SHARE_URL);
+    expect(buildShareText(26, [lunchGuess()], false, 6, en)).not.toContain(SHARE_URL);
   });
 });
 
 describe("buildNightShareText", () => {
   it("prints the score out of four, never six", () => {
-    const text = buildNightShareText(12, [nightGuess(), nightGuess({ correct: true })], true, 5);
+    const text = buildNightShareText(12, [nightGuess(), nightGuess({ correct: true })], true, 5, en);
     expect(text.split("\n")[0]).toBe("After Dark · Night #12 — 2/4");
   });
 
@@ -142,32 +144,32 @@ describe("buildNightShareText", () => {
     // The single difference from the lunch grid, and the whole reason a channel
     // with both pasted in it stays legible: green and yellow keep their
     // meanings, the white square goes out.
-    const row = buildNightShareText(12, [nightGuess()], false, 5).split("\n")[1];
+    const row = buildNightShareText(12, [nightGuess()], false, 5, en).split("\n")[1];
     expect(row).toContain("⬛");
     expect(row).not.toContain("⬜");
   });
 
   it("pours a glass for the winning guess and counts the pantry otherwise", () => {
-    const rows = buildNightShareText(12, [nightGuess(), nightGuess({ correct: true })], true, 5).split("\n");
+    const rows = buildNightShareText(12, [nightGuess(), nightGuess({ correct: true })], true, 5, en).split("\n");
     expect(rows[1]).toContain("1/5🥃");
     expect(rows[2]).toContain("🥂");
     expect(rows[2]).not.toContain("🥃");
   });
 
   it("drops the pantry column when the denominator was never measured", () => {
-    const row = buildNightShareText(12, [nightGuess()], false, 0).split("\n")[1];
+    const row = buildNightShareText(12, [nightGuess()], false, 0, en).split("\n")[1];
     expect(row).toBe("🟩⬛🟨⬛");
     expect(row).not.toContain("/0");
   });
 
   it("drops the number on an unnumbered round rather than printing Night #0", () => {
-    expect(buildNightShareText(0, [nightGuess()], false, 5)).toMatch(/^After Dark — X\/4/);
+    expect(buildNightShareText(0, [nightGuess()], false, 5, en)).toMatch(/^After Dark — X\/4/);
   });
 
-  it("never names the drink", () => {
+  it.each(Object.entries(CATALOGS))("never names the drink (%s)", (_, t) => {
     // Only the drinks the player themselves guessed appear, which is the same
     // rule the board follows. The target is not an input here at all.
-    expect(buildNightShareText(12, [nightGuess({ correct: true })], true, 5)).not.toContain("Negroni");
+    expect(buildNightShareText(12, [nightGuess({ correct: true })], true, 5, t)).not.toContain("Negroni");
   });
 });
 
@@ -189,9 +191,10 @@ describe("joinShareBlocks", () => {
   it("puts one url on a combined message, not one per grid", () => {
     const message = shareMessage(
       joinShareBlocks([
-        buildShareText(54, [lunchGuess({ correct: true })], true, 6),
-        buildNightShareText(12, [nightGuess({ correct: true })], true, 5),
+        buildShareText(54, [lunchGuess({ correct: true })], true, 6, en),
+        buildNightShareText(12, [nightGuess({ correct: true })], true, 5, en),
       ]),
+      en,
     );
     expect(message.split(SHARE_URL).length - 1).toBe(1);
     expect(message.endsWith(SHARE_URL)).toBe(true);

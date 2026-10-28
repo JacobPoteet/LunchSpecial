@@ -9,6 +9,7 @@
 // here therefore takes the date of the last recorded round and today, and
 // decides first whether the streak is alive at all.
 
+import type { Messages } from "./i18n/messages";
 import { addDays } from "./time";
 
 export interface StreakInput {
@@ -37,9 +38,9 @@ export function liveStreak({ currentStreak, lastCompletedDate, today }: StreakIn
  * makes the mark look broken, and everyone who has played once has one.
  * Words only: the board draws the flame beside them as an icon.
  */
-export function boardStreakMark(input: StreakInput): string | null {
+export function boardStreakMark(input: StreakInput, t: Messages): string | null {
   const n = liveStreak(input);
-  return n >= 2 ? `${n}-day streak` : null;
+  return n >= 2 ? t.streak.mark(n) : null;
 }
 
 /**
@@ -52,9 +53,9 @@ export function boardStreakMark(input: StreakInput): string | null {
  * tomorrow", and rubbing in the number that was just lost is not a reason to
  * return.
  */
-export function checkStreakLine({ won, ...input }: StreakInput & { won: boolean }): string {
-  if (!won) return "Tomorrow's Special starts a new streak.";
+export function checkStreakLine({ won, ...input }: StreakInput & { won: boolean }, t: Messages): string {
+  if (!won) return t.streak.lost;
   const n = liveStreak(input);
-  if (n >= 2) return `Come back tomorrow to keep your ${n}-day streak going.`;
-  return "Come back tomorrow to start a streak.";
+  if (n >= 2) return t.streak.keep(n);
+  return t.streak.start;
 }

@@ -81,11 +81,13 @@ describe("modules the docs script runs under plain node", () => {
 describe("folds in shared/ take their messages as an argument", () => {
   // Same rule as BuildInfo: a fold that imports English speaks English to
   // every caller, and its test can't hand it another catalog. Type imports are
-  // fine; the catalogs themselves live under shared/i18n/locales/.
-  it("nothing outside the catalogs imports a locale's values", () => {
+  // fine; the catalogs themselves live under shared/i18n/.
+  it("nothing outside shared/i18n/ imports a locale's values", () => {
     const offenders = sourceFiles(join(ROOT, "shared"))
-      .filter((file) => !rel(file).startsWith("shared/i18n/locales/"))
-      .filter((file) => /^import\s+(?!type\b)[^;]*from\s+["'][^"']*\/locales\/[^"']*["']/m.test(read(file)))
+      .filter((file) => !rel(file).startsWith("shared/i18n/"))
+      .filter((file) =>
+        /^import\s+(?!type\b)[^;]*from\s+["'][^"']*\/(locales\/[^"']*|i18n\/catalogs)["']/m.test(read(file)),
+      )
       .map(rel);
     expect(offenders).toEqual([]);
   });

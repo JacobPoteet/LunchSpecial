@@ -17,6 +17,7 @@ import { buildPresence } from "../../shared/presence";
 import type { Scorecard } from "../../shared/scorecard";
 import type { RoundKind, Surface } from "../../shared/types";
 import { setPresence } from "../discord/presence";
+import { useT } from "../i18n/store";
 import { publishProgress, resetProgress } from "../discord/progress";
 import { visitSource } from "./attribution";
 import { getPlayerId, markSeated } from "./storage";
@@ -47,6 +48,7 @@ export interface TelemetryInput {
 
 export function useRoundTelemetry(input: TelemetryInput): void {
   const { tracked, surface, ready, round, kind, puzzleNumber, openedAt, boardKey, buildCard, assignId } = input;
+  const t = useT();
 
   // One anonymous id per round so start/complete/share can be linked. Every
   // tracked kind gets one; the test modes never do. The "start" beacon itself
@@ -77,9 +79,9 @@ export function useRoundTelemetry(input: TelemetryInput): void {
   useEffect(() => {
     if (!tracked || !ready) return;
     setPresence(
-      buildPresence({ kind, puzzleNumber, status: round.status, guesses: round.guesses, startedAt: openedAt }),
+      buildPresence({ kind, puzzleNumber, status: round.status, guesses: round.guesses, startedAt: openedAt }, t),
     );
-  }, [tracked, ready, kind, puzzleNumber, round.status, round.guesses, openedAt]);
+  }, [tracked, ready, kind, puzzleNumber, round.status, round.guesses, openedAt, t]);
 
   // A new board is a new message. This runs BEFORE the publisher below because
   // effects fire in declaration order: a board restored from localStorage

@@ -12,6 +12,7 @@
 // except through /reveal. Progress is safe (a guess count says nothing about
 // the dish); the answer, the guessed dishes and the clues are not.
 
+import type { Messages } from "./i18n/messages";
 import type { RoundKind } from "./types";
 import { MAX_GUESSES } from "./types";
 
@@ -51,16 +52,10 @@ export interface PresenceActivity {
 /** Discord truncates `details`/`state` past this; ours are far shorter by construction. */
 export const PRESENCE_TEXT_LIMIT = 128;
 
-/** What each mode is called on a Discord profile — the game's own names for them. */
-const MODE_LABEL: Record<RoundKind, string> = {
-  daily: "Today's Special",
-  leftover: "Leftovers",
-  random: "Chef's Choice",
-  // The mode's name, never the drink's. A profile is read by people who have
-  // not played tonight, and the whole-output-space test below covers this line
-  // like the other three.
-  nightcap: "After Dark",
-};
+// What each mode is called on a Discord profile is `t.presence.modes`: the
+// game's own names. The Nightcap's is the mode's name, never the drink's. A
+// profile is read by people who have not played tonight, and the
+// whole-output-space test covers that line like the other three.
 
 /**
  * Line one: the mode, plus the puzzle number when the round has one. A Chef's
@@ -68,9 +63,9 @@ const MODE_LABEL: Record<RoundKind, string> = {
  * does an unnumbered board, so the separator has to be conditional or half the
  * profiles read "Chef's Choice — No. 0".
  */
-function detailsFor(kind: RoundKind, puzzleNumber: number): string {
-  const label = MODE_LABEL[kind];
-  return puzzleNumber > 0 ? `${label} · No. ${puzzleNumber}` : label;
+function detailsFor(kind: RoundKind, puzzleNumber: number, t: Messages): string {
+  const label = t.presence.modes[kind];
+  return puzzleNumber > 0 ? t.presence.numbered(label, puzzleNumber) : label;
 }
 
 /**
@@ -81,11 +76,11 @@ function detailsFor(kind: RoundKind, puzzleNumber: number): string {
  * guesses down is on their third. A round that hasn't been ordered from yet has
  * no count worth printing, so it says what they're actually doing instead.
  */
-function stateFor(status: PresenceInput["status"], guesses: number, maxGuesses: number): string {
-  if (status === "won") return `Solved it in ${guesses} ${guesses === 1 ? "guess" : "guesses"}`;
-  if (status === "lost") return "Out of guesses";
-  if (guesses <= 0) return "Reading the menu";
-  return `Guess ${Math.min(guesses + 1, maxGuesses)} of ${maxGuesses}`;
+function stateFor(status: PresenceInput["status"], guesses: number, maxGuesses: number, t: Messages): string {
+  if (status === "won") return t.presence.won(guesses);
+  if (status === "lost") return t.presence.lost;
+  if (guesses <= 0) return t.presence.reading;
+  return t.presence.on(Math.min(guesses + 1, maxGuesses), maxGuesses);
 }
 
 /**
@@ -95,11 +90,11 @@ function stateFor(status: PresenceInput["status"], guesses: number, maxGuesses: 
  * printed the round is over, and a counter still climbing next to "Solved it in
  * 4 guesses" would be measuring how long they left the tab open.
  */
-export function buildPresence(input: PresenceInput): PresenceActivity {
+export function buildPresence(input: PresenceInput, t: Messages): PresenceActivity {
   const maxGuesses = input.maxGuesses ?? MAX_GUESSES;
   const activity: PresenceActivity = {
-    details: detailsFor(input.kind, input.puzzleNumber),
-    state: stateFor(input.status, input.guesses, maxGuesses),
+    details: detailsFor(input.kind, input.puzzleNumber, t),
+    state: stateFor(input.status, input.guesses, maxGuesses, t),
   };
   if (input.status === "playing" && input.startedAt !== undefined) {
     activity.timestamps = { start: input.startedAt };

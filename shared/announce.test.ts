@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
+import en from "./i18n/locales/en";
 import {
   circleAnnouncement,
   clueAnnouncement,
   guessAnnouncement,
   kidsMenuAnnouncement,
   MATCH_MARKS,
-  MATCH_WORDS,
 } from "./announce";
 import { MAX_GUESSES, type GuessFeedback } from "./types";
 
@@ -23,7 +23,7 @@ const miss: GuessFeedback = {
 };
 
 const say = (guess: GuessFeedback, guessNumber = 3, ingredientCount = 6) =>
-  guessAnnouncement({ guess, ingredientCount, guessNumber, maxGuesses: MAX_GUESSES });
+  guessAnnouncement({ guess, ingredientCount, guessNumber, maxGuesses: MAX_GUESSES }, en);
 
 describe("guessAnnouncement", () => {
   it("reads a miss as position, ingredients, tiles, what's left", () => {
@@ -88,7 +88,7 @@ describe("guessAnnouncement", () => {
 
 describe("clueAnnouncement", () => {
   it("numbers the ticket it is reading", () => {
-    expect(clueAnnouncement(2, "It comes from a country shaped like a boot.")).toBe(
+    expect(clueAnnouncement(2, "It comes from a country shaped like a boot.", en)).toBe(
       "Clue 2: It comes from a country shaped like a boot.",
     );
   });
@@ -100,28 +100,28 @@ describe("the two redundant channels", () => {
   // tables have to cover all three states or one group loses the answer.
   it("covers every match level", () => {
     for (const level of ["hit", "near", "miss"] as const) {
-      expect(MATCH_WORDS[level]).toBeTruthy();
+      expect(en.announce.match[level]).toBeTruthy();
       expect(MATCH_MARKS[level]).toBeTruthy();
     }
   });
 
   it("gives the three states three distinct marks", () => {
     expect(new Set(Object.values(MATCH_MARKS)).size).toBe(3);
-    expect(new Set(Object.values(MATCH_WORDS)).size).toBe(3);
+    expect(new Set(Object.values(en.announce.match)).size).toBe(3);
   });
 });
 
 describe("the Kids' Menu", () => {
   it("says what the menu holds and what narrowed it", () => {
-    expect(kidsMenuAnnouncement(10, ["East Asia", "pork"])).toBe("Kids' Menu: 10 dishes, East Asia and pork.");
-    expect(kidsMenuAnnouncement(195, [])).toBe("Kids' Menu: 195 dishes still on the menu.");
-    expect(kidsMenuAnnouncement(8, ["Oceania"])).toBe("Kids' Menu: 8 dishes, Oceania.");
-    expect(kidsMenuAnnouncement(9, ["East Asia", "entree", "hot", "pork"])).toBe(
+    expect(kidsMenuAnnouncement(10, ["East Asia", "pork"], en)).toBe("Kids' Menu: 10 dishes, East Asia and pork.");
+    expect(kidsMenuAnnouncement(195, [], en)).toBe("Kids' Menu: 195 dishes still on the menu.");
+    expect(kidsMenuAnnouncement(8, ["Oceania"], en)).toBe("Kids' Menu: 8 dishes, Oceania.");
+    expect(kidsMenuAnnouncement(9, ["East Asia", "entree", "hot", "pork"], en)).toBe(
       "Kids' Menu: 9 dishes, East Asia, entree, hot and pork.",
     );
   });
 
   it("says the ring going round a dish", () => {
-    expect(circleAnnouncement("Pho")).toBe("Circled Pho. Order it from the foot of the menu.");
+    expect(circleAnnouncement("Pho", en)).toBe("Circled Pho. Order it from the foot of the menu.");
   });
 });

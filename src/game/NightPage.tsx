@@ -44,6 +44,7 @@ import { nightIntroDone, nightIntroDue } from "../../shared/coach";
 import { TICKET_MS } from "../../shared/audio";
 import { buildNightScorecard } from "../../shared/scorecard";
 import { useOccasion, useWearOccasion } from "../occasions/store";
+import { useT } from "../i18n/store";
 import { playGuessArc, playSfx, setupAudio } from "../audio";
 import { buildNightShareText, buildShareText, joinShareBlocks, shareMessage } from "./share";
 import {
@@ -248,6 +249,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   // The bar dresses for the night key, fixed at entry like the night itself.
   useWearOccasion(night, "bar", tracked);
   const { kit } = useOccasion();
+  const t = useT();
 
   const [drinks, setDrinks] = useState<DrinkPoolEntry[]>([]);
   const [info, setInfo] = useState<NightcapInfo | null>(null);
@@ -355,7 +357,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
     openedAt,
     boardKey: `${night}|${pinned ?? ""}`,
     buildCard: () =>
-      buildNightScorecard(info?.nightNumber ?? 0, round.guesses, round.status === "won", info?.ingredientCount ?? 0),
+      buildNightScorecard(info?.nightNumber ?? 0, round.guesses, round.status === "won", info?.ingredientCount ?? 0, t),
     assignId: (id) => {
       const started = { ...round, analyticsId: id };
       setRound(started);
@@ -416,18 +418,21 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
           night: true,
         });
         setLiveGuess(
-          drinkGuessAnnouncement({
-            guess: feedback,
-            ingredientCount: info.ingredientCount,
-            guessNumber,
-            maxGuesses: DRINK_MAX_GUESSES,
-          }),
+          drinkGuessAnnouncement(
+            {
+              guess: feedback,
+              ingredientCount: info.ingredientCount,
+              guessNumber,
+              maxGuesses: DRINK_MAX_GUESSES,
+            },
+            t,
+          ),
         );
         const coaster = feedback.coaster;
         window.clearTimeout(coasterTimer.current);
         if (coaster) {
           coasterTimer.current = window.setTimeout(
-            () => setLiveCoaster(coasterAnnouncement(coaster.index, coaster.text)),
+            () => setLiveCoaster(coasterAnnouncement(coaster.index, coaster.text, t)),
             TICKET_MS,
           );
         }
@@ -464,7 +469,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
         setBusy(false);
       }
     },
-    [info, busy, round, night, preview, effectivePin, tracked, persist],
+    [info, busy, round, night, preview, effectivePin, tracked, persist, t],
   );
 
   const guessedIds = useMemo(() => new Set(round.guesses.map((g) => g.drink.id)), [round.guesses]);
@@ -643,6 +648,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
 /** The room. Sets the theme attribute for as long as the bar is on screen. */
 function BarScene({ children }: { children: React.ReactNode }) {
   const { kit } = useOccasion();
+  const t = useT();
   useEffect(() => {
     document.documentElement.dataset.afterDark = "1";
     return () => {
@@ -655,7 +661,7 @@ function BarScene({ children }: { children: React.ReactNode }) {
         <h1 className="marquee__script">
           {kit?.Sign ? <kit.Sign text="After Dark" room="bar" /> : "After Dark"}
         </h1>
-        <p className="marquee__sub">{kit?.copy?.barSub ?? "One drink. Four guesses. Gone by morning."}</p>
+        <p className="marquee__sub">{kit?.copy?.(t).barSub ?? "One drink. Four guesses. Gone by morning."}</p>
       </header>
       {children}
       {/* The same footer the diner carries, byline included. The bar is a room
@@ -691,6 +697,7 @@ function TabModal({
 }) {
   const won = round.status === "won";
   const { id: occasion, kit } = useOccasion();
+  const t = useT();
 
   /**
    * Both grids, in one message.
@@ -723,12 +730,13 @@ function TabModal({
               // drop the pantry column rather than print "2/0" — a grid claiming
               // two of nothing is worse than one that just shows its tiles.
               lunch.ingredientCount ?? 0,
+              t,
             )
           : null;
-      const nightBlock = buildNightShareText(info.nightNumber, round.guesses, won, info.ingredientCount);
-      return shareMessage(joinShareBlocks([lunchBlock, nightBlock]), occasion);
+      const nightBlock = buildNightShareText(info.nightNumber, round.guesses, won, info.ingredientCount, t);
+      return shareMessage(joinShareBlocks([lunchBlock, nightBlock]), t, occasion);
     },
-    card: () => ({ ...buildNightScorecard(info.nightNumber, round.guesses, won, info.ingredientCount), occasion }),
+    card: () => ({ ...buildNightScorecard(info.nightNumber, round.guesses, won, info.ingredientCount, t), occasion }),
     onShare: () => {
       if (tracked && round.analyticsId) {
         beaconShare({
