@@ -78,6 +78,19 @@ describe("modules the docs script runs under plain node", () => {
   });
 });
 
+describe("folds in shared/ take their messages as an argument", () => {
+  // Same rule as BuildInfo: a fold that imports English speaks English to
+  // every caller, and its test can't hand it another catalog. Type imports are
+  // fine; the catalogs themselves live under shared/i18n/locales/.
+  it("nothing outside the catalogs imports a locale's values", () => {
+    const offenders = sourceFiles(join(ROOT, "shared"))
+      .filter((file) => !rel(file).startsWith("shared/i18n/locales/"))
+      .filter((file) => /^import\s+(?!type\b)[^;]*from\s+["'][^"']*\/locales\/[^"']*["']/m.test(read(file)))
+      .map(rel);
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("the wiki's location stays out of the repo", () => {
   // The path lives in a gitignored file, so this only runs where that file
   // exists (a maintainer's machine). CI skips it, which is fine: the leak it
