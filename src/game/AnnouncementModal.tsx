@@ -8,6 +8,7 @@
 import type { Announcement } from "../../shared/types";
 import { Modal } from "./components";
 import Markdown from "./Markdown";
+import { useT } from "../i18n/store";
 import { playSfx } from "../audio";
 
 /**
@@ -27,15 +28,14 @@ export function NoticeCard({
   position?: number;
   total?: number;
 }) {
+  const t = useT();
   return (
     <div className="notice">
       <p className="notice__eyebrow">
-        A note from the kitchen
+        {t.notice.eyebrow}
         {/* Only worth saying when there's actually a stack. */}
         {total > 1 && (
-          <span className="notice__count">
-            {position} of {total}
-          </span>
+          <span className="notice__count">{t.notice.count(position ?? 1, total)}</span>
         )}
       </p>
       <h2 className="notice__title">{header}</h2>
@@ -57,15 +57,16 @@ export default function AnnouncementModal({
   total: number;
   onClose: () => void;
 }) {
+  const t = useT();
   const remaining = total - position;
   return (
     <Modal
       variant="notice"
       onClose={onClose}
-      label="A note from the kitchen"
+      label={t.notice.eyebrow}
       footer={
         <button className="btn btn--red notice__ok" onClick={() => { playSfx("ui-click"); onClose(); }}>
-          {remaining > 0 ? "Next note" : "Continue"}
+          {remaining > 0 ? t.notice.next : t.notice.done}
         </button>
       }
     >

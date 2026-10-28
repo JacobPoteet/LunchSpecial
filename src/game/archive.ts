@@ -34,9 +34,12 @@ export function puzzleDates(today: string): string[] {
   return dates;
 }
 
-/** Long-form label for a date, e.g. "Saturday, July 18". Noon avoids tz drift. */
-export function dateLabel(date: string): string {
-  return new Date(`${date}T12:00:00`).toLocaleDateString(undefined, {
+/**
+ * Long-form label for a date, e.g. "Saturday, July 18". Noon avoids tz drift.
+ * The game passes its language; /admin passes nothing and gets the browser's.
+ */
+export function dateLabel(date: string, locale?: string): string {
+  return new Date(`${date}T12:00:00`).toLocaleDateString(locale, {
     weekday: "long",
     month: "long",
     day: "numeric",

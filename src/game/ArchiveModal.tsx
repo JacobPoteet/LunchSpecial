@@ -17,8 +17,9 @@ import { isPuzzleDate, puzzleNumberFor } from "./archive";
 import { EPOCH_DATE } from "../../shared/types";
 import { playSfx } from "../audio";
 import { Icon } from "./Icon";
-import { OCCASIONS, occasionOn } from "../../shared/occasions";
+import { occasionOn } from "../../shared/occasions";
 import { useOccasion } from "../occasions/store";
+import { useLocale } from "../i18n/store";
 
 /** Status of a single puzzle date, for the calendar cells. */
 type DayStatus = GameStatus | "unplayed";
@@ -30,7 +31,12 @@ const STATUS_GLYPH: Record<DayStatus, string> = {
   unplayed: "",
 };
 
-const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
+/** The calendar's column heads, Sunday first, one letter each in the player's language. */
+function weekdayLetters(locale: string): string[] {
+  const format = new Intl.DateTimeFormat(locale, { weekday: "narrow", timeZone: "UTC" });
+  // 2026-01-04 was a Sunday.
+  return Array.from({ length: 7 }, (_, i) => format.format(Date.UTC(2026, 0, 4 + i, 12)));
+}
 
 /** Never render fewer rows than this — a two-row card reads as broken, not tidy. */
 const MIN_CAL_ROWS = 3;
@@ -46,8 +52,8 @@ function daysInMonth(year: number, month: number): number {
 /** Local-midnight, NOT `Date.UTC` — formatting is local, so a UTC-midnight
  *  date renders as the previous month anywhere west of Greenwich (July → June
  *  in ET). Build the date in the same frame it gets formatted in. */
-function monthLabel(year: number, month: number): string {
-  return new Date(year, month, 1).toLocaleDateString(undefined, {
+function monthLabel(year: number, month: number, locale: string): string {
+  return new Date(year, month, 1).toLocaleDateString(locale, {
     month: "long",
     year: "numeric",
   });
@@ -130,6 +136,7 @@ function MonthGrid({
   recoveredFor: (date: string) => RecoveredDay | undefined;
   onPick: (date: string) => void;
 }) {
+  const { t, intl } = useLocale();
   // Which days the diner dressed up. Read off the bookings and the code's
   // windows, never the `?occasion=` override: this is history, not costume.
   const { bookings } = useOccasion();
@@ -149,7 +156,7 @@ function MonthGrid({
   return (
     <div className="archive-cal__month">
       <div className="archive-cal__grid">
-        {WEEKDAYS.map((w, i) => (
+        {weekdayLetters(intl).map((w, i) => (
           <span key={i} className="archive-cal__dow">
             {w}
           </span>
@@ -169,13 +176,13 @@ function MonthGrid({
             .filter(Boolean)
             .join(" ");
           const recovered = isToday ? undefined : recoveredFor(date);
-          const played = recovered ? ` on the day in ${recovered.guesses} ${recovered.guesses === 1 ? "guess" : "guesses"}` : "";
+          const played = recovered ? t.archive.recovered(recovered.guesses) : "";
           const occasion = occasionOn(date, bookings);
           // Leads with the day number the cell shows: a voice user says what
           // they see ("click 27"), and the name has to contain it (WCAG 2.5.3,
           // axe's label-content-name-mismatch).
-          const label = `${dayNum}, Special No. ${puzzleNumberFor(date)}${isToday ? " (today)" : ""}, ${status}${played}${
-            occasion ? `, ${OCCASIONS[occasion].name}` : ""
+          const label = `${t.archive.day(dayNum, puzzleNumberFor(date))}${isToday ? t.archive.today : ""}, ${t.archive[status]}${played}${
+            occasion ? `, ${t.occasions[occasion].name}` : ""
           }`;
           // Stagger by calendar ROW, not by cell: seven cells landing together
           // reads as a sheet unrolling, where 30 individual pops read as noise.
@@ -218,6 +225,7 @@ export default function ArchiveModal({
   onRandom: () => void;
   onClose: () => void;
 }) {
+  const { t, intl } = useLocale();
   const [statuses, setStatuses] = useState(() => archiveStatuses());
   const [recovered, setRecovered] = useState(() => loadRecovered());
   const statusFor = (date: string): DayStatus =>
@@ -266,41 +274,41 @@ export default function ArchiveModal({
   // isn't an alternative.
   const chefsChoice = (
     <div className="chefs-choice">
-      <h3 className="chefs-choice__title">Chef's Choice</h3>
-      <p className="chefs-choice__note">A dish at random — won't touch your streak.</p>
+      <h3 className="chefs-choice__title">{t.archive.chefsChoice}</h3>
+      <p className="chefs-choice__note">{t.archive.chefsChoiceNote}</p>
       <button className="share-btn chefs-choice__btn" onClick={() => { playSfx("ui-click"); onRandom(); }}>
-        <Icon name="dice" /> Cook me something
+        <Icon name="dice" /> {t.archive.cookMe}
       </button>
     </div>
   );
 
   return (
-    <Modal onClose={onClose} variant="archive" footer={chefsChoice} label="Leftovers">
-      <h2 className="archive-cal__title">Leftovers</h2>
-      <p className="archive-cal__lede">Replay any Special you missed.</p>
+    <Modal onClose={onClose} variant="archive" footer={chefsChoice} label={t.archive.title}>
+      <h2 className="archive-cal__title">{t.archive.title}</h2>
+      <p className="archive-cal__lede">{t.archive.lede}</p>
       <div className="archive-cal__legend">
-        <span><span className="archive-cal__swatch archive-cal__swatch--won" /> solved</span>
-        <span><span className="archive-cal__swatch archive-cal__swatch--lost" /> missed</span>
-        <span><span className="archive-cal__swatch archive-cal__swatch--playing" /> in progress</span>
-        <span><span className="archive-cal__swatch archive-cal__swatch--unplayed" /> not played</span>
+        <span><span className="archive-cal__swatch archive-cal__swatch--won" /> {t.archive.won}</span>
+        <span><span className="archive-cal__swatch archive-cal__swatch--lost" /> {t.archive.lost}</span>
+        <span><span className="archive-cal__swatch archive-cal__swatch--playing" /> {t.archive.playing}</span>
+        <span><span className="archive-cal__swatch archive-cal__swatch--unplayed" /> {t.archive.unplayed}</span>
       </div>
       <div className="archive-cal__nav">
         <button
           className="archive-cal__nav-btn"
           onClick={() => { playSfx("option-tick"); setCursor((c) => shiftMonth(c, -1)); }}
           disabled={!canPrev}
-          aria-label="Previous month"
+          aria-label={t.archive.previousMonth}
         >
           ‹
         </button>
         <h3 className="archive-cal__month-name" aria-live="polite">
-          {monthLabel(cursor.year, cursor.month)}
+          {monthLabel(cursor.year, cursor.month, intl)}
         </h3>
         <button
           className="archive-cal__nav-btn"
           onClick={() => { playSfx("option-tick"); setCursor((c) => shiftMonth(c, 1)); }}
           disabled={!canNext}
-          aria-label="Next month"
+          aria-label={t.archive.nextMonth}
         >
           ›
         </button>

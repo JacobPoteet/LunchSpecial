@@ -44,7 +44,7 @@ import { nightIntroDone, nightIntroDue } from "../../shared/coach";
 import { TICKET_MS } from "../../shared/audio";
 import { buildNightScorecard } from "../../shared/scorecard";
 import { useOccasion, useWearOccasion } from "../occasions/store";
-import { useT } from "../i18n/store";
+import { useLocale, useT } from "../i18n/store";
 import { InlineMarkdown } from "./Markdown";
 import { playGuessArc, playSfx, setupAudio } from "../audio";
 import { buildNightShareText, buildShareText, joinShareBlocks, shareMessage } from "./share";
@@ -247,7 +247,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   // The bar dresses for the night key, fixed at entry like the night itself.
   useWearOccasion(night, "bar", tracked);
   const { kit } = useOccasion();
-  const t = useT();
+  const { t, intl } = useLocale();
 
   const [drinks, setDrinks] = useState<DrinkPoolEntry[]>([]);
   const [info, setInfo] = useState<NightcapInfo | null>(null);
@@ -522,7 +522,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
           <h2 className="menu-card__title">{t.bar.title}</h2>
           <p className="menu-card__meta">
             {info && info.nightNumber > 0 ? t.bar.nightNo(info.nightNumber) : null}
-            {nightDateLabel(night)}
+            {nightDateLabel(night, intl)}
           </p>
           <div className="menu-card__toolbar">
             {round.status !== "playing" && (

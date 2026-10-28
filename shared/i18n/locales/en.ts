@@ -119,6 +119,74 @@ const en = {
     label: "Next Special",
     inline: "Next Special in",
   },
+  /** The share button's states (src/game/useShare.ts). */
+  shareButton: {
+    idle: "Share",
+    working: "Plating up…",
+    channel: "Sent to the channel!",
+    sent: "Shared!",
+    copiedDiscord: "Copied — paste it in chat!",
+    copied: "Copied!",
+    failed: "Tap to retry",
+  },
+  byline: {
+    createdBy: "Created by",
+    newTab: " (LinkedIn, opens in a new tab)",
+  },
+
+  // ---- Notes, Leftovers, requests --------------------------------------------
+
+  notice: {
+    eyebrow: "A note from the kitchen",
+    count: (position: number, total: number) => `${position} of ${total}`,
+    next: "Next note",
+    done: "Continue",
+  },
+  archive: {
+    title: "Leftovers",
+    lede: "Replay any Special you missed.",
+    won: "solved",
+    lost: "missed",
+    playing: "in progress",
+    unplayed: "not played",
+    previousMonth: "Previous month",
+    nextMonth: "Next month",
+    chefsChoice: "Chef's Choice",
+    chefsChoiceNote: "A dish at random — won't touch your streak.",
+    cookMe: "Cook me something",
+    /** A calendar day's accessible name. Leads with the number the cell shows (WCAG 2.5.3). */
+    day: (day: number, puzzle: number) => `${day}, Special No. ${puzzle}`,
+    today: " (today)",
+    recovered: (n: number) => ` on the day in ${guesses(n)}`,
+  },
+  requests: {
+    dish: {
+      toggle: "Suggest a dish for the menu",
+      title: "Suggest a dish for the menu",
+      namePlaceholder: "Dish name (required)",
+      submit: "Send to the kitchen",
+      thanks: "Thanks, hon — the cook's got your request!",
+      stampTitle: "Off a customer's ticket",
+      stampBody: (name: string) => `A regular asked for ${name}. Yours could be next.`,
+      served: (name: string, day: string) => `Good taste, hon: ${name} was the Special on ${day}.`,
+    },
+    drink: {
+      toggle: "Suggest a drink for the bar",
+      title: "Suggest a drink for the bar",
+      namePlaceholder: "Drink name (required)",
+      submit: "Send to the bar",
+      thanks: "Thanks — the bartender's got your request!",
+      stampTitle: "Off a regular's tab",
+      stampBody: (name: string) => `Somebody at the bar asked for ${name}. Yours could be next.`,
+      served: (name: string, day: string) => `Good taste: ${name} was poured on ${day}.`,
+    },
+    orderFromLeftovers: "Order it from Leftovers",
+    countryPlaceholder: "Country of origin (optional)",
+    notePlaceholder: "Anything else? (optional)",
+    error: "Couldn't send that — try again.",
+    sending: "Sending…",
+    cancel: "Never mind",
+  },
 
   // ---- What a screen reader hears (shared/announce.ts) ----------------------
 
@@ -157,6 +225,9 @@ const en = {
     /** The line above the card in the channel. `what` is the bolded game name and number. */
     progress: (live: boolean, what: string) => `${live ? "is" : "was"} playing ${what}`,
     lunchNumber: (puzzle: number) => `No. ${puzzle}`,
+    /** Printed in the pantry column of the winning row. */
+    winDay: "ORDER UP",
+    winNight: "POURED",
     nightNumber: (night: number) => `Night ${night}`,
   },
   presence: {
@@ -225,7 +296,11 @@ const en = {
 
   occasions: {
     halloween: {
+      /** Said on a calendar day that wore the costume. */
+      name: "Halloween",
       shareLine: "🎃 Graveyard shift at Lunch Special",
+      knock: "Knock on the cloche",
+      boo: "Boo.",
       copy: {
         sub: "Open for the graveyard shift",
         thanks: "Best food in town, if you dare",
@@ -233,7 +308,7 @@ const en = {
         barSub: "One drink. Four guesses. Gone by the witching hour.",
       },
     },
-  } satisfies Record<OccasionId, { shareLine: string; copy: Record<string, string> }>,
+  } satisfies Record<OccasionId, { name: string; shareLine: string; knock: string; boo: string; copy: Record<string, string> }>,
 
   // ---- Screens ------------------------------------------------------------------
 

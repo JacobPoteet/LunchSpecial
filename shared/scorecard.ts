@@ -53,6 +53,8 @@ export interface Scorecard {
   /** "No. 26 · 4/6" — which Special, and how it went. */
   subtitle: string;
   rows: ScorecardRow[];
+  /** What the winning row says instead of a pantry count. */
+  winWord: string;
   /** Where to go and play it. */
   footer: string;
   /**
@@ -123,6 +125,7 @@ export function buildScorecard(
     theme: "day",
     title: TITLE,
     subtitle,
+    winWord: t.scorecard.winDay,
     rows: guesses.map((g) => {
       const a = g.attributes;
       return {
@@ -162,6 +165,7 @@ export function buildNightScorecard(
     theme: "night",
     title: NIGHT_TITLE,
     subtitle,
+    winWord: t.scorecard.winNight,
     rows: guesses.map((g) => {
       const a = g.attributes;
       return {

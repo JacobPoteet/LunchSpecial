@@ -564,7 +564,7 @@ function ResultModal({
 
 export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   const today = useMemo(() => localToday(), []);
-  const t = useT();
+  const { t, intl } = useLocale();
 
   // Which round this is, read off the URL once (shared/mode.ts, tested). The
   // reasoning behind each flag — why a showcase isn't a preview, why a
@@ -1127,7 +1127,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           <h2 className="menu-card__title">{isArchive ? t.board.titleArchive : t.board.titleToday}</h2>
           <p className="menu-card__meta">
             {daily && (!ephemeral || dressedAsDaily) ? t.board.specialNo(daily.puzzleNumber) : null}
-            {dateLabel(date)}
+            {dateLabel(date, intl)}
             {streakMark && (
               <>
                 {" · "}
