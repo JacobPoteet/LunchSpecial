@@ -19,6 +19,8 @@
 
 import { MATCH_MARKS } from "../../shared/announce";
 import type { CoachBeat } from "../../shared/coach";
+import { useT } from "../i18n/store";
+import { InlineMarkdown } from "./Markdown";
 
 /**
  * A callout beside the thing it explains. Short enough to read in the time it
@@ -35,33 +37,26 @@ export function CoachMark({
   id?: string;
   onDismiss: () => void;
 }) {
+  const t = useT();
   return (
     <div className={`coach coach--${beat}`} id={id}>
       {beat === "read" && (
         <div className="coach__legend" aria-hidden="true">
-          <span className="chip chip--hit">{MATCH_MARKS.hit} match</span>
-          <span className="chip chip--near">{MATCH_MARKS.near} close</span>
-          <span className="chip chip--miss">{MATCH_MARKS.miss} miss</span>
+          <span className="chip chip--hit">
+            {MATCH_MARKS.hit} {t.coach.legendHit}
+          </span>
+          <span className="chip chip--near">
+            {MATCH_MARKS.near} {t.coach.legendNear}
+          </span>
+          <span className="chip chip--miss">
+            {MATCH_MARKS.miss} {t.coach.legendMiss}
+          </span>
         </div>
       )}
       <p className="coach__text">
-        {beat === "order" && (
-          <>
-            <strong>Guess today's mystery dish.</strong> Type any dish to start.
-          </>
-        )}
-        {beat === "pick" && (
-          <>
-            <strong>Pick one, then hit Order.</strong>
-          </>
-        )}
-        {beat === "read" && (
-          <>
-            <strong>Green is right, yellow is close.</strong> Each miss also gets you a clue.
-          </>
-        )}
+        <InlineMarkdown source={t.coach[beat]} />
       </p>
-      <button className="coach__dismiss" onClick={onDismiss} aria-label="Skip the walkthrough">
+      <button className="coach__dismiss" onClick={onDismiss} aria-label={t.coach.skip}>
         ×
       </button>
     </div>

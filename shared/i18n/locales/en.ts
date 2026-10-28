@@ -189,6 +189,35 @@ const en = {
   kidsMenu: {
     blurb: (n: number) =>
       plural("en", n, { one: "Only 1 dish could still be the answer.", other: `${n} dishes could still be the answer.` }),
+    name: "Kids' Menu",
+    coach: "**Stuck?** Open the Kids' Menu to see every dish that could still be the answer.",
+    dismissCoach: "Dismiss the Kids' Menu tip",
+    ordered: "ordered",
+    circled: (name: string) => `Circled: **${name}**`,
+    tapToCircle: "Tap a dish to circle it.",
+    order: "Order it",
+    fine: "For diners 12 and under. We won't check.",
+    error: "The kitchen lost the crayons. Close this and try again.",
+    loading: "Fetching the crayons…",
+    confirmed: "Confirmed",
+    /** Section heads, by course. */
+    courses: {
+      breakfast: "Breakfast",
+      appetizer: "Appetizers",
+      entree: "Entrees",
+      dessert: "Desserts",
+      drink: "Drinks",
+    } satisfies Record<Course, string>,
+  },
+  /** The three first-visit coach marks (src/game/Coach.tsx). */
+  coach: {
+    legendHit: "match",
+    legendNear: "close",
+    legendMiss: "miss",
+    order: "**Guess today's mystery dish.** Type any dish to start.",
+    pick: "**Pick one, then hit Order.**",
+    read: "**Green is right, yellow is close.** Each miss also gets you a clue.",
+    skip: "Skip the walkthrough",
   },
 
   // ---- Occasions --------------------------------------------------------------
