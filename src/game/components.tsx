@@ -68,6 +68,7 @@ export function Modal({
   footer?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const t = useT();
   const [closing, setClosing] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -194,7 +195,7 @@ export function Modal({
         }}
       >
         {onClose && (
-          <button className="modal__close" onClick={requestClose} aria-label="Close">
+          <button className="modal__close" onClick={requestClose} aria-label={t.close}>
             ×
           </button>
         )}
@@ -242,7 +243,7 @@ function AttrTile({
     <div
       className={`attr-tile attr-tile--revealed attr-tile--${match}`}
       style={{ "--i": index } as React.CSSProperties}
-      title={`${label}: ${value} (${match}${near ? `, ${near}` : ""})`}
+      title={`${label}: ${value} (${t.announce.match[match]}${near ? `, ${near}` : ""})`}
     >
       {/* Hit / near / miss used to be background colour and nothing else, which
           left a player who can't separate the green from the mustard with no
@@ -267,8 +268,6 @@ function AttrTile({
   );
 }
 
-const ATTR_LABELS = ["Country", "Course", "Served", "Protein"];
-
 /** What both boards' ingredient lines read off a guess. */
 type IngredientSides = {
   matchedIngredients: string[];
@@ -278,8 +277,9 @@ type IngredientSides = {
 
 /** " · 2 close" beside the count, and nothing when no ingredient is a cousin. */
 function CloseCount({ guess }: { guess: IngredientSides }) {
+  const t = useT();
   const n = guess.nearIngredients?.length ?? 0;
-  return n > 0 ? <> · {n} close</> : null;
+  return n > 0 ? <>{t.row.close(n)}</> : null;
 }
 
 /**
@@ -293,6 +293,7 @@ function CloseCount({ guess }: { guess: IngredientSides }) {
  * runs, so the stagger stays one continuous sweep.
  */
 function IngredientChips({ guess }: { guess: IngredientSides }) {
+  const t = useT();
   const families = new Map((guess.nearIngredients ?? []).map((n) => [n.ingredient, n.family]));
   const close = guess.unmatchedIngredients.filter((i) => families.has(i));
   const rest = guess.unmatchedIngredients.filter((i) => !families.has(i));
@@ -308,7 +309,7 @@ function IngredientChips({ guess }: { guess: IngredientSides }) {
         <span key={ing} className="chip chip--close" style={at(guess.matchedIngredients.length + i)}>
           <span aria-hidden="true">≈ </span>
           {ing}
-          <span className="sr-only">, close: something in the Special is in the {families.get(ing)} family</span>
+          <span className="sr-only">{t.row.closeChip(families.get(ing) ?? "")}</span>
         </span>
       ))}
       {rest.map((ing, i) => (
@@ -329,6 +330,8 @@ export function GuessRow({
   dish?: DishSummary;
   ingredientCount: number;
 }) {
+  const t = useT();
+  const labels = [t.tiles.country, t.tiles.course, t.tiles.served, t.tiles.protein];
   // Optimistic "pending" row: the order's been fired to the kitchen but the
   // feedback hasn't come back yet. It drops in immediately (so the animation
   // never waits on the network) showing just the dish name and placeholder
@@ -340,10 +343,10 @@ export function GuessRow({
         <p className="guess-row__name">
           <span className="guess-row__dish">{dish?.name}</span>
           <span className="leader" aria-hidden="true" />
-          <span className="guess-row__count">asking the kitchen…</span>
+          <span className="guess-row__count">{t.row.askingKitchen}</span>
         </p>
         <div className="attr-tiles">
-          {ATTR_LABELS.map((label) => (
+          {labels.map((label) => (
             <div key={label} className="attr-tile attr-tile--pending">
               <span className="attr-tile__label">{label}</span>
               <span className="attr-tile__value">·&nbsp;·&nbsp;·</span>
@@ -363,15 +366,15 @@ export function GuessRow({
         </span>
         <span className="leader" aria-hidden="true" />
         <span className="guess-row__count">
-          {guess.matchedIngredients.length}/{ingredientCount} ingredients
+          {t.row.ingredients(guess.matchedIngredients.length, ingredientCount)}
           <CloseCount guess={guess} />
         </span>
       </p>
       <div className="attr-tiles">
-        <AttrTile label="Country" value={a.country.value} match={a.country.match} region={a.country.region} index={0} />
-        <AttrTile label="Course" value={a.course.value} match={a.course.match} index={1} />
-        <AttrTile label="Served" value={a.temperature.value} match={a.temperature.match} index={2} />
-        <AttrTile label="Protein" value={a.protein.value} match={a.protein.match} index={3} />
+        <AttrTile label={t.tiles.country} value={a.country.value} match={a.country.match} region={a.country.region} index={0} />
+        <AttrTile label={t.tiles.course} value={t.courses[a.course.value]} match={a.course.match} index={1} />
+        <AttrTile label={t.tiles.served} value={t.temperatures[a.temperature.value]} match={a.temperature.match} index={2} />
+        <AttrTile label={t.tiles.protein} value={t.proteins[a.protein.value]} match={a.protein.match} index={3} />
       </div>
       <IngredientChips guess={guess} />
     </div>
@@ -389,6 +392,7 @@ export function GuessRow({
  * the two surfaces disagree on.
  */
 export function StoryDetails({ clues, noun }: { clues: string[]; noun: "clues" | "coasters" }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   if (clues.length === 0) return null;
   return (
@@ -400,7 +404,14 @@ export function StoryDetails({ clues, noun }: { clues: string[]; noun: "clues" |
         aria-controls="receipt-story"
       >
         <span>
-          <Icon name="search" /> {open ? `Hide the ${noun}` : `All ${clues.length} ${noun}`}
+          <Icon name="search" />{" "}
+          {noun === "clues"
+            ? open
+              ? t.story.hideClues
+              : t.story.allClues(clues.length)
+            : open
+              ? t.story.hideCoasters
+              : t.story.allCoasters(clues.length)}
         </span>
         <span className={open ? "story__chevron story__chevron--open" : "story__chevron"} aria-hidden="true">
           ▾
@@ -434,6 +445,7 @@ export function StoryDetails({ clues, noun }: { clues: string[]; noun: "clues" |
  * and never the only one.
  */
 export function PunchCard({ used, total }: { used: number; total: number }) {
+  const t = useT();
   const left = total - used;
   const final = left === 1;
   return (
@@ -443,7 +455,7 @@ export function PunchCard({ used, total }: { used: number; total: number }) {
           <span key={i} className={i < used ? "tally__hole tally__hole--punched" : "tally__hole"} />
         ))}
       </span>
-      <span className="tally__text">{final ? "Last order" : `${left} guesses left`}</span>
+      <span className="tally__text">{final ? t.punchCard.last : t.punchCard.left(left)}</span>
     </p>
   );
 }
@@ -456,11 +468,12 @@ export interface TicketPieceProps {
 }
 
 export function ClueTicket({ index, text, ring }: TicketPieceProps) {
+  const t = useT();
   return (
     <div className="ticket">
       <p className="ticket__head">
         {ring && <Icon name="bell" className="ticket__bell" />}
-        Order up — clue #{index}
+        {t.ticket.clue(index)}
       </p>
       <p className="ticket__text">{text}</p>
     </div>
@@ -603,8 +616,8 @@ export function GuessInput<T extends { id: number; name: string }>({
   excludeIds,
   disabled,
   onGuess,
-  placeholder = "Order a dish…",
-  label = "Guess a dish",
+  placeholder,
+  label,
   coach,
   describedBy,
   onMatches,
@@ -637,6 +650,9 @@ export function GuessInput<T extends { id: number; name: string }>({
    */
   hint?: (item: T) => string | undefined;
 }) {
+  const t = useT();
+  const inputPlaceholder = placeholder ?? t.input.placeholder;
+  const inputLabel = label ?? t.input.label;
   const [text, setText] = useState("");
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
@@ -719,8 +735,8 @@ export function GuessInput<T extends { id: number; name: string }>({
           type="text"
           value={text}
           disabled={disabled}
-          placeholder={placeholder}
-          aria-label={label}
+          placeholder={inputPlaceholder}
+          aria-label={inputLabel}
           role="combobox"
           aria-autocomplete="list"
           aria-expanded={listOpen}
@@ -768,12 +784,12 @@ export function GuessInput<T extends { id: number; name: string }>({
           disabled={disabled || options.length === 0}
           onClick={() => options[highlight] && pick(options[highlight])}
         >
-          Order
+          {t.input.order}
         </button>
       </div>
       {listOpen && (
-        <ul className="guess-input__list" role="listbox" id={listId} aria-label={`Matches for ${label.toLowerCase()}`}>
-          {options.length === 0 && <li className="guess-input__empty">Not on the menu — try another dish</li>}
+        <ul className="guess-input__list" role="listbox" id={listId} aria-label={t.input.matches(inputLabel)}>
+          {options.length === 0 && <li className="guess-input__empty">{t.input.empty}</li>}
           {options.map((d, i) => (
             <li
               key={d.id}
@@ -847,10 +863,11 @@ export function useNewDayAvailable(mountedToday: string): boolean {
 }
 
 export function Countdown({ compact }: { compact?: boolean }) {
+  const t = useT();
   const [ms, setMs] = useState(() => msUntilGameMidnight());
   useEffect(() => {
-    const t = setInterval(() => setMs(msUntilGameMidnight()), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setMs(msUntilGameMidnight()), 1000);
+    return () => clearInterval(timer);
   }, []);
   const { h, m, s } = hms(ms);
   // Keying the seconds on their own value remounts just that span every tick,
@@ -866,7 +883,7 @@ export function Countdown({ compact }: { compact?: boolean }) {
   if (compact) {
     return (
       <div className="countdown countdown--compact">
-        <span className="countdown__label">Next Special</span>
+        <span className="countdown__label">{t.countdown.label}</span>
         <strong className="countdown__time">
           {h}:{m}:{secs}
         </strong>
@@ -875,7 +892,7 @@ export function Countdown({ compact }: { compact?: boolean }) {
   }
   return (
     <p className="countdown">
-      Next Special in{" "}
+      {t.countdown.inline}{" "}
       <strong>
         {h}:{m}:{secs}
       </strong>
@@ -890,8 +907,6 @@ export function Countdown({ compact }: { compact?: boolean }) {
 // lights off. What differs is the two middle tiles and the paper the clue
 // arrives on.
 
-const DRINK_ATTR_LABELS = ["Country", "Spirit", "Served", "Profile"];
-
 export function DrinkGuessRow({
   guess,
   drink,
@@ -901,6 +916,8 @@ export function DrinkGuessRow({
   drink?: DrinkSummary;
   ingredientCount: number;
 }) {
+  const t = useT();
+  const labels = [t.tiles.country, t.tiles.spirit, t.tiles.served, t.tiles.profile];
   // Same optimistic row as the diner's: the order goes in immediately with
   // placeholder tiles so the drop-in never waits on the network, and the parent
   // swaps the filled guess onto the SAME element by key so it doesn't replay.
@@ -910,10 +927,10 @@ export function DrinkGuessRow({
         <p className="guess-row__name">
           <span className="guess-row__dish">{drink?.name}</span>
           <span className="leader" aria-hidden="true" />
-          <span className="guess-row__count">asking the bar…</span>
+          <span className="guess-row__count">{t.row.askingBar}</span>
         </p>
         <div className="attr-tiles">
-          {DRINK_ATTR_LABELS.map((label) => (
+          {labels.map((label) => (
             <div key={label} className="attr-tile attr-tile--pending">
               <span className="attr-tile__label">{label}</span>
               <span className="attr-tile__value">·&nbsp;·&nbsp;·</span>
@@ -933,23 +950,23 @@ export function DrinkGuessRow({
         </span>
         <span className="leader" aria-hidden="true" />
         <span className="guess-row__count">
-          {guess.matchedIngredients.length}/{ingredientCount} ingredients
+          {t.row.ingredients(guess.matchedIngredients.length, ingredientCount)}
           <CloseCount guess={guess} />
         </span>
       </p>
       <div className="attr-tiles">
-        <AttrTile label="Country" value={a.country.value} match={a.country.match} region={a.country.region} index={0} />
+        <AttrTile label={t.tiles.country} value={a.country.value} match={a.country.match} region={a.country.region} index={0} />
         {/* A spiritless drink says so in the tile rather than showing "none",
             which reads as missing data on a row where every other cell is a
             value. It is a value: two mocktails match each other. */}
         <AttrTile
-          label="Spirit"
-          value={a.spirit.value === "none" ? "no spirit" : a.spirit.value}
+          label={t.tiles.spirit}
+          value={a.spirit.value === "none" ? t.tiles.noSpirit : t.spirits[a.spirit.value]}
           match={a.spirit.match}
           index={1}
         />
-        <AttrTile label="Served" value={a.temperature.value} match={a.temperature.match} index={2} />
-        <AttrTile label="Profile" value={a.profile.value} match={a.profile.match} index={3} />
+        <AttrTile label={t.tiles.served} value={t.temperatures[a.temperature.value]} match={a.temperature.match} index={2} />
+        <AttrTile label={t.tiles.profile} value={t.profiles[a.profile.value]} match={a.profile.match} index={3} />
       </div>
       <IngredientChips guess={guess} />
     </div>
@@ -958,13 +975,14 @@ export function DrinkGuessRow({
 
 /** A coaster slid across the bar. The bar's clue ticket. */
 export function Coaster({ index, text, ring }: TicketPieceProps) {
+  const t = useT();
   return (
     // data-index lets a costume tell the three apart (Halloween cuts the third,
     // Last call, as a headstone).
     <div className="ticket ticket--coaster" data-index={index}>
       <p className="ticket__head">
         {ring && <Icon name="glass" className="ticket__bell" />}
-        On the house — coaster #{index}
+        {t.ticket.coaster(index)}
       </p>
       <p className="ticket__text">{text}</p>
     </div>

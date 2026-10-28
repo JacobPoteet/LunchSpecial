@@ -74,6 +74,52 @@ const en = {
   /** Every dialog's × button. */
   close: "Close",
 
+  // ---- The board's pieces (src/game/components.tsx) ---------------------------
+
+  /** The tiles' own labels, as printed over each value. */
+  tiles: {
+    country: "Country",
+    course: "Course",
+    served: "Served",
+    protein: "Protein",
+    spirit: "Spirit",
+    profile: "Profile",
+    noSpirit: "no spirit",
+  },
+  row: {
+    askingKitchen: "asking the kitchen…",
+    askingBar: "asking the bar…",
+    ingredients: (matched: number, of: number) => `${matched}/${of} ingredients`,
+    close: (n: number) => ` · ${n} close`,
+    /** Hidden after a close chip: the family is content and stays English until phase 2. */
+    closeChip: (family: string) => `, close: something in the Special is in the ${family} family`,
+  },
+  story: {
+    hideClues: "Hide the clues",
+    hideCoasters: "Hide the coasters",
+    allClues: (n: number) => `All ${n} clues`,
+    allCoasters: (n: number) => `All ${n} coasters`,
+  },
+  punchCard: {
+    last: "Last order",
+    left: (n: number) => `${guesses(n)} left`,
+  },
+  ticket: {
+    clue: (n: number) => `Order up — clue #${n}`,
+    coaster: (n: number) => `On the house — coaster #${n}`,
+  },
+  input: {
+    placeholder: "Order a dish…",
+    label: "Guess a dish",
+    order: "Order",
+    matches: (label: string) => `Matches for ${label.toLowerCase()}`,
+    empty: "Not on the menu — try another dish",
+  },
+  countdown: {
+    label: "Next Special",
+    inline: "Next Special in",
+  },
+
   // ---- What a screen reader hears (shared/announce.ts) ----------------------
 
   announce: {
