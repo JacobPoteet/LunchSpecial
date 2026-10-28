@@ -80,7 +80,8 @@ import { KidsMenuCard, KidsMenuCoach, KidsMenuPill } from "./KidsMenu";
 import { kidsMenuIntroDue, kidsMenuOpen, MENU_AFTER } from "../../shared/kidsmenu";
 import { seededShowcaseRound } from "./showcase";
 import { useOccasion, useWearOccasion } from "../occasions/store";
-import { useT } from "../i18n/store";
+import { useLocale, useT } from "../i18n/store";
+import { InlineMarkdown } from "./Markdown";
 import clocheUrl from "../assets/art/ai-cloche.svg";
 
 // Web vs Discord Activity — stable for the page's lifetime, so resolve it once
@@ -91,16 +92,6 @@ const SURFACE = currentSurface();
 function newSeed(): string {
   return crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
-
-/** Wordle's "Genius / Magnificent / …", in diner. Indexed by guess count. */
-const WIN_TOASTS = [
-  "Chef's kiss!",
-  "Order up!",
-  "Nailed it, hon!",
-  "Nice work!",
-  "Just in time!",
-  "Phew — saved it!",
-];
 
 /**
  * How many *other* people are in this Discord Activity instance right now — 0
@@ -135,30 +126,30 @@ function WinToast({ text }: { text: string }) {
  * on a press and never on its own.
  */
 function HowToModal({ onClose }: { onClose: () => void }) {
+  const t = useT();
   return (
-    <Modal onClose={onClose} label="How to play">
+    <Modal onClose={onClose} label={t.menuCard.howToPlay}>
       <div className="howto">
-        <h2>How to play</h2>
+        <h2>{t.menuCard.howToPlay}</h2>
         <p>
-          Guess the <strong>Special</strong>, a mystery dish from somewhere in the world. You get {MAX_GUESSES} tries.
+          <InlineMarkdown source={t.howTo.goal(MAX_GUESSES)} />
         </p>
-        <p>Each guess shows which ingredients you got right, and how close its country, course, temperature and protein are:</p>
+        <p>{t.howTo.feedback}</p>
         {/* The mark leads, and the colour is named second. The board draws the
             same three glyphs on every tile, so a player who can't separate the
             green from the mustard still has something here that maps onto what
             they're looking at. */}
         <div className="legend">
-          <span className="chip chip--hit">✓ right (green)</span>
-          <span className="chip chip--near">~ close (yellow)</span>
-          <span className="chip chip--miss">× wrong (gray)</span>
+          <span className="chip chip--hit">{t.howTo.legendHit}</span>
+          <span className="chip chip--near">{t.howTo.legendNear}</span>
+          <span className="chip chip--miss">{t.howTo.legendMiss}</span>
         </div>
-        <p>A yellow country is in the same region. A yellow ingredient (≈) is a near swap, like lemon for lime.</p>
+        <p>{t.howTo.yellow}</p>
         <p>
-          Every miss gets you a <strong>clue</strong>. Stuck after four misses? The <strong>Kids' Menu</strong> lists every
-          dish that could still be the answer.
+          <InlineMarkdown source={t.howTo.clues} />
         </p>
         <p>
-          Finish today's Special to unlock <strong>Leftovers</strong>, every past Special.
+          <InlineMarkdown source={t.howTo.leftovers} />
         </p>
       </div>
     </Modal>
@@ -171,6 +162,7 @@ function HowToModal({ onClose }: { onClose: () => void }) {
  * stats" modal, or a loss), where no single row is "yours".
  */
 function StatsPanel({ stats, today, highlight }: { stats: Stats; today: string; highlight?: number }) {
+  const t = useT();
   const winPct = stats.played === 0 ? 0 : Math.round((stats.wins / stats.played) * 100);
   const maxDist = Math.max(1, ...stats.dist);
   // The stored count only moves when a round is recorded, so a streak that
@@ -192,13 +184,13 @@ function StatsPanel({ stats, today, highlight }: { stats: Stats; today: string; 
   return (
     <>
       <div className="stats-grid">
-        <div><span className="stat__num">{stats.played}</span><span className="stat__label">Played</span></div>
-        <div><span className="stat__num">{winPct}%</span><span className="stat__label">Win rate</span></div>
-        <div><span className="stat__num">{streak}</span><span className="stat__label">Streak</span></div>
-        <div><span className="stat__num">{stats.maxStreak}</span><span className="stat__label">Best</span></div>
+        <div><span className="stat__num">{stats.played}</span><span className="stat__label">{t.stats.played}</span></div>
+        <div><span className="stat__num">{winPct}%</span><span className="stat__label">{t.stats.winRate}</span></div>
+        <div><span className="stat__num">{streak}</span><span className="stat__label">{t.stats.streak}</span></div>
+        <div><span className="stat__num">{stats.maxStreak}</span><span className="stat__label">{t.stats.best}</span></div>
       </div>
       {stats.played === 0 && highlight === undefined ? (
-        <p className="dist-empty">No orders yet.</p>
+        <p className="dist-empty">{t.stats.empty}</p>
       ) : (
         <div className="dist">
           {stats.dist.map((n, i) => (
@@ -268,11 +260,12 @@ function KitchenClosed({ detail, onRetry }: { detail: string | null; onRetry: ()
  * background, so the fill stays at its measured 4.85 for the whole cycle.
  */
 function BarBand({ invite, onEnter }: { invite: BarInvite; onEnter: () => void }) {
+  const t = useT();
   if (invite === "none") return null;
   if (invite === "soon") {
     return (
       <p className="bar-band bar-band--soon">
-        <Icon name="glass" /> After Dark opens at 8, your time.
+        <Icon name="glass" /> {t.barBand.soon}
       </p>
     );
   }
@@ -288,10 +281,10 @@ function BarBand({ invite, onEnter }: { invite: BarInvite; onEnter: () => void }
       >
         <span className="bar-band__text">
           <span className="bar-band__tag">
-            <Icon name="glass" /> {settled ? "Your tab is at the bar" : "The bar's open"}
+            <Icon name="glass" /> {settled ? t.barBand.settled : t.barBand.open}
           </span>
           <span className="bar-band__sub">
-            {settled ? "Go back and take another look" : "One drink, four guesses, gone by morning"}
+            {settled ? t.barBand.settledSub : t.barBand.openSub}
           </span>
         </span>
         <span className="bar-band__arrow" aria-hidden="true">
@@ -302,11 +295,13 @@ function BarBand({ invite, onEnter }: { invite: BarInvite; onEnter: () => void }
   );
 }
 
-/** 2026-09-23 -> 9/23/26, the way it's written on a pad. Read off the string,
- * so no timezone can move the day. */
-function padDate(date: string): string {
-  const [y, m, d] = date.split("-");
-  return `${Number(m)}/${Number(d)}/${y.slice(2)}`;
+/** 2026-09-23 -> 9/23/26 (23/9/26 in Spain), the way it's written on a pad.
+ * Formatted at UTC noon off the string, so no timezone can move the day. */
+function padDate(date: string, locale: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Intl.DateTimeFormat(locale, { year: "2-digit", month: "numeric", day: "numeric", timeZone: "UTC" }).format(
+    Date.UTC(y, m - 1, d, 12),
+  );
 }
 
 /**
@@ -326,30 +321,29 @@ function GuestCheckHead({
   orders: number;
   menu: string;
 }) {
+  const { t, intl } = useLocale();
   return (
     <div className="guest-check">
       <div className="guest-check__top">
         <p className="guest-check__house">Lunch Special</p>
         {checkNo !== null && checkNo > 0 && (
           <p className="guest-check__no">
-            <small>No.</small>
+            <small>{t.check.number}</small>
             {checkNo}
           </p>
         )}
       </div>
       <dl className="guest-check__boxes">
         <div className="guest-check__box">
-          <dt>Date</dt>
-          <dd>{padDate(date)}</dd>
+          <dt>{t.check.date}</dt>
+          <dd>{padDate(date, intl)}</dd>
         </div>
         <div className="guest-check__box">
-          <dt>Orders</dt>
-          <dd>
-            {orders} of {MAX_GUESSES}
-          </dd>
+          <dt>{t.check.orders}</dt>
+          <dd>{t.check.ordersOf(orders, MAX_GUESSES)}</dd>
         </div>
         <div className="guest-check__box">
-          <dt>Menu</dt>
+          <dt>{t.check.menu}</dt>
           <dd>{menu}</dd>
         </div>
       </dl>
@@ -461,12 +455,12 @@ function ResultModal({
     <div className="replay-actions">
       {isRandom && (
         <button className="replay-btn" onClick={() => { playSfx("ui-click"); onNewGame(); }}>
-          <Icon name="dice" /> New random dish
+          <Icon name="dice" /> {t.board.newRandom}
         </button>
       )}
       {canArchive && (
         <button className="replay-btn" onClick={() => { playSfx("ui-click"); onArchive(); }}>
-          <Icon name="calendar" /> Play again
+          <Icon name="calendar" /> {t.check.playAgain}
         </button>
       )}
       {/* The check is where an invite belongs — Discord's own guidance is
@@ -475,7 +469,7 @@ function ResultModal({
           yet. You've just finished; who else should be doing this? */}
       {showInvite && (
         <button className="replay-btn" onClick={openInvite}>
-          <Icon name="cutlery" /> Invite the table
+          <Icon name="cutlery" /> {t.check.invite}
         </button>
       )}
     </div>
@@ -504,18 +498,18 @@ function ResultModal({
     </>
   );
   return (
-    <Modal onClose={onClose} variant="receipt" footer={actions} label="Your check">
+    <Modal onClose={onClose} variant="receipt" footer={actions} label={t.board.yourCheck}>
       <div className="receipt__head">
         <GuestCheckHead
           checkNo={isRandom ? null : daily.puzzleNumber}
           date={round.date}
           orders={round.guesses.length}
-          menu={isRandom ? "Chef's Choice" : asDaily ? "Daily Special" : "Leftovers"}
+          menu={isRandom ? t.check.menuRandom : asDaily ? t.check.menuDaily : t.check.menuLeftover}
         />
         {/* "Tomorrow" is a promise only the daily can make: a Leftover or a
             Chef's Choice can be played again right now. */}
         <p className="receipt__verdict">
-          {won ? "On the house!" : asDaily ? "Better luck tomorrow" : "Better luck next time"}
+          {won ? t.check.won : asDaily ? t.check.lostDaily : t.check.lostOther}
           {kit?.Verdict && <kit.Verdict won={won} />}
         </p>
       </div>
@@ -528,7 +522,8 @@ function ResultModal({
           {!won && (
             <>
               <p className="receipt__facts">
-                {reveal.country} · {reveal.course} · served {reveal.temperature} · {reveal.protein}
+                {reveal.country} · {t.courses[reveal.course]} · {t.check.served(t.temperatures[reveal.temperature])} ·{" "}
+                {t.proteins[reveal.protein]}
               </p>
               {reveal.ingredients.length > 0 && (
                 <p className="receipt__ingredients">{reveal.ingredients.join(" · ")}</p>
@@ -651,7 +646,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
   // The end-of-round choreography — the beat before the check prints, the win
   // toast over it, and the instant open for a round restored from storage.
   // Shared with the bar; see src/game/roundLifecycle.ts.
-  const check = useCheckOpening(round.status, round.guesses.length, (n) => WIN_TOASTS[n - 1] ?? WIN_TOASTS[0]);
+  const check = useCheckOpening(round.status, round.guesses.length, (n) => t.winToasts[n - 1] ?? t.winToasts[0]);
   const { toast, showCheck: showResult, setShowCheck: setShowResult } = check;
   // When this sitting started, for the elapsed timer on a Discord profile. This
   // sitting, not the round: a board restored from localStorage was begun on a
@@ -1081,43 +1076,41 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         <h1 className="marquee__script">
           {kit?.Sign ? <kit.Sign text="Lunch Special" room="diner" /> : "Lunch Special"}
         </h1>
-        <p className="marquee__sub">{kit?.copy?.(t).sub ?? "The daily dish guessing game"}</p>
+        <p className="marquee__sub">{kit?.copy?.(t).sub ?? t.board.sub}</p>
       </header>
 
       <main className="menu-card">
         {kit?.Card && <kit.Card room="diner" />}
         {isPreview && (
-          <p className="preview-banner">Admin test play — nothing is saved, counted or shown to players</p>
+          <p className="preview-banner">{t.board.previewAdmin}</p>
         )}
-        {playtest && <p className="preview-banner">Playtest — pinned to “{playtest}”, nothing is saved</p>}
+        {playtest && <p className="preview-banner">{t.board.playtest(playtest)}</p>}
         {/* A showcase visitor arrives on a board somebody else won, which needs
             saying: without it the check reads as a bug they caused. Addressed to
             a stranger, unlike the two above, which are addressed to the admin. */}
         {isShowcase && (
-          <p className="preview-banner">
-            Preview: this Special is already solved so you can look around. Nothing is saved.
-          </p>
+          <p className="preview-banner">{t.board.showcase}</p>
         )}
         {/* Sits above every other bar: if the day has turned, that reframes
             whatever mode the player is in, so it needs to be read first. */}
         {newDayAvailable && (
           <div className="newday-bar" role="status" aria-live="polite">
-            <span className="newday-bar__tag"><Icon name="bell" /> A new Special is up</span>
+            <span className="newday-bar__tag"><Icon name="bell" /> {t.board.newDay}</span>
             <button className="newday-bar__btn" onClick={() => { playSfx("ui-click"); goToday(); }}>
-              Serve it
+              {t.board.serveIt}
             </button>
           </div>
         )}
         {isArchive && (
           <div className="archive-bar">
-            <span className="archive-bar__tag"><Icon name="calendar" /> From the archive</span>
-            <button className="archive-bar__btn" onClick={() => { playSfx("ui-click"); goToday(); }}>Back to today</button>
+            <span className="archive-bar__tag"><Icon name="calendar" /> {t.board.archive}</span>
+            <button className="archive-bar__btn" onClick={() => { playSfx("ui-click"); goToday(); }}>{t.board.backToToday}</button>
           </div>
         )}
         {isRandom && (
           <div className="freeplay-bar">
-            <span className="freeplay-bar__tag"><Icon name="dice" /> Random recipe — nothing saved</span>
-            <button className="freeplay-bar__btn" onClick={() => { playSfx("ui-click"); newGame(); }}>New random dish</button>
+            <span className="freeplay-bar__tag"><Icon name="dice" /> {t.board.random}</span>
+            <button className="freeplay-bar__btn" onClick={() => { playSfx("ui-click"); newGame(); }}>{t.board.newRandom}</button>
           </div>
         )}
         {/* Last of the bars: the others are about what you're playing, this is
@@ -1126,14 +1119,14 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         {company > 0 && (
           <div className="counter-bar" role="status" aria-live="polite">
             <span className="counter-bar__tag">
-              <Icon name="cutlery" /> {company} {company === 1 ? "other is" : "others are"} at the counter
+              <Icon name="cutlery" /> {t.board.company(company)}
             </span>
           </div>
         )}
         <div className="menu-card__header">
-          <h2 className="menu-card__title">{isArchive ? "From the Archive" : "Today's Menu"}</h2>
+          <h2 className="menu-card__title">{isArchive ? t.board.titleArchive : t.board.titleToday}</h2>
           <p className="menu-card__meta">
-            {daily && (!ephemeral || dressedAsDaily) ? <>Special No. {daily.puzzleNumber} — </> : null}
+            {daily && (!ephemeral || dressedAsDaily) ? t.board.specialNo(daily.puzzleNumber) : null}
             {dateLabel(date)}
             {streakMark && (
               <>
@@ -1147,7 +1140,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           </p>
           <div className="menu-card__toolbar">
             <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowStats(true); }}>
-              <Icon name="stats" /> My stats
+              <Icon name="stats" /> {t.stats.title}
             </button>
             {kidsAvailable && !pending && (
               <KidsMenuPill
@@ -1159,12 +1152,12 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
             )}
             {canArchive && (
               <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowArchive(true); }}>
-                <Icon name="calendar" /> Leftovers
+                <Icon name="calendar" /> {t.board.leftovers}
               </button>
             )}
             {round.status !== "playing" && (
               <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowResult(true); }}>
-                <Icon name="receipt" /> Your check
+                <Icon name="receipt" /> {t.board.yourCheck}
               </button>
             )}
             {/* A returning player who finished lunch at noon shouldn't have to
@@ -1195,12 +1188,12 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
               {kit?.Cloche ? <kit.Cloche src={clocheUrl} /> : <img src={clocheUrl} alt="" aria-hidden="true" />}
               <div className="special-line__body">
                 <p className="special-line__label">
-                  <span>{isRandom ? "Chef's choice" : "Daily Special"}</span>
+                  <span>{isRandom ? t.board.specialRandom : t.board.specialDaily}</span>
                   <span className="leader" aria-hidden="true" />
-                  <span className="special-line__price">on the house</span>
+                  <span className="special-line__price">{t.board.onTheHouse}</span>
                 </p>
                 <p className="special-line__hint">
-                  {daily ? <>A mystery dish with <strong>{daily.ingredientCount} ingredients</strong>. What'll it be?</> : "Firing up the grill…"}
+                  {daily ? <InlineMarkdown source={t.board.hint(daily.ingredientCount)} /> : t.board.loading}
                 </p>
               </div>
             </div>
@@ -1245,7 +1238,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
 
         {error && (
           <p className="error-note">
-            The kitchen didn't catch that order. Check your connection and try again.
+            {t.board.guessFailed}
             <span className="error-note__detail">{error}</span>
           </p>
         )}
@@ -1336,8 +1329,8 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
         />
       )}
       {showStats && (
-        <Modal onClose={() => setShowStats(false)} label="My stats">
-          <h2 className="receipt__title" style={{ textAlign: "center" }}>My stats</h2>
+        <Modal onClose={() => setShowStats(false)} label={t.stats.title}>
+          <h2 className="receipt__title" style={{ textAlign: "center" }}>{t.stats.title}</h2>
           <StatsPanel stats={stats} today={today} />
         </Modal>
       )}

@@ -35,6 +35,7 @@ export function pseudoize<T>(messages: T): T {
     Object.defineProperty(wrapped, "length", { value: fn.length });
     return wrapped as T;
   }
+  if (Array.isArray(messages)) return messages.map(pseudoize) as T;
   if (typeof messages === "object" && messages !== null) {
     return Object.fromEntries(Object.entries(messages).map(([k, v]) => [k, pseudoize(v)])) as T;
   }

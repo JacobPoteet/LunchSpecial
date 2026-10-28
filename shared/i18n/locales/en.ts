@@ -160,6 +160,80 @@ const en = {
     body: "The kitchen isn't answering. Check your connection and try again.",
     retry: "Ring the bell again",
   },
+
+  // ---- The diner (src/game/GamePage.tsx) ---------------------------------------
+  // `**bold**` in a message renders as <strong> (InlineMarkdown).
+
+  /** The toast on a win, by guess count: Wordle's "Genius / Magnificent / …", in diner. */
+  winToasts: ["Chef's kiss!", "Order up!", "Nailed it, hon!", "Nice work!", "Just in time!", "Phew — saved it!"],
+  howTo: {
+    goal: (tries: number) => `Guess the **Special**, a mystery dish from somewhere in the world. You get ${tries} tries.`,
+    feedback: "Each guess shows which ingredients you got right, and how close its country, course, temperature and protein are:",
+    legendHit: "✓ right (green)",
+    legendNear: "~ close (yellow)",
+    legendMiss: "× wrong (gray)",
+    yellow: "A yellow country is in the same region. A yellow ingredient (≈) is a near swap, like lemon for lime.",
+    clues:
+      "Every miss gets you a **clue**. Stuck after four misses? The **Kids' Menu** lists every dish that could still be the answer.",
+    leftovers: "Finish today's Special to unlock **Leftovers**, every past Special.",
+  },
+  stats: {
+    title: "My stats",
+    played: "Played",
+    winRate: "Win rate",
+    streak: "Streak",
+    best: "Best",
+    empty: "No orders yet.",
+  },
+  board: {
+    sub: "The daily dish guessing game",
+    previewAdmin: "Admin test play — nothing is saved, counted or shown to players",
+    playtest: (slug: string) => `Playtest — pinned to “${slug}”, nothing is saved`,
+    showcase: "Preview: this Special is already solved so you can look around. Nothing is saved.",
+    newDay: "A new Special is up",
+    serveIt: "Serve it",
+    archive: "From the archive",
+    backToToday: "Back to today",
+    random: "Random recipe — nothing saved",
+    newRandom: "New random dish",
+    company: (n: number) =>
+      plural("en", n, { one: "1 other is at the counter", other: `${n} others are at the counter` }),
+    titleArchive: "From the Archive",
+    titleToday: "Today's Menu",
+    specialNo: (n: number) => `Special No. ${n} — `,
+    leftovers: "Leftovers",
+    yourCheck: "Your check",
+    specialRandom: "Chef's choice",
+    specialDaily: "Daily Special",
+    onTheHouse: "on the house",
+    hint: (n: number) =>
+      `A mystery dish with **${plural("en", n, { one: "1 ingredient", other: `${n} ingredients` })}**. What'll it be?`,
+    loading: "Firing up the grill…",
+    guessFailed: "The kitchen didn't catch that order. Check your connection and try again.",
+  },
+  barBand: {
+    soon: "After Dark opens at 8, your time.",
+    open: "The bar's open",
+    openSub: "One drink, four guesses, gone by morning",
+    settled: "Your tab is at the bar",
+    settledSub: "Go back and take another look",
+  },
+  check: {
+    number: "No.",
+    date: "Date",
+    orders: "Orders",
+    ordersOf: (n: number, max: number) => `${n} of ${max}`,
+    menu: "Menu",
+    menuRandom: "Chef's Choice",
+    menuDaily: "Daily Special",
+    menuLeftover: "Leftovers",
+    won: "On the house!",
+    lostDaily: "Better luck tomorrow",
+    lostOther: "Better luck next time",
+    served: (temperature: string) => `served ${temperature}`,
+    playAgain: "Play again",
+    invite: "Invite the table",
+  },
 };
 
 export default en;
