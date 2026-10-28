@@ -25,6 +25,7 @@ import { guessRecord, recordGuess } from "../guesslog";
 import { computeDrinkFeedback } from "../nightcap";
 import { classifyDrinkPreview } from "../showcase";
 import { CATALOGUE_CACHE_CONTROL } from "./public";
+import { playerError } from "../../shared/errors";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -44,10 +45,10 @@ async function resolveDrink(
 ) {
   if (preview) {
     const kind = classifyDrinkPreview(await verifyToken(preview, env.SESSION_SECRET));
-    if (kind.kind === "invalid") return { error: "Invalid or expired preview link" as const };
+    if (kind.kind === "invalid") return playerError("Invalid or expired preview link", "bad_link");
     if (kind.kind === "drink") {
       const drink = await getDrinkById(env.DB, kind.id);
-      return drink ? { drink, rehearsal: true } : { error: "Preview drink not found" as const };
+      return drink ? { drink, rehearsal: true } : playerError("Preview drink not found", "not_found");
     }
     // A showcase link names no drink, so it falls through to the night's real
     // pour — which is the whole difference between it and a drink preview. What
@@ -61,15 +62,15 @@ async function resolveDrink(
     // for the same reason the dish equivalent is: it never reads the schedule,
     // so it says nothing about which night pours what.
     const drink = await getDrinkBySlug(env.DB, pinned);
-    return drink ? { drink, rehearsal: true } : { error: `No drink with slug "${pinned}"` as const };
+    return drink ? { drink, rehearsal: true } : playerError(`No drink with slug "${pinned}"`, "not_found");
   }
   // The Worker cannot know the player's local time and does not try. It checks
   // the claimed night is within a day of ET's, which covers every real UTC
   // offset. See isPlayableNight.
-  if (!night || !isPlayableNight(night, serverToday())) return { error: "The bar is closed" as const };
+  if (!night || !isPlayableNight(night, serverToday())) return playerError("The bar is closed", "bar_closed");
   const drink = await getTargetDrink(env.DB, night);
   // A showcase reaches here with the night's real pour, and is still a rehearsal.
-  return drink ? { drink, rehearsal: preview !== undefined } : { error: "Nothing on tap" as const };
+  return drink ? { drink, rehearsal: preview !== undefined } : playerError("Nothing on tap", "nothing_on_tap");
 }
 
 /**
@@ -89,7 +90,7 @@ app.get("/drinks", async (c) => {
 app.get("/info", async (c) => {
   const night = c.req.query("night");
   const target = await resolveDrink(c.env, night, c.req.query("preview"), c.req.query("nightcap"));
-  if ("error" in target) return c.json({ error: target.error }, 400);
+  if ("error" in target) return c.json({ error: target.error, code: target.code }, 400);
   // A preview or a playtest keeps its night's real number when it has a real
   // night, the same dressing the daily's rehearsal modes get.
   const numbered = !!night && isPlayableNight(night, serverToday());
@@ -116,21 +117,21 @@ app.post("/guess", async (c) => {
   try {
     body = await c.req.json();
   } catch {
-    return c.json({ error: "Invalid JSON body" }, 400);
+    return c.json(playerError("Invalid JSON body", "bad_request"), 400);
   }
   const guessNumber = Number(body.guessNumber);
   if (!Number.isInteger(guessNumber) || guessNumber < 1 || guessNumber > DRINK_MAX_GUESSES) {
-    return c.json({ error: `guessNumber must be 1-${DRINK_MAX_GUESSES}` }, 400);
+    return c.json(playerError(`guessNumber must be 1-${DRINK_MAX_GUESSES}`, "bad_request"), 400);
   }
   const drinkId = Number(body.drinkId);
-  if (!Number.isInteger(drinkId)) return c.json({ error: "Unknown drink" }, 400);
+  if (!Number.isInteger(drinkId)) return c.json(playerError("Unknown drink", "unknown_drink"), 400);
 
   const [target, guess] = await Promise.all([
     resolveDrink(c.env, body.night, body.preview, body.nightcap),
     getDrinkById(c.env.DB, drinkId),
   ]);
-  if ("error" in target) return c.json({ error: target.error }, 400);
-  if (!guess) return c.json({ error: "Unknown drink" }, 400);
+  if ("error" in target) return c.json({ error: target.error, code: target.code }, 400);
+  if (!guess) return c.json(playerError("Unknown drink", "unknown_drink"), 400);
 
   const feedback: DrinkGuessFeedback = computeDrinkFeedback(guess, target.drink);
   // Coaster N lands after miss N, for N = 1..3. On the fourth guess the round is
@@ -165,7 +166,7 @@ app.get("/reveal", async (c) => {
     c.req.query("preview"),
     c.req.query("nightcap"),
   );
-  if ("error" in target) return c.json({ error: target.error }, 400);
+  if ("error" in target) return c.json({ error: target.error, code: target.code }, 400);
   const d = target.drink;
   const reveal: NightcapReveal = {
     id: d.id,

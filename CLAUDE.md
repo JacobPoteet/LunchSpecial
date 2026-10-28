@@ -255,6 +255,7 @@ In progress (#269), landing as a stack of PRs. The game's own words go through a
 - `<html lang>` names the catalog on screen (`primeLocale()` before mount, 800ms cap), never ahead of it.
 - **No raw English in `src/game` or `src/occasions` JSX**: text and word-carrying props (`aria-label`, `title`, `placeholder`, `alt`, `label`, `text`) come from `t`; `conventions.test.ts` walks the TSX and allows only the brand ("Lunch Special", "After Dark"). Bold inside a sentence is `**word**` in one message, rendered by `InlineMarkdown`, never three fragments. Only catalog text goes through it; a dish, drink or player-typed name never does.
 - Dates and numbers a player reads take `useLocale().intl`, never `undefined` (the browser's language may not be the game's). `/admin` keeps the browser's.
+- **A Worker error a player can see answers `{ error, code }`** through `playerError()` (`shared/errors.ts`, a closed `PLAYER_ERROR_CODES` list with copy at `t.errors`). The English `error` stays for logs and old clients. The client keeps the `ApiError` whole and words it at render (`errorText`), never `e.message`. Admin and Discord routes answer English alone.
 
 ## Accessibility (player-facing UI)
 

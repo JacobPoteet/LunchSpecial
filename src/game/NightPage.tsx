@@ -66,7 +66,7 @@ import { currentNight, isBarOpen, lastCallGraceNight, nightDateLabel, tzOffsetMi
 import { lunchAdmits } from "../../shared/night";
 import { puzzleNumberFor } from "./archive";
 import { devIgnoresBarHours } from "./devHarness";
-import { localToday } from "../api";
+import { errorText, localToday } from "../api";
 import { hms } from "../../shared/time";
 import { liveStreak } from "../../shared/streak";
 
@@ -256,8 +256,9 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
   );
   const [reveal, setReveal] = useState<NightcapReveal | null>(null);
   const [stats, setStats] = useState<NightStats>(() => loadNightStats());
-  const [error, setError] = useState<string | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  // Kept whole and worded at render, like the diner's (errorText).
+  const [error, setError] = useState<Error | null>(null);
+  const [loadError, setLoadError] = useState<Error | null>(null);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<DrinkPoolEntry | null>(null);
   // The tab opens on the same beat as the check (roundLifecycle.ts): a beat
@@ -328,7 +329,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
       const nightcap = await fetchNightcap(night, preview, pin);
       if (!cancelled) setInfo(nightcap);
     })().catch((e: Error) => {
-      if (!cancelled) setLoadError(e.message);
+      if (!cancelled) setLoadError(e);
     });
     return () => {
       cancelled = true;
@@ -461,7 +462,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
           setStats(loadNightStats());
         }
       } catch (e) {
-        setError((e as Error).message);
+        setError(e as Error);
         setPending(null);
       } finally {
         setBusy(false);
@@ -547,7 +548,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
         {loadError && !info ? (
           <div className="closed" role="alert">
             <p className="closed__sign">{t.bar.nothingOnTap}</p>
-            <p className="closed__body">{loadError}</p>
+            <p className="closed__body">{errorText(loadError, t)}</p>
             <button className="replay-btn" onClick={() => { playSfx("ui-click"); onLeave(); }}>
               ← {t.bar.backToDiner}
             </button>
@@ -590,7 +591,7 @@ export default function NightPage({ onLeave }: { onLeave: () => void }) {
         {error && (
           <p className="error-note">
             {t.bar.guessFailed}
-            <span className="error-note__detail">{error}</span>
+            <span className="error-note__detail">{errorText(error, t)}</span>
           </p>
         )}
 

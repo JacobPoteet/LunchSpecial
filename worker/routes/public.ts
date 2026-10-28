@@ -18,6 +18,7 @@ import { guessRecord, isAnalyticsId, recordGuess } from "../guesslog";
 import { loadBookings, parseSighting } from "../occasions";
 import { findServed } from "../requests";
 import { resolveTarget } from "../target";
+import { playerError } from "../../shared/errors";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -44,7 +45,7 @@ app.get("/daily", async (c) => {
   const random = c.req.query("random");
   const special = c.req.query("special");
   const target = await resolveTarget(c.env, date, preview, random, special);
-  if ("error" in target) return c.json({ error: target.error }, 400);
+  if ("error" in target) return c.json({ error: target.error, code: target.code }, 400);
   // A random round sits outside the numbering entirely. A preview or a playtest
   // round is a dress rehearsal for the daily, so it keeps its date's real
   // number — that's what the receipt and the share grid print. (On the daily
@@ -79,21 +80,21 @@ app.post("/guess", async (c) => {
   try {
     body = await c.req.json();
   } catch {
-    return c.json({ error: "Invalid JSON body" }, 400);
+    return c.json(playerError("Invalid JSON body", "bad_request"), 400);
   }
   const guessNumber = Number(body.guessNumber);
   if (!Number.isInteger(guessNumber) || guessNumber < 1 || guessNumber > MAX_GUESSES) {
-    return c.json({ error: "guessNumber must be 1-6" }, 400);
+    return c.json(playerError("guessNumber must be 1-6", "bad_request"), 400);
   }
   const dishId = Number(body.dishId);
-  if (!Number.isInteger(dishId)) return c.json({ error: "Unknown dish" }, 400);
+  if (!Number.isInteger(dishId)) return c.json(playerError("Unknown dish", "unknown_dish"), 400);
   // The target and the guessed dish are independent — resolve them in parallel.
   const [target, guess] = await Promise.all([
     resolveTarget(c.env, body.date, body.preview, body.random, body.special),
     getDishById(c.env.DB, dishId),
   ]);
-  if ("error" in target) return c.json({ error: target.error }, 400);
-  if (!guess) return c.json({ error: "Unknown dish" }, 400);
+  if ("error" in target) return c.json({ error: target.error, code: target.code }, 400);
+  if (!guess) return c.json(playerError("Unknown dish", "unknown_dish"), 400);
 
   const feedback: GuessFeedback = computeFeedback(guess, target.dish);
   if (!feedback.correct && guessNumber < MAX_GUESSES) {
@@ -321,7 +322,7 @@ app.get("/reveal", async (c) => {
     c.req.query("random"),
     c.req.query("special"),
   );
-  if ("error" in target) return c.json({ error: target.error }, 400);
+  if ("error" in target) return c.json({ error: target.error, code: target.code }, 400);
   const d = target.dish;
   const reveal: RevealInfo = {
     id: d.id,
