@@ -87,11 +87,16 @@ const en = {
     profile: "Profile",
     noSpirit: "no spirit",
   },
+  /**
+   * The count beside a guess's name. It wraps when the row runs out of room,
+   * so a number and its noun are joined by a no-break space (\u00a0) and the
+   * dot stays with the unit before it: the line only breaks after "·".
+   */
   row: {
     askingKitchen: "asking the kitchen…",
     askingBar: "asking the bar…",
-    ingredients: (matched: number, of: number) => `${matched}/${of} ingredients`,
-    close: (n: number) => ` · ${n} close`,
+    ingredients: (matched: number, of: number) => `${matched}/${of}\u00a0ingredients`,
+    close: (n: number) => `\u00a0· ${n}\u00a0close`,
     /** Hidden after a close chip: the family is content and stays English until phase 2. */
     closeChip: (family: string) => `, close: something in the Special is in the ${family} family`,
   },

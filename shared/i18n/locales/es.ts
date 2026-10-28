@@ -97,8 +97,8 @@ const es: Messages = {
   row: {
     askingKitchen: "preguntando en la cocina…",
     askingBar: "preguntando en la barra…",
-    ingredients: (matched: number, of: number) => `${matched}/${of} ingredientes`,
-    close: (n: number) => ` · ${close(n)}`,
+    ingredients: (matched: number, of: number) => `${matched}/${of}\u00a0ingredientes`,
+    close: (n: number) => `\u00a0· ${plural("es", n, { one: `${n}\u00a0parecido`, other: `${n}\u00a0parecidos` })}`,
     closeChip: (family: string) => `, parecido: algo del Especial es de la familia ${family}`,
   },
   story: {
@@ -261,7 +261,7 @@ const es: Messages = {
     start: "Vuelve mañana para empezar una racha.",
   },
   tally: {
-    room: (pct: number) => `El ${pct} % de los comensales acertó el Especial de hoy`,
+    room: (pct: number) => `El ${pct}\u00a0% de los comensales acertó el Especial de hoy`,
     mostIn: (n: number) => `la mayoría en ${n}`,
   },
   stuck: "Nada cerca todavía. Lee la pista.",
