@@ -332,6 +332,10 @@ const es: Messages = {
     terms: "Términos",
     press: "Prensa",
   },
+  language: {
+    button: (name: string) => `Idioma: ${name}`,
+    list: "Idioma",
+  },
   errors: {
     offline: "No se pudo contactar con la cocina: revisa tu conexión o tu bloqueador de anuncios.",
     failed: "La cocina lo devolvió.",

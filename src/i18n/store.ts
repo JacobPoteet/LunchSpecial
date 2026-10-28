@@ -25,6 +25,8 @@ import {
   parsePicked,
   PSEUDO_LOCALE,
   resolveLocale,
+  type LocaleTag,
+  type PickedLocale,
   type Speaking,
 } from "../../shared/locale";
 import en from "../../shared/i18n/locales/en";
@@ -120,6 +122,22 @@ export function useLocale(): LocaleState {
 /** The catalog alone, for a component that only prints strings. */
 export function useT(): Messages {
   return useLocale().t;
+}
+
+/**
+ * The player's own pick, from the footer's picker: stored as `{ locale, at }`
+ * (shared/progress.ts merges two copies on `at`) and spoken at once, no reload.
+ * It outranks a `?locale=` on the URL for the rest of this page load, because
+ * it is the newer word.
+ */
+export function setLocale(tag: LocaleTag): Promise<void> {
+  const picked: PickedLocale = { locale: tag, at: Date.now() };
+  try {
+    localStorage.setItem(LOCALE_KEY, JSON.stringify(picked));
+  } catch {
+    // Storage blocked: the pick still holds for this page load.
+  }
+  return speak(tag);
 }
 
 /**

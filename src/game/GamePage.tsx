@@ -33,6 +33,7 @@ import { Icon } from "./Icon";
 import AnnouncementModal from "./AnnouncementModal";
 import ArchiveModal from "./ArchiveModal";
 import { BuildTag } from "./BuildTag";
+import { LanguagePicker } from "./LanguagePicker";
 import { Byline } from "./Byline";
 import { FanStamp, RequestForm } from "./RequestForm";
 import { CoachMark, CoachSpotlight } from "./Coach";
@@ -1296,7 +1297,10 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
           <a href="/privacy">{t.footer.privacy}</a> · <a href="/terms">{t.footer.terms}</a> ·{" "}
           <a href="/press">{t.footer.press}</a>
         </p>
-        <BuildTag />
+        <div className="footer-note__meta">
+          <LanguagePicker />
+          <BuildTag />
+        </div>
       </footer>
 
       {showSpotlight && <CoachSpotlight />}

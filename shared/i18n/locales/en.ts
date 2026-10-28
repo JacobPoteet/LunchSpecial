@@ -328,6 +328,12 @@ const en = {
     terms: "Terms",
     press: "Press",
   },
+  /** The footer's picker (src/game/LanguagePicker.tsx). Each language's own name comes from LOCALES. */
+  language: {
+    /** The button's name: the word, then the language on screen, which the button also prints. */
+    button: (name: string) => `Language: ${name}`,
+    list: "Language",
+  },
   /**
    * What a failed request says, by the code the Worker (or src/api.ts) gave it.
    * Shown under the closed sign or beside a guess that didn't land.

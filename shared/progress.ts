@@ -12,6 +12,8 @@
 // from one side, or unions a set. Nothing sums, so a copy replayed twice cannot
 // inflate a count, and a merge of a copy with itself changes nothing.
 
+import { parsePicked } from "./locale";
+
 /** The localStorage keys that travel, and nothing else. A key not named here is never sent. */
 export const PROGRESS_KEYS = [
   "lunch-special:round",
@@ -24,6 +26,7 @@ export const PROGRESS_KEYS = [
   "lunch-special:afterdark-seen",
   "lunch-special:announcements",
   "lunch-special:sound",
+  "lunch-special:locale",
 ] as const;
 export type ProgressKey = (typeof PROGRESS_KEYS)[number];
 
@@ -151,6 +154,15 @@ function soundPrefs(a: string | undefined, b: string | undefined): string | unde
   return tb > ta ? b : a;
 }
 
+/** The language pick: the one made later wins, whichever copy arrived second; a wins ties. */
+function laterPick(a: string | undefined, b: string | undefined): string | undefined {
+  const pa = parsePicked(a);
+  const pb = parsePicked(b);
+  if (!pa) return pb ? b : undefined;
+  if (!pb) return a;
+  return pb.at > pa.at ? b : a;
+}
+
 /**
  * Merge two copies of one player's progress. Symmetric except where a rule
  * names a tie-break (it prefers `a`, which callers pass as the copy they hold).
@@ -179,6 +191,7 @@ export function mergeProgress(a: Progress, b: Progress): Progress {
   );
   set("lunch-special:announcements", unionIds(a["lunch-special:announcements"], b["lunch-special:announcements"]));
   set("lunch-special:sound", soundPrefs(a["lunch-special:sound"], b["lunch-special:sound"]));
+  set("lunch-special:locale", laterPick(a["lunch-special:locale"], b["lunch-special:locale"]));
   return out;
 }
 
