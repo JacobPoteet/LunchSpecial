@@ -1155,7 +1155,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
               />
             )}
             {canArchive && (
-              <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowArchive(true); }}>
+              <button className="icon-btn icon-btn--leftovers" onClick={() => { playSfx("ui-click"); setShowArchive(true); }}>
                 <Icon name="calendar" /> {t.board.leftovers}
               </button>
             )}
