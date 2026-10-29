@@ -384,10 +384,10 @@
 }
 
 /* The field and whatever rides beside it (lunch's Kids' Menu pill from the
-   fourth miss). With nothing beside it the field takes the whole row. */
+   fourth miss). With nothing beside it the field takes the whole row. No gap:
+   what rides beside the field brings its own, so it can open with it. */
 .guess-input__row {
   display: flex;
-  gap: var(--space-8);
 }
 
 .guess-input input {
@@ -2678,10 +2678,15 @@ textarea.dish-request__input {
   --cal-cell-step: 40ms;
   --cal-cell-dur: 0.3s;
 
-  /* The Kids' Menu, mirrored by KIDS_MENU_MS in shared/audio.ts. The pill waits
-     for the clue ticket (--ticket-start) so the two never land together. */
-  --kids-pill-delay: 1.14s;
-  --kids-pill-in: 0.32s;
+  /* The Kids' Menu, mirrored by KIDS_MENU_MS in shared/audio.ts. Each beat
+     waits for the one before it: the pill until the clue ticket has fed out
+     (--ticket-start plus the feed's 0.5s), the tip until the pill has landed,
+     the ring until the tip has. */
+  --kids-pill-delay: 1.64s;
+  --kids-pill-in: 0.36s;
+  --kids-tip-delay: calc(var(--kids-pill-delay) + var(--kids-pill-in));
+  --kids-tip-in: 0.32s;
+  --kids-ring-delay: calc(var(--kids-tip-delay) + var(--kids-tip-in));
   --kids-circle: 0.26s;
 }
 
@@ -3604,15 +3609,52 @@ textarea.dish-request__input {
 /* ---- the Kids' Menu ----
 
    A placemat handed over from the fourth miss (src/game/KidsMenu.tsx). Paper,
-   crayon red and a rubber stamp; the only motion is the pill fading in and the
-   crayon ring drawing on, each timed off the --kids-* dial up top. Every
+   crayon red and a rubber stamp; the only motion is the pill's entrance, its
+   tip and ring, and the crayon ring drawing on, each timed off the --kids-* dial up top. Every
    moment is also a data attribute (data-kids, data-row, data-moment), which is
    what the motion pass hangs its work on. */
 
-/* Crayon red, not the toolbar's ink: this is a thing on the board you are
-   meant to press. Cherry on paper is 5.04:1. */
+/* The slot the pill rides in, beside the field. A one-column grid whose track
+   grows from 0fr to 1fr: zero to the pill's own width in any language, with
+   the gap inside it (the pill's margin) so the gap opens too. Padding there
+   would hold the slot open by its width at 0fr. The pill sits at the slot's
+   far end and never shrinks, so as the slot opens the field draws back and
+   uncovers it, as if it had been tucked behind the main menu. Clipped only while it opens:
+   after that the pill's ring needs to spill past its edge. Not fresh (a reload
+   on a fourth miss), it is simply there. */
+.kids-slot {
+  flex: none;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.kids-slot__inner {
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.kids-slot[data-kids="new"] {
+  animation: kids-slot-open var(--kids-pill-in) cubic-bezier(0.2, 0.8, 0.25, 1) var(--kids-pill-delay) backwards;
+}
+
+.kids-slot[data-kids="new"] .kids-slot__inner {
+  animation: kids-clip calc(var(--kids-pill-delay) + var(--kids-pill-in)) linear;
+}
+
+/* The field's height, its corners squared to match, on paper so it reads as a
+   thing on the board rather than as a hole in it. Crayon red (cherry on paper
+   is 5.04:1) and never the cherry fill: this is the slot the Order button
+   left, and a filled button there would read as "submit". Already 44px tall,
+   so the toolbar's reach is not needed. */
 .kids-pill {
+  flex: none;
+  margin-left: var(--space-8);
+  min-height: 0;
+  border-width: var(--border-medium);
   border-color: var(--cherry);
+  border-radius: var(--radius);
+  background: var(--paper-bright);
   color: var(--cherry);
 }
 
@@ -3622,47 +3664,41 @@ textarea.dish-request__input {
   color: var(--on-cherry);
 }
 
-.kids-pill[data-kids="new"] {
-  animation: kids-pill-in var(--kids-pill-in) ease var(--kids-pill-delay) backwards;
-}
-
-/* Beside the order bar it is the field's height and squares its corners to
-   match, on paper so it reads as a thing on the board rather than as a hole
-   in it. Crayon red and never the cherry fill: this is the slot the Order
-   button left, and a filled button there would read as "submit". Already
-   44px tall, so the toolbar's reach is not needed. */
-.guess-input__row .kids-pill {
-  flex: none;
-  min-height: 0;
-  border-width: var(--border-medium);
-  border-color: var(--cherry);
-  border-radius: var(--radius);
-  background: var(--paper-bright);
-}
-
-.guess-input__row .kids-pill:hover {
-  background: var(--cherry-hover);
-  border-color: var(--cherry-hover);
-}
-
-/* While the tip is up the pill takes the first visit's ring, once it has
-   faded in. */
+/* While the tip is up the pill takes the first visit's ring, once the tip
+   has landed. */
 .kids-pill[data-coach] {
-  animation: coach-ring 1.8s ease-out var(--kids-pill-delay) infinite;
-}
-
-.kids-pill[data-kids="new"][data-coach] {
-  animation:
-    kids-pill-in var(--kids-pill-in) ease var(--kids-pill-delay) backwards,
-    coach-ring 1.8s ease-out calc(var(--kids-pill-delay) + var(--kids-pill-in)) infinite;
+  animation: coach-ring 1.8s ease-out var(--kids-ring-delay) infinite;
 }
 
 /* The tip rides above the order bar like the first visit's marks, its caret
    pointing down at the pill at the end of the row. KidsMenu.tsx measures the
-   pill and sets --caret-x; until it has, the caret sits near the right end. */
+   pill and sets --caret-x; until it has, the caret sits near the right end.
+   Fresh, it waits for the pill to land, and its space opens (the same 0fr to
+   1fr, on rows) rather than the order bar jumping down under it at the
+   fourth miss. */
+.kids-tip {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+
+.kids-tip__inner {
+  min-height: 0;
+}
+
+.kids-tip[data-kids="new"] {
+  animation: kids-tip-open var(--kids-tip-in) cubic-bezier(0.2, 0.8, 0.25, 1) var(--kids-tip-delay) backwards;
+}
+
+.kids-tip[data-kids="new"] .kids-tip__inner {
+  animation: kids-clip calc(var(--kids-tip-delay) + var(--kids-tip-in)) linear;
+}
+
 .coach--kids {
   text-align: left;
-  animation-delay: var(--kids-pill-delay);
+}
+
+.kids-tip[data-kids="new"] .coach--kids {
+  animation-delay: calc(var(--kids-tip-delay) + 0.08s);
 }
 
 .coach--kids::before,
@@ -3958,9 +3994,20 @@ textarea.dish-request__input {
   cursor: not-allowed;
 }
 
-@keyframes kids-pill-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: none; }
+@keyframes kids-slot-open {
+  from { grid-template-columns: 0fr; }
+  to { grid-template-columns: 1fr; }
+}
+
+@keyframes kids-tip-open {
+  from { grid-template-rows: 0fr; }
+  to { grid-template-rows: 1fr; }
+}
+
+/* Held, not moved: a clip for exactly as long as a slot is opening. */
+@keyframes kids-clip {
+  from { clip-path: inset(0); }
+  to { clip-path: inset(0); }
 }
 
 @keyframes kids-draw {
@@ -4029,7 +4076,11 @@ textarea.dish-request__input {
   .guess-input--coach-order input:not(:focus),
   .guess-input--coach-pick .guess-input__list,
   /* The Kids' Menu: the pill is just there, the crayon ring just drawn. */
-  .kids-pill[data-kids="new"],
+  .kids-slot,
+  .kids-slot__inner,
+  .kids-tip,
+  .kids-tip__inner,
+  .coach--kids,
   .kids-pill[data-coach],
   .kids-mark--circle path,
   /* The last order keeps its colour and copy; only the ring stops pulsing. */

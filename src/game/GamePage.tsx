@@ -1212,7 +1212,7 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
                     coachBeat === "order" || coachBeat === "pick" ? (
                       <CoachMark beat={coachBeat} id={coachId} onDismiss={endCoaching} />
                     ) : kidsAvailable && !pending && kidsIntro ? (
-                      <KidsMenuCoach id={kidsCoachId} anchor={kidsPillRef} onDismiss={endKidsIntro} />
+                      <KidsMenuCoach id={kidsCoachId} fresh={kidsFresh} anchor={kidsPillRef} onDismiss={endKidsIntro} />
                     ) : null
                   }
                   trail={
