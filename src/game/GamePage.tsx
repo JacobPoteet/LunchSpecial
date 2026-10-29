@@ -1146,14 +1146,6 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
             <button className="icon-btn" onClick={() => { playSfx("ui-click"); setShowStats(true); }}>
               <Icon name="stats" /> {t.stats.title}
             </button>
-            {kidsAvailable && !pending && (
-              <KidsMenuPill
-                fresh={kidsFresh}
-                buttonRef={kidsPillRef}
-                describedBy={kidsIntro ? kidsCoachId : undefined}
-                onOpen={openKidsMenu}
-              />
-            )}
             {canArchive && (
               <button className="icon-btn icon-btn--leftovers" onClick={() => { playSfx("ui-click"); setShowArchive(true); }}>
                 <Icon name="calendar" /> {t.board.leftovers}
@@ -1176,9 +1168,6 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
               </button>
             )}
           </div>
-          {kidsAvailable && !pending && kidsIntro && (
-            <KidsMenuCoach id={kidsCoachId} anchor={kidsPillRef} onDismiss={endKidsIntro} />
-          )}
         </div>
 
         {/* No dish list and no puzzle means there's nothing to order from, so
@@ -1206,7 +1195,10 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
               <>
                 {/* The callout rides inside the order bar, above the row, so it
                     reads top-down, the dropdown never covers it and the
-                    spotlight leaves it lit. */}
+                    spotlight leaves it lit. The Kids' Menu's tip rides there
+                    too, its caret pointing down at the pill beside the field:
+                    by the fourth miss that row is where the player looks, and
+                    the toolbar, where the pill used to be, was scrolled off. */}
                 <GuessInput
                   dishes={dishes}
                   excludeIds={guessedIds}
@@ -1219,6 +1211,19 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
                   lead={
                     coachBeat === "order" || coachBeat === "pick" ? (
                       <CoachMark beat={coachBeat} id={coachId} onDismiss={endCoaching} />
+                    ) : kidsAvailable && !pending && kidsIntro ? (
+                      <KidsMenuCoach id={kidsCoachId} anchor={kidsPillRef} onDismiss={endKidsIntro} />
+                    ) : null
+                  }
+                  trail={
+                    kidsAvailable && !pending ? (
+                      <KidsMenuPill
+                        fresh={kidsFresh}
+                        coached={kidsIntro}
+                        buttonRef={kidsPillRef}
+                        describedBy={kidsIntro ? kidsCoachId : undefined}
+                        onOpen={openKidsMenu}
+                      />
                     ) : null
                   }
                 />
@@ -1227,13 +1232,6 @@ export default function GamePage({ onEnterBar }: { onEnterBar: () => void }) {
                   <p className="stuck-note" role="status" aria-live="polite">
                     {t.stuck}
                   </p>
-                )}
-                {/* Discord's picture-in-picture tile hides the toolbar, so the
-                    pill has a second copy here that only that layout shows. */}
-                {kidsAvailable && !pending && (
-                  <div className="kids-pill-row">
-                    <KidsMenuPill fresh={kidsFresh} pip onOpen={openKidsMenu} />
-                  </div>
                 )}
               </>
             )}

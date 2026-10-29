@@ -1,6 +1,6 @@
-// The Kids' Menu: the pill beside My stats, its one coach card, and the card.
+// The Kids' Menu: the pill beside the order bar, its one coach card, and the card.
 //
-// From the fourth miss the toolbar carries a pill that opens a placemat listing
+// From the fourth miss the order bar carries a pill that opens a placemat listing
 // every dish that still fits the board (the Worker builds it; the rules are
 // shared/kidsmenu.ts). It never opens itself. On the card a player circles a
 // dish and orders it, which is an ordinary guess. A guessed dish stays on the
@@ -10,7 +10,8 @@
 // Every moment is a state on an attribute, so the motion pass can hang an
 // animation on any of them without touching this file's logic:
 //
-//   pill        data-kids="new" (appeared this sitting) | "idle"
+//   pill        data-kids="new" (appeared this sitting) | "idle", plus
+//               data-coach while its tip is up
 //   card        data-kids="loading" | "ready" | "error", plus data-moment and
 //               data-moment-n for the latest thing that happened on it
 //               ("circled", "ordered")
@@ -32,19 +33,22 @@ import { Icon } from "./Icon";
 import { InlineMarkdown } from "./Markdown";
 
 /**
- * The pill. `fresh` is true when it appeared during this sitting. `pip` marks
- * the copy drawn on the board for Discord's picture-in-picture tile, where the
- * toolbar is hidden; game.css shows exactly one of the two.
+ * The pill, in the order bar's row beside the field (GuessInput's `trail`),
+ * where the Order button used to be. It used to sit in the toolbar beside My
+ * stats, and by the fourth miss the toolbar is above the fold on a phone. The
+ * order bar is in every layout, Discord's picture-in-picture tile included, so
+ * there is one pill. `fresh` is true when it appeared during this sitting;
+ * `coached` while its tip is up, which rings it.
  */
 export function KidsMenuPill({
   fresh,
-  pip,
+  coached,
   describedBy,
   onOpen,
   buttonRef,
 }: {
   fresh: boolean;
-  pip?: boolean;
+  coached?: boolean;
   describedBy?: string;
   onOpen: () => void;
   buttonRef?: RefObject<HTMLButtonElement | null>;
@@ -54,8 +58,9 @@ export function KidsMenuPill({
     <button
       ref={buttonRef}
       type="button"
-      className={pip ? "icon-btn kids-pill kids-pill--pip" : "icon-btn kids-pill"}
+      className="icon-btn kids-pill"
       data-kids={fresh ? "new" : "idle"}
+      data-coach={coached || undefined}
       aria-haspopup="dialog"
       aria-describedby={describedBy}
       onClick={() => {
@@ -70,8 +75,8 @@ export function KidsMenuPill({
 
 /**
  * The one coach card, the first round a device could open the menu. It sits
- * under the toolbar with its caret pointing up at the pill, wherever the
- * toolbar's wrap put it. In the diner's voice and never a word about cheating:
+ * above the order bar, like the first visit's marks, with its caret pointing
+ * down at the pill at the end of the row. In the diner's voice and never a word about cheating:
  * it's a smaller menu, and an order off it is an order.
  */
 export function KidsMenuCoach({

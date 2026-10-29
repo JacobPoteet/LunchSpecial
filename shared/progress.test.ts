@@ -55,10 +55,10 @@ describe("mergeProgress", () => {
   });
 
   it("carries the Kids' Menu's coach card flag, so a phone that lost it isn't coached twice", () => {
-    expect(PROGRESS_KEYS).toContain("lunch-special:kids-menu-seen");
-    expect(mergeProgress({}, { "lunch-special:kids-menu-seen": "1" })["lunch-special:kids-menu-seen"]).toBe("1");
-    expect(mergeProgress({ "lunch-special:kids-menu-seen": "1" }, {})["lunch-special:kids-menu-seen"]).toBe("1");
-    expect(normalizeProgress({ "lunch-special:kids-menu-seen": "1" })).toEqual({ "lunch-special:kids-menu-seen": "1" });
+    expect(PROGRESS_KEYS).toContain("lunch-special:kids-menu-tip-seen");
+    expect(mergeProgress({}, { "lunch-special:kids-menu-tip-seen": "1" })["lunch-special:kids-menu-tip-seen"]).toBe("1");
+    expect(mergeProgress({ "lunch-special:kids-menu-tip-seen": "1" }, {})["lunch-special:kids-menu-tip-seen"]).toBe("1");
+    expect(normalizeProgress({ "lunch-special:kids-menu-tip-seen": "1" })).toEqual({ "lunch-special:kids-menu-tip-seen": "1" });
   });
 
   it("keeps the language picked later, whichever copy holds it", () => {

@@ -383,9 +383,15 @@
   margin-bottom: var(--space-6);
 }
 
+/* The field and whatever rides beside it (lunch's Kids' Menu pill from the
+   fourth miss). With nothing beside it the field takes the whole row. */
+.guess-input__row {
+  display: flex;
+  gap: var(--space-8);
+}
+
 .guess-input input {
-  display: block;
-  width: 100%;
+  flex: 1;
   border: var(--border-medium) solid var(--ink);
   border-radius: var(--radius);
   background: var(--paper-bright);
@@ -3620,39 +3626,48 @@ textarea.dish-request__input {
   animation: kids-pill-in var(--kids-pill-in) ease var(--kids-pill-delay) backwards;
 }
 
-/* The board's copy of the pill is for Discord's picture-in-picture tile only,
-   where the toolbar is hidden (see the PIP block at the end of this file). */
-.kids-pill-row {
-  display: none;
-  justify-content: center;
-  margin: 0 0 var(--space-8);
+/* Beside the order bar it is the field's height and squares its corners to
+   match, on paper so it reads as a thing on the board rather than as a hole
+   in it. Crayon red and never the cherry fill: this is the slot the Order
+   button left, and a filled button there would read as "submit". Already
+   44px tall, so the toolbar's reach is not needed. */
+.guess-input__row .kids-pill {
+  flex: none;
+  min-height: 0;
+  border-width: var(--border-medium);
+  border-color: var(--cherry);
+  border-radius: var(--radius);
+  background: var(--paper-bright);
 }
 
-/* The tip hangs under the toolbar, its caret pointing up at the pill.
-   KidsMenu.tsx measures the pill and sets --caret-x; until it has, the caret
-   sits in the middle. */
+.guess-input__row .kids-pill:hover {
+  background: var(--cherry-hover);
+  border-color: var(--cherry-hover);
+}
+
+/* While the tip is up the pill takes the first visit's ring, once it has
+   faded in. */
+.kids-pill[data-coach] {
+  animation: coach-ring 1.8s ease-out var(--kids-pill-delay) infinite;
+}
+
+.kids-pill[data-kids="new"][data-coach] {
+  animation:
+    kids-pill-in var(--kids-pill-in) ease var(--kids-pill-delay) backwards,
+    coach-ring 1.8s ease-out calc(var(--kids-pill-delay) + var(--kids-pill-in)) infinite;
+}
+
+/* The tip rides above the order bar like the first visit's marks, its caret
+   pointing down at the pill at the end of the row. KidsMenu.tsx measures the
+   pill and sets --caret-x; until it has, the caret sits near the right end. */
 .coach--kids {
-  margin: var(--space-14) 0 0;
   text-align: left;
   animation-delay: var(--kids-pill-delay);
 }
 
 .coach--kids::before,
 .coach--kids::after {
-  top: auto;
-  bottom: 100%;
-  left: calc(var(--caret-x, 50%) - 9px);
-  border: 9px solid transparent;
-  border-top: 0;
-}
-
-.coach--kids::before {
-  border-bottom-color: var(--mustard);
-}
-
-.coach--kids::after {
-  margin: 0 0 -3px;
-  border-bottom-color: var(--paper-bright);
+  left: calc(var(--caret-x, calc(100% - 48px)) - 9px);
 }
 
 /* The placemat. A dashed crayon rule inside the card's edge is the whole frame. */
@@ -4015,6 +4030,7 @@ textarea.dish-request__input {
   .guess-input--coach-pick .guess-input__list,
   /* The Kids' Menu: the pill is just there, the crayon ring just drawn. */
   .kids-pill[data-kids="new"],
+  .kids-pill[data-coach],
   .kids-mark--circle path,
   /* The last order keeps its colour and copy; only the ring stops pulsing. */
   .tally--final .tally__hole:not(.tally__hole--punched) {
@@ -4023,7 +4039,8 @@ textarea.dish-request__input {
 
   /* The ring holds at its brightest rather than switching off, since the
      point of it is to say where to look. */
-  .guess-input--coach-order input:not(:focus) {
+  .guess-input--coach-order input:not(:focus),
+  .kids-pill[data-coach] {
     box-shadow: 0 0 0 4px rgb(var(--mustard-rgb) / 0.85);
   }
 
@@ -4210,14 +4227,9 @@ textarea.dish-request__input {
   padding: var(--space-6) var(--space-8);
 }
 
-/* The Kids' Menu in a tile. The toolbar is gone, so the board's own copy of the
-   pill shows under the punch card. The placemat takes the whole tile, and
-   everything but the list and its stamps gives way: a tile is short before it
-   is narrow. */
-:root[data-discord-layout="pip"] .kids-pill-row {
-  display: flex;
-}
-
+/* The Kids' Menu in a tile. The pill rides in the order bar, which the tile
+   keeps. The placemat takes the whole tile, and everything but the list and
+   its stamps gives way: a tile is short before it is narrow. */
 :root[data-discord-layout="pip"] .modal-backdrop:has(.modal--kids) {
   padding: var(--space-4);
 }
