@@ -41,7 +41,7 @@ export interface Stats {
 const STATE_KEY = "lunch-special:round";
 const STATS_KEY = "lunch-special:stats";
 const HOWTO_KEY = "lunch-special:howto-seen";
-const KIDS_MENU_KEY = "lunch-special:kids-menu-seen";
+const KIDS_MENU_KEY = "lunch-special:kids-menu-tip-seen";
 const ARCHIVE_KEY = "lunch-special:archive";
 const PLAYER_KEY = "lunch-special:player";
 const ANNOUNCEMENTS_KEY = "lunch-special:announcements";
@@ -427,6 +427,9 @@ export function markHowToSeen(): void {
 // The Kids' Menu's one coach card, shown the first round a device could open
 // the menu. Its own key: a player can know the board by heart and still never
 // have reached a fourth miss. Guarded like the how-to's, for the same reason.
+// The key was `lunch-special:kids-menu-seen` while the pill sat in the toolbar,
+// where players were tipped and still never found it; the new name gives every
+// device one look at the pill beside the order bar.
 export function hasSeenKidsMenuIntro(): boolean {
   try {
     return localStorage.getItem(KIDS_MENU_KEY) === "1";

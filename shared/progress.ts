@@ -20,7 +20,7 @@ export const PROGRESS_KEYS = [
   "lunch-special:stats",
   "lunch-special:archive",
   "lunch-special:howto-seen",
-  "lunch-special:kids-menu-seen",
+  "lunch-special:kids-menu-tip-seen",
   "lunch-special:nightcap",
   "lunch-special:night-stats",
   "lunch-special:afterdark-seen",
@@ -177,8 +177,8 @@ export function mergeProgress(a: Progress, b: Progress): Progress {
   set("lunch-special:archive", unionArchive(a["lunch-special:archive"], b["lunch-special:archive"]));
   set("lunch-special:howto-seen", eitherFlag(a["lunch-special:howto-seen"], b["lunch-special:howto-seen"]));
   set(
-    "lunch-special:kids-menu-seen",
-    eitherFlag(a["lunch-special:kids-menu-seen"], b["lunch-special:kids-menu-seen"]),
+    "lunch-special:kids-menu-tip-seen",
+    eitherFlag(a["lunch-special:kids-menu-tip-seen"], b["lunch-special:kids-menu-tip-seen"]),
   );
   set("lunch-special:nightcap", laterBoard(a["lunch-special:nightcap"], b["lunch-special:nightcap"], "night"));
   set(

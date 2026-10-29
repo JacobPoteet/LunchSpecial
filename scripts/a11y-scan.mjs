@@ -108,7 +108,7 @@ const SCANS = [
       await page.waitForSelector(".modal--receipt");
     },
   },
-  // The Kids' Menu: the pill beside My stats and its one coach card after the
+  // The Kids' Menu: the pill beside the order bar and its one coach card after the
   // fourth miss, then the card itself with a dish circled.
   {
     name: "Kids' Menu: the pill and its coach card (fourth miss)",
@@ -121,7 +121,7 @@ const SCANS = [
   {
     name: "Kids' Menu: the card (a dish circled)",
     async setup(page) {
-      await page.click(".menu-card__toolbar .kids-pill");
+      await page.click(".guess-input .kids-pill");
       await page.waitForSelector(".kids-row");
       await page.click('.kids-row[data-row="live"] .kids-row__dish >> nth=0');
       await page.waitForSelector(".kids-mark--circle");
@@ -251,7 +251,7 @@ const SCANS = [
   {
     name: "Halloween: Kids' Menu card (a dish circled, in costume)",
     async setup(page) {
-      await page.click(".menu-card__toolbar .kids-pill");
+      await page.click(".guess-input .kids-pill");
       await page.waitForSelector(".kids-row");
       await page.click('.kids-row[data-row="live"] .kids-row__dish >> nth=0');
       await page.waitForSelector(".kids-mark--circle");
@@ -303,7 +303,7 @@ const SCANS = [
     async setup(page) {
       await page.goto(`${BASE}/?special=${TARGET_SLUG}&locale=es`, { waitUntil: "domcontentloaded" });
       await missFourTimes(page);
-      await page.click(".menu-card__toolbar .kids-pill");
+      await page.click(".guess-input .kids-pill");
       await page.waitForSelector(".kids-row");
       await page.click('.kids-row[data-row="live"] .kids-row__dish >> nth=0');
       await page.waitForSelector(".kids-mark--circle");
@@ -361,7 +361,7 @@ async function missFourTimes(page) {
     await guess(page, name);
     await page.waitForSelector(`.guess-row:nth-child(${i + 1}) .attr-tile--revealed`);
   }
-  await page.waitForSelector(".menu-card__toolbar .kids-pill");
+  await page.waitForSelector(".guess-input .kids-pill");
 }
 
 /** The same at the bar. Different pool, same input. */

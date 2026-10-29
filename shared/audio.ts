@@ -239,13 +239,25 @@ export const WIN_BELL_MS = 150;
  * the motion pass can hang an animation on any of them and a sound on the same
  * beat by reading these. Re-time one and you re-time both.
  *
- * `pillIn`: the pill fading onto the toolbar after the fourth miss, held until
- * the clue ticket has printed so the two don't land together.
+ * After the fourth miss each beat waits for the one before it:
+ * `pillDelay`: the clue ticket has fed out (TICKET_MS plus its 0.5s feed), so
+ *   the two never land together.
+ * `pillIn`: the order bar makes room and the pill is uncovered from behind the
+ *   field.
+ * `tipDelay`: the first time only, the tip opens above the order bar once the
+ *   pill has landed; `tipIn` is its space opening and the card rising in.
+ * `ringDelay`: the pill's ring starts once the tip has landed.
  * `circle`: the crayon ring drawing round a name.
  */
+const KIDS_PILL_DELAY_MS = TICKET_MS + 500;
+const KIDS_PILL_IN_MS = 360;
+const KIDS_TIP_IN_MS = 320;
 export const KIDS_MENU_MS = {
-  pillDelay: TICKET_MS,
-  pillIn: 320,
+  pillDelay: KIDS_PILL_DELAY_MS,
+  pillIn: KIDS_PILL_IN_MS,
+  tipDelay: KIDS_PILL_DELAY_MS + KIDS_PILL_IN_MS,
+  tipIn: KIDS_TIP_IN_MS,
+  ringDelay: KIDS_PILL_DELAY_MS + KIDS_PILL_IN_MS + KIDS_TIP_IN_MS,
   circle: 260,
 } as const;
 

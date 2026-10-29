@@ -1,6 +1,6 @@
-// The Kids' Menu: the pill beside My stats, its one coach card, and the card.
+// The Kids' Menu: the pill beside the order bar, its one coach card, and the card.
 //
-// From the fourth miss the toolbar carries a pill that opens a placemat listing
+// From the fourth miss the order bar carries a pill that opens a placemat listing
 // every dish that still fits the board (the Worker builds it; the rules are
 // shared/kidsmenu.ts). It never opens itself. On the card a player circles a
 // dish and orders it, which is an ordinary guess. A guessed dish stays on the
@@ -10,7 +10,9 @@
 // Every moment is a state on an attribute, so the motion pass can hang an
 // animation on any of them without touching this file's logic:
 //
-//   pill        data-kids="new" (appeared this sitting) | "idle"
+//   pill        data-kids="new" (appeared this sitting) | "idle", plus
+//               data-coach while its tip is up; its slot and the tip's
+//               carry the same data-kids, and the entrance hangs on those
 //   card        data-kids="loading" | "ready" | "error", plus data-moment and
 //               data-moment-n for the latest thing that happened on it
 //               ("circled", "ordered")
@@ -32,54 +34,71 @@ import { Icon } from "./Icon";
 import { InlineMarkdown } from "./Markdown";
 
 /**
- * The pill. `fresh` is true when it appeared during this sitting. `pip` marks
- * the copy drawn on the board for Discord's picture-in-picture tile, where the
- * toolbar is hidden; game.css shows exactly one of the two.
+ * The pill, in the order bar's row beside the field (GuessInput's `trail`),
+ * where the Order button used to be. It used to sit in the toolbar beside My
+ * stats, and by the fourth miss the toolbar is above the fold on a phone. The
+ * order bar is in every layout, Discord's picture-in-picture tile included, so
+ * there is one pill. `fresh` is true when it appeared during this sitting;
+ * `coached` while its tip is up, which rings it.
+ *
+ * The slot around it is the entrance: a one-column grid whose track grows from
+ * 0fr to 1fr, which is zero to the pill's own width in any language, with the
+ * gap inside it so that opens too. The pill sits at the slot's far end, so the
+ * field draws back and uncovers it rather than the pill flying in.
  */
 export function KidsMenuPill({
   fresh,
-  pip,
+  coached,
   describedBy,
   onOpen,
   buttonRef,
 }: {
   fresh: boolean;
-  pip?: boolean;
+  coached?: boolean;
   describedBy?: string;
   onOpen: () => void;
   buttonRef?: RefObject<HTMLButtonElement | null>;
 }) {
   const t = useT();
   return (
-    <button
-      ref={buttonRef}
-      type="button"
-      className={pip ? "icon-btn kids-pill kids-pill--pip" : "icon-btn kids-pill"}
-      data-kids={fresh ? "new" : "idle"}
-      aria-haspopup="dialog"
-      aria-describedby={describedBy}
-      onClick={() => {
-        playSfx("ui-click");
-        onOpen();
-      }}
-    >
-      <Icon name="crayon" /> {t.kidsMenu.name}
-    </button>
+    <span className="kids-slot" data-kids={fresh ? "new" : "idle"}>
+      <span className="kids-slot__inner">
+        <button
+          ref={buttonRef}
+          type="button"
+          className="icon-btn kids-pill"
+          data-kids={fresh ? "new" : "idle"}
+          data-coach={coached || undefined}
+          aria-haspopup="dialog"
+          aria-describedby={describedBy}
+          onClick={() => {
+            playSfx("ui-click");
+            onOpen();
+          }}
+        >
+          <Icon name="crayon" /> {t.kidsMenu.name}
+        </button>
+      </span>
+    </span>
   );
 }
 
 /**
  * The one coach card, the first round a device could open the menu. It sits
- * under the toolbar with its caret pointing up at the pill, wherever the
- * toolbar's wrap put it. In the diner's voice and never a word about cheating:
+ * above the order bar, like the first visit's marks, with its caret pointing
+ * down at the pill at the end of the row. `fresh` (the pill appeared this
+ * sitting) holds it until the pill has landed, and its space opens rather than
+ * the order bar jumping down under it. In the diner's voice and never a word about cheating:
  * it's a smaller menu, and an order off it is an order.
  */
 export function KidsMenuCoach({
   id,
+  fresh,
   anchor,
   onDismiss,
 }: {
   id: string;
+  fresh: boolean;
   anchor: RefObject<HTMLButtonElement | null>;
   onDismiss: () => void;
 }) {
@@ -97,27 +116,31 @@ export function KidsMenuCoach({
     return () => window.removeEventListener("resize", place);
   }, [anchor]);
   return (
-    <div
-      ref={ref}
-      className="coach coach--kids"
-      id={id}
-      style={caret === null ? undefined : ({ "--caret-x": `${caret}px` } as React.CSSProperties)}
-    >
-      <p className="coach__text">
-        <InlineMarkdown source={t.kidsMenu.coach} />
-      </p>
-      {/* The card unmounts with its own × in it, which would drop keyboard
-          focus to the page; the pill it described is where focus belongs. */}
-      <button
-        className="coach__dismiss"
-        onClick={() => {
-          anchor.current?.focus();
-          onDismiss();
-        }}
-        aria-label={t.kidsMenu.dismissCoach}
-      >
-        ×
-      </button>
+    <div className="kids-tip" data-kids={fresh ? "new" : "idle"}>
+      <div className="kids-tip__inner">
+        <div
+          ref={ref}
+          className="coach coach--kids"
+          id={id}
+          style={caret === null ? undefined : ({ "--caret-x": `${caret}px` } as React.CSSProperties)}
+        >
+          <p className="coach__text">
+            <InlineMarkdown source={t.kidsMenu.coach} />
+          </p>
+          {/* The card unmounts with its own × in it, which would drop keyboard
+              focus to the page; the pill it described is where focus belongs. */}
+          <button
+            className="coach__dismiss"
+            onClick={() => {
+              anchor.current?.focus();
+              onDismiss();
+            }}
+            aria-label={t.kidsMenu.dismissCoach}
+          >
+            ×
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
