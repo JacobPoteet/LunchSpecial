@@ -31,7 +31,7 @@
 //    null sorted as 0 buries it under everything ever served.
 
 import type { AdminDishRow, Course, Protein, Region, Temperature } from "./types";
-import { COURSES, PROTEINS, REGIONS, TEMPERATURES } from "./types";
+import { PROTEINS, REGIONS, SERVABLE_COURSES, TEMPERATURES } from "./types";
 import { daysBetween } from "./time";
 
 /** Where a dish stands with the schedule. A row can hold `served` and `booked` together. */
@@ -73,7 +73,8 @@ export type DishFacet = (typeof DISH_FACETS)[number];
 export const FACET_VALUES: Record<Exclude<DishFacet, "countries">, readonly string[]> = {
   statuses: MENU_STATUSES,
   regions: REGIONS,
-  courses: COURSES,
+  // Drink-course dishes are history only, so no chip offers the course.
+  courses: SERVABLE_COURSES,
   proteins: PROTEINS,
   temperatures: TEMPERATURES,
   sources: DISH_SOURCES,
@@ -277,7 +278,7 @@ export function normalizeFilter(raw: unknown): DishFilter {
     query: typeof r.query === "string" ? r.query : "",
     statuses: within(r.statuses, MENU_STATUSES) as MenuStatus[],
     regions: within(r.regions, REGIONS) as Region[],
-    courses: within(r.courses, COURSES) as Course[],
+    courses: within(r.courses, SERVABLE_COURSES) as Course[],
     proteins: within(r.proteins, PROTEINS) as Protein[],
     temperatures: within(r.temperatures, TEMPERATURES) as Temperature[],
     sources: within(r.sources, DISH_SOURCES) as DishSource[],

@@ -52,6 +52,13 @@ describe("catalog data integrity", () => {
     expect(bad, `dishes with an invalid region: ${JSON.stringify(bad)}`).toEqual([]);
   });
 
+  // The bar owns drinks (#280): a drink-course dish stays for history and old
+  // rounds, never in the lunch pool, or the fallback pick could serve one.
+  it("keeps every drink-course dish off the lunch menu", () => {
+    const rows = db.prepare("SELECT slug FROM dishes WHERE course = 'drink' AND is_active = 1").all();
+    expect(rows, `active drink-course dishes: ${JSON.stringify(rows)}`).toEqual([]);
+  });
+
   it("gives every dish a slug that is lowercase-kebab ASCII", () => {
     const rows = db.prepare("SELECT slug FROM dishes").all() as { slug: string }[];
     const bad = rows.filter((r) => !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(r.slug));

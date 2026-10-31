@@ -22,7 +22,7 @@
 //    repeat, so the row says how close it is and books it anyway.
 
 import type { AdminDishRow, Course, Region, ScheduleEntry } from "./types";
-import { COURSES, REGION_LABELS } from "./types";
+import { REGION_LABELS, SERVABLE_COURSES } from "./types";
 import { daysBetween } from "./time";
 import { rankByName } from "./search";
 
@@ -180,7 +180,7 @@ export function boardBalance(rows: BoardRow[]): BoardBalance {
     regions: [...regions]
       .map(([region, count]) => ({ region, count }))
       .sort((a, b) => b.count - a.count || REGION_LABELS[a.region].localeCompare(REGION_LABELS[b.region])),
-    courses: COURSES.map((course) => ({
+    courses: SERVABLE_COURSES.map((course) => ({
       course,
       count: courses.get(course) ?? 0,
     })),

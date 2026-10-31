@@ -1,0 +1,13 @@
+-- After Dark owns drinks (#280). The kitchen's eight dishes with
+-- course = 'drink' (Bubble Tea, Horchata, Mango Lassi, Masala Chai,
+-- Milkshake, Root Beer Float, Thai Iced Tea, Moroccan Mint Tea) each have a
+-- pour on the bar, so they leave the lunch pool and the fallback pick can no
+-- longer land on one. Deactivated, never deleted: schedule, analytics_rounds,
+-- analytics_guesses and players' saved rounds point at these ids, and a
+-- Leftover from a day one was served still needs its dish and clues.
+--
+-- The CHECK in 0001_init.sql keeps 'drink' as a stored value for history; the
+-- dish save route refuses a new or active one. Check /admin before deploying:
+-- nothing here unbooks a day, and a Special switched off on its own day has
+-- no way to be guessed.
+UPDATE dishes SET is_active = 0 WHERE course = 'drink';

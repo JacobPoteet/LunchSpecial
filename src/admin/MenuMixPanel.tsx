@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { DishFacet, DishFilter } from "../../shared/dishfilter";
 import type { MenuMix, MenuMixKey, MenuMixSlice, MenuSliceKey } from "../../shared/types";
-import { COURSES, MENU_MIX_KEYS, MENU_SLICES, PROTEINS, REGIONS, TEMPERATURES } from "../../shared/types";
+import { MENU_MIX_KEYS, MENU_SLICES, PROTEINS, REGIONS, SERVABLE_COURSES, TEMPERATURES } from "../../shared/types";
 import * as api from "./api";
 
 /**
@@ -28,11 +28,18 @@ const titleCase = (v: string) =>
 /** Each breakdown's enum, so one renderer can walk all four in shared order. */
 const MIX_VALUES: Record<MenuMixKey, readonly string[]> = {
   region: REGIONS,
-  course: COURSES,
+  course: SERVABLE_COURSES,
   protein: PROTEINS,
   temperature: TEMPERATURES,
 };
+/** Values kept for history: drawn only when the slice counts them (drinks served before the bar took them). */
+const HISTORY_VALUES: Partial<Record<MenuMixKey, readonly string[]>> = { course: ["drink"] };
 const MIX_CATEGORIES = MENU_MIX_KEYS.map((key) => ({ key, label: titleCase(key), values: MIX_VALUES[key] }));
+
+const shownValues = (key: MenuMixKey, values: readonly string[], counts: Record<string, number>) => [
+  ...values,
+  ...(HISTORY_VALUES[key] ?? []).filter((v) => (counts[v] ?? 0) > 0),
+];
 
 const SLICE_META: Record<MenuSliceKey, { label: string; noun: string }> = {
   served: { label: "Served", noun: "specials served" },
@@ -315,7 +322,7 @@ export default function MenuMixPanel({
                 <MixBars
                   counts={countsOf(active, cat.key)}
                   total={active.servings}
-                  values={cat.values}
+                  values={shownValues(cat.key, cat.values, countsOf(active, cat.key))}
                   baseline={baseline ? countsOf(baseline, cat.key) : null}
                   baselineTotal={pool.servings}
                   // Longest-rested first, because the reason you clicked an
