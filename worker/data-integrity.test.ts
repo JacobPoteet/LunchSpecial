@@ -231,6 +231,8 @@ const COUNTRY_ALIASES: Record<string, string[]> = {
   "dominican republic": ["dominican"],
   haiti: ["haiti", "haitian"],
   "trinidad and tobago": ["trinidad", "tobago", "trinidadian"],
+  laos: ["laos", "laotian"],
+  cyprus: ["cyprus", "cypriot"],
 };
 
 /**
