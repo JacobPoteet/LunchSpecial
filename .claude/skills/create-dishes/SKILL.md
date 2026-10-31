@@ -51,6 +51,17 @@ Enums are CHECK-constrained in `migrations/0001_init.sql` and mirrored in `share
 ingredient means two ingredients, and the ingredient feedback silently under-reports for every
 dish holding either. `tomato`, not `tomatoes`.
 
+**A new ingredient has to be placed in `shared/families.ts`**: in a family (the amber "close"
+chip), in `STAPLES`, or in `STANDALONE` if it has no cousin. `data-integrity.test.ts` ("the
+pantry") fails on an unplaced ingredient, on a plural twin beside its singular, and on a yellow
+rate over 30%. Keep a family tight: a cook would swap one for the other. The vocabulary is shared
+with the bar.
+
+**The four tiles do double duty.** From the fourth miss the Kids' Menu filters the pool on every
+tile result, hits and misses alike (`shared/kidsmenu.ts`), so a mis-bucketed region, course,
+temperature or protein misleads the player on the board and again on the menu. Ingredients never
+filter.
+
 ## 3. The beat sheet
 
 Five clues per dish, printed one at a time on a clue ticket after each wrong guess. Five beats,
@@ -106,10 +117,11 @@ restates something already given is a wasted guess, and the player paid for it.
 | 4 | **A key ingredient or technique** | What goes in it and how it's cooked |
 | 5 | **Near-giveaway** | The country, and what it looks like sitting in front of you |
 
-Beat 3 changed name. It was "What made it famous", and that name is what produced the filler:
-when a dish has no cultural moment, "fame" leaves the writer nothing to do but praise it. Fame is
-now one route to an unmistakable fact rather than the requirement. The other four names are
-unchanged from the beat sheet in `docs/index.html`.
+Two beats changed name. Beat 3 was "What made it famous", and that name is what produced the
+filler: when a dish has no cultural moment, "fame" leaves the writer nothing to do but praise it.
+Fame is now one route to an unmistakable fact rather than the requirement. Beat 1 was "Region and
+form" (see below). The five names here match `CLUE_BEATS` in `shared/clues.ts`, the editor in
+`/admin` and the beat sheet in `docs/index.html`.
 
 #### Beat 1 — First impression
 
@@ -257,8 +269,8 @@ condensed milk is boiled…"), which is both flat and long. Put a subject in fro
 >
 > Beef and rice noodles sit in a broth perfumed with star anise and charred ginger. *(Pho)*
 
-Name the ingredients the feedback tiles score on. Three or four is plenty; a full recipe is not a
-clue.
+Name ingredients from the dish's own `ingredients` list, the ones the ingredient chips score on.
+Three or four is plenty; a full recipe is not a clue.
 
 #### Beat 5 — Near-giveaway
 
@@ -349,8 +361,11 @@ than one with no numbers in it.
 
 ### 3.4 Hard rules
 
-Breaking one of these is a bug, not a style disagreement. Everything here is checked by
-`worker/data-integrity.test.ts`, for every dish in the catalogue.
+Breaking one of these is a bug, not a style disagreement. `worker/data-integrity.test.ts` checks
+rules 1, 5, 6, 7, 8, 10, 11 and 12, and the four words of rule 14 that fail outright, for every
+dish in the catalogue. Rules 2, 3, 4, 9 and 13 are judgment: no linter can tell a translation
+from a description, or whether someone in the sentence is doing something. Those are yours, like
+the two tests in 3.5.
 
 1. **Never the dish's name.** What that means in practice took a pass over the whole catalogue to
    settle. The first version banned *every* word of the name, and checking it against all 381
@@ -407,8 +422,10 @@ Breaking one of these is a bug, not a style disagreement. Everything here is che
 13. **No -ly adverbs** unless the adverb changes a fact. "Roasted for six hours" beats "slowly
     roasted". Bangers and Mash beat 2 keeps *loudly*, because the noise is where the nickname
     comes from.
-14. **No lazy extremes**: *every, always, never, everyone, nobody, worldwide, nationwide.* "Nearly
-    every pub" is a sentence with no information in it.
+14. **No lazy extremes.** *Everyone, nobody, worldwide, nationwide* fail the build. *Every,
+    always, never* are allowed when they are literally true and specific ("the cook never
+    browns the onions" is a technique), and banned as filler: "nearly every pub" is a sentence
+    with no information in it, and a universal is the third most common fact error (3.6).
 
 Two lists are exempt from the rhythm rules: the ingredients in beat 4 and the garnishes in beat 5
 can run to three or four items.
@@ -496,8 +513,9 @@ DELETEs the hand-booked schedule and every admin edit, which exist nowhere else.
 admin autofill assigns dates.
 
 When you add a country to the catalogue, add it to `COUNTRY_ALIASES` in
-`worker/data-integrity.test.ts` too, or beat 5 will be unable to satisfy the rule that it name the
-country.
+`worker/data-integrity.test.ts` too, with its demonym. Without a row the country's own name is the
+only term the check knows, so beat 5 cannot say "the Lebanese dip" and pass, and beat 1 can say it
+unnoticed.
 
 ## 5. Run the linter
 
@@ -526,10 +544,11 @@ It cannot judge whether a clue is any good. The swap test and the new-constraint
 ## 6. Finish
 
 ```bash
-npm test && npm run check
+npm test && npm run check && npm run lint
 ```
 
-Confirm each new dish has five clues and three or more ingredients before committing.
+Confirm each new dish has five clues and three or more ingredients before committing. To read one
+on a real board, `npm run ramen` and swap the slug: `/play?special=<slug>`.
 
 ---
 

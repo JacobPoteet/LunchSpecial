@@ -56,6 +56,11 @@ with the kitchen's, because a bar and a kitchen share a pantry — `lime`, `suga
 `cream` are all already in there. Two spellings of one ingredient means two ingredients, and the
 feedback silently under-reports for every row holding either.
 
+**A new ingredient has to be placed in `shared/families.ts`**: a family, `STAPLES`, or
+`STANDALONE`. Spirits are `STANDALONE` (a gin is nobody's cousin). The "pantry" block of
+`data-integrity.test.ts` fails on an unplaced ingredient, a plural twin, or a yellow rate over 30%
+on either menu.
+
 **Keep the pool between 55% and 75% alcoholic.** `worker/data-integrity.test.ts` enforces the band,
 because the mix is a design decision rather than an accident of what got written. A batch of nothing
 but cocktails will fail CI, and correctly. Check where the pool sits before you start:
@@ -233,9 +238,10 @@ Every hard rule from the dish beat sheet applies unchanged, because `lintClue` r
 catalogues and takes the sheet as an argument rather than being forked. A forked copy is how the
 drinks catalogue would quietly stop enforcing the banned-praise list six months from now.
 
-Rules 1–7 and 9–13 are **machine-checked** and will fail CI. Rules **8 and 14 are not** — no linter
-can tell whether a sentence has someone doing something in it, or whether a coaster reads as an
-invitation. Those two are yours, like the swap test.
+Rules 1, 2, 4–7 and 9–11, and the four words of rule 13 that fail outright, are
+**machine-checked** and will fail CI. Rules **3, 8, 12 and 14 are not**: no linter can tell a
+synonym from a riddle, whether a sentence has someone doing something in it, which adverb changes
+a fact, or whether a coaster reads as an invitation. Those are yours, like the swap test.
 
 1. **Never the drink's name.** A word from the name is barred when it is distinctive, measured
    against the *drinks* catalogue's own names and ingredient lists. The frequency map is per-table:
@@ -258,7 +264,8 @@ invitation. Those two are yours, like the swap test.
 11. **Banned hedges:** *often, usually, typically, generally, commonly, arguably, widely,
     reportedly, perhaps, somewhat, quite, very.*
 12. **No -ly adverbs** unless the adverb changes a fact.
-13. **No lazy extremes**: *every, always, never, everyone, nobody, worldwide, nationwide.*
+13. **No lazy extremes.** *Everyone, nobody, worldwide, nationwide* fail the build. *Every,
+    always, never* only when literally true and specific, never as filler.
 14. **Nothing that reads as a recommendation to drink.** The bartender describes; the bartender
     does not press. "You'll want one after the week you've had" is not a clue, it is an advert. This
     is the one rule the kitchen doesn't have, it is not machine-checked, and it is why the fine
@@ -341,13 +348,13 @@ It cannot judge whether a coaster is any good. The swap test and the new-constra
 ## 6. Finish
 
 ```bash
-npm test && npm run check
+npm test && npm run check && npm run lint
 ```
 
 Then look at one of them on a real board, which is the part the linter can't do:
 
 ```bash
-npm run negroni          # or add an npm script for the drink you just wrote
+npm run negroni          # then swap the slug: /?bar=1&handoff=1&nightcap=<slug>
 ```
 
 Confirm each new drink has three coasters and three or more ingredients before committing.

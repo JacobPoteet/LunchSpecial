@@ -78,7 +78,7 @@ export const CLUE_BEATS: readonly ClueBeat[] = [
     lo: 45,
     hi: 100,
     max: 115,
-    maxSentences: 2,
+    maxSentences: 1,
   },
 ];
 

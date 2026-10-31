@@ -11,7 +11,7 @@
 
 <sub>Live engagement, straight from the diner's own [anonymous analytics](#engagement-stats). The badges read the public `/api/stats` endpoint and refresh hourly through shields.io's cache.</sub>
 
-Every day the diner runs one *Special*: a famous dish from somewhere in the world. You get 6 guesses. Each guess (any dish on the menu) reveals which ingredients it shares with the Special and how its country, course, serving temperature, and protein compare. After every miss, the kitchen slips you a clue ticket: where it's from, who made it, the one thing that could only be this dish.
+Every day the diner runs one *Special*: a famous dish from somewhere in the world. You get 6 guesses. Each guess (any dish on the menu) reveals which ingredients it shares with the Special and how its country, course, serving temperature, and protein compare. After every miss, the kitchen slips you a clue ticket: a first impression, who made it, the one thing that could only be this dish, and finally its country.
 
 Once today's check is settled, **Leftovers** unlocks: a calendar of every past Special, marked with what you solved and what you missed, so you can replay a day you skipped. **Chef's Choice** deals a no-stakes round on a random dish. The receipt at the end of a round also carries a form to suggest a dish for the menu; suggestions land in an admin inbox, and a dish that reaches the menu that way gets credited on the check. A **note from the kitchen** turns up now and then: a short notice posted from the admin panel, shown once, on Today's Special only.
 
@@ -160,7 +160,7 @@ The Activity tab also carries **This device's data**: a review of everything thi
 ## Content model
 
 - `dishes`: name, country, region (drives the yellow "close" country match), course, hot/cold, protein, JSON array of canonical ingredients, fan-submission flag
-- `clues`: 5 per dish, ordered vague → specific (region → origin → what makes it unmistakable → key ingredient → near-giveaway)
+- `clues`: 5 per dish, ordered vague → specific (first impression → origin → what makes it unmistakable → key ingredient → near-giveaway)
 - `schedule`: `date (YYYY-MM-DD) → dish_id`
 - `drinks` + `drink_clues` + `drink_schedule`: the After Dark catalogue. Base spirit and flavour profile in place of course and protein, a stored alcohol flag (beer and wine have no base spirit and plenty of alcohol), 3 coasters per drink, and a schedule keyed by **local night** rather than ET day
 - `dish_requests`: player suggestions, an inbox kept deliberately separate from the `dishes` catalog

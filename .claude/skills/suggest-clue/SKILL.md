@@ -1,6 +1,6 @@
 ---
 name: suggest-clue
-description: Suggest replacement clue text for a dish already in the Lunch Special catalogue, as options to read and choose from, without editing any file. Use when the user asks for a new or better clue on one dish ("new clue 3 for borscht", "beat 5 on pho is weak", "give me options for the gazpacho opener", "suggest a clue"), and they intend to paste the winner into /admin themselves. If they ask you to write the change into seed.sql and a migration, that is create-dishes instead.
+description: Suggest replacement clue text for a dish (or a coaster for a drink) already in the Lunch Special catalogue, as options to read and choose from, without editing any file. Use when the user asks for a new or better clue on one dish ("new clue 3 for borscht", "beat 5 on pho is weak", "give me options for the gazpacho opener", "suggest a clue"), and they intend to paste the winner into /admin themselves. If they ask you to write the change into seed.sql and a migration, that is create-dishes instead.
 ---
 
 # Suggesting a clue
@@ -43,6 +43,17 @@ vocabulary ceiling).
 this skill are in prod D1 only. **If the user pastes the current text, that wins over the seed** —
 say so plainly rather than silently reconciling, and don't go fix the seed to match.
 
+**A drink** has three coasters in `drink_clues`, keyed by slug rather than id:
+
+```bash
+grep -n "slug='negroni'" seed/seed.sql
+```
+
+Read all three. The brief is section 3 of `.claude/skills/create-drinks/SKILL.md` (the
+bartender's voice, `COASTER_BEATS`), coaster 3 is the one that names the country and is measured
+against coaster 2, and coaster 1 is one sentence while 2 and 3 may take two. Everything else in
+this skill applies with "beat" read as "coaster", and the reply points at `/admin` → Bar.
+
 ## 2. Write the options
 
 The brief is section 3 of `.claude/skills/create-dishes/SKILL.md`: the voice, the five beats, the
@@ -67,12 +78,17 @@ Per option, not per batch:
 
 - **Budget.** Count characters. `shared/clues.ts` holds the bands; beat 3 is 55–105 target, 120
   hard max. Print the count.
-- **Sentences.** Beats 1, 4 and 5 take one. Beats 2 and 3 may take two.
+- **Sentences.** Beats 1, 4 and 5 take one. Beats 2 and 3 may take two. (Coasters: 1 takes
+  one, 2 and 3 may take two.)
 - **No em dash.** No banned opener, praise word, hedge, `-ly` adverb that changes nothing, or lazy
   extreme. The lists are in section 3.4.
 - **The dish's own name.** At most one word of it, and only if that word is generic across the
   catalogue.
-- **Beat 1 never names the country. Beat 5 always does.**
+- **Beat 1 never names the country, or riddles toward it. Beat 5 always does**, and need not
+  open with it. A beat 1 replacement also takes a lens (section 3.2's table) the dish's
+  neighbours aren't using, and a region only with a second fact beside it.
+- **Every / always / never** only when literally true. *Everyone, nobody, worldwide, nationwide*
+  fail the linter outright.
 - **Collision.** No five-word phrase shared with another dish, and no fact another dish already
   owns. Grep a distinctive span of the candidate, and grep the fact's subject:
 
