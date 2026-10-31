@@ -946,6 +946,11 @@ export interface ActivityRound {
    */
   kidsMenuAt: number | null;
   /**
+   * Dishes the card printed at that first open (migrations/0077), or null when
+   * its size isn't on file: never opened, or opened before sizes were stamped.
+   */
+  kidsMenuDishes: number | null;
+  /**
    * The most recent thing that happened to this round, falling back through
    * `shared_at` → `completed_at` → `updated_at` → `started_at`. The feed sorts on
    * it, so a round that gets shared an hour later comes back to the top with its
@@ -1056,6 +1061,20 @@ export interface RoundGuess {
 export interface RoundGuesses {
   roundId: string;
   guesses: RoundGuess[];
+  /**
+   * Each Kids' Menu card this round was handed (migrations/0077), by board.
+   * Empty before sizes were stamped, even on a round that opened it.
+   */
+  menuOpens: RoundMenuOpen[];
+}
+
+/** One Kids' Menu card: the board it was built for and how many dishes it printed. */
+export interface RoundMenuOpen {
+  /** Guesses on the board, 4 or 5. */
+  atGuess: number;
+  dishes: number;
+  /** ISO-8601 UTC instant. */
+  at: string;
 }
 
 /** A count and the count it is out of. Rates are computed at the edge with `rate()`. */

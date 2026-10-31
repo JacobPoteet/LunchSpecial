@@ -734,9 +734,18 @@ function RoundTimeline({ round }: { round: ActivityRoundView }) {
         after: wait === null ? null : `+${spanLabel(wait)}`,
       });
       prev = g.at;
-      // The menu's first open is a guess number, so it has no clock time of
-      // its own: it sits after the guess it opened on.
-      if (round.kidsMenuAt === n) {
+      // Each card sits after the guess it was built on. Rounds from before
+      // sizes were stamped have only the first open's guess number, no clock.
+      const opens = data.menuOpens.filter((o) => o.atGuess === n);
+      for (const o of opens) {
+        steps.push({
+          key: `kids-open-${n}`,
+          at: o.at,
+          node: "aside",
+          body: <span>{`Opened the Kids' Menu · ${o.dishes} dish${o.dishes === 1 ? "" : "es"}`}</span>,
+        });
+      }
+      if (opens.length === 0 && round.kidsMenuAt === n) {
         steps.push({ key: "kids-open", at: null, node: "aside", body: <span>Opened the Kids' Menu</span> });
       }
     }
@@ -1097,7 +1106,10 @@ export default function ActivityPanel({
           <td>
             <Result round={r} now={now} />
             {r.kidsMenuAt !== null && (
-              <span className="ev-kids" title={`Opened after ${r.kidsMenuAt} guesses`}>
+              <span
+                className="ev-kids"
+                title={`Opened after ${r.kidsMenuAt} guesses${r.kidsMenuDishes === null ? "" : ` · ${r.kidsMenuDishes} on the card`}`}
+              >
                 Kids' Menu
               </span>
             )}

@@ -16,7 +16,7 @@ import { ACTIVITY_MAX, ACTIVITY_PAGE } from "../../../shared/types";
 import { foldDeviceData, type DeviceRoundRow, type DeviceVisitRow } from "../../device";
 import { foldDeviceCheck, type DeviceArrivalRow, type DeviceKindRow } from "../../devicecheck";
 import type { RegularsRoundRow } from "../../regulars";
-import { foldRoundGuesses, type RoundGuessRow } from "../../guessstats";
+import { foldRoundGuesses, type RoundGuessRow, type RoundMenuOpenRow } from "../../guessstats";
 
 import { serverToday } from "../../db";
 
@@ -30,6 +30,8 @@ const app = new Hono<{ Bindings: Env }>();
 const ACTIVITY_COLS =
   `round_id, puzzle_number, play_date, kind, surface, player_id, country, dish_id, drink_id,
    started_at, completed, completed_at, shared, shared_at, guesses, solved, kids_menu_at,
+   (SELECT o.dishes FROM kids_menu_opens o WHERE o.round_id = analytics_rounds.round_id
+     ORDER BY o.at_guess LIMIT 1) AS kids_menu_dishes,
    COALESCE(shared_at, completed_at, updated_at, started_at) AS last_at`;
 
 interface ActivityRoundRow {
@@ -52,6 +54,7 @@ interface ActivityRoundRow {
   guesses: number | null;
   solved: number | null;
   kids_menu_at: number | null;
+  kids_menu_dishes: number | null;
   last_at: string;
 }
 
@@ -160,6 +163,7 @@ app.get("/recent-rounds", async (c) => {
     guesses: r.guesses ?? null,
     solved: r.solved === null || r.solved === undefined ? null : r.solved === 1,
     kidsMenuAt: r.kids_menu_at ?? null,
+    kidsMenuDishes: r.kids_menu_dishes ?? null,
     lastAt: instant(r.last_at),
   }));
   if (day) rounds = rounds.filter((r) => r.playedDay === day);
@@ -260,7 +264,8 @@ app.get("/recent-rounds", async (c) => {
 app.get("/round-guesses", async (c) => {
   const round = c.req.query("round")?.trim();
   if (!round) return c.json({ error: "No round given" }, 400);
-  const res = await c.env.DB.prepare(
+  const [res, opens] = await c.env.DB.batch([
+    c.env.DB.prepare(
     `SELECT g.guess_number, g.created_at, g.from_kids_menu,
             COALESCE(dd.name, dk.name) AS name,
             COALESCE(dd.country, dk.country) AS country,
@@ -270,10 +275,12 @@ app.get("/round-guesses", async (c) => {
        LEFT JOIN drinks dk ON dk.id = g.guessed_drink_id
       WHERE g.round_id = ?
       ORDER BY g.guess_number`,
-  )
-    .bind(round)
-    .all();
-  return c.json(foldRoundGuesses(round, res.results as unknown as RoundGuessRow[]));
+    ).bind(round),
+    c.env.DB.prepare("SELECT at_guess, dishes, opened_at FROM kids_menu_opens WHERE round_id = ? ORDER BY at_guess").bind(round),
+  ]);
+  return c.json(
+    foldRoundGuesses(round, res.results as unknown as RoundGuessRow[], opens.results as unknown as RoundMenuOpenRow[]),
+  );
 });
 
 // One device against the house, for the check a device id in the feed opens.
@@ -400,12 +407,17 @@ app.delete("/device-data", async (c) => {
 
   // Guesses first: besides their own player_id (which a guess whose round row
   // never landed is reachable by alone), they are found through this device's
-  // round ids, which the next statement deletes. The batch runs in order.
-  const [guesses, rounds, visits, views, sightings] = await c.env.DB.batch([
+  // round ids, which the next statement deletes. The batch runs in order. The
+  // Kids' Menu's card sizes are reached through the round ids alone, so they go
+  // before the rounds too; they belong to a round, and the review counts rounds.
+  const [guesses, , rounds, visits, views, sightings] = await c.env.DB.batch([
     c.env.DB.prepare(
       `DELETE FROM analytics_guesses
         WHERE player_id = ? OR round_id IN (SELECT round_id FROM analytics_rounds WHERE player_id = ?)`,
     ).bind(player, player),
+    c.env.DB.prepare(
+      "DELETE FROM kids_menu_opens WHERE round_id IN (SELECT round_id FROM analytics_rounds WHERE player_id = ?)",
+    ).bind(player),
     c.env.DB.prepare("DELETE FROM analytics_rounds WHERE player_id = ?").bind(player),
     c.env.DB.prepare("DELETE FROM analytics_visits WHERE player_id = ?").bind(player),
     c.env.DB.prepare("DELETE FROM announcement_views WHERE player_id = ?").bind(player),

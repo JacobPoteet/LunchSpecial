@@ -120,7 +120,19 @@ export interface RoundGuessRow {
  * this orders them again: the primary key is (round, number), so a fold that
  * trusted its input would be one reordered query away from a scrambled board.
  */
-export function foldRoundGuesses(roundId: string, rows: Iterable<RoundGuessRow>): RoundGuesses {
+/** A kids_menu_opens row for one round. */
+export interface RoundMenuOpenRow {
+  at_guess: number;
+  dishes: number;
+  /** SQLite datetime, UTC. */
+  opened_at: string;
+}
+
+export function foldRoundGuesses(
+  roundId: string,
+  rows: Iterable<RoundGuessRow>,
+  opens: Iterable<RoundMenuOpenRow> = [],
+): RoundGuesses {
   const guesses: RoundGuess[] = [...rows]
     .map((r) => ({
       number: r.guess_number,
@@ -131,5 +143,8 @@ export function foldRoundGuesses(roundId: string, rows: Iterable<RoundGuessRow>)
       at: `${r.created_at.replace(" ", "T")}Z`,
     }))
     .sort((a, b) => a.number - b.number);
-  return { roundId, guesses };
+  const menuOpens = [...opens]
+    .map((o) => ({ atGuess: o.at_guess, dishes: o.dishes, at: `${o.opened_at.replace(" ", "T")}Z` }))
+    .sort((a, b) => a.atGuess - b.atGuess);
+  return { roundId, guesses, menuOpens };
 }

@@ -27,7 +27,13 @@ import {
   type SolveTimeRow,
 } from "../../service";
 import { foldGrowth, type GrowthRow } from "../../growth";
-import { foldKidsMenuReport, type KidsMenuTotalsRow } from "../../kidsmenu";
+import {
+  foldKidsMenuReport,
+  type BoardGuessRow,
+  type MenuOpenRow,
+  type PoolDishRow,
+  type ReachedRoundRow,
+} from "../../kidsmenu";
 
 import { foldCountries, type CountryRow } from "../../countries";
 import { foldSources, type VisitSourceRow } from "../../attribution";
@@ -671,27 +677,41 @@ app.get("/kids-menu", async (c) => {
     "SELECT MIN(created_at) AS first FROM analytics_guesses WHERE from_kids_menu IS NOT NULL",
   ).first<{ first: string | null }>();
   const since = first?.first ?? null;
-  if (!since) return c.json(foldKidsMenuReport(null, undefined));
-  const row = await c.env.DB.prepare(
-    `WITH reached AS (
-       SELECT r.round_id, r.kids_menu_at, r.completed, r.solved FROM analytics_rounds r
+  if (!since) return c.json(foldKidsMenuReport(null, null));
+  // The card sizes the rebuild needs come off every round's first five ledger
+  // rows and the whole catalogue (inactive dishes too: a guess can name one).
+  const reached = `WITH reached AS (
+       SELECT r.round_id, r.player_id, r.started_at, r.completed, r.solved, r.kids_menu_at FROM analytics_rounds r
         WHERE r.kind != 'nightcap' AND r.started_at >= ?
           AND ((r.completed = 1 AND r.guesses >= 5)
             OR EXISTS (SELECT 1 FROM analytics_guesses g
                         WHERE g.round_id = r.round_id AND g.guess_number = 4
-                          AND g.guessed_dish_id != g.target_dish_id)))
-     SELECT COUNT(*) AS reached,
-            COALESCE(SUM(kids_menu_at IS NOT NULL), 0) AS opened,
-            COALESCE(SUM(kids_menu_at IS NOT NULL AND completed = 1), 0) AS opened_finished,
-            COALESCE(SUM(kids_menu_at IS NOT NULL AND completed = 1 AND solved = 1), 0) AS opened_won,
-            COALESCE(SUM(kids_menu_at IS NULL AND completed = 1), 0) AS unopened_finished,
-            COALESCE(SUM(kids_menu_at IS NULL AND completed = 1 AND solved = 1), 0) AS unopened_won,
-            (SELECT COUNT(*) FROM analytics_guesses WHERE from_kids_menu = 1) AS menu_orders
-       FROM reached`,
-  )
-    .bind(since)
-    .first<KidsMenuTotalsRow>();
-  return c.json(foldKidsMenuReport(etDayOfUtcStamp(since), row ?? undefined));
+                          AND g.guessed_dish_id != g.target_dish_id)))`;
+  const [roundsRes, guessesRes, opensRes, dishesRes, ordersRes] = await c.env.DB.batch([
+    c.env.DB.prepare(`${reached} SELECT * FROM reached`).bind(since),
+    c.env.DB.prepare(
+      `${reached}
+       SELECT g.round_id, g.guess_number, g.guessed_dish_id, g.target_dish_id
+         FROM analytics_guesses g JOIN reached r ON r.round_id = g.round_id
+        WHERE g.guess_number <= 5`,
+    ).bind(since),
+    c.env.DB.prepare("SELECT round_id, at_guess, dishes, opened_at FROM kids_menu_opens"),
+    c.env.DB.prepare("SELECT id, country, region, course, temperature, protein, is_active, created_at FROM dishes"),
+    c.env.DB.prepare(
+      `SELECT COUNT(*) AS n, COALESCE(SUM(guessed_dish_id = target_dish_id), 0) AS hits
+         FROM analytics_guesses WHERE from_kids_menu = 1`,
+    ),
+  ]);
+  const orders = (ordersRes.results[0] as { n: number; hits: number } | undefined) ?? { n: 0, hits: 0 };
+  return c.json(
+    foldKidsMenuReport(etDayOfUtcStamp(since), {
+      rounds: roundsRes.results as unknown as ReachedRoundRow[],
+      guesses: guessesRes.results as unknown as BoardGuessRow[],
+      opens: opensRes.results as unknown as MenuOpenRow[],
+      dishes: dishesRes.results as unknown as PoolDishRow[],
+      orders: { n: Number(orders.n) || 0, hits: Number(orders.hits) || 0 },
+    }),
+  );
 });
 
 // Weekly active devices, the cohort grid and the first-visit funnel. Not
