@@ -170,7 +170,7 @@ The Activity tab also carries **This device's data**: a review of everything thi
 
 Ingredient names are canonical (lowercase, singular: `tomato`, not `tomatoes`) so matches line up across dishes. The admin tag input autocompletes against the existing pantry to keep it that way.
 
-The catalog ships two ways: `seed/seed.sql` is the canonical, idempotent snapshot used for local setup, and each batch of new dishes also gets an additive migration so releases can extend the live database without clobbering edits made in `/admin`. A data-integrity test guards both against bad enum values and dishes missing clues or ingredients. The same test reads the drinks catalogue against its own 3-beat sheet and holds the pool between 55% and 75% alcoholic, so a batch of nothing but cocktails fails CI on purpose.
+The catalog ships two ways: `seed/seed.sql` is the canonical, idempotent snapshot used for local setup, and each batch of new dishes also gets an additive migration so releases can extend the live database without clobbering edits made in `/admin`. A data-integrity test guards both against bad enum values and dishes missing clues or ingredients. The same test reads the drinks catalogue against its own 3-beat sheet and holds the pool between 55% and 80% alcoholic, so a batch of nothing but cocktails fails CI on purpose.
 
 
 ## Also in this repo

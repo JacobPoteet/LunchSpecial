@@ -82,7 +82,7 @@ A second daily puzzle: one **drink** a night, **4 guesses**, **3 coasters**, bet
 
 **Data model**
 - `drinks` / `drink_clues` / `drink_schedule` are their own tables, never a `kind` column on `dishes` (about ten queries read the dish pool unfiltered).
-- Tiles: **country · spirit · temperature · profile**; country keeps near-match, the rest hit/miss. `spirit: 'none'` is a value. `is_alcoholic` is stored, never derived. Pool held between 55% and 75% alcoholic by `worker/data-integrity.test.ts`.
+- Tiles: **country · spirit · temperature · profile**; country keeps near-match, the rest hit/miss. `spirit: 'none'` is a value. `is_alcoholic` is stored, never derived. Pool held between 55% and 80% alcoholic by `worker/data-integrity.test.ts`.
 - Ingredient vocabulary is pooled with the kitchen's. `dish_requests.kind` is a column (an inbox, unlike a catalogue).
 - Coaster sheet: 1 **First impression** (one angle: glass, ritual, look, hour; never the country, a region only with a second fact), 2 **The pour** (who, what goes in; may run two sentences; a year is one lens), 3 **Last call** (country placed naturally, appearance). Variety ratchets and an all-pairs no-repeat check live in `worker/data-integrity.test.ts`; `scripts/patch-clues.mjs --drinks` backfills `drink_clues` by slug. Names/budgets live once in `shared/clues.ts` (`COASTER_BEATS`). All dish beat-sheet hard rules apply; `lintClue` takes the sheet rather than being forked. The tab lists all three clues (`StoryDetails`).
 
@@ -219,7 +219,7 @@ An opt-in short list of the dishes that still fit, from the fourth miss (`MENU_A
 
 `/create-dishes` and `/create-drinks` are the workflows; each skill's section 3 is the beat sheet. Read it before writing a clue. `worker/data-integrity.test.ts` enforces the mechanizable half. **Source every historical or numerical claim before writing it.** One-clue requests go to `suggest-clue`, which writes nothing.
 
-- **Dish** = one `dishes` row + exactly 5 `clues`; schedulable only with ≥3 ingredients AND exactly 5 clues. **Drink** = one `drinks` row + exactly 3 `drink_clues`, ≥3 ingredients, pool inside 55–75% alcoholic.
+- **Dish** = one `dishes` row + exactly 5 `clues`; schedulable only with ≥3 ingredients AND exactly 5 clues. **Drink** = one `drinks` row + exactly 3 `drink_clues`, ≥3 ingredients, pool inside 55–80% alcoholic.
 - Rows go in `seed/seed.sql` **and** an additive `migrations/000N_add_<batch>.sql` (INSERTs only, keyed by slug). Never re-run the seed on prod. **Pool only; never a schedule row.**
 - **Renaming a dish in /admin regenerates its slug, and every backfill migration is keyed by slug**, so an earlier migration's `UPDATE`s silently match nothing. Re-aim with a new migration. `RETIRED_SLUGS` / `RENAMED_SLUGS` in the integrity test are how a slug leaves.
 - Fan submissions: `UPDATE … SET is_fan_submission = 1 WHERE slug IN (…)` in both files; leave `INSERT` column lists alone. A suggested dish the catalogue already has still takes the credit (UPDATE only; say so in the migration comment).

@@ -61,7 +61,7 @@ feedback silently under-reports for every row holding either.
 `data-integrity.test.ts` fails on an unplaced ingredient, a plural twin, or a yellow rate over 30%
 on either menu.
 
-**Keep the pool between 55% and 75% alcoholic.** `worker/data-integrity.test.ts` enforces the band,
+**Keep the pool between 55% and 80% alcoholic.** `worker/data-integrity.test.ts` enforces the band,
 because the mix is a design decision rather than an accident of what got written. A batch of nothing
 but cocktails will fail CI, and correctly. Check where the pool sits before you start:
 
@@ -335,7 +335,7 @@ the country.
 npx vitest run worker/data-integrity.test.ts
 ```
 
-Two describe blocks cover the bar, and the coaster sheet carries a nested `coaster variety` block. **`back bar data integrity`** checks the pool size, the 55–75%
+Two describe blocks cover the bar, and the coaster sheet carries a nested `coaster variety` block. **`back bar data integrity`** checks the pool size, the 55–80%
 alcohol band, regions, spirits, profiles, slugs, ingredient counts, exactly three coasters, the
 beer/wine alcohol pairing, and that no night is booked with an unpourable drink.
 **`the coaster sheet`** runs every rule in section 3.4 over every drink, then the variety ratchets from section 3.2 and an all-pairs check that no two coasters of one drink say the same thing.

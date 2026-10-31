@@ -774,9 +774,11 @@ describe("back bar data integrity", () => {
     const share = boozy / n;
     // A bar that is 95% booze is a different game from one that isn't, and the
     // mix is a design decision rather than an accident of what got written. The
-    // band is wide because it is a floor and a ceiling, not a target.
+    // band is wide because it is a floor and a ceiling, not a target. The
+    // ceiling was 75% until #278 stocked the American back bar and put the
+    // pool at 72%; 80% leaves room for the bar to lean alcoholic, as intended.
     expect(share, `${boozy}/${n} alcoholic`).toBeGreaterThanOrEqual(0.55);
-    expect(share, `${boozy}/${n} alcoholic`).toBeLessThanOrEqual(0.75);
+    expect(share, `${boozy}/${n} alcoholic`).toBeLessThanOrEqual(0.8);
   });
 
   it("gives every drink a valid region bucket", () => {
