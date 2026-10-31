@@ -3442,6 +3442,10 @@ INSERT INTO clues (dish_id, order_index, text) VALUES
 -- the row stays so its id and slug still resolve. See migrations/0065.
 UPDATE dishes SET is_active = 0 WHERE slug = 'osso-focaccia';
 
+-- The bar owns drinks: the kitchen's drink-course dishes stay for history and
+-- old rounds, off the pool. See migrations/0078.
+UPDATE dishes SET is_active = 0 WHERE course = 'drink';
+
 -- Dishes that came in through the player suggestion form. Flagged here rather
 -- than in the INSERT above so the column list stays as it was; the rest of the
 -- catalogue keeps the 0 default. See migrations/0017.

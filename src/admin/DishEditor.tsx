@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AdminDishInput, GuessFeedback } from "../../shared/types";
-import { COURSES, PROTEINS, REGIONS, TEMPERATURES } from "../../shared/types";
+import { PROTEINS, REGIONS, SERVABLE_COURSES, TEMPERATURES } from "../../shared/types";
 import { ClueTicket, GuessRow, Modal } from "../game/components";
 import { CLUE_BEATS } from "../../shared/clues";
 import * as api from "./api";
@@ -280,11 +280,17 @@ export default function DishEditor({
             <div className="field">
               <label>Course</label>
               <select value={form.course} onChange={(e) => set("course", e.target.value as AdminDishInput["course"])}>
-                {COURSES.map((c) => (
+                {SERVABLE_COURSES.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
                 ))}
+                {/* An old drink-course dish still opens here; the bar owns new ones. */}
+                {form.course === "drink" && (
+                  <option value="drink" disabled>
+                    drink (history only)
+                  </option>
+                )}
               </select>
             </div>
             <div className="field">

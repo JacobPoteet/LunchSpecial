@@ -150,7 +150,11 @@ describe("facetCounts", () => {
   it("zero-fills the enums so chip rows keep a stable order", () => {
     const counts = facetCounts(rows, filter(), TODAY);
     expect(counts.proteins.lamb).toBe(0);
-    expect(counts.courses.drink).toBe(0);
+    expect(counts.courses.breakfast).toBe(0);
+  });
+
+  it("offers no drink chip: the course is history only", () => {
+    expect(facetCounts(rows, filter(), TODAY).courses.drink).toBeUndefined();
   });
 
   it("counts a dish under both of its statuses", () => {
@@ -238,6 +242,10 @@ describe("normalizeFilter", () => {
     expect(f.regions).toEqual(["europe"]);
     expect(f.courses).toEqual(["entree"]);
     expect(f.sort).toBe(EMPTY_DISH_FILTER.sort);
+  });
+
+  it("drops a parked drink-course filter", () => {
+    expect(normalizeFilter({ courses: ["drink", "dessert"] }).courses).toEqual(["dessert"]);
   });
 
   it("accepts only the rest presets", () => {

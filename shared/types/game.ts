@@ -5,6 +5,14 @@
 export const COURSES = ["breakfast", "appetizer", "entree", "dessert", "drink"] as const;
 export type Course = (typeof COURSES)[number];
 
+/**
+ * The courses the kitchen still serves. `drink` is history only: the bar owns
+ * drinks, and the kitchen's drink-course dishes are inactive (migrations/0078).
+ * Old saved rounds and Leftovers still draw that tile, so `COURSES` keeps it;
+ * pickers, filters and balance lines walk this list instead.
+ */
+export const SERVABLE_COURSES = ["breakfast", "appetizer", "entree", "dessert"] as const satisfies readonly Course[];
+
 export const TEMPERATURES = ["hot", "cold"] as const;
 export type Temperature = (typeof TEMPERATURES)[number];
 

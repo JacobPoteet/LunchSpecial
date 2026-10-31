@@ -42,7 +42,7 @@ Enums are CHECK-constrained in `migrations/0001_init.sql` and mirrored in `share
 | `slug` | lowercase-kebab, unique, ASCII. Strip accents: `Crème Brûlée` → `creme-brulee` |
 | `country` | Real country, free text |
 | `region` | One of nine. **This drives the yellow near-match, so bucket it carefully** |
-| `course` | breakfast \| appetizer \| entree \| dessert \| drink |
+| `course` | breakfast \| appetizer \| entree \| dessert. Never `drink`: drinks go to `/create-drinks` (the bar owns them; CI fails on an active drink-course dish) |
 | `temperature` | hot \| cold, as served |
 | `protein` | The dominant one; `vegetarian` if none |
 | `ingredients` | JSON array, lowercase singular, 3 minimum, 5–8 in practice |

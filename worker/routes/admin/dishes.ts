@@ -70,6 +70,9 @@ function validateDishInput(body: unknown): { dish: AdminDishInput } | { error: s
   if (typeof b.country !== "string" || !b.country.trim()) return { error: "Country is required" };
   if (!REGIONS.includes(b.region as never)) return { error: "Invalid region" };
   if (!COURSES.includes(b.course as never)) return { error: "Invalid course" };
+  // The bar owns drinks. An old drink-course dish can still be edited, but only
+  // while it stays off the menu (migrations/0078).
+  if (b.course === "drink" && b.isActive !== false) return { error: "Drinks belong to the bar now" };
   if (!TEMPERATURES.includes(b.temperature as never)) return { error: "Invalid temperature" };
   if (!PROTEINS.includes(b.protein as never)) return { error: "Invalid protein" };
   if (!Array.isArray(b.ingredients) || b.ingredients.some((i) => typeof i !== "string")) {
@@ -119,6 +122,7 @@ app.post("/dishes", async (c) => {
   const parsed = validateDishInput(await c.req.json().catch(() => null));
   if ("error" in parsed) return c.json({ error: parsed.error }, 400);
   const d = parsed.dish;
+  if (d.course === "drink") return c.json({ error: "Drinks belong to the bar now" }, 400);
   try {
     const res = await c.env.DB
       .prepare(
