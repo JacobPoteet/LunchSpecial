@@ -55,8 +55,8 @@ export const FAMILIES: Readonly<Record<string, readonly string[]>> = {
   "woody herb": ["thyme", "oregano", "rosemary", "marjoram", "bay leaf"],
   "ginger root": ["ginger", "galangal"],
   "fragrant leaf": ["lemongrass", "lime leaves", "pandan", "curry leaf"],
-  "citrus": ["lemon", "lime", "orange", "grapefruit", "yuzu", "calamansi", "candied peel"],
-  "berry": ["strawberry", "raspberry", "cranberry", "lingonberry", "acai"],
+  "citrus": ["lemon", "lime", "orange", "grapefruit", "yuzu", "calamansi", "candied peel", "bergamot"],
+  "berry": ["strawberry", "raspberry", "cranberry", "lingonberry", "acai", "blackcurrant"],
   "stone fruit": ["cherry", "plum", "peach", "apricot"],
   "dried fruit": ["raisins", "dates", "prunes", "currants"],
   "orchard fruit": ["apple", "pear", "pomegranate", "persimmon"],
@@ -66,7 +66,7 @@ export const FAMILIES: Readonly<Record<string, readonly string[]>> = {
   "sesame": ["sesame", "black sesame", "tahini", "sesame oil"],
   "chocolate": ["chocolate", "cocoa", "chocolate chip", "chocolate syrup"],
   "sugar": ["brown sugar", "powdered sugar", "palm sugar"],
-  "syrup": ["honey", "maple syrup", "molasses", "corn syrup", "agave", "caramel", "dulce de leche", "golden syrup"],
+  "syrup": ["honey", "maple syrup", "molasses", "corn syrup", "agave", "caramel", "dulce de leche", "golden syrup", "fruit syrup"],
   "jam": ["jam", "strawberry jam"],
   "beef": ["beef", "veal", "beef heart", "tripe", "kidney", "beef broth"],
   "pork": ["pork", "bacon", "ham", "sausage", "pork sausage", "pork ribs", "hot dog", "guanciale", "pepperoni", "salami", "spam"],
@@ -77,19 +77,22 @@ export const FAMILIES: Readonly<Record<string, readonly string[]>> = {
   "bean & legume": ["chickpeas", "lentils", "beans", "white bean", "black bean", "red bean", "peas", "baked beans", "butter bean", "pigeon pea", "lotus seed"],
   "soy": ["tofu", "miso", "soybean"],
   "umami sauce": ["soy sauce", "sweet soy sauce", "hoisin sauce", "fish sauce", "worcestershire", "shrimp paste"],
-  "tomato": ["tomato", "tomato juice", "salsa", "ketchup"],
+  "tomato": ["tomato", "tomato juice", "salsa", "ketchup", "clamato"],
   "briny": ["olive", "caper", "pickle", "sauerkraut"],
   "salad leaf": ["lettuce", "romaine lettuce", "spinach", "watercress"],
   "brassica": ["cabbage", "cauliflower", "broccoli", "radish", "daikon", "collard greens", "mustard greens"],
   "root": ["carrot", "beetroot"],
   "tuber": ["potato", "sweet potato", "ube", "cassava"],
   "squash": ["pumpkin", "zucchini"],
-  "aperitif": ["campari", "aperol", "vermouth", "bitters"],
-  "liqueur": ["orange liqueur", "coffee liqueur", "blackcurrant liqueur"],
-  "wine": ["white wine", "red wine", "champagne", "prosecco", "marsala"],
-  "beer": ["beer", "hops"],
-  "mixer": ["soda water", "seltzer", "tonic water", "cola", "ginger ale", "ginger beer", "lemonade"],
-  "coffee": ["coffee", "espresso"],
+  "aperitif": ["campari", "aperol", "vermouth", "bitters", "lillet", "amaro"],
+  "liqueur": ["orange liqueur", "coffee liqueur", "blackcurrant liqueur", "blue curacao"],
+  "fruit liqueur": ["maraschino liqueur", "peach schnapps", "apple schnapps", "melon liqueur", "banana liqueur", "blackberry liqueur"],
+  "herbal liqueur": ["chartreuse", "benedictine", "drambuie", "galliano", "jagermeister", "creme de menthe", "creme de violette"],
+  "dessert liqueur": ["creme de cacao", "amaretto", "irish cream"],
+  "wine": ["white wine", "red wine", "champagne", "prosecco", "marsala", "rose wine"],
+  "beer": ["beer", "hops", "cider"],
+  "mixer": ["soda water", "seltzer", "tonic water", "cola", "ginger ale", "ginger beer", "lemonade", "lemon-lime soda", "energy drink"],
+  "coffee": ["coffee", "espresso", "chicory"],
   "tea & infusion": ["tea", "red bush", "yerba mate", "jasmine", "hibiscus"],
 };
 
@@ -116,14 +119,14 @@ export const STAPLES: readonly string[] = [
  * it (the bar's yellow rate would be 23% with them instead of 14%).
  */
 export const STANDALONE: readonly string[] = [
-  "absinthe", "ackee", "aguardiente", "artichoke", "avocado", "bamboo shoot", "banana leaf", "basil seed",
-  "bean sprouts", "brandy", "cachaca", "chimichurri", "cognac", "cucumber", "eggplant",
-  "food coloring", "gelatin", "gesho", "gin", "grain alcohol", "grape", "grape leaves", "gravy", "grenadine",
-  "green bean", "hot water", "ice cream", "kava root", "kirsch", "koji", "lamb", "marshmallow",
-  "mayonnaise", "mirin", "mushroom", "naranjilla", "okra", "orchid root", "palm sap", "pisco",
-  "rose water", "rum", "sassafras", "shaved ice", "sichuan peppercorn", "sprinkles", "sugar cane",
-  "sumac", "tamarind", "tejocote", "tequila", "vanilla", "vinegar", "vodka", "whiskey", "wormwood",
-  "yeast extract",
+  "absinthe", "acid phosphate", "ackee", "aguardiente", "artichoke", "avocado", "bamboo shoot",
+  "banana leaf", "basil seed", "bean sprouts", "brandy", "cachaca", "chimichurri", "cognac", "cucumber",
+  "eggplant", "elderflower", "food coloring", "gelatin", "gesho", "gin", "grain alcohol", "grape",
+  "grape leaves", "gravy", "green bean", "grenadine", "hot water", "ice cream", "kava root", "kirsch",
+  "koji", "lamb", "marshmallow", "mayonnaise", "mirin", "mushroom", "naranjilla", "okra",
+  "orange flower water", "orchid root", "palm sap", "pisco", "rose water", "rum", "sassafras", "scotch",
+  "shaved ice", "sichuan peppercorn", "sprinkles", "sugar cane", "sumac", "tamarind", "tejocote", "tequila",
+  "vanilla", "vinegar", "vodka", "watermelon", "whiskey", "wormwood", "yeast extract",
 ];
 
 const FAMILY_OF = new Map<string, string>();
@@ -197,7 +200,7 @@ export const FAMILY_GROUPS: Readonly<Record<string, readonly string[]>> = {
   "Spice & sauce": ["chili", "chili sauce", "mustard", "pungent root", "pepper", "baking spice", "anise", "ground spice", "colouring spice", "soft herb", "woody herb", "ginger root", "fragrant leaf", "umami sauce", "soy", "bean & legume", "sea"],
   "Meat & sea": ["beef", "pork", "poultry", "fish", "shellfish"],
   Sweet: ["sugar", "syrup", "jam", "chocolate", "cookie & cake base"],
-  Bar: ["aperitif", "liqueur", "wine", "beer", "mixer", "coffee", "tea & infusion"],
+  Bar: ["aperitif", "liqueur", "fruit liqueur", "herbal liqueur", "dessert liqueur", "wine", "beer", "mixer", "coffee", "tea & infusion"],
 };
 
 const GROUP_OF = new Map<string, string>();
