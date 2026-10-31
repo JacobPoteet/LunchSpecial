@@ -45,7 +45,7 @@ A 1950s American diner is the whole visual and verbal world: a "Special," a "che
 
 ## Evidence on Hand
 
-- A live, populated catalogue: roughly 379 dishes at last count, each with 5 written clues and a canonical ingredient list, plus a smaller drinks catalogue for After Dark — both enforced against a data-integrity linter in CI.
+- A live, populated catalogue: roughly 555 dishes at last count, each with 5 written clues and a canonical ingredient list, plus a smaller drinks catalogue for After Dark — both enforced against a data-integrity linter in CI.
 - Real, continuously updating engagement numbers from production (rounds played, completion/solve rate, shares), exposed publicly at `/api/stats` and used as the README's own badges.
 - No user research, personas, or usability testing beyond the maintainer's own play-testing and ad hoc player-submitted dish/drink requests; don't fabricate testimonials, survey results, or named-user quotes.
 
