@@ -57,7 +57,7 @@ export const FAMILIES: Readonly<Record<string, readonly string[]>> = {
   "fragrant leaf": ["lemongrass", "lime leaves", "pandan", "curry leaf"],
   "citrus": ["lemon", "lime", "orange", "grapefruit", "yuzu", "calamansi", "candied peel"],
   "berry": ["strawberry", "raspberry", "cranberry", "lingonberry", "acai"],
-  "stone fruit": ["cherry", "plum", "peach"],
+  "stone fruit": ["cherry", "plum", "peach", "apricot"],
   "dried fruit": ["raisins", "dates", "prunes", "currants"],
   "orchard fruit": ["apple", "pear", "pomegranate", "persimmon"],
   "tropical fruit": ["pineapple", "mango", "papaya", "guava", "passion fruit", "banana", "plantain", "kiwifruit"],
