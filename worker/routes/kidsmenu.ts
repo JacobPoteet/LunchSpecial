@@ -46,7 +46,7 @@ app.post("/", async (c) => {
   if (!body) return c.json({ error: "Invalid JSON body" }, 400);
   const built = await menuFor(c.env, body);
   if ("error" in built) return c.json({ error: built.error }, 400);
-  if (built.roundId) c.executionCtx.waitUntil(stampOpened(c.env.DB, built.roundId, built.guessed.length));
+  if (built.roundId) c.executionCtx.waitUntil(stampOpened(c.env.DB, built.roundId, built.guessed.length, built.menu.dishes.length));
   return c.json(built.menu);
 });
 

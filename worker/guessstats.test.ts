@@ -88,6 +88,22 @@ describe("foldRoundGuesses", () => {
     expect(foldRoundGuesses("round-1", []).guesses).toEqual([]);
   });
 
+  it("lists the Kids' Menu cards by board, and none when no size was stamped", () => {
+    const r = foldRoundGuesses(
+      "round-1",
+      [],
+      [
+        { at_guess: 5, dishes: 2, opened_at: "2026-10-08 20:09:00" },
+        { at_guess: 4, dishes: 7, opened_at: "2026-10-08 20:05:00" },
+      ],
+    );
+    expect(r.menuOpens).toEqual([
+      { atGuess: 4, dishes: 7, at: "2026-10-08T20:05:00Z" },
+      { atGuess: 5, dishes: 2, at: "2026-10-08T20:09:00Z" },
+    ]);
+    expect(foldRoundGuesses("round-1", []).menuOpens).toEqual([]);
+  });
+
   it("marks a guess ordered off the Kids' Menu, and leaves an unmeasured row unmeasured", () => {
     const r = foldRoundGuesses("round-1", [
       { ...row(4, "Pho"), from_kids_menu: null },

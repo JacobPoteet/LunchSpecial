@@ -22,7 +22,7 @@
 export const SMALL_SAMPLE_MIN = 30;
 
 /** The 95% z-score. Not configurable — one confidence level, quoted one way. */
-const Z = 1.959963985;
+export const Z = 1.959963985;
 
 /** A proportion and the range it could honestly be, both as 0..100 percentages. */
 export interface Rate {

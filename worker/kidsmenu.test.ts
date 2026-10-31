@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { Course, Dish, Protein, Region, Temperature } from "../shared/types";
-import { buildMenu, foldKidsMenuReport, parseGuessed } from "./kidsmenu";
+import {
+  buildMenu,
+  foldKidsMenuReport,
+  parseGuessed,
+  pooledDifference,
+  sizeGroup,
+  type BoardGuessRow,
+  type KidsMenuInput,
+  type PoolDishRow,
+  type ReachedRoundRow,
+} from "./kidsmenu";
 
 let nextId = 100;
 const dish = (
@@ -90,26 +100,153 @@ describe("buildMenu", () => {
   });
 });
 
+describe("sizeGroup", () => {
+  it("files a card size under the readout's groups, the last open-ended", () => {
+    expect([1, 2, 3, 4, 6, 7, 12, 13, 300].map(sizeGroup)).toEqual([0, 1, 1, 2, 2, 3, 3, 4, 4]);
+  });
+});
+
+describe("pooledDifference", () => {
+  it("is null with no group holding both sides", () => {
+    expect(pooledDifference([{ a: { won: 3, of: 3 }, b: { won: 0, of: 0 } }])).toBeNull();
+  });
+
+  it("weights each group by its smaller side, not by its rates", () => {
+    // A big group at +0 and a tiny one at +100: the pooled gap stays near zero.
+    const d = pooledDifference([
+      { a: { won: 50, of: 100 }, b: { won: 50, of: 100 } },
+      { a: { won: 1, of: 1 }, b: { won: 0, of: 1 } },
+    ])!;
+    expect(d.pts).toBe(1);
+    expect(d.low).toBeLessThan(0);
+    expect(d.high).toBeGreaterThan(0);
+  });
+
+  it("keeps a spread on a group at all-or-nothing", () => {
+    const d = pooledDifference([{ a: { won: 3, of: 3 }, b: { won: 0, of: 3 } }])!;
+    expect(d.pts).toBe(100);
+    expect(d.low).toBeLessThan(100);
+  });
+});
+
 describe("foldKidsMenuReport", () => {
+  // The pool as rows: Ramen is the Special, and four misses leave ten East
+  // Asian pork dishes on the card (the buildMenu board above).
+  const asRow = (d: Dish, created_at = "2026-01-01 00:00:00"): PoolDishRow => ({
+    id: d.id,
+    country: d.country,
+    region: d.region,
+    course: d.course,
+    temperature: d.temperature,
+    protein: d.protein,
+    is_active: d.isActive ? 1 : 0,
+    created_at,
+  });
+  const dishes = [...pool, ...board].map((d) => asRow(d));
+  const ledger = (round_id: string, at = 4): BoardGuessRow[] =>
+    board
+      .slice(0, at)
+      .map((d, i) => ({ round_id, guess_number: i + 1, guessed_dish_id: d.id, target_dish_id: ramen.id }));
+  const round = (round_id: string, over: Partial<ReachedRoundRow> = {}): ReachedRoundRow => ({
+    round_id,
+    player_id: `p-${round_id}`,
+    started_at: "2026-10-28 12:00:00",
+    completed: 1,
+    solved: 0,
+    kids_menu_at: null,
+    ...over,
+  });
+  const input = (over: Partial<KidsMenuInput> = {}): KidsMenuInput => ({
+    rounds: [],
+    guesses: [],
+    opens: [],
+    dishes,
+    orders: { n: 0, hits: 0 },
+    ...over,
+  });
+  const open = (round_id: string, at_guess: number, dishes: number, opened_at = "2026-10-28 12:05:00") => ({
+    round_id,
+    at_guess,
+    dishes,
+    opened_at,
+  });
+
   it("is unmeasured, not zero, before the first flagged guess", () => {
-    const r = foldKidsMenuReport(null, undefined);
+    const r = foldKidsMenuReport(null, null);
     expect(r.measuredFrom).toBeNull();
     expect(r.opened).toBeNull();
+    expect(r.cards).toBeNull();
+    expect(r.likeBoards.difference).toBeNull();
   });
 
   it("rates the open over rounds that reached a fourth miss, and the win over finished rounds", () => {
-    const r = foldKidsMenuReport("2026-10-27", {
-      reached: 40,
-      opened: 10,
-      opened_finished: 8,
-      opened_won: 6,
-      unopened_finished: 25,
-      unopened_won: 5,
-      menu_orders: 9,
-    });
-    expect(r.opened).toMatchObject({ pct: 25, of: 40 });
-    expect(r.wonAfterOpen).toMatchObject({ pct: 75, of: 8 });
-    expect(r.wonWithout).toMatchObject({ pct: 20, of: 25 });
-    expect(r.openedCount).toBe(10);
+    const rounds = [
+      round("a", { kids_menu_at: 4, solved: 1 }),
+      round("b", { kids_menu_at: 4 }),
+      round("c", { solved: 1 }),
+      round("d"),
+      round("e", { completed: 0, solved: null, player_id: "p-a" }),
+    ];
+    const r = foldKidsMenuReport("2026-10-27", input({ rounds, orders: { n: 4, hits: 1 } }));
+    expect(r.reached).toBe(5);
+    expect(r.reachedDevices).toBe(4);
+    expect(r.opened).toMatchObject({ pct: 40, of: 5 });
+    expect(r.wonAfterOpen).toMatchObject({ pct: 50, of: 2 });
+    expect(r.wonWithout).toMatchObject({ pct: 50, of: 2 });
+    expect(r.orderHits).toMatchObject({ pct: 25, of: 4 });
+  });
+
+  it("rebuilds the card every round would have printed, opened or not, and groups them", () => {
+    const rounds = [round("a", { kids_menu_at: 4, solved: 1 }), round("b")];
+    const guesses = [...ledger("a"), ...ledger("b")];
+    const r = foldKidsMenuReport("2026-10-27", input({ rounds, guesses, opens: [open("a", 4, 10)] }));
+    const group = sizeGroup(10);
+    expect(r.likeBoards.rows[group].opened).toMatchObject({ pct: 100, of: 1 });
+    expect(r.likeBoards.rows[group].without).toMatchObject({ pct: 0, of: 1 });
+    expect(r.likeBoards.agreement).toEqual({ n: 1, of: 1 });
+    expect(r.likeBoards.difference?.pts).toBe(100);
+  });
+
+  it("counts a round with a hole in its ledger apart, never in a group", () => {
+    const r = foldKidsMenuReport("2026-10-27", input({ rounds: [round("a")], guesses: ledger("a", 3) }));
+    expect(r.likeBoards.unmeasured).toBe(1);
+    expect(r.likeBoards.rows.every((row) => row.without === null)).toBe(true);
+  });
+
+  it("rebuilds the pool as of the round's start", () => {
+    // Two dishes that would fit: one added after the round started, one parked.
+    const late = asRow(dish("Late Pork", "Korea", "east-asia", "entree", "hot", "pork"), "2026-10-29 00:00:00");
+    const parked = asRow(dish("Parked Pork", "Korea", "east-asia", "entree", "hot", "pork", ["salt"], false));
+    const r = foldKidsMenuReport(
+      "2026-10-27",
+      input({ rounds: [round("a", { kids_menu_at: 4 })], guesses: ledger("a"), opens: [open("a", 4, 10)], dishes: [...dishes, late, parked] }),
+    );
+    expect(r.likeBoards.agreement).toEqual({ n: 1, of: 1 });
+  });
+
+  it("sets wins off the card beside a blind pick off the same cards", () => {
+    // Ten on the card, two guesses left: blind wins 20%.
+    const rounds = [round("a", { kids_menu_at: 4, solved: 1 }), round("b", { kids_menu_at: 4 })];
+    const r = foldKidsMenuReport("2026-10-27", input({ rounds, opens: [open("a", 4, 10), open("b", 4, 10)] }));
+    expect(r.chance.won).toMatchObject({ pct: 50, of: 2 });
+    expect(r.chance.blindPct).toBe(20);
+  });
+
+  it("falls back to the rebuilt card for an open with no size on file", () => {
+    const r = foldKidsMenuReport("2026-10-27", input({ rounds: [round("a", { kids_menu_at: 4 })], guesses: ledger("a") }));
+    expect(r.chance.won).toMatchObject({ of: 1 });
+    expect(r.chance.blindPct).toBe(20);
+  });
+
+  it("draws card sizes off each round's first open, and counts the reopens", () => {
+    const opens = [
+      open("a", 4, 9),
+      open("a", 5, 2, "2026-10-28 12:07:00"),
+      open("b", 4, 1, "2026-10-29 12:05:00"),
+      open("c", 5, 3, "2026-10-29 13:05:00"),
+    ];
+    const r = foldKidsMenuReport("2026-10-27", input({ opens }));
+    expect(r.cards).toMatchObject({ measuredFrom: "2026-10-28", opens: 3, median: 3, p90: 9, reopened: 1 });
+    expect(r.cards?.sizes).toEqual([1, 1, 0, 1, 0]);
   });
 });

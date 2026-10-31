@@ -251,7 +251,7 @@ export default function Dashboard({
           />
           <DishReportPanel surface={surface} focusDish={focusDish} onFocused={() => setFocusDish(null)} />
           <GuessPanel />
-          <Fold title="Kids' Menu" hint="Who opened it after a 4th miss.">
+          <Fold title="Kids' Menu" hint="Who opened it, and how big the card was.">
             <KidsMenuPanel />
           </Fold>
           {/* The catalogue halves answer questions you ask rarely and fetch
