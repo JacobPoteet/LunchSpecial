@@ -2,7 +2,7 @@
 
 Daily Wordle-style game: guess the diner's "Special" (a world dish). 1950s diner theme. One Cloudflare Worker serves everything: React SPA (Workers Static Assets) + Hono API + D1. No accounts; player state in localStorage.
 
-**This file is rules, not documentation.** It carries what a change must not break and what the code can't tell you. How things work: read the code (pure folds in `shared/` and `worker/` each have a test beside them). Why they're shaped that way: the wiki (see "Documentation").
+**This file is rules, not documentation.** It carries what a change must not break and what the code can't tell you. How things work: read the code (pure folds in `shared/` and `worker/` each have a test beside them). Why they're shaped that way: the wiki (see "Documentation"). Area rules live in `.claude/rules/*.md` and load with the files they cover.
 
 ## Commands
 
@@ -18,7 +18,6 @@ npm test             # vitest — worker/**/*.test.ts + shared/**/*.test.ts
 npm run check        # tsc -b (3 project refs: app / worker / node)
 npm run lint         # oxlint. rules-of-hooks is an error, exhaustive-deps a warning
 npm run a11y         # axe over the RUNNING game (needs `npm run dev` in another terminal)
-npm run build / preview / deploy
 npm run db:migrate   # LOCAL D1 (db:migrate:remote for prod)
 npm run db:seed      # LOCAL D1, bootstrap only
 npm run db:export:remote    # dump PROD D1 → gitignored backups/. Take one before any prod DB work
@@ -43,88 +42,22 @@ Local admin password: `ADMIN_PASSWORD` in `.dev.vars` (gitignored). Browser prev
 - **Secrets** (`ADMIN_PASSWORD`, `SESSION_SECRET`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_PUBLIC_KEY`, `GITHUB_TOKEN`): `wrangler secret put`, persist across deploys. Discord and GitHub ones are optional; unconfigured, the feature degrades and nothing else breaks. **A new Worker secret must be added to `.dev.vars.example`**, or CI's placeholder `.dev.vars` lacks it and `tsc` fails. `GITHUB_REPO` and `VITE_DISCORD_CLIENT_ID` are public (the latter is a build-time Vite var, in `.env.local`, not `.dev.vars`). `DISCORD_BOT_TOKEN` is used only by `discord:register`.
 - `ci.yml` and `codeql.yml` share an identical `paths-ignore` (`**.md`, `docs/**`, `discord-assets/**`); keep them in sync. If CI becomes a required check, doc-only PRs will hang on it.
 - `deploy.yml` re-runs test + check on purpose and checks out with `fetch-depth: 0` (the build marker needs tags).
-- D1 id is in `wrangler.jsonc`; CI uses GitHub secrets `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`.
 
 ## Discord Activity
 
-Runs as an embedded iframe with **no separate build**: Discord proxies `lunchspecial.app`. Client code is `src/discord/`, activated by the `frame_id` query param; off Discord the SDK is never downloaded.
-
-- **The 5s `ready()` cap gates only the React mount.** `attachPresence`/`attachShare`/`attachSocial` run inside the handshake's own `.then()`, never on the race-winning branch.
-- **Never name the dish** in presence copy or the score card. Progress and guess counts are safe; answer, guessed dishes and clues are not. A test pins this.
-- **Two OAuth scopes, `identify` + `rpc.activities.write`, both required.** Don't add a third; don't re-run the experiment. The user object from `authenticate()` is dropped by the browser: never read, stored, sent or persisted there. **Only the Worker reads the user `id`, once, at `/token`** (`worker/playerid.ts`): it keeps `d-` + a keyed hash (`PLAYER_ID_SECRET`, its own secret so rotating `SESSION_SECRET` resets nobody) and nothing else Discord returned. Rotating `PLAYER_ID_SECRET` resets every Discord player.
-- **Token exchange is server-side**; the client secret never reaches the browser. Unconfigured → 503, and nothing may wait on a Discord feature.
-- **Authorize once per page load** (`prompt: "none"`); a refusal sets `unavailable`, never retried. **Nothing fails loudly**: presence throttles to one update per 4s with a trailing send, the progress loop retires on one failure, a 410 retires silently.
-- **Presence elapsed timer measures this sitting** and is dropped when the round ends. Preview/playtest publish nothing (same `tracked` flag as the beacons).
-- **Sharing:** `shareToChannel()` never throws and returns a boolean; `ResultModal.share()` copies on false. `openShareMomentDialog` accepts only a Discord CDN URL, hence the PNG score card (rects, not emoji; palette hard-coded from base.css). The upload goes through the Worker, which stores nothing. Sharing never raises a consent sheet (`peekToken()`, not `ensureAuthorized()`). `copyShareText()` falls back to `execCommand("copy")` because `navigator.clipboard` is blocked in the iframe. Don't use `sdk.commands.shareLink`.
-- **Progress message:** Discord creates it via a signed interaction; identity comes off the signed payload, never the client. Edits never re-send `embeds`. `discord_messages` holds only `{opaque client-minted handle, interaction token, created_at, the server's locale tag}`; the interaction token never reaches the browser. Verify the Ed25519 signature on the **raw** body or 401 (a 401 on Discord's bad-signature probe is a pass). Avatar indices use **BigInt**; animated `a_` hashes need `.gif`. Updates are trailing, not queued. `resetProgress()` must run before the publisher inside `useRoundTelemetry`; don't call either from a page. `shareInteraction` is undocumented: if it breaks, only the loop is lost.
-- **Social (`social.ts`, no scopes):** only the participant *count* leaves the module (never usernames/avatars); you are subtracted and the bar hides at zero. Invite hidden when `sdk.guildId === null`. PIP layout is scoped to `<html data-discord-layout="pip">`, never a width query.
-- `/privacy`, `/terms`, `/press` are plain same-origin links with no `target="_blank"`. The game's one outbound link is the footer byline (`src/game/Byline.tsx`, LinkedIn, new tab), web surface only; inside Discord it renders as plain text.
-- localStorage inside Discord is sandboxed to `discordsays.com`, so Activity players have separate history.
-- **Discord mobile drops the Activity's storage when the app is quit** (measured: 0 of 40 mobile devices ever returned on a second day; closing and reopening the Activity keeps it). So a player who authorizes is remembered by the hash, not the device: `src/discord/restore.ts` runs before the mount (own 3s cap), adopts the id (`device_from = discord`), folds the Worker's saved copy into localStorage and saves back (debounced, via `Storage.prototype.setItem` watching the keys). The keys that travel, and how a collision resolves, live in `shared/progress.ts` (`PROGRESS_KEYS`; whole records, unions, never sums). A new synced key is added there and in its test. `/api/discord/progress` takes a signed `player:<id>` claim minted at `/token`, never a client-supplied id; PUT merges, so an empty phone cannot erase a streak. Unconfigured secret, a decline or a failure leaves the game on its own storage. Authorization now happens at launch, so a first-time player may see the consent sheet before the walkthrough.
-- **The device id lives in two stores** (#251): `lunch-special:player` and the `ls_device` cookie (`shared/device.ts`, Partitioned + SameSite=None for the browser client's third-party iframe). Whichever survives refills the other. The Worker never reads the cookie. `/start` stamps `client` (desktop/browser/mobile, Discord rounds only) and `device_from` (storage/cookie/new); both NULL before 0059, which is unmeasured. `navigator.storage.persist()` runs in the installed apps only (Firefox prompts).
-- Deliberate holes in hook dependency lists carry `eslint-disable-next-line react-hooks/exhaustive-deps` on the line before the array, reason in the comment above. `react/set-state-in-effect` is off in `.oxlintrc.json` on purpose.
+Runs as an embedded iframe with **no separate build**: Discord proxies `lunchspecial.app`. Client code is `src/discord/`, activated by the `frame_id` query param; off Discord the SDK is never downloaded. **Never name the dish** in presence copy or the score card; a test pins it. The rest: `.claude/rules/discord.md`.
 
 ## After Dark
 
 A second daily puzzle: one **drink** a night, **4 guesses**, **3 coasters**, between 20:00 and 03:00 on the player's own clock. Vocabulary: *Nightcap* (Night #N), *coaster*, *tab* (the bar's check), *Libations* (card heading). "After Dark" names the marquee and nothing else.
 
-**Clock**
-- `shared/night.ts` is the only place that decides when the bar is open or which night a round belongs to. Every fold takes the clock as an argument.
-- The night key is the local calendar day the evening began on (00:00–02:59 belongs to the night before). **Fixed at entry, never recomputed.**
-- Last call is a door, not a timer: a live round runs to completion. `graceNight` gives a reload one hour past close, only for an unfinished round with a guess on it.
-- The Worker doesn't know local time: `isPlayableNight` accepts ±1 day of ET's.
-- `NIGHT_EPOCH_DATE` must be on or before ship day; a future epoch closes the bar completely.
-- `lunchAdmits` accepts the ET day's Special **or** the one dated on the night key (ET midnight falls inside a night west of ET). A Nightcap in progress is admitted before the fold is asked.
-
-**Door and invite**
-- Gated on finishing today's Special; say why on the closed sign. `soon` is a sentence, not a disabled button. **Nothing happens until the band is pressed**; no auto-navigation.
-- The invite is its own band at the foot of the check, never a button in the replay row (the check is the tallest card at 375px; on a daily the replay row scrolls with the body so the pinned footer stays near 150px), fades in a beat after the check settles, and turns on live (`useBarInvite` polls; **never capture the night or settled state at mount**). Flare lights edges, never fill (contrast). A toolbar pill covers returning players.
-
-**Data model**
-- `drinks` / `drink_clues` / `drink_schedule` are their own tables, never a `kind` column on `dishes` (about ten queries read the dish pool unfiltered).
-- Tiles: **country · spirit · temperature · profile**; country keeps near-match, the rest hit/miss. `spirit: 'none'` is a value. `is_alcoholic` is stored, never derived. Pool held between 55% and 80% alcoholic by `worker/data-integrity.test.ts`.
-- Ingredient vocabulary is pooled with the kitchen's. `dish_requests.kind` is a column (an inbox, unlike a catalogue).
-- Coaster sheet: 1 **First impression** (one angle: glass, ritual, look, hour; never the country, a region only with a second fact), 2 **The pour** (who, what goes in; may run two sentences; a year is one lens), 3 **Last call** (country placed naturally, appearance). Variety ratchets and an all-pairs no-repeat check live in `worker/data-integrity.test.ts`; `scripts/patch-clues.mjs --drinks` backfills `drink_clues` by slug. Names/budgets live once in `shared/clues.ts` (`COASTER_BEATS`). All dish beat-sheet hard rules apply; `lintClue` takes the sheet rather than being forked. The tab lists all three clues (`StoryDetails`).
-
-**Sharing:** the tab shares the night grid plus the lunch grid. Night tiles use `⬛` for a miss, `🥃` pantry, `🥂` winning pour. A combined share fires the *nightcap* round's beacon only. `shareMessage` appends the url once to the whole message; grid folds are url-free (`shared/share.ts`). `RoundState.ingredientCount` is stamped on every lunch round so the grid redraws from storage.
-
-**Theme:** `<html data-after-dark>`; `base.css` redefines tokens under `:root[data-after-dark]`. Attribute-scoped, never a media query.
-- Measure contrast on the **painted** surface, not the token. A theme can't swap what a rule hardcodes: use `--paper-sheen`, `--paper-stipple`, `--row-fill`.
-- `--hit` stays at the daytime value. `--paper-edge` must be lighter than what it sits on. Text on `--mustard` is `--on-near`, never `--ink`. Hover fill is `--cherry-hover`, never `--cherry-dark`. Never paint a one-off hex where a token belongs.
-- `npm run a11y` scans three bar states; run it after any night-palette change.
-
-**Dashboard and a Nightcap** (`kind = 'nightcap'`, a fourth `RoundKind`; `play_date` is the LOCAL night key and `guesses` is out of four)
-- Never pool a Nightcap with a Special on a guess distribution or guesses-average. Counts pool fine.
-- Never join `play_date` against `schedule`, never name a Nightcap from a dish; its target comes off `drink_id`. Exclude Nightcaps from the dish report outright.
-- Write lists of kinds off `ROUND_KINDS` / `KIND_META`. A guess count beside another kind's carries its ceiling (`maxGuessesFor`).
-- `tz_offset` is the one beacon field about the player's clock; the server drops impossible values to NULL. Compute the local hour in SQL from `started_at` + `tz_offset`, never from a UTC hour bucket (half-hour zones). The bar's hour axis opens at 20:00 and draws all 24 hours. The tab has no day picker.
-- Crossover denominator is devices that *finished* a Special on a night `>= NIGHT_EPOCH_DATE`; nights from ET today forward are `pending`, outside the rate. `barOnly` devices and `outsideHours` rounds are counted apart, never dropped.
-- After Dark takes `--plum` in the kind palette (not `--neon-pink`).
-
-**Testing the bar:** `npm run lastcall` is the real flow. `?barhours=off` bypasses the clock only (not the finish-lunch gate); `?nightcap=<slug>` pins the pour; `?nightcap=random` is resolved client-side so the Worker never learns a random branch. All dev-only. In production only a signed token gets past the clock, untracked: `preview:drink:<id>` (24h, lands on `/?bar=1&preview=…`) or the showcase link. Logic in `worker/showcase.ts`.
-
-**Showcase link** (`/?s=<token>`): opens a finished, won Special with the band lit, for someone who has never played.
-- Seeded before React mounts (`applyShowcase` in `src/main.tsx`); written to a module variable, **never localStorage**; untracked. `isShowcase` is deliberately separate from `isPreview`. The clock override is cosmetic and client-side; the signature does the gating. The toolbar pill rides along (`(tracked || isShowcase) && dailyDone`). `leaveBar` hard-assigns `/`, dropping the token.
-- **Cannot be revoked** (stateless HMAC; rotating `SESSION_SECRET` kills every session and preview). Lifetimes are a closed set (`SHOWCASE_TTL_DAYS`); the mint route 400s rather than clamping.
-- Token format changes in `worker/auth.ts` (128-bit truncated signature, base36 expiry) are shared by every token and invalidate all live ones. Payload is `sc`, no colon; `classifyDrinkPreview` matches it exactly. Don't build a D1 short-code table.
+`shared/night.ts` is the only place that decides when the bar is open or which night a round belongs to. **Never add `INSERT INTO drink_schedule`.** The rest: `.claude/rules/after-dark.md` (the Nightcap's dashboard rules are in `dashboard.md`).
 
 ## Occasions
 
 A costume the game wears for a stretch of the calendar (Halloween first). **Handcrafted in code; /admin only decides when.** Never call it an "event" in a URL, path or table (ad blockers; `conventions.test.ts`).
 
-- `shared/occasions.ts` is the only place that decides which occasion a day wears (`occasionOn`): the live booking covering it. **No booking, no costume.** `OCCASION_IDS` is a closed set; `OCCASIONS[id].suggested` only prefills the form and flags an unbooked season. Never `INSERT INTO occasion_bookings` from a migration or the seed.
-- **Booked like a notice:** one row per run, both ends inclusive, Live outranks the dates. Live bookings never overlap (`findOverlap`, the Worker 409s), so one booking is one run and owns its numbers.
-- **The day is the round's own, fixed at entry:** the puzzle date for lunch (a Leftover from Oct 31 replays in costume), the night key at the bar. Pages call `useWearOccasion(day)`; everything else reads `useOccasion()`. `primeOccasion()` dresses the page before mount (capped wait).
-- `?occasion=<id>|none` is cosmetic and honoured in production on purpose. The Worker stamps `analytics_rounds.occasion` on insert from `play_date` and never reads the param.
-- **A costume is `src/occasions/<id>/`**, a lazy chunk that fills the slots in `src/occasions/kit.ts`. A new slot is a deliberate change to `kit.ts` and the page that mounts it. CSS scoped to `:root[data-occasion="<id>"]`; anything that must show off-season (the Leftovers calendar mark) lives in game.css.
-- **Decoration only:** `aria-hidden`, never under text, never recolours text or a fill text sits on. The one pressable slot (Cloche) is a real button with a label and announces its result.
-- **Lights loop, the way the bar band's halo does:** no flash faster than 3/s (2.3.1), never over text, and every keyframe in the costume's own reduced-motion block, same commit. Looping past 5s with no pause control is a known WCAG 2.2.2 gap; reduced motion is the off switch.
-- **A costume's palette is a token swap** scoped `:root[data-occasion="<id>"]:not([data-after-dark])` (an unscoped one ties with After Dark and repaints the bar). `--hit`/`--near`/`--miss` never move. Measure on the painted surface and add an a11y state for every screen the swap reaches.
-- Share: `shareMessage(text, t, occasion)` adds the occasion's line (`t.occasions[id].shareLine`) between grid and url; the grid is untouched. A costume's words (`copy`) are catalog entries too. Score card corner art is a pixel map, never emoji. Neither names the dish.
-- Sounds: `OCCASION_SFX` in `shared/audio.ts`, files under `src/assets/sfx/occasions/<id>/`. Missing file = everyday sound.
-- `npm run a11y` scans each room in costume; add states for a new occasion.
-- **Reach (`occasion_views`, `POST /api/occasions/seen`):** one row per (occasion, device, ET seen_day, room, moment); moments `seen` and `knock`. The client sends only from a tracked round, never under `?occasion=` or before the bookings come back from the Worker (`noteOccasionMoment`); the Worker re-runs the fold on `play_day` and 400s a costume that day didn't wear. Runs are attributed by `play_day`, so a Leftover replayed later counts as "after", not as reach. Reach before the ledger's first row is unmeasured (`measuredFrom: null`), never zero.
-- **Events page** (admin nav "Events", view `occasions`) works like Announcements: cards grouped On now / Booked / Ran / Pulled, "+ New event", an editor, Delete with a confirm. `GET /api/admin/occasions` returns each booking with its reach (the notices' strip on the card) and impact (folded: room, returned, knocked, after; same weekdays before via `baselineFor`, lunch and Nightcap apart, pooled rates, `shareVerdict`, first-time players). Schedule keeps only the dashed-ink day tags; Trends keeps the costume bands (annotations, dashed ink, never a fifth colour).
+`shared/occasions.ts` decides which occasion a day wears. **No booking, no costume.** Never `INSERT INTO occasion_bookings` from a migration or the seed. The rest: `.claude/rules/occasions.md`.
 
 ## Game rules
 
@@ -137,38 +70,15 @@ A costume the game wears for a stretch of the calendar (Halloween first). **Hand
 
 ### Kids' Menu
 
-An opt-in short list of the dishes that still fit, from the fourth miss (`MENU_AFTER`). Rules in `shared/kidsmenu.ts`; Worker in `worker/kidsmenu.ts` + `routes/kidsmenu.ts`; card in `src/game/KidsMenu.tsx`.
-
-- **The pill sits beside the order bar and never opens the card.** It is the field's height, in the slot the Order button left (`GuessInput`'s `trail`), drawn on paper in crayon red, never the cherry fill (a filled button there reads as "submit"). It renders only while the menu can open; otherwise the field takes the whole row. Fresh, it enters only after the clue ticket has fed out: its slot opens (a `0fr`→`1fr` grid column, gap inside it, no padding) and the field draws back to uncover it; the tip's space then opens the same way, then the ring. Never a fade-in into a slot already reserved. One pill, every layout, Discord PIP included (the toolbar copy and the PIP copy are gone: players never looked up at the toolbar by the fourth miss). The bar passes no `trail`. One coach card per device, the first round it could open: it rides as the order bar's `lead`, caret pointing down at the pill, and the pill rings while it is up (`lunch-special:kids-menu-tip-seen`, in `PROGRESS_KEYS`; renamed from `kids-menu-seen` so every device sees the new spot once); never shown to a showcase. Never call it a cheat on screen.
-- **The card is a list: circle one, order it.** No peeks, no crossing out, no scratchpad (tried in the first pass and cut). A guessed dish prints crossed out, on the rare board it still fits.
-- **Every tile result filters, hits and misses** (`fitsBoard`): country hit keeps that country, near keeps the region minus the guess's country, miss drops the guess's region; course, temperature and protein keep a hit and drop a miss. **No floor**: the menu is every dish that fits, down to the Special alone. **Ingredients never filter** (matched, missed and the printed count solve the round). The Worker reads the board from the guessed dish ids against its own target, never from client claims; the target joins the pool when inactive. Stamps print confirmed facts only (`confirmedFacts`), under a "Confirmed" label, and not at all on a board of misses. Nothing about order may hint: names alphabetical, sections in `COURSES` / `REGIONS` order (`layoutMenu`).
-- **Every dish is always on show.** Course headings are plain headings, dropped when one course is left; **never a fold** (a folded section left a card with nothing to order). The line under the title (`menuBlurb`) is one short sentence: how many dishes could still be the answer.
-- **An order off the card is an ordinary guess.** A win is a full win and keeps the streak. **Leave no trace**: share text, grid, check and stats never mention it. No Kids' Menu at After Dark; no post-loss menu view.
-- Analytics: `analytics_rounds.kids_menu_at` (stamped by the menu route, first open only) and `analytics_guesses.from_kids_menu` (0/1, NULL pre-0062 and on drinks). The "reached a fourth miss" cohort is derived, never stored. `kids_menu_opens` (0077) holds the card's size, one row per (round, board), written by the menu route only for a round with an `analytics_rounds` row; none before 0077 is unmeasured. The size a card *would* have printed is rebuilt at read time from the ledger (`rebuiltSize`), never stamped on `/guess`; the readout compares opened vs didn't only within a size group, and wins off the card against a blind pick (min(1, k/N)). Activity tags such rounds; Menu tab has a folded readout; Experiments has `fourthMissReturn`.
-- The crayon ring goes round the whole entry (name and country) and is drawn at its measured size by `shared/crayon.ts`, one hand per dish, always a full turn plus a tail, and an oval (only the longest names square up, as little as fits; `crayon.test.ts` pins it). Never a fixed viewBox stretched under `vector-effect: non-scaling-stroke`: the draw-on dash is then measured on screen and a long name gets a part ring.
-- Motion is a second pass: every moment is a data attribute (`data-kids`, `data-row`, `data-moment`), timings in `KIDS_MENU_MS` (`shared/audio.ts`) mirroring the `--kids-*` dial in game.css.
+An opt-in short list of the dishes that still fit, from the fourth miss (`MENU_AFTER`). Rules in `shared/kidsmenu.ts`; Worker in `worker/kidsmenu.ts` + `routes/kidsmenu.ts`; card in `src/game/KidsMenu.tsx`. **Leave no trace**: share text, grid, check and stats never mention it. Never call it a cheat on screen. The rest: `.claude/rules/kids-menu.md`.
 
 ### Ingredient families (amber "close" chip)
 
-- A family is a **partition, never a graph**; all of it is `shared/families.ts` (`FAMILIES`, `STAPLES`, `STANDALONE`, `nearIngredients`). Staples are cousins of nobody. Spirits are `STANDALONE`. Keep a family tight ("a cook would swap one for the other").
-- Only unmatched ingredients take part; each of the Special's is claimed once; the result names the *guess's* ingredient and the *family*, never the Special's partner.
-- `unmatchedIngredients` stays the exact complement of `matchedIngredients`; a close one is in both it and `nearIngredients`, so counts, grids and old rounds are unchanged. The check's count is exact matches only.
-- Close is never colour alone: dashed border + leading `≈` (`.chip--close`).
-- CI enforces placement (`data-integrity.test.ts`, "the pantry"): every ingredient in a family, staple or `STANDALONE`; no plural twin; yellow rate under 30%. Ingredients typed in /admin bypass that test; the editors show `UnplacedHint`.
-- `shared/families.ts` and `shared/pack.ts` import **only types** (`npm run docs:web` runs them under plain node; a test enforces it). The public project page ships a snapshot and a hand-picked `PLATES` list, never the catalogue (an unplayed Special could leak).
+A family is a **partition, never a graph**; all of it is `shared/families.ts`. Close is never colour alone. The rest: `.claude/rules/families.md`.
 
 ### Round modes
 
 `resolveMode()` in `shared/mode.ts` is the table as code; GamePage reads its flags once. Don't re-derive a mode from `window.location`.
-
-| Mode | Entry | localStorage | Lifetime stats | Analytics | Reads `schedule` |
-|---|---|---|---|---|---|
-| Today's Special | `/` | yes | yes | `daily` | yes |
-| Leftovers | `?date=<past>` | per-date | no | `leftover` | yes |
-| Chef's Choice | `?random=<seed>` | no | no | `random` | no |
-| Preview | `?preview=<token>` | no | no | none | no |
-| Playtest | `?special=<slug>` | no | no | none | no |
-| Showcase | `?s=<token>` | no | no | none | yes |
 
 - Archive unlocks once today's Special is finished. A finished daily is also saved to `lunch-special:archive` (the daily slot is overwritten each day). Never archive an unfinished daily. Recovered days (`POST /api/rounds/past` → `lunch-special:recovered`) are outcomes, never boards; `RECOVER_THROUGH` must never sit earlier than the release carrying #215; that route is temporary.
 - Preview (admin test play, 24h token) records nothing. Playtest's `?special=` is honoured by the client only under `import.meta.env.DEV`. Preview and playtest are dressed as the daily (`dressedAsDaily`); only the top banner marks them; the share button fires no beacon.
@@ -186,25 +96,8 @@ An opt-in short list of the dishes that still fit, from the fourth miss (`MENU_A
 ### Rules the dashboard obeys
 
 - **Never report "unmeasured" as zero.** NULL `visited`, `country`, `dish_id`, `source` mean pre-feature rows: `untracked`, never a slice or a dish.
-- Every rate off a denominator under `SMALL_SAMPLE_MIN` (30) carries its Wilson 95% interval, and nothing else does. A headline refuses to compare when it can't (`separated()`); undecided verdicts carry `daysNeeded`.
-- Censored denominators: return rates only count a device after `RETENTION_WINDOW_DAYS` (7); the rest are `pending`, never no-shows. Prose headlines wait for their floors (`RETENTION_MIN_COHORT`, `DISH_MIN_COMPLETED`, `GROWTH_TREND_MIN_DAYS`, `WEEKDAY_MIN_OCCURRENCES`).
-- Rates are **pooled over a period, never averaged across days**; experiment series ship raw counts.
-- Broken measurements are dropped, never clamped (negative durations). `PLAYTIME_CAP_MINUTES` only reduces and says so. A duration needs both ends measured; never COALESCE `completedAt`/`sharedAt` onto `updated_at`. Median and p90, never a mean. Weekday figures are per-occurrence averages.
-- Devices are partitioned, one country each (`foldCountries`). Count the right unit and name it: the funnel counts devices, `FinishRate` counts games; don't merge them. "Played again" needs the day's last `started_at` after its first completion.
-- `DNF_GRACE_MINUTES` (2h) splits "still eating" from "walked out". The activity feed's row is a round, grouped by device × `playedDay`, never `play_date`. Retention and the funnel fold against the real `today`, never the picked day.
-- **Chart axis ticks and value labels are absolutely positioned**, never in the flow of a fixed-height column.
-- **Unserved dishes/drinks are veiled** (`src/admin/Veil.tsx`): real name absent from the DOM until the eye button is pressed, no timers. Any new spot printing a later name uses it.
-- **Nothing on the dashboard animates**; `admin.css` declares no keyframes.
 - **On-screen copy is a fragment.** State the fact ("No guesses on file."), never the method or the reasoning; that lives in code comments and the wiki. No "What this counts" fold-outs. Unmeasured still never reads as zero, just in fewer words.
-- `sound_prefs` is not a measurement; nothing may quote a rate off it.
-- Colour has four taken meanings (kind: mustard/teal/cherry; event: start teal/complete cherry/share mustard; rank: teal ramp; annotation: dashed ink). Don't add a fifth. No colour is ever assigned to a player.
-- Seven tabs, each one question: Today · Menu · Players · After Dark · Trends · Experiments · Activity (`?tab=`). Puzzle reads live on Menu; the 📅 `DayPicker` lives on Menu only and resets on leaving. `/api/admin/audience` is the one definition of "active" (a device that started a round). The KPI compares the last 7 complete days with the 7 before (`countChange`); today is never in it. Cohort cells and the weekly chart never print a zero for an unfinished week.
-- **The regulars** (Players tab, `/api/admin/regulars`, `worker/regulars.ts`): the top tenth of devices by distinct ET days played, ties at the line kept in, never a one-day device. It is a two-group table with no colour and no new meaning. Guess counts are Today's Special only; "first Special" is there because regulars have had more practice. Rates ship as n-of-m and carry Wilson ranges; the headline waits for `REGULARS_MIN_GROUP`. "Everyone else" is non-regulars past `RETENTION_WINDOW_DAYS`; newer ones are `pending`, counted apart. The group is chosen on days played, so its attendance rows describe the line and "ever tried" gaps are mostly tenure: only day-one and first-Special gaps are called out.
-- **The device check** (Activity tab, click a device id; `/api/admin/device-check`, `worker/devicecheck.ts`): one device's history as a guest check. "Regular" comes from `regularsCutoff` only, so it and the Players tab never disagree. On screen the comparison group is "Others" (never "the house"): every *other* device past `RETENTION_WINDOW_DAYS`, every surface, with a footnote saying whether it was pooled (Special rates) or a median (the measures). `rank` is "3rd of 23" with this device counted, ties shared and printed ("tied with 19"), null inside the device's own first week, no interval; one rank per measure, never a second "days played" rank with a different denominator; n-of-m rates carry Wilson ranges. Fixed-column tables, never dotted-leader lines (a value plus its range won't fit one). Ink only, no keyframes (it wears `.dcheck`, never `.modal--receipt`). Counts per kind, never dish names: it is not a per-device guess trail. The feed has no spotlight.
-- **Admin Dishes filter** (`shared/dishfilter.ts`): within a facet OR, across AND; every chip's count drops its own facet; "never scheduled" means past *and* future; parked in sessionStorage through `normalizeFilter()`.
-- **Admin Schedule board** (`shared/schedule.ts`): the picker is a hand-drawn listbox, never `<select>` or `<datalist>`; `matchDishes` searches names only; a name two dishes share resolves to neither; a close repeat is stated, never blocked; writes patch one entry and never refetch the window; nothing in a row changes size/colour/weight in flight (no `disabled`, use `aria-busy`); all four row buttons always render, hidden with `visibility`; the route owns the default window. Autofill and its balance line are informational.
-- **Menu mix** takes no `surface` or `date` filter; one hue per bar.
-- **What people order** (`/picks`, `worker/guessstats.ts`) reads `analytics_guesses`: dishes only, counts never rates, no `surface` filter (the ledger has none). Menu mix and Ingredient families are `Fold`s that mount, and fetch, only once opened. The dish report opens on 5 rows and keeps only Recently served (the default) and Hardest; all-time difficulty and "Served more than once" are folded. Players folds Repeat visits, arrival sources and countries the same way (`Fold`), each bar carrying its panel's headline sentence as the hint. Activity folds "This device's data"; Trends folds the growth chart; Today shows one "Housekeeping is clear" line instead of the schedule-health and content-warning cards until either has something to fix. **What people pour** is the same `GuessPanel` on After Dark over `/picks/drinks`: the dish and drink ledgers never meet, and `foldGuessStats` takes generic ids.
+- The rest: `.claude/rules/dashboard.md`.
 
 ## First visit, notices, requests, sound
 
@@ -229,12 +122,13 @@ An opt-in short list of the dishes that still fit, from the fourth miss (`MENU_A
 
 - Ingredients: JSON TEXT, canonical lowercase singular. Reuse existing vocabulary.
 - Schedule: past dates locked; deleting or deactivating a dish scheduled today/future is blocked; `PUT /schedule` and `PUT /nights` refuse inactive items. Autofill: rest tier → variety penalty → exact rest (`worker/variety.ts`), skipping the last 60 days. The shuffle (🎲) rolls a never-scheduled, schedulable dish and writes on every click. Clearing a day deletes its row; the fallback pick covers it.
-- Regions: north-america, latin-america, europe, middle-east, africa, south-asia, east-asia, southeast-asia, oceania. Courses: breakfast, appetizer, entree, dessert (`SERVABLE_COURSES`). `drink` is history only: the bar owns drinks, the kitchen's eight are inactive (0078), the save route 400s a new or active one and the integrity test fails on one. It stays in the `CHECK`, `Course`, `COURSES` and `t.courses.drink` for old rounds; the Kids' Menu keeps the full `COURSES`. Proteins: beef, pork, poultry, seafood, lamb, vegetarian.
-- Seed SQL: escape apostrophes as `''`. Windows repo; CRLF warnings are noise.
+- Courses: breakfast, appetizer, entree, dessert (`SERVABLE_COURSES`). `drink` is history only: the bar owns drinks, the kitchen's eight are inactive (0078), the save route 400s a new or active one and the integrity test fails on one. It stays in the `CHECK`, `Course`, `COURSES` and `t.courses.drink` for old rounds; the Kids' Menu keeps the full `COURSES`.
+- Windows repo; CRLF warnings are noise.
 - **Build marker:** the footer's last line shows the version (`v1.7.0`, `*` if dirty; never sha or branch, which ride on `title` and the admin line). Always on, in page flow (never a fixed badge), not a setting, nothing reaches the server. `__BUILD__` is a vite `define`; folds take a `BuildInfo` and never read it (`shared/conventions.test.ts` enforces this for `worker/` and `shared/`). "No git" reads as `dev`.
+- Deliberate holes in hook dependency lists carry `eslint-disable-next-line react-hooks/exhaustive-deps` on the line before the array, reason in the comment above. `react/set-state-in-effect` is off in `.oxlintrc.json` on purpose.
 - `vitest.config.ts` is separate from `vite.config.ts` on purpose (tests must not load the cloudflare plugin); it covers `worker/` and `shared/`.
 - `tsc -b` is incremental and can report success on a stale graph; use `npx tsc -b --force` after changing a `shared/` type. Three composite projects: worker code uses no DOM libs. `worker-configuration.d.ts` is generated, never hand-edited.
-- Cookies: HttpOnly+Secure+SameSite=Strict, 7-day HMAC token. Routes under `worker/routes/admin/` are mounted in a load-bearing order: `auth.ts` above the session guard, everything else below.
+- Routes under `worker/routes/admin/` are mounted in a load-bearing order: `auth.ts` above the session guard, everything else below.
 - Public GETs with a `Cache-Control` header: `/api/dishes` and `/api/night/drinks` only (5 min). Keep it off `/daily`, `/occasions` and the beacons.
 - Don't add npm deps casually; the only runtime deps are hono, react, react-dom.
 - Art: swap `ai-*.svg` in place (same viewBox ratio, keep the AI-GENERATED header) and update `ASSETS.md`. The neon logo is CSS text.
@@ -247,21 +141,11 @@ An opt-in short list of the dishes that still fit, from the fourth miss (`MENU_A
 
 In progress (#269), landing as a stack of PRs. The game's own words go through a typed catalog; content (dish and drink names, ingredients, clues, coasters, country names) stays English until phase 2. `/admin` stays English. Shipped languages: English, Spanish (`es`, a draft: `autoDetect: false` until a native speaker reads it). `/translate` drafts the next one.
 
-- `shared/locale.ts` is the only place that decides the language (`resolveLocale`: the player's pick, then Discord, then `navigator.languages`, then English). A locale with `autoDetect: false` (no native-speaker review yet) is picker-only.
-- `shared/i18n/locales/en.ts` is the source of truth; **new strings land there first**. Every other locale is one file named for its tag, typed `Messages`, and a lazy chunk (`src/i18n/store.ts` globs the folder). A message is a string or a function of plain arguments.
 - Components read `useT()`. **Folds in `shared/` take the messages as an argument and never import a locale** (`conventions.test.ts`); tests pass `en`, and the never-name-the-dish tests run over every catalog (`shared/i18n/catalogs.ts`). Plurals go through `plural()` (`Intl.PluralRules`), never `n === 1 ? …`; lists through `list()`.
-- **Glossary:** the logo ("Lunch Special") and "After Dark" stay English in every language (`MAY_MATCH_ENGLISH`). The Special, Leftovers, Chef's Choice, Kids' Menu, Nightcap, coaster and the check are translated, in the diner's voice; the skill's table is the list.
-- **The picker** (`src/game/LanguagePicker.tsx`, footer, beside the build marker) is a hand-drawn listbox, never `<select>`, each language in its own name and `lang`. It writes `lunch-special:locale` as `{ locale, at }` through `setLocale()` (no reload). The key is in `PROGRESS_KEYS`; the later `at` wins.
-- A setting nobody chose for this game (browser, Discord's `userSettingsGetLocale()`, a server's `guild_locale`) goes through `detectLocale`: reviewed locales only. The Discord progress message speaks `guild_locale`, never the player's `locale`; its tag rides on `discord_messages.locale` so edits keep it, NULL is English. The tag is the server's setting, not the player's.
-- `analytics_rounds.locale` and `dish_requests.locale` (0064) hold `shippedLocale()` of what the client sent: a `LOCALES` tag or NULL (pre-0064 and pseudo). NULL is untracked on the dashboard, never English. The Players tab folds it (`worker/locales.ts`), one language per device.
-- `npm run a11y` scans Spanish states and finds controls by class or role, never by `aria-label` or text: a new scan step keeps it so.
-- A number and its noun on the guess row's count are joined by `\u00a0` in every catalog, and the dot stays with the unit before it.
-- `?locale=<tag>|pseudo` is cosmetic, honoured in production, never stored. The pseudo-locale accents, brackets and pads every string by 40%: an unbracketed string on screen is a leak.
-- `shared/i18n/catalog.test.ts`: one file per `LOCALES` entry, English's keys and arities everywhere, nothing left identical to English outside `MAY_MATCH_ENGLISH`.
-- `<html lang>` names the catalog on screen (`primeLocale()` before mount, 800ms cap), never ahead of it.
 - **No raw English in `src/game` or `src/occasions` JSX**: text and word-carrying props (`aria-label`, `title`, `placeholder`, `alt`, `label`, `text`) come from `t`; `conventions.test.ts` walks the TSX and allows only the brand ("Lunch Special", "After Dark"). Bold inside a sentence is `**word**` in one message, rendered by `InlineMarkdown`, never three fragments. Only catalog text goes through it; a dish, drink or player-typed name never does.
 - Dates and numbers a player reads take `useLocale().intl`, never `undefined` (the browser's language may not be the game's). `/admin` keeps the browser's.
 - **A Worker error a player can see answers `{ error, code }`** through `playerError()` (`shared/errors.ts`, a closed `PLAYER_ERROR_CODES` list with copy at `t.errors`). The English `error` stays for logs and old clients. The client keeps the `ApiError` whole and words it at render (`errorText`), never `e.message`. Admin and Discord routes answer English alone.
+- The rest: `.claude/rules/i18n.md`.
 
 ## Accessibility (player-facing UI)
 
@@ -278,7 +162,7 @@ WCAG 2.1 AA for the game; `/admin` is exempt.
 
 ## Documentation
 
-**The wiki is the only source of truth for documentation.** The repo carries this file, the two beat-sheet skills (`.claude/skills/create-dishes`, `create-drinks`), the `translate` skill, `ASSETS.md`, `README.md`, and directory READMEs.
+**The wiki is the only source of truth for documentation.** The repo carries this file, the two beat-sheet skills (`.claude/skills/create-dishes`, `create-drinks`), the `translate` skill, the area rules in `.claude/rules/`, `ASSETS.md`, `README.md`, and directory READMEs.
 
 - **Don't create a new top-level `.md`**; a change that wants one wants a wiki note.
 - **Never write the wiki's path into the repo** (comment, doc or commit message); say "the wiki". It lives in agent memory and `.claude/wiki-path.local`.

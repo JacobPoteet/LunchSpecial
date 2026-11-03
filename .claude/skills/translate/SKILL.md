@@ -1,6 +1,7 @@
 ---
 name: translate
-description: Draft a new language for Lunch Special's player-facing words, or bring an existing locale up to date with English, from the typed catalog in shared/i18n/locales/en.ts. Use when the user asks to add a language ("/translate fr", "add German", "draft a Portuguese catalog"), to fill in keys a locale is missing after English grew, or to redo one locale's wording. The draft ships picker-only (`autoDetect: false`) until a native speaker has read it. Content (dish and drink names, clues, coasters, ingredients, countries) is not this skill's job: it stays English until phase 2 of #269.
+description: >-
+  Draft a new language for Lunch Special's player-facing words, or bring an existing locale up to date with English, from the typed catalog in shared/i18n/locales/en.ts. Use when the user asks to add a language ("/translate fr", "add German", "draft a Portuguese catalog"), to fill in keys a locale is missing after English grew, or to redo one locale's wording. The draft ships picker-only (`autoDetect: false`) until a native speaker has read it. Content (dish and drink names, clues, coasters, ingredients, countries) is not this skill's job: it stays English until phase 2 of #269.
 ---
 
 # Translating the catalog

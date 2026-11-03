@@ -1,6 +1,7 @@
 ---
 name: create-drinks
-description: Add drinks to the Lunch Special After Dark catalogue, following the coaster sheet in section 3. Use when the user says "add drinks: Negroni (Italy), Pisco Sour (Peru)", asks for a new drink batch, asks to stock the bar, or asks to rewrite the coasters on drinks that already exist. For dishes rather than drinks use create-dishes; for clue options the user will paste into /admin themselves, with no file written, use suggest-clue.
+description: >-
+  Add drinks to the Lunch Special After Dark catalogue, following the coaster sheet in section 3. Use when the user says "add drinks: Negroni (Italy), Pisco Sour (Peru)", asks for a new drink batch, asks to stock the bar, or asks to rewrite the coasters on drinks that already exist. For dishes rather than drinks use create-dishes; for clue options the user will paste into /admin themselves, with no file written, use suggest-clue.
 ---
 
 # Adding drinks to Lunch Special
