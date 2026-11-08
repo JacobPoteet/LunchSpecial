@@ -17,7 +17,11 @@
     // changes (a picked day, a surface toggle) in ten places, each with a
     // comment saying why, and the alternative the rule wants (derive during
     // render, or key the component) is the bigger change for no bug fixed.
-    "react/set-state-in-effect": "off"
+    "react/set-state-in-effect": "off",
+    // Fires on `let` variables declared inside an effect and reassigned by its
+    // own handlers or cleanup (a rAF frame id, an `alive` flag). They are local
+    // to one run of the effect, so the "after render" hazard it names can't occur.
+    "react/immutability": "off"
   },
   "ignorePatterns": ["dist/", "node_modules/", "docs/", "worker-configuration.d.ts"]
 }
