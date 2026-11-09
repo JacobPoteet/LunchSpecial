@@ -1,8 +1,10 @@
-# CLAUDE.md — Lunch Special
+# Lunch Special
 
 Daily Wordle-style game: guess the diner's "Special" (a world dish). 1950s diner theme. One Cloudflare Worker serves everything: React SPA (Workers Static Assets) + Hono API + D1. No accounts; player state in localStorage.
 
 **This file is rules, not documentation.** It carries what a change must not break and what the code can't tell you. How things work: read the code (pure folds in `shared/` and `worker/` each have a test beside them). Why they're shaped that way: the wiki (see "Documentation"). Area rules live in `.claude/rules/*.md` and load with the files they cover.
+
+Follows the workflow standard in the user CLAUDE.md: squash merges, `/ship` to land a PR, `/release` to cut one, bugs fixed when found. Deviations are listed at the end.
 
 ## Commands
 
@@ -14,7 +16,7 @@ npm run lastcall     # hand-off harness: seeds a finished, won Special so the Af
 npm run negroni      # a Nightcap on one named pour, opening hours ignored (?bar=1&nightcap=negroni)
 npm run halloween    # the diner in its Halloween costume (?occasion=halloween; works on any URL, any build)
 npm run admin        # opens /admin at the login
-npm test             # vitest — worker/**/*.test.ts + shared/**/*.test.ts
+npm test             # vitest: worker/**/*.test.ts + shared/**/*.test.ts
 npm run check        # tsc -b (3 project refs: app / worker / node)
 npm run lint         # oxlint. rules-of-hooks is an error, exhaustive-deps a warning
 npm run a11y         # axe over the RUNNING game (needs `npm run dev` in another terminal)
@@ -33,14 +35,14 @@ Local admin password: `ADMIN_PASSWORD` in `.dev.vars` (gitignored). Browser prev
 
 ## Deploy and data safety
 
-**Live:** https://lunchspecial.app. Releases: `git tag vX.Y.Z && git push origin vX.Y.Z` runs `deploy.yml` (test + check + remote migrate + deploy). `ci.yml` (test, check, lint, a11y) and `codeql.yml` run on push/PR to `main`.
+**Live:** https://lunchspecial.app. Releases: `/release` (see "Cutting a release"); the tag push runs `deploy.yml` (test + check + remote migrate + deploy). `ci.yml` (test, check, lint, a11y) and `codeql.yml` run on push/PR to `main`.
 
 - **Prod D1 is the only copy of half the data.** `seed.sql` + `migrations/` rebuild the dish/drink *pool* only. `schedule`, `drink_schedule`, admin edits, analytics, requests, announcements, experiments and `sound_prefs` exist only in prod. Dashboard-vs-seed divergence is expected.
 - **`npm run db:seed:remote` is destructive** (replaces every booked Special). Never run it against prod. No automatic backup exists: export first.
 - **CI runs migrations (additive, idempotent), never the seed.**
 - **Never add `INSERT INTO schedule` or `INSERT INTO drink_schedule`.** Booking happens in /admin; unbooked days run on the deterministic fallback pick.
 - **Secrets** (`ADMIN_PASSWORD`, `SESSION_SECRET`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `DISCORD_PUBLIC_KEY`, `GITHUB_TOKEN`): `wrangler secret put`, persist across deploys. Discord and GitHub ones are optional; unconfigured, the feature degrades and nothing else breaks. **A new Worker secret must be added to `.dev.vars.example`**, or CI's placeholder `.dev.vars` lacks it and `tsc` fails. `GITHUB_REPO` and `VITE_DISCORD_CLIENT_ID` are public (the latter is a build-time Vite var, in `.env.local`, not `.dev.vars`). `DISCORD_BOT_TOKEN` is used only by `discord:register`.
-- `ci.yml` and `codeql.yml` share an identical `paths-ignore` (`**.md`, `docs/**`, `discord-assets/**`); keep them in sync. If CI becomes a required check, doc-only PRs will hang on it.
+- `ci.yml` runs on every PR. Its `changes` job skips `test` and `a11y` when a PR touches only `**.md`, `docs/**` or `discord-assets/**`, and the `CI gate` job reports for all of them; `CI gate` is the required check on `main`. `codeql.yml` keeps the same three paths as `paths-ignore` and is not required. Keep the two lists in sync.
 - `deploy.yml` re-runs test + check on purpose and checks out with `fetch-depth: 0` (the build marker needs tags).
 
 ## Discord Activity
@@ -165,13 +167,22 @@ WCAG 2.1 AA for the game; `/admin` is exempt.
 **The wiki is the only source of truth for documentation.** The repo carries this file, the two beat-sheet skills (`.claude/skills/create-dishes`, `create-drinks`), the `translate` skill, the area rules in `.claude/rules/`, `ASSETS.md`, `README.md`, and directory READMEs.
 
 - **Don't create a new top-level `.md`**; a change that wants one wants a wiki note.
-- **Never write the wiki's path into the repo** (comment, doc or commit message); say "the wiki". It lives in agent memory and `.claude/wiki-path.local`.
-- **Wiki notes are written under `/stop-slop`.** House style: non-verbose, `[[wiki links]]`, tables and mermaid over paragraphs, no em dashes, active voice.
 - `docs/lessons/` is the one non-wiki doc surface (self-contained HTML walkthroughs; see its README).
 - **Check `docs/index.html` before coining a term.** It holds the vocabulary (beats, beat sheet, the Special, clue ticket, the check, Leftovers, Chef's Choice, note from the kitchen).
 
-**Before opening a PR:** (1) does this file still tell the truth? Edit it in the same PR. (2) Update the wiki note that covers the change, before the PR. (3) confirm labels; the wiki-path leak is caught by `npm test` on your machine (`gh label list` → `gh pr create --label`).
+**Before opening a PR:** (1) does this file still tell the truth? Edit it in the same PR. (2) Name the wiki notes the change affects under `## Wiki notes` in the PR body; `/release` writes them. (3) confirm labels; the wiki-path leak is caught by `npm test` on your machine (`gh label list` → `gh pr create --label`).
 
 ## Verify a change
 
 `npm test && npm run check && npm run lint`, then the dev server (`npm run a11y` in a second terminal), then by hand: play a full round (miss twice → clue tickets → win → receipt), **then `npm run lastcall` and walk the hand-off into a Nightcap**, check /admin (dashboard, editor, schedule, Bar) and 375px (no horizontal scroll). For UI changes also do the keyboard-only and reduced-motion passes, plus 320px and 200% zoom. Seeded local answer for 2026-07-17 is Hamburger (id 51).
+
+## Cutting a release
+
+Run `/release`. The version lives only in the tag: `vite.config.ts` reads it with `git describe`, and `package.json`'s `0.1.0` is unused, so there is no version file to bump and no release PR unless the notes go in a file. Release notes go on the GitHub release. The tag push runs `deploy.yml` (test, check, remote migrate, deploy); after it goes green, check the footer on https://lunchspecial.app shows the new version.
+
+## Deviations from the standard
+
+| Deviation | Why |
+| --- | --- |
+| `docs/` holds the GitHub Pages landing page (`docs/index.html`, the vocabulary) and `docs/lessons/` | They are published pages, not documentation the wiki could hold |
+| `ASSETS.md` stays in the repo | It is the licence log for the art beside it |
