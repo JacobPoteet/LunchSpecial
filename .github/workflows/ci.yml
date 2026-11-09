@@ -6,16 +6,17 @@ name: CI
 # not just catalog data, so a code-only PR (e.g. a Worker or React change) can't
 # land with red tests/types.
 #
-# paths-ignore skips the run when a push/PR touches ONLY inert files — prose and
+# The changes job skips test and a11y when a PR touches ONLY inert files — prose and
 # standalone assets that no test or tsconfig project covers (docs/ is the GitHub
 # Pages landing page; discord-assets/ is a separate asset pipeline; both are
 # outside tsconfig.{app,worker,node}.json and vitest). A commit mixing a doc with
 # any other file still runs the full gate — GitHub skips only when *every*
 # changed path matches.
 #
-# NOTE: if CI ever becomes a *required* status check, paths-ignore will leave
-# doc-only PRs stuck on "Expected — waiting for status". The fix then is to keep
-# the trigger unfiltered and add a filter/gate job that reports success instead.
+# CI gate is the required status check on main. A workflow-level paths-ignore
+# on pull_request would leave doc-only PRs stuck on "Expected, waiting for
+# status", so PRs always run and the changes job does the filtering instead.
+# Pushes to main keep paths-ignore: nothing requires a check there.
 on:
   push:
     branches:
@@ -27,11 +28,6 @@ on:
   pull_request:
     branches:
       - main
-    # Keep in sync with the push filter above (Actions doesn't support YAML anchors).
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - "discord-assets/**"
 
 # One CI run per branch/PR at a time. Pushing a follow-up commit (or force-pushing
 # a PR branch) cancels the in-flight run instead of leaving two full gates racing
@@ -48,7 +44,33 @@ concurrency:
 # workflow also avoids a THIRD copy of that paths-ignore list to hold in sync by
 # hand — see the note above about Actions and YAML anchors.
 jobs:
+  # Same three paths as the push filter above and codeql.yml's paths-ignore
+  # (Actions doesn't support YAML anchors). code=true when any changed file
+  # falls outside them, and always on a push.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: filter
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ -z "$BASE" ]; then echo "code=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git diff --name-only "$BASE" HEAD > changed.txt
+          cat changed.txt
+          if grep -qvE '\.md$|^docs/|^discord-assets/' changed.txt; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
   test:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -92,6 +114,8 @@ jobs:
   # it. See scripts/a11y-scan.mjs for what it visits and why. /admin is out of
   # scope: a password-gated single-user back office.
   a11y:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -138,3 +162,19 @@ jobs:
       - name: Dev server log
         if: failure()
         run: cat dev-server.log || true
+
+  # The one required check. A skipped job (doc-only PR) passes; a failed or
+  # cancelled one fails the gate.
+  gate:
+    name: CI gate
+    if: always()
+    needs: [changes, test, a11y]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          RESULTS: ${{ needs.changes.result }} ${{ needs.test.result }} ${{ needs.a11y.result }}
+        run: |
+          echo "changes test a11y: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in success|skipped) ;; *) echo "::error::a CI job ended $r"; exit 1 ;; esac
+          done
