@@ -314,7 +314,20 @@ const es: Messages = {
         barSub: "Una bebida. Cuatro intentos. Se acaba a la hora de las brujas.",
       },
     },
-  } satisfies Record<OccasionId, { name: string; shareLine: string; knock: string; boo: string; copy: Record<string, string> }>,
+    thanksgiving: {
+      name: "Acción de Gracias",
+      shareLine: "🦃 Acción de Gracias en Lunch Special",
+      pull: "Tira del hueso de los deseos",
+      long: "Te tocó la parte larga. Pide un deseo.",
+      short: "La parte corta. El año que viene será.",
+      copy: {
+        sub: "Abierto en Acción de Gracias. Deja sitio para el pastel.",
+        thanks: "Gracias por ser de la casa",
+        fine: "Sin cambios en el Especial · Sobras todo el fin de semana",
+        barSub: "Una bebida. Cuatro intentos. Luego, aflójate el cinturón.",
+      },
+    },
+  } satisfies Record<OccasionId, { name: string; shareLine: string; copy: Record<string, string>; [costume: string]: unknown }>,
 
   // ---- Screens ------------------------------------------------------------------
 

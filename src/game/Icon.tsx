@@ -45,6 +45,13 @@ const PATHS = {
       <path d="M12 8c0-1.7.7-3 2.2-3.7" />
     </>
   ),
+  // A maple leaf, for the days the diner dressed for Thanksgiving.
+  leaf: (
+    <>
+      <path d="M12 3l1.6 3.4 2.4-1.1-.6 4 3.6-1.3-1 2.6 2.5 1-4.2 3.3.6 1.9-4.9-.6-4.9.6.6-1.9-4.2-3.3 2.5-1-1-2.6 3.6 1.3-.6-4 2.4 1.1z" />
+      <path d="M12 21v-9" />
+    </>
+  ),
   dice: (
     <>
       <rect x="4" y="4" width="16" height="16" rx="3" />

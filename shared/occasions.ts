@@ -22,7 +22,7 @@ import { rate, separated } from "./sample";
 import type { Surface } from "./types";
 
 /** Every occasion the code knows how to dress for. A closed set, like ROUND_KINDS. */
-export const OCCASION_IDS = ["halloween"] as const;
+export const OCCASION_IDS = ["halloween", "thanksgiving"] as const;
 export type OccasionId = (typeof OCCASION_IDS)[number];
 
 export interface OccasionMeta {
@@ -37,6 +37,11 @@ export interface OccasionMeta {
    * off it.
    */
   suggested: { from: string; to: string };
+  /**
+   * The cloche's secret: the moment a device sends when it finds it, and what
+   * the Events page calls the devices that did.
+   */
+  secret: { moment: Exclude<OccasionMoment, "seen">; label: string };
 }
 
 // The player's words for an occasion (its share line, the costume's copy) live
@@ -48,6 +53,17 @@ export const OCCASIONS: Record<OccasionId, OccasionMeta> = {
     name: "Halloween",
     billing: "Graveyard shift",
     suggested: { from: "10-24", to: "10-31" },
+    secret: { moment: "knock", label: "Found the ghost" },
+  },
+  thanksgiving: {
+    id: "thanksgiving",
+    name: "Thanksgiving",
+    billing: "Turkey Day",
+    // Thanksgiving is the fourth Thursday, so it lands between Nov 22 and 28.
+    // This window holds every one of them and the leftovers weekend after
+    // (a Nov 28 Thanksgiving's Sunday is Dec 1).
+    suggested: { from: "11-20", to: "12-01" },
+    secret: { moment: "wish", label: "Pulled the wishbone" },
   },
 };
 
@@ -196,10 +212,12 @@ export const OCCASION_ROOMS = ["diner", "bar"] as const;
 export type OccasionRoom = (typeof OCCASION_ROOMS)[number];
 
 /**
- * What a device did with it. `seen` is the costume on screen; `knock` is the
- * ghost under the cloche (three knocks). A new moment is a code change here.
+ * What a device did with it. `seen` is the costume on screen; the rest are
+ * each costume's cloche secret (`OCCASIONS[id].secret`): `knock` is
+ * Halloween's ghost (three knocks), `wish` is Thanksgiving's wishbone. A new
+ * moment is a code change here.
  */
-export const OCCASION_MOMENTS = ["seen", "knock"] as const;
+export const OCCASION_MOMENTS = ["seen", "knock", "wish"] as const;
 export type OccasionMoment = (typeof OCCASION_MOMENTS)[number];
 
 /** What POST /api/occasions/seen carries. */
@@ -242,8 +260,8 @@ export interface OccasionReach {
   daily: { date: string; devices: number }[];
   /** Devices that saw it on two or more days of the run. */
   returned: number;
-  /** Devices that knocked the ghost out from under the cloche. */
-  knocked: number;
+  /** Devices that found the cloche's secret (the ghost, the wishbone). */
+  found: number;
   /**
    * Devices that saw this run's costume AFTER it ended: a Leftover from one of
    * its days, replayed in costume. Attributed by play_day, counted by device.
@@ -287,7 +305,7 @@ export function foldReach(run: Span, today: string, rows: readonly SightingRow[]
     },
     daily,
     returned: [...daysPerDevice.values()].filter((days) => days.size >= 2).length,
-    knocked: distinct(rows.filter((r) => r.moment === "knock")),
+    found: distinct(rows.filter((r) => r.moment !== "seen")),
     after: distinct(rows.filter((r) => r.moment === "seen" && r.seen_day > run.end)),
   };
 }

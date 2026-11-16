@@ -24,9 +24,18 @@ describe("parseSighting", () => {
     [{ ...ok, playerId: "nope" }, "Invalid player id"],
     [{ ...ok, room: "kitchen" }, "Unknown room"],
     [{ ...ok, moment: "stare" }, "Unknown moment"],
+    [{ ...ok, moment: "wish" }, "Unknown moment"],
     [{ ...ok, playDay: "2026-11-05" }, "Invalid day"],
   ])("refuses %j", (raw, error) => {
     expect(parseSighting(raw, HALLOWEEN, "2026-10-30")).toEqual({ error });
+  });
+
+  it("accepts each costume's own secret", () => {
+    expect(parseSighting({ ...ok, moment: "knock" }, HALLOWEEN, "2026-10-30")).toEqual({ sighting: { ...ok, moment: "knock" } });
+    const thanksgiving = [{ occasionId: "thanksgiving" as const, startDate: "2026-11-20", endDate: "2026-11-30", isActive: true }];
+    const wish = { ...ok, occasionId: "thanksgiving", playDay: "2026-11-26", moment: "wish" };
+    expect(parseSighting(wish, thanksgiving, "2026-11-26")).toEqual({ sighting: wish });
+    expect(parseSighting({ ...wish, moment: "knock" }, thanksgiving, "2026-11-26")).toEqual({ error: "Unknown moment" });
   });
 
   it("files an unknown surface as web, like every other beacon", () => {

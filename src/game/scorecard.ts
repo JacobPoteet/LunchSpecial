@@ -20,10 +20,12 @@ import type { MatchLevel } from "../../shared/types";
 import type { Scorecard } from "../../shared/scorecard";
 import type { OccasionId } from "../../shared/occasions";
 import { JACK_COLORS, JACK_PIXELS } from "../occasions/halloween/pixels";
+import { PIE_COLORS, PIE_PIXELS } from "../occasions/thanksgiving/pixels";
 
 /** Each occasion's corner, in pixels. Off-season the card is unchanged. */
 const CORNER_ART: Record<OccasionId, { pixels: string[]; colors: Record<string, string> }> = {
   halloween: { pixels: JACK_PIXELS, colors: JACK_COLORS },
+  thanksgiving: { pixels: PIE_PIXELS, colors: PIE_COLORS },
 };
 
 /** Draw a pixel map with its top-right corner at (right, top). */

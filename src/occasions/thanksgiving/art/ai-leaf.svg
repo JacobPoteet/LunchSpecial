@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- AI-GENERATED PLACEHOLDER — replace with commissioned art. See ASSETS.md ("ai-leaf.svg"). -->
+  <!-- A maple leaf in rust: the pin on each clue ticket, the print on the bar's coasters. -->
+  <path d="M12 2.5l1.7 3.6 2.5-1.2-.6 4.2 3.8-1.4-1.1 2.8 2.7 1-4.4 3.5.6 2-5.2-.6-5.2.6.6-2-4.4-3.5 2.7-1-1.1-2.8 3.8 1.4-.6-4.2 2.5 1.2z" fill="#c0571f" stroke="#8a3a12" stroke-width=".6" stroke-linejoin="round"/>
+  <path d="M12 21.5v-11M12 13.5l-3.6-2.6M12 13.5l3.6-2.6" stroke="#8a3a12" stroke-width=".7" stroke-linecap="round" fill="none"/>
+</svg>

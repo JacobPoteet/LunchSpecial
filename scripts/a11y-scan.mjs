@@ -269,6 +269,54 @@ const SCANS = [
       await page.waitForSelector(".hw-sign");
     },
   },
+  {
+    name: "Thanksgiving: board after a miss (palette, sign, garland, pies, cloche)",
+    async setup(page) {
+      await page.goto(`${BASE}/?special=${TARGET_SLUG}&occasion=thanksgiving`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector(".tg-cloche__btn");
+      await guess(page, WRONG_GUESS);
+      await page.waitForSelector(".attr-tile--revealed");
+      await page.waitForSelector(".ticket");
+    },
+  },
+  {
+    // The wishbone pulled: the cloche's live region has spoken.
+    name: "Thanksgiving: the wishbone pulled",
+    async setup(page) {
+      await page.click(".tg-cloche__btn");
+      await page.waitForSelector(".tg-cloche__bone");
+    },
+  },
+  {
+    // The palette swap reaches the check: cranberry share button and frame,
+    // butter-crust stock under the stats.
+    name: "Thanksgiving: the check (harvest palette, verdict art)",
+    async setup(page) {
+      await guess(page, "Ramen");
+      await page.waitForSelector(".modal--receipt");
+      await page.waitForSelector(".tg-verdict");
+    },
+  },
+  {
+    name: "Thanksgiving: Kids' Menu pill (fourth miss, in costume)",
+    async setup(page) {
+      await page.goto(`${BASE}/?special=${TARGET_SLUG}&occasion=thanksgiving`, { waitUntil: "domcontentloaded" });
+      await page.waitForSelector(".tg-cloche__btn");
+      await missFourTimes(page);
+    },
+  },
+  {
+    name: "Thanksgiving: bar mid-round (amber neon in costume, coaster)",
+    async setup(page) {
+      await page.goto(`${BASE}/?bar=1&handoff=1&nightcap=${TARGET_DRINK}&occasion=thanksgiving`, {
+        waitUntil: "domcontentloaded",
+      });
+      await page.waitForSelector(BAR_INPUT);
+      await pour(page, WRONG_POUR);
+      await page.waitForSelector(".ticket--coaster");
+      await page.waitForSelector(".tg-sign");
+    },
+  },
   // Spanish (`?locale=es`), the first real second language. Longer words on
   // the same tiles, pills and tickets, so the states where the words are
   // tightest and the ones where the bar's palette meets them. A draft is

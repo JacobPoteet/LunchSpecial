@@ -316,7 +316,23 @@ const en = {
         barSub: "One drink. Four guesses. Gone by the witching hour.",
       },
     },
-  } satisfies Record<OccasionId, { name: string; shareLine: string; knock: string; boo: string; copy: Record<string, string> }>,
+    thanksgiving: {
+      /** Said on a calendar day that wore the costume. */
+      name: "Thanksgiving",
+      shareLine: "🦃 Turkey Day at Lunch Special",
+      /** The cloche's label: under it is a wishbone. */
+      pull: "Pull the wishbone",
+      /** What the pull leaves in your hand, said and shown. */
+      long: "You got the long end. Make a wish.",
+      short: "Short end. There's always next year.",
+      copy: {
+        sub: "Open Thanksgiving Day. Save room for pie.",
+        thanks: "Thankful for regulars like you",
+        fine: "No substitutions on the Special · Leftovers all weekend",
+        barSub: "One drink. Four guesses. Then loosen your belt.",
+      },
+    },
+  } satisfies Record<OccasionId, { name: string; shareLine: string; copy: Record<string, string>; [costume: string]: unknown }>,
 
   // ---- Screens ------------------------------------------------------------------
 

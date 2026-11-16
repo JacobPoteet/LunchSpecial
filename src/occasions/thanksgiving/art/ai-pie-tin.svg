@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- AI-GENERATED PLACEHOLDER — replace with commissioned art. See ASSETS.md ("ai-pie-tin.svg"). -->
+  <!-- An empty pie tin with a few crumbs: a spent guess, and the one that got away. -->
+  <path d="M2.3 12.4l1.8 5.4c.4 1 4 2.5 7.9 2.5s7.5-1.5 7.9-2.5l1.8-5.4z" fill="#8c877d"/>
+  <ellipse cx="12" cy="12.4" rx="9.7" ry="4.9" fill="#cfcac0"/>
+  <ellipse cx="12" cy="12.8" rx="7.4" ry="3.4" fill="#a7a195"/>
+  <path d="M5 11.2l14 0M5.6 13.9h12.8" stroke="#bdb7ab" stroke-width=".5" opacity=".7"/>
+  <ellipse cx="9.4" cy="12.9" rx="1" ry=".6" fill="#d9a35a"/>
+  <ellipse cx="13.6" cy="13.8" rx=".7" ry=".45" fill="#c8641f"/>
+  <ellipse cx="15.2" cy="12" rx=".6" ry=".4" fill="#d9a35a"/>
+  <ellipse cx="11.5" cy="11.7" rx=".45" ry=".3" fill="#d9a35a"/>
+</svg>

@@ -78,6 +78,25 @@ the card is drawn in rects (see `src/game/scorecard.ts`).
 orange and candle yellow against the diner's own palette; nothing that recolours
 text or the fills text sits on.
 
+### Thanksgiving (`src/occasions/thanksgiving/art/`)
+
+| File | What | Where | Size |
+|---|---|---|---|
+| `ai-pie.svg` | A wedge of pumpkin pie with cream | The punch card's holes: a guess still in hand; beside "On the house!" on a win | 24×24 viewBox, drawn at 18px and ~1.2em. Must read at 18px |
+| `ai-pie-tin.svg` | An empty pie tin with crumbs | A spent guess on the punch card; beside the verdict on a loss | 24×24, 18px and ~1.2em |
+| `ai-leaf.svg` | A maple leaf in rust | The pin on each clue ticket; printed in the corner of the bar's coasters | 24×24, drawn at 16px and 22px |
+| `ai-hand-turkey.svg` | A kid's hand-traced turkey in crayon, taped up | The menu card's top-right corner | 64×72, drawn at 50px |
+
+Drawn inline in `src/occasions/thanksgiving/index.tsx` rather than as files,
+because they take a theme token or `currentColor`: the leaves (falling past the
+windows, on the garland, over a win), the wishbone (on the sign, under the
+cloche) and the geese on the walk to the bar. The score card's slice of pie is
+a pixel map in `src/occasions/thanksgiving/pixels.ts`.
+
+**Style intent:** the diner at golden hour on its busiest day. Harvest colours
+(rust, squash gold, cranberry, olive) against the diner's own palette, and the
+one hand-made thing in the room is a child's drawing.
+
 ## App icons (`public/icon-*.png`, `public/apple-touch-icon.png`)
 
 Generated from `public/favicon.svg` by `npm run assets -- icons`
