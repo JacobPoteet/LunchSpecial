@@ -15,6 +15,7 @@ npm run ramen        # same, pinned to one dish (/play?special=ramen)
 npm run lastcall     # hand-off harness: seeds a finished, won Special so the After Dark band is live
 npm run negroni      # a Nightcap on one named pour, opening hours ignored (?bar=1&nightcap=negroni)
 npm run halloween    # the diner in its Halloween costume (?occasion=halloween; works on any URL, any build)
+npm run thanksgiving # the same, in its Thanksgiving costume (?occasion=thanksgiving)
 npm run admin        # opens /admin at the login
 npm test             # vitest: worker/**/*.test.ts + shared/**/*.test.ts
 npm run check        # tsc -b (3 project refs: app / worker / node)
@@ -57,7 +58,7 @@ A second daily puzzle: one **drink** a night, **4 guesses**, **3 coasters**, bet
 
 ## Occasions
 
-A costume the game wears for a stretch of the calendar (Halloween first). **Handcrafted in code; /admin only decides when.** Never call it an "event" in a URL, path or table (ad blockers; `conventions.test.ts`).
+A costume the game wears for a stretch of the calendar (Halloween, Thanksgiving). **Handcrafted in code; /admin only decides when.** Never call it an "event" in a URL, path or table (ad blockers; `conventions.test.ts`).
 
 `shared/occasions.ts` decides which occasion a day wears. **No booking, no costume.** Never `INSERT INTO occasion_bookings` from a migration or the seed. The rest: `.claude/rules/occasions.md`.
 
