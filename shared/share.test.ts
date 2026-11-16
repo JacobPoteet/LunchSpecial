@@ -35,6 +35,9 @@ describe("shareMessage", () => {
     const message = shareMessage(GRID, en, "halloween");
     expect(message).toBe(`${GRID}\n🎃 Graveyard shift at Lunch Special\n${SHARE_URL}`);
     expect(message.split(SHARE_URL)).toHaveLength(2);
+    expect(shareMessage(GRID, en, "thanksgiving")).toBe(`${GRID}
+🦃 Turkey Day at Lunch Special
+${SHARE_URL}`);
   });
 });
 

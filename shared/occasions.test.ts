@@ -87,6 +87,25 @@ describe("suggested dates", () => {
       }
     }
   });
+
+  it("Thanksgiving's window holds the fourth Thursday and the Sunday after, every year", () => {
+    for (let year = 2026; year <= 2045; year++) {
+      const nov1 = new Date(Date.UTC(year, 10, 1)).getUTCDay();
+      const thursday = 1 + ((4 - nov1 + 7) % 7) + 21;
+      const { start, end } = suggestedDates("thanksgiving", year);
+      const day = (d: number) => new Date(Date.UTC(year, 10, d)).toISOString().slice(0, 10);
+      expect(start <= day(thursday)).toBe(true);
+      expect(day(thursday + 3) <= end).toBe(true);
+    }
+  });
+});
+
+describe("secrets", () => {
+  it("gives every costume its own moment, and never 'seen'", () => {
+    const moments = OCCASION_IDS.map((id) => OCCASIONS[id].secret.moment);
+    expect(new Set(moments).size).toBe(moments.length);
+    for (const m of moments) expect(m).not.toBe("seen");
+  });
 });
 
 describe("runs", () => {
@@ -177,11 +196,12 @@ describe("foldReach", () => {
       row("a", "2026-10-30"),
       row("b", "2026-10-25"),
       row("b", "2026-10-25", { moment: "knock" }),
+      row("a", "2026-10-30", { moment: "wish" }),
       row("c", "2027-03-01", { play_day: "2026-10-31" }),
     ], "2026-10-20");
     expect(reach.devices).toBe(2);
     expect(reach.returned).toBe(1);
-    expect(reach.knocked).toBe(1);
+    expect(reach.found).toBe(2);
     expect(reach.after).toBe(1);
     expect(reach.daily).toHaveLength(8);
   });

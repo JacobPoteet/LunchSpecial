@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 72">
+  <!-- AI-GENERATED PLACEHOLDER — replace with commissioned art. See ASSETS.md ("ai-hand-turkey.svg"). -->
+  <!-- A kid's hand-traced turkey in crayon, taped up by the register: the menu card's corner. -->
+  <rect x="3" y="7" width="58" height="62" rx="1.5" fill="#fffdf7" stroke="#d9ccb0" stroke-width="1"/>
+  <g stroke-linecap="round" fill="none" stroke-width="7.5">
+    <path d="M27 42 L13 20" stroke="#d6402e"/>
+    <path d="M28 40 L21 13" stroke="#ef8a25"/>
+    <path d="M30 40 L31 11" stroke="#f2c12e"/>
+    <path d="M32 41 L41 15" stroke="#5c9a3a"/>
+  </g>
+  <g stroke-linecap="round" fill="none" stroke-width="1.1" stroke="#6b4423" opacity=".9">
+    <path d="M23.5 44 L9.6 21.8 C8.4 19.4 11.8 16.6 13.6 18.6 L25 36"/>
+    <path d="M25 36 L17.6 14 C17 11 21 9.6 22.6 12.6 L28 33"/>
+    <path d="M28 33 L27.4 11 C27.6 8 31.8 7.8 32.4 10.8 L32.8 33"/>
+    <path d="M32.8 33 L38.6 14 C39.8 11.2 43.8 12.6 43.2 15.6 L37.4 37"/>
+  </g>
+  <ellipse cx="33" cy="45" rx="12.5" ry="10" fill="#8a5a2b"/>
+  <path d="M40 41 C44 37 47 33 50.5 29.5" stroke="#8a5a2b" stroke-width="7" stroke-linecap="round" fill="none"/>
+  <circle cx="51" cy="27.6" r="1.3" fill="#1c120e"/>
+  <path d="M53.6 28.4 L58.4 29.6 L53.4 31.4z" fill="#ef8a25"/>
+  <path d="M52.6 31.6 C52 34.6 54.4 35.6 54.8 33" stroke="#d6402e" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M29 54.5 L27.4 63 M27.4 63 L24.6 64.4 M27.4 63 L27.8 66 M37 54.5 L38.6 63 M38.6 63 L41.4 64.4 M38.6 63 L38.2 66" stroke="#ef8a25" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M30 44 l2 1.4 M34 46 l2 1.2 M31 49 l2.2 1" stroke="#6b4423" stroke-width="1" stroke-linecap="round"/>
+  <rect x="21" y="1.5" width="22" height="10" rx="1" fill="#fff7dc" opacity=".72" stroke="#d9ccb0" stroke-width=".6" transform="rotate(-4 32 6.5)"/>
+</svg>

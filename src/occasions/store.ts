@@ -38,6 +38,7 @@ import type { OccasionKit } from "./kit";
 /** Each costume, loaded only when it is worn. One line per occasion. */
 const KITS: Record<OccasionId, () => Promise<OccasionKit>> = {
   halloween: () => import("./halloween").then((m) => m.default),
+  thanksgiving: () => import("./thanksgiving").then((m) => m.default),
 };
 
 const CACHE_KEY = "lunch-special:occasions";

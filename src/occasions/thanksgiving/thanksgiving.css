@@ -1,0 +1,717 @@
+/* Thanksgiving: Turkey Day.
+ *
+ * Loaded with the costume (src/occasions/thanksgiving/index.tsx), and every
+ * rule is scoped to `:root[data-occasion="thanksgiving"]` or to the costume's
+ * own `tg-` elements, so the costume comes off the moment the attribute does.
+ *
+ * Two layers, as Halloween's. The PALETTE is a token swap: the menu is
+ * reprinted in harvest colours (butter-crust stock, roast-brown ink, cranberry
+ * where the diner uses cherry, olive where it uses teal) and every component
+ * inherits it. The DECORATION is the costume's own: the amber sign and its
+ * wishbone, leaves at the windows, a garland, a hand turkey, the cloche's
+ * wishbone, falling leaves on a win and geese on the walk to the bar.
+ *
+ * Every pair below was measured on the PAINTED surface (the card's sheen
+ * darkens its foot to #eedbb8), WCAG AA 4.5 for text:
+ *
+ *   ink / card foot        12.3     on-cherry / cherry      7.56
+ *   ink-soft / card foot    6.65    on-cherry / hover      10.2
+ *   cherry / card foot      6.00    teal (olive) / foot     5.74
+ *   mustard-ink / foot      5.40    hit-ink / hit-soft      5.56 (unchanged)
+ *
+ * --hit, --near and --miss do not move: they carry the game's meaning. Nothing
+ * here flashes; every loop is slow and every keyframe is in the reduced-motion
+ * block at the bottom. `npm run a11y` scans both rooms in costume.
+ */
+
+/* The menu, reprinted for the holiday. The diner only: `:not([data-after-dark])`
+   because this selector would otherwise tie with After Dark's and, loading
+   later, repaint the bar's dark stock. */
+:root[data-occasion="thanksgiving"]:not([data-after-dark]) {
+  --paper: #f5e7c8;
+  --paper-bright: #fcf3df;
+  --paper-edge: #c9a46c;
+  --ink: #2a1a10;
+  --ink-soft: #5c4430;
+  --cherry: #962234;
+  --cherry-dark: #5e1420;
+  --cherry-hover: #74182a;
+  --on-cherry: #fff5e8;
+  --teal: #3e5a24;
+  --teal-dark: #1f2c12;
+  --mustard-ink: #7a4c06;
+  --paper-sheen: linear-gradient(rgba(255, 240, 205, 0.3), rgba(170, 110, 40, 0.1));
+  --paper-stipple: rgba(110, 60, 20, 0.07);
+  --row-fill: rgba(255, 248, 232, 0.6);
+}
+
+/* The costume's own colours, both rooms: art and decoration only, never text. */
+:root[data-occasion="thanksgiving"] {
+  --tg-rust: #c0571f;
+  --tg-gold: #e2a72e;
+  --tg-cranberry: #a3283b;
+  --tg-olive: #6d7f2c;
+  --tg-vein: rgba(60, 25, 5, 0.45);
+  --tg-twine: #8a6a3e;
+  --tg-bone: #ecd7ab;
+  --tg-bone-edge: #7a5a30;
+  --tg-amber-glow: rgba(255, 170, 60, 0.9);
+}
+
+/* The bar keeps After Dark's dark stock and re-tubes the neon pink in amber.
+   On --paper #1d1714: cherry 9.95, hover 12.4; --on-cherry on cherry 9.92. */
+:root[data-occasion="thanksgiving"][data-after-dark] {
+  --cherry: #ffb347;
+  --cherry-dark: #b9701a;
+  --cherry-hover: #ffd08a;
+  --tg-twine: #b39470;
+}
+
+.tg-hue--rust { fill: var(--tg-rust); }
+.tg-hue--gold { fill: var(--tg-gold); }
+.tg-hue--cranberry { fill: var(--tg-cranberry); }
+.tg-hue--olive { fill: var(--tg-olive); }
+
+.tg-leaf__vein {
+  fill: none;
+  stroke: var(--tg-vein);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+}
+
+/* ---- the room ----
+   Golden hour: the backdrop warmed a step and the vignette turned from teal
+   to a low amber, as if the sun were coming in sideways. */
+:root[data-occasion="thanksgiving"] .scene:not(.scene--bar)::before {
+  filter: blur(2px) brightness(0.74) saturate(0.95) sepia(0.28);
+}
+
+:root[data-occasion="thanksgiving"] .scene:not(.scene--bar)::after {
+  background: radial-gradient(
+    ellipse 120% 90% at 50% 32%,
+    rgba(70, 36, 10, 0) 35%,
+    rgba(62, 30, 10, 0.45) 75%,
+    rgba(36, 16, 6, 0.72) 100%
+  );
+}
+
+/* Leaves past the windows. Fixed in the negative-z band with the backdrop:
+   over it, under the card and everything that reads, and kept to the outer
+   margins (index.tsx places them) so none falls behind the sign. */
+.tg-leaves {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.tg-leaves--bar {
+  opacity: 0.55;
+}
+
+/* On a phone the margins are a few pixels wide and the sign spans the screen,
+   so the leaves fall only below the marquee. */
+@media (max-width: 640px) {
+  .tg-leaves {
+    mask-image: linear-gradient(transparent 0 240px, #000 300px);
+  }
+}
+
+.tg-fall {
+  position: absolute;
+  top: -8vh;
+  width: var(--size);
+  height: var(--size);
+  animation: tg-fall linear infinite;
+}
+
+.tg-fall__leaf {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0.85;
+  animation: tg-flutter 3.2s ease-in-out infinite alternate;
+}
+
+@keyframes tg-fall {
+  from {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(18px, 28vh);
+  }
+  50% {
+    transform: translate(-10px, 56vh);
+  }
+  75% {
+    transform: translate(14px, 84vh);
+  }
+  to {
+    transform: translate(0, 118vh);
+  }
+}
+
+@keyframes tg-flutter {
+  from {
+    transform: rotate(-28deg) scaleX(1);
+  }
+  to {
+    transform: rotate(32deg) scaleX(0.7);
+  }
+}
+
+/* ---- the sign ----
+   Re-tubed in amber, with a cranberry halo on the line under it. Same
+   construction as the everyday sign (a near-white core inside its halo); it
+   warms up as the page opens and then breathes, slowly, never a flicker. */
+:root[data-occasion="thanksgiving"] .marquee__script {
+  color: #fff4e2;
+  text-shadow:
+    0 0 4px #fff8ec,
+    0 0 10px rgba(255, 179, 71, 1),
+    0 0 24px rgba(255, 166, 60, 0.85),
+    0 0 52px rgba(240, 130, 30, 0.6),
+    0 0 96px rgba(220, 110, 20, 0.38);
+}
+
+:root[data-occasion="thanksgiving"] .marquee__sub {
+  color: #fff3ea;
+  text-shadow:
+    0 0 3px rgba(255, 150, 160, 0.9),
+    0 0 10px rgba(214, 64, 84, 0.8),
+    0 0 26px rgba(180, 40, 60, 0.55);
+}
+
+:root[data-occasion="thanksgiving"] .marquee--bar .marquee__script {
+  color: #fff6ec;
+  text-shadow:
+    0 0 4px #ffffff,
+    0 0 11px rgba(255, 179, 71, 1),
+    0 0 26px rgba(255, 166, 60, 0.9),
+    0 0 56px rgba(240, 130, 30, 0.72),
+    0 0 104px rgba(220, 110, 20, 0.45);
+}
+
+.tg-sign {
+  position: relative;
+  display: inline-block;
+}
+
+.tg-sign__tube {
+  position: relative;
+  display: inline-block;
+  animation:
+    tg-warm-up 1.6s ease-out 0.15s both,
+    tg-breathe 6s ease-in-out 1.8s infinite alternate;
+}
+
+@keyframes tg-warm-up {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tg-breathe {
+  to {
+    opacity: 0.88;
+  }
+}
+
+/* The wishbone hung off the end of the sign, in the same gas, beside the
+   last letter and never over it. Out of flow, so the sign stays centred on its
+   words; at 320px it still clears the edge by a wide margin. */
+.tg-sign__bone {
+  position: absolute;
+  left: 100%;
+  top: 0.06em;
+  margin-left: 0.08em;
+  width: 0.42em;
+  height: 0.5em;
+  transform: rotate(-10deg);
+  filter: drop-shadow(0 0 2px var(--tg-amber-glow)) drop-shadow(0 0 7px rgba(240, 130, 30, 0.7));
+}
+
+.tg-sign__bone .tg-bone__arm {
+  stroke: #fff1d6;
+  stroke-width: 2.2;
+}
+
+.tg-sign__bone .tg-bone__knob {
+  fill: #fff1d6;
+  stroke: none;
+}
+
+/* ---- the wishbone (sign and cloche) ---- */
+.tg-bone__arm {
+  fill: none;
+  stroke: var(--tg-bone);
+  stroke-width: 2.8;
+  stroke-linecap: round;
+}
+
+.tg-bone__knob {
+  fill: var(--tg-bone);
+  stroke: var(--tg-bone-edge);
+  stroke-width: 0.7;
+}
+
+.tg-bone__half {
+  transform-box: fill-box;
+}
+
+.tg-bone__half--left {
+  transform-origin: 0% 100%;
+}
+
+.tg-bone__half--right {
+  transform-origin: 100% 100%;
+}
+
+/* ---- the card ---- */
+
+/* Room under the garland for the header. */
+:root[data-occasion="thanksgiving"] .menu-card {
+  padding-top: 44px;
+}
+
+.tg-garland {
+  position: absolute;
+  top: -6px;
+  left: 10px;
+  right: 10px;
+  height: 40px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.tg-garland__twine {
+  position: absolute;
+  inset: 0 0 auto 0;
+  width: 100%;
+  height: 26px;
+  overflow: visible;
+  fill: none;
+  stroke: var(--tg-twine);
+  stroke-width: 1.4;
+}
+
+/* Each leaf hangs from the twine by its stem and swings a little on it. */
+.tg-garland__hang {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  transform-origin: 50% 0;
+  animation: tg-sway 4.6s ease-in-out infinite alternate;
+}
+
+.tg-garland__tilt {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.tg-garland__leaf {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(180deg);
+  filter: drop-shadow(0 1px 0 rgba(60, 30, 10, 0.25));
+}
+
+@keyframes tg-sway {
+  from {
+    transform: rotate(-7deg);
+  }
+  to {
+    transform: rotate(7deg);
+  }
+}
+
+/* A kid's drawing taped to the corner of the menu, over the end of the
+   garland and clear of every word: the sign-off's fine print runs the full
+   width of the card on a phone, so the corner it would share is this one. */
+.tg-turkey {
+  position: absolute;
+  right: -2px;
+  top: -16px;
+  width: 50px;
+  height: 56px;
+  transform: rotate(8deg);
+  pointer-events: none;
+  z-index: 3;
+  filter: drop-shadow(0 1px 2px rgba(40, 20, 5, 0.3));
+}
+
+/* ---- the cloche ---- */
+
+.tg-cloche {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.tg-cloche__btn {
+  position: relative;
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.tg-cloche__img {
+  width: 54px;
+  height: 45px;
+  display: block;
+  /* Hinged at its left foot, so the lid tips away from the words beside it. */
+  transform-origin: 12% 92%;
+}
+
+/* The lid tips back to the left; the wishbone rises out from under it, snaps, and the
+   halves fall apart. Your half is the left. With the knob it turns gold. */
+.tg-cloche__btn--pulled .tg-cloche__img {
+  animation: tg-lid 2.8s ease-in-out both;
+}
+
+@keyframes tg-lid {
+  0% {
+    transform: none;
+  }
+  14%,
+  86% {
+    transform: translate(-4px, -8px) rotate(-32deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.tg-cloche__bone {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  width: 26px;
+  height: 30px;
+  margin-left: -16px;
+  overflow: visible;
+  pointer-events: none;
+  filter: drop-shadow(0 0 1px rgba(80, 50, 20, 0.9));
+  animation: tg-rise 2.8s ease-in-out both;
+}
+
+@keyframes tg-rise {
+  0% {
+    transform: translateY(12px) scale(0.6);
+    opacity: 0;
+  }
+  18%,
+  82% {
+    transform: translateY(-16px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(12px) scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* The snap lands at 900ms (SNAP_MS in index.tsx), 32% of the pull. */
+.tg-cloche__btn--pulled .tg-bone__half--left {
+  animation: tg-part-left 2.8s ease-out both;
+}
+
+.tg-cloche__btn--pulled .tg-bone__half--right {
+  animation: tg-part-right 2.8s ease-out both;
+}
+
+@keyframes tg-part-left {
+  0%,
+  31% {
+    transform: none;
+  }
+  38%,
+  100% {
+    transform: translate(-3px, 1px) rotate(-7deg);
+  }
+}
+
+@keyframes tg-part-right {
+  0%,
+  31% {
+    transform: none;
+  }
+  38%,
+  100% {
+    transform: translate(3px, 1px) rotate(7deg);
+  }
+}
+
+.tg-cloche__btn--long .tg-bone__half--left .tg-bone__arm {
+  animation: tg-gold-arm 2.8s linear both;
+}
+
+.tg-cloche__btn--long .tg-bone__half--left .tg-bone__knob {
+  animation: tg-gold-knob 2.8s linear both;
+}
+
+@keyframes tg-gold-arm {
+  0%,
+  36% {
+    stroke: var(--tg-bone);
+  }
+  44%,
+  100% {
+    stroke: #f2b630;
+  }
+}
+
+@keyframes tg-gold-knob {
+  0%,
+  36% {
+    fill: var(--tg-bone);
+  }
+  44%,
+  100% {
+    fill: #f2b630;
+  }
+}
+
+/* ---- the punch card ----
+   Holes become pies; a spent guess is an empty tin. "4 guesses left" beside
+   them is still what says it. */
+:root[data-occasion="thanksgiving"] .tally__holes {
+  gap: 5px;
+}
+
+:root[data-occasion="thanksgiving"] .tally__hole {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: url("./art/ai-pie.svg") center / contain no-repeat;
+}
+
+:root[data-occasion="thanksgiving"] .tally__hole--punched {
+  background-image: url("./art/ai-pie-tin.svg");
+  box-shadow: none;
+}
+
+:root[data-occasion="thanksgiving"] .tally--final .tally__hole:not(.tally__hole--punched) {
+  border: 0;
+}
+
+/* ---- clue tickets ----
+   The head bar is --cherry, so the palette turns it cranberry. Pinned up
+   with a maple leaf. */
+:root[data-occasion="thanksgiving"] .ticket:not(.ticket--coaster)::after {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  background: url("./art/ai-leaf.svg") center / contain no-repeat;
+  transform: rotate(-12deg);
+}
+
+/* ---- the bar's coasters ----
+   A maple leaf printed in the corner. The head keeps clear of it at 320px. */
+:root[data-occasion="thanksgiving"] .ticket--coaster {
+  background:
+    url("./art/ai-leaf.svg") right 10px top 10px / 22px 22px no-repeat,
+    color-mix(in srgb, var(--cherry) 6%, var(--paper));
+}
+
+:root[data-occasion="thanksgiving"] .ticket--coaster .ticket__head {
+  padding-right: 36px;
+}
+
+/* ---- the win ---- */
+
+.tg-shower {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.tg-shower__piece {
+  position: absolute;
+  top: -28px;
+  width: var(--size);
+  height: var(--size);
+  animation: tg-shower-fall 2.4s cubic-bezier(0.35, 0.1, 0.6, 1) both;
+}
+
+.tg-shower__leaf {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@keyframes tg-shower-fall {
+  from {
+    transform: translate(0, 0) rotate(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(var(--sway), 52vh) rotate(calc(var(--spin) / 2));
+  }
+  85% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(0, 105vh) rotate(var(--spin));
+    opacity: 0;
+  }
+}
+
+/* ---- the check ---- */
+
+.tg-verdict {
+  display: inline-block;
+  vertical-align: -0.2em;
+  margin-left: 0.35em;
+  width: 1.2em;
+  height: 1.2em;
+}
+
+/* ---- the walk to the bar ----
+   The sun goes down behind the scrim: a low amber glow that rises and fades,
+   one slow swell, no flash. The geese cross it in a V. */
+.tg-dusk {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 130% 70% at 50% 100%, rgba(255, 150, 60, 0.55), rgba(160, 50, 60, 0.25) 45%, transparent 75%);
+  opacity: 0;
+  animation: tg-dusk 1.4s ease-in-out both;
+}
+
+@keyframes tg-dusk {
+  0% {
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.tg-geese {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* Low, through the glow: a silhouette only reads against the sunset. */
+.tg-geese__v {
+  position: absolute;
+  left: -40px;
+  top: 70%;
+  animation: tg-migrate 1.3s cubic-bezier(0.4, 0, 0.7, 1) 0.1s both;
+}
+
+.tg-geese__bird {
+  position: absolute;
+  width: 34px;
+  height: 14px;
+  color: #120b08;
+}
+
+.tg-geese__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: tg-flap 0.32s ease-in-out infinite alternate;
+}
+
+@keyframes tg-migrate {
+  from {
+    transform: translate(0, 4vh);
+  }
+  to {
+    transform: translate(120vw, -8vh);
+  }
+}
+
+@keyframes tg-flap {
+  to {
+    transform: scaleY(0.55);
+  }
+}
+
+/* ---- Discord's picture-in-picture tile ----
+   A corner of someone else's screen. The palette stays; nothing else has room. */
+:root[data-discord-layout="pip"] .tg-leaves,
+:root[data-discord-layout="pip"] .tg-garland,
+:root[data-discord-layout="pip"] .tg-turkey,
+:root[data-discord-layout="pip"] .tg-shower {
+  display: none;
+}
+
+:root[data-discord-layout="pip"][data-occasion="thanksgiving"] .menu-card {
+  padding-top: 8px;
+}
+
+/* ---- less motion ----
+   Every keyframe above. The costume still appears, at rest: the sign fully
+   lit, the leaves scattered where they lie, the garland hanging still, the
+   wishbone shown already snapped (it is what the pull does) without moving.
+   The falling leaves on a win and the geese are motion and nothing else, so
+   they go. */
+@media (prefers-reduced-motion: reduce) {
+  .tg-fall,
+  .tg-fall__leaf,
+  .tg-sign__tube,
+  .tg-garland__hang,
+  .tg-cloche__img,
+  .tg-cloche__bone,
+  .tg-bone__half,
+  .tg-bone__arm,
+  .tg-bone__knob,
+  .tg-dusk {
+    animation: none !important;
+  }
+
+  .tg-fall {
+    top: var(--rest);
+  }
+
+  .tg-cloche__btn--pulled .tg-cloche__img {
+    transform: translate(-4px, -8px) rotate(-32deg);
+  }
+
+  .tg-cloche__bone {
+    transform: translateY(-16px);
+  }
+
+  .tg-cloche__btn--pulled .tg-bone__half--left {
+    transform: translate(-3px, 1px) rotate(-7deg);
+  }
+
+  .tg-cloche__btn--pulled .tg-bone__half--right {
+    transform: translate(3px, 1px) rotate(7deg);
+  }
+
+  .tg-cloche__btn--long .tg-bone__half--left .tg-bone__arm {
+    stroke: #f2b630;
+  }
+
+  .tg-cloche__btn--long .tg-bone__half--left .tg-bone__knob {
+    fill: #f2b630;
+  }
+
+  .tg-shower,
+  .tg-geese {
+    display: none;
+  }
+}

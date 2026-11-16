@@ -4,6 +4,7 @@
 import {
   OCCASION_MOMENTS,
   OCCASION_ROOMS,
+  OCCASIONS,
   isOccasionId,
   occasionOn,
   type OccasionBooking,
@@ -70,6 +71,8 @@ export function parseSighting(
   if (!isAnalyticsId(b.playerId)) return { error: "Invalid player id" };
   if (!OCCASION_ROOMS.includes(b.room as never)) return { error: "Unknown room" };
   if (!OCCASION_MOMENTS.includes(b.moment as never)) return { error: "Unknown moment" };
+  // Each costume has one secret: a wish under Halloween's cloche is a forged row.
+  if (b.moment !== "seen" && b.moment !== OCCASIONS[b.occasionId].secret.moment) return { error: "Unknown moment" };
   const playDay = typeof b.playDay === "string" ? b.playDay : "";
   if (!isValidDateString(playDay) || playDay > addDays(today, 2) || playDay < addDays(EPOCH_DATE, -1)) {
     return { error: "Invalid day" };

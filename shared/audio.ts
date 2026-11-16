@@ -387,6 +387,14 @@ export const OCCASION_SFX: { [K in OccasionId]?: Partial<Record<SfxName, string>
     "round-lost": "occasions/halloween/theremin.wav",
     "receipt-print": "occasions/halloween/organ-chord.wav",
   },
+  thanksgiving: {
+    // The cloche plays "knock" when pressed; under Thanksgiving's it is a
+    // wishbone snapping. A gobble for the one that got away, and the dinner
+    // bell under the check.
+    knock: "occasions/thanksgiving/snap.wav",
+    "round-lost": "occasions/thanksgiving/gobble.wav",
+    "receipt-print": "occasions/thanksgiving/dinner-bell.wav",
+  },
 };
 
 /**

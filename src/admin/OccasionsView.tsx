@@ -117,8 +117,8 @@ function ImpactRows({ label, run, before }: { label: string; run: OccasionTally;
   );
 }
 
-/** Everything past the strip, folded: who came back, who found the ghost, and what it moved. */
-function Details({ reach, impact }: { reach: OccasionReach; impact: OccasionImpact }) {
+/** Everything past the strip, folded: who came back, who found the cloche's secret, and what it moved. */
+function Details({ occasionId, reach, impact }: { occasionId: OccasionId; reach: OccasionReach; impact: OccasionImpact }) {
   const firsts = countChange(impact.firstTimers.run, impact.firstTimers.baseline);
   return (
     <details className="dash-details occasion-details">
@@ -147,10 +147,10 @@ function Details({ reach, impact }: { reach: OccasionReach; impact: OccasionImpa
             </span>
           </div>
           <div className="metric">
-            <span className="metric__num">{reach.knocked}</span>
-            <span className="metric__label">Found the ghost</span>
+            <span className="metric__num">{reach.found}</span>
+            <span className="metric__label">{OCCASIONS[occasionId].secret.label}</span>
             <span className="occasion-metric__sub">
-              <Pct n={reach.knocked} of={reach.byRoom.diner} />
+              <Pct n={reach.found} of={reach.byRoom.diner} />
             </span>
           </div>
           <div className="metric">
@@ -454,7 +454,7 @@ export default function OccasionsView() {
                       <p className="reach__total">Starts {shortDate(row.startDate)}</p>
                     </div>
                   )}
-                  {row.reach && row.impact && <Details reach={row.reach} impact={row.impact} />}
+                  {row.reach && row.impact && <Details occasionId={row.occasionId} reach={row.reach} impact={row.impact} />}
                 </article>
               ))}
             </div>

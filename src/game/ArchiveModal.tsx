@@ -16,8 +16,14 @@ import { fetchPastRounds } from "../api";
 import { isPuzzleDate, puzzleNumberFor } from "./archive";
 import { EPOCH_DATE } from "../../shared/types";
 import { playSfx } from "../audio";
-import { Icon } from "./Icon";
-import { occasionOn } from "../../shared/occasions";
+import { Icon, type IconName } from "./Icon";
+
+/** The mark a costumed day keeps on the calendar for good, one per occasion. */
+const OCCASION_MARK: Record<OccasionId, IconName> = {
+  halloween: "pumpkin",
+  thanksgiving: "leaf",
+};
+import { occasionOn, type OccasionId } from "../../shared/occasions";
 import { useOccasion } from "../occasions/store";
 import { useLocale } from "../i18n/store";
 
@@ -199,9 +205,9 @@ function MonthGrid({
               <span className="archive-cal__mark" aria-hidden="true">
                 {STATUS_GLYPH[status]}
               </span>
-              {occasion === "halloween" && (
+              {occasion && (
                 <span className="archive-cal__occasion" aria-hidden="true">
-                  <Icon name="pumpkin" />
+                  <Icon name={OCCASION_MARK[occasion]} />
                 </span>
               )}
             </button>
